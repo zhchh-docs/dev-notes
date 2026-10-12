@@ -33,12 +33,12 @@
 | 03_数据可视化 | 9 | ECharts/AntV G6/Three.js/Canvas/SVG/大屏适配 |
 | 04_实时通信 | 7 | WebRTC/Janus/WebSocket/SSE/音视频协议 |
 | 05_前端常用工具库 | 10 | Axios/vxe-table/JsPlumb/Monaco/VueUse/Lodash |
-| 06_前端工程化与工具链 | 13 | Webpack/Vite/Git/ESLint/测试/Monorepo |
+| 06_前端工程化与工具链 | 10 | Webpack/Vite/Git/ESLint/测试/Monorepo |
 | 07_后端开发 | 10 | Java/Spring/SpringBoot/MyBatis/RESTful/JWT |
-| 08_数据库与建模 | 12 | MySQL/Redis/Oracle/ES/MongoDB/分库分表 |
-| 09_DevOps部署与运维 | 13 | Nginx/Docker/K8s/CI-CD/Linux/监控 |
+| 08_数据库与建模 | 10 | MySQL/Redis/Oracle/ES/MongoDB/分库分表 |
+| 09_DevOps部署与运维 | 10 | Nginx/Docker/K8s/CI-CD/Linux/监控 |
 | 10_研发流程与AI辅助 | 7 | 敏捷开发/代码评审/AI编程/RAG/技术选型 |
-| 11_全面学习 | 6 | 体系化精讲：前端/框架/工程化/后端/数据运维/软技能 |
+| 11_全面学习 | 7 | 知识总纲 + 体系化精讲：前端/框架/工程化/后端/数据运维/软技能 |
 | **合计** | **100** | |
 
 ---
@@ -54,8 +54,9 @@
 6. **易错点/面试重点** — 高频考点与踩坑总结
 
 ### 📊 全面学习系列
-新增「全面学习」模块，6 篇体系化精讲文章，每个技术点总结到位，配代码示例和流程图，适合快速建立知识体系：
-- 前端基础篇 — HTML/CSS/JS/TS/HTTP 核心概念
+「全面学习」模块为体系化精讲，共 7 篇，目标是把全栈各领域的知识点按「基础 → 标准 → 深入」三层囊括完整，每篇配代码示例和流程图，适合快速建立知识体系：
+- 知识体系总纲 — 12 大领域 × 三层知识点总清单 + 学习路径 + 覆盖进度
+- 前端基础篇 — HTML/CSS/JS/TS/HTTP 核心概念（36 个知识点）
 - 前端框架篇 — Vue/React/状态管理/微前端
 - 前端工程化篇 — 构建/Git/规范/性能优化
 - 后端开发篇 — Java/Spring/MyBatis/接口安全

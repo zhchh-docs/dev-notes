@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计预览 v5 · 手账贴纸墙</title>
+<style>
+:root{
+  --ink:#2A3D2A;
+  --ink-2:#4F6348;
+  --ink-3:#7A8A70;
+  --forest:#3D7A4F;
+  --forest-deep:#255A36;
+  --sun:#F2D06B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow-x:hidden}
+body{
+  font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0 0%,#C5DDB0 50%,#B5D0A5 100%);
+  color:var(--ink);line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;position:relative;
+}
+body::before{
+  content:"";position:fixed;top:-100px;right:-100px;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,245,180,.5),transparent 70%);
+  pointer-events:none;z-index:0;
+  animation:sunmove 8s ease-in-out infinite alternate;
+}
+@keyframes sunmove{
+  from{transform:translate(0,0) scale(1)}
+  to{transform:translate(-30px,20px) scale(1.1)}
+}
+.branch{position:fixed;top:0;left:0;width:100%;z-index:1;pointer-events:none;opacity:.85}
+.branch svg{display:block;width:100%;height:auto}
+.fall{position:fixed;z-index:1;pointer-events:none;animation:fall linear infinite;opacity:.7}
+@keyframes fall{
+  0%{transform:translateY(-20px) rotate(0deg)}
+  100%{transform:translateY(110vh) rotate(360deg)}
+}
+.f1{left:10%;animation-duration:14s;animation-delay:0s;font-size:18px}
+.f2{left:30%;animation-duration:18s;animation-delay:3s;font-size:14px}
+.f3{left:60%;animation-duration:16s;animation-delay:6s;font-size:20px}
+.f4{left:85%;animation-duration:20s;animation-delay:2s;font-size:13px}
+.f5{left:45%;animation-duration:22s;animation-delay:8s;font-size:16px}
+
+.wrap{max-width:780px;margin:0 auto;padding:60px 24px 80px;position:relative;z-index:2}
+
+.top{display:flex;align-items:center;gap:10px;margin-bottom:36px}
+.top .logo{
+  width:42px;height:42px;border-radius:50%;
+  background:linear-gradient(135deg,#6BA070,#3D7A4F);
+  display:grid;place-items:center;font-size:20px;
+  box-shadow:0 4px 16px rgba(61,122,79,.4);
+}
+.top .name{font-weight:700;font-size:15px;color:var(--forest-deep)}
+.top .spacer{flex:1}
+.top .weather{
+  font-size:12.5px;color:var(--forest-deep);
+  background:rgba(255,255,255,.5);padding:5px 12px;border-radius:999px;
+  backdrop-filter:blur(4px);
+}
+
+.hero{margin-bottom:28px}
+.hero .greeting{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;color:var(--forest-deep);
+  background:rgba(255,255,255,.6);backdrop-filter:blur(6px);
+  padding:6px 16px;border-radius:999px;margin-bottom:16px;
+  border:1px solid rgba(255,255,255,.7);
+}
+.hero h1{
+  font-size:34px;font-weight:800;letter-spacing:-.01em;line-height:1.25;
+  margin-bottom:12px;color:var(--forest-deep);
+}
+.hero h1 .hl{
+  background:linear-gradient(120deg,var(--forest),#7BC47F);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p{font-size:14.5px;color:var(--ink-2);max-width:480px}
+
+.search{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.8);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.9);
+  border-radius:16px;padding:14px 18px;margin:24px 0;
+  box-shadow:0 4px 20px rgba(61,122,79,.12);
+}
+.search svg{width:18px;height:18px;stroke:var(--forest);fill:none;stroke-width:2;flex:none}
+.search input{flex:1;border:none;background:none;outline:none;font-size:14.5px;color:var(--ink)}
+.search input::placeholder{color:var(--ink-3)}
+.search .kbd{font-size:11px;color:var(--ink-3);background:#DCE8D0;padding:3px 8px;border-radius:6px;font-family:ui-monospace,monospace}
+
+/* ========== 贴纸墙 ========== */
+.wall{
+  display:grid;grid-template-columns:1fr;gap:24px;
+  margin-top:32px;
+}
+@media(min-width:680px){
+  .wall{grid-template-columns:1fr 1fr;gap:28px}
+}
+
+.sticky{
+  position:relative;padding:22px 20px 18px;
+  /* 撕纸边效果 */
+  clip-path:polygon(0 3%,3% 0,97% 2%,100% 5%,98% 97%,95% 100%,3% 98%,0 95%);
+  box-shadow:2px 4px 14px rgba(61,122,79,.15);
+  transition:transform .2s;
+}
+.sticky:hover{transform:rotate(0deg) scale(1.02) !important;z-index:5}
+/* 胶带 */
+.sticky::before{
+  content:"";position:absolute;top:-8px;left:50%;transform:translateX(-50%) rotate(-2deg);
+  width:80px;height:22px;
+  background:rgba(255,251,230,.7);
+  border-left:1px dashed rgba(0,0,0,.08);
+  border-right:1px dashed rgba(0,0,0,.08);
+}
+
+/* 不同贴纸颜色 */
+.s1{background:#FFF8E7;transform:rotate(-1.2deg)}
+.s2{background:#E8F4E0;transform:rotate(1deg)}
+.s3{background:#FDE8E8;transform:rotate(.8deg)}
+.s4{background:#E8E8F8;transform:rotate(-.8deg)}
+.s5{background:#FFF0D8;transform:rotate(1.2deg)}
+.s6{background:#E0F0F5;transform:rotate(-1deg)}
+
+.sticky .cat-head{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.sticky .cat-ic{
+  width:38px;height:38px;border-radius:10px;
+  display:grid;place-items:center;font-size:20px;
+  background:rgba(255,255,255,.7);
+}
+.sticky h3{font-size:16px;font-weight:700;color:var(--forest-deep)}
+.sticky .cnt{font-size:11px;color:var(--ink-3);margin-left:auto}
+.sticky .desc{font-size:12.5px;color:var(--ink-2);margin-bottom:10px;line-height:1.5}
+.sticky ul{list-style:none}
+.sticky li{
+  font-size:13.5px;color:var(--ink-2);padding:5px 0;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px dashed rgba(0,0,0,.06);
+  cursor:pointer;transition:.12s;
+}
+.sticky li:last-child{border-bottom:none}
+.sticky li:hover{color:var(--ink);padding-left:4px}
+.sticky li .dot{width:6px;height:6px;border-radius:50%;flex:none}
+.sticky li .t{margin-left:auto;font-size:10.5px;padding:1px 7px;border-radius:999px;flex:none}
+.t.deep{background:#E8A0A8;color:#fff}
+.t.std{background:#9CC48E;color:var(--forest-deep)}
+.t.basic{background:var(--sun);color:#7a5a20}
+
+.s1 .dot{background:#8B6F47}
+.s2 .dot{background:#5A9E6A}
+.s3 .dot{background:#C97888}
+.s4 .dot{background:#8878B0}
+.s5 .dot{background:#D4A050}
+.s6 .dot{background:#5A9AB5}
+
+.foot{
+  text-align:center;margin-top:48px;color:var(--forest-deep);font-size:13px;
+  opacity:.8;
+}
+</style>
+</head>
+<body>
+
+<div class="branch">
+  <svg viewBox="0 0 1200 180" preserveAspectRatio="none">
+    <path d="M0,0 Q200,40 400,20 T800,30 T1200,10 L1200,0 Z" fill="#3D7A4F" opacity=".3"/>
+    <g fill="#4A8B5A" opacity=".7">
+      <ellipse cx="80" cy="30" rx="25" ry="12"/>
+      <ellipse cx="180" cy="15" rx="30" ry="14"/>
+      <ellipse cx="320" cy="35" rx="28" ry="13"/>
+      <ellipse cx="480" cy="18" rx="26" ry="12"/>
+      <ellipse cx="650" cy="30" rx="32" ry="14"/>
+      <ellipse cx="820" cy="15" rx="28" ry="13"/>
+      <ellipse cx="980" cy="28" rx="30" ry="14"/>
+      <ellipse cx="1120" cy="18" rx="26" ry="12"/>
+    </g>
+  </svg>
+</div>
+
+<div class="fall f1">🍃</div>
+<div class="fall f2">🍂</div>
+<div class="fall f3">🌿</div>
+<div class="fall f4">🍃</div>
+<div class="fall f5">🍂</div>
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="logo">🌳</div>
+    <div class="name">树荫下的笔记</div>
+    <div class="spacer"></div>
+    <div class="weather">☀️ 光斑摇曳</div>
+  </div>
+
+  <div class="hero">
+    <div class="greeting">🌿 坐在大树下 · 风很轻 · 慢慢读</div>
+    <h1>在<span class="hl">树荫下</span><br>翻完这 99 篇笔记</h1>
+    <p>头顶是树叶缝里漏下来的阳光，手里是一杯热茶。技术不用赶，一篇一篇来就好。</p>
+  </div>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="text" placeholder="在林子里找一篇… 比如：闭包、Redis、Docker">
+    <span class="kbd">⌘K</span>
+  </div>
+
+  <div class="wall">
+
+    <div class="sticky s1">
+      <div class="cat-head">
+        <div class="cat-ic">🎨</div>
+        <h3>前端基础</h3>
+        <span class="cnt">10 篇</span>
+      </div>
+      <div class="desc">网页的根与叶</div>
+      <ul>
+        <li><span class="dot"></span>HTML5 与 CSS3<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>JavaScript 核心<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>事件循环<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>浏览器原理<span class="t std">标准</span></li>
+      </ul>
+    </div>
+
+    <div class="sticky s2">
+      <div class="cat-head">
+        <div class="cat-ic">⚛️</div>
+        <h3>框架与状态</h3>
+        <span class="cnt">10 篇</span>
+      </div>
+      <div class="desc">组件怎么搭，状态怎么流</div>
+      <ul>
+        <li><span class="dot"></span>Vue 框架<span class="t std">标准</span></li>
+        <li><span class="dot"></span>Vue3 组合式 API<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>React Hooks<span class="t basic">基础</span></li>
+      </ul>
+    </div>
+
+    <div class="sticky s3">
+      <div class="cat-head">
+        <div class="cat-ic">📊</div>
+        <h3>数据可视化</h3>
+        <span class="cnt">9 篇</span>
+      </div>
+      <div class="desc">把数据画成风景</div>
+      <ul>
+        <li><span class="dot"></span>ECharts<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>AntV G6<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>Three.js<span class="t deep">深入</span></li>
+      </ul>
+    </div>
+
+    <div class="sticky s4">
+      <div class="cat-head">
+        <div class="cat-ic">📡</div>
+        <h3>实时通信</h3>
+        <span class="cnt">7 篇</span>
+      </div>
+      <div class="desc">聊天、音视频、推送</div>
+      <ul>
+        <li><span class="dot"></span>WebSocket<span class="t std">标准</span></li>
+        <li><span class="dot"></span>WebRTC<span class="t deep">深入</span></li>
+        <li><span class="dot"></span>SSE<span class="t std">标准</span></li>
+      </ul>
+    </div>
+
+    <div class="sticky s5">
+      <div class="cat-head">
+        <div class="cat-ic">⚙️</div>
+        <h3>工程化</h3>
+        <span class="cnt">10 篇</span>
+      </div>
+      <div class="desc">项目的脚手架</div>
+      <ul>
+        <li><span class="dot"></span>Vite<span class="t std">标准</span></li>
+        <li><span class="dot"></span>Git 协作<span class="t std">标准</span></li>
+        <li><span class="dot"></span>ESLint<span class="t std">标准</span></li>
+      </ul>
+    </div>
+
+    <div class="sticky s6">
+      <div class="cat-head">
+        <div class="cat-ic">🚀</div>
+        <h3>DevOps</h3>
+        <span class="cnt">10 篇</span>
+      </div>
+      <div class="desc">部署、容器、运维</div>
+      <ul>
+        <li><span class="dot"></span>Docker<span class="t std">标准</span></li>
+        <li><span class="dot"></span>Nginx<span class="t std">标准</span></li>
+        <li><span class="dot"></span>CI/CD<span class="t deep">深入</span></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="foot">🌳 树荫下笔记 · 慢慢读，自然会</div>
+</div>
+</body>
+</html>
