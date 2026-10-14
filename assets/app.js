@@ -88,23 +88,61 @@
       try{ localStorage.setItem('kb_theme', next); }catch(e){}
     };
 
-    /* ---------- 5. 上下篇 ---------- */
+    /* ---------- 5. 上下篇：底部卡片 + 两侧悬停箭头 + 键盘 ←/→ ---------- */
     function buildPager(){
-      // 移除旧 pager
-      const old = document.getElementById('kb-pager');
-      if(old) old.remove();
+      // 移除旧 pager 与旧侧边箭头
+      ['kb-pager','kb-edge-prev','kb-edge-next'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.remove();
+      });
+
       if(prev || next){
         const pager = document.createElement('div');
         pager.id = 'kb-pager';
-        pager.innerHTML = `
-          ${prev ? `<a class="prev" href="../${encodeURI(prev.u)}"><div class="dir">← 上一篇</div><div class="name">${prev.t}</div></a>` : '<span></span>'}
-          ${next ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 →</div><div class="name">${next.t}</div></a>` : '<span></span>'}`;
+        const pos = (curIdx >= 0) ? `<div class="kb-pager-pos">第 ${curIdx + 1} / ${flat.length} 篇</div>` : '';
+        pager.innerHTML = pos + `
+          ${prev
+            ? `<a class="prev" href="../${encodeURI(prev.u)}"><div class="dir">← 上一篇</div><div class="name">${prev.t}</div></a>`
+            : `<div class="none">已是第一篇</div>`}
+          ${next
+            ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 →</div><div class="name">${next.t}</div></a>`
+            : `<div class="none">已是最后一篇</div>`}`;
         const footer = content.querySelector('footer');
         if(footer) content.insertBefore(pager, footer);
         else content.appendChild(pager);
       }
+
+      // 屏幕两侧悬停翻页箭头
+      function makeEdge(isPrev, art){
+        const edge = document.createElement('a');
+        edge.id = isPrev ? 'kb-edge-prev' : 'kb-edge-next';
+        edge.className = 'kb-edge ' + (isPrev ? 'left' : 'right');
+        edge.href = '../' + encodeURI(art.u);
+        edge.title = (isPrev ? '上一篇（←）' : '下一篇（→）') + art.t;
+        edge.innerHTML = `
+          <span class="chev">${isPrev ? '‹' : '›'}</span>
+          <span class="meta"><em>${isPrev ? '上一篇' : '下一篇'}</em><b>${art.t}</b></span>`;
+        document.body.appendChild(edge);
+      }
+      if(prev) makeEdge(true, prev);
+      if(next) makeEdge(false, next);
     }
     buildPager();
+
+    // 键盘 ←/→ 翻页（输入框内、术语弹窗打开时不触发）
+    document.addEventListener('keydown', e => {
+      if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const t = e.target;
+      if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if(document.querySelector('.gloss-overlay')) return;
+      const art = e.key === 'ArrowLeft' ? prev : next;
+      if(!art) return;
+      e.preventDefault();
+      const href = '../' + encodeURI(art.u);
+      const base = location.pathname.replace(/\/[^/]*$/, '/');
+      updateHere(art.u);
+      navigateTo(base + href, href);
+    });
 
     /* ---------- 6. 滚动：进度条（监听内容容器） ---------- */
     content.addEventListener('scroll', () => {
