@@ -534,9 +534,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>LLM 应用开发：RAG 与 Function Calling</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：把大模型能力做进业务应用的两条工程路径</span>
+      <span class="meta">定位：RAG 与 Function Calling——把大模型接入业务的两条工程路径</span>
     </div>
-    <p class="hero-desc">大模型本身只有预训练知识，要在业务里用起来，靠两件事：RAG（检索增强生成，Retrieval-Augmented Generation）把私有知识查出来喂给模型；Function Calling（函数调用）让模型输出结构化指令去调真实工具。本页讲清 API 接入、RAG 检索链路、工具调用闭环与提示词工程化，并结合本人真实的 AI 辅助编码工作流与 业务系统 集成 AI 的规划思路。</p>
+    <p class="hero-desc">大模型本身只有预训练知识，要在业务里用起来靠两条路径：RAG 把私有知识检索出来喂给模型（解决"不知道"），Function Calling 让模型输出结构化意图、由你的后端校验并执行（解决"不能动"）。本篇按"核心模型 → 分场景代码 → 链路图 → 30 分钟可跑通 Demo → 分阶段坑与面试详答"展开，并诚实标注 Demo 与生产之间的差距。</p>
   </div>
 </header>
 
@@ -549,33 +549,185 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心 API 与代码（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">架构与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：把「会说话的大模型」变成「能查私有资料、能调业务接口」的应用。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇讲的是把"会说话的大模型"变成"能查私有资料、能调业务接口"的应用</strong>的两条工程路径：<strong>RAG</strong>（检索增强生成）解决"模型不知道私有知识"，<strong>Function Calling</strong>（函数调用）解决"模型不能动真实系统"。两条路径构成当前 LLM 应用开发的 80% 地图。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>API 接入</strong>：OpenAI 原生（及 DeepSeek 等兼容方）用 <code>POST /v1/chat/completions</code>，传 messages 拿补全；Anthropic Claude 原生是 <code>POST /v1/messages</code>，与 OpenAI 格式并不互通，要统一走 <code>/chat/completions</code> 需经 OpenAI 兼容网关（接口字段以最新官方文档为准）。</li>
-    <li><strong>RAG</strong>：先把私有文档切块→向量化→入库，用户提问时检索相关片段拼进 prompt，让模型「照着资料答」。</li>
-    <li><strong>Function Calling</strong>：在请求里声明可用工具的 JSON Schema，模型决定调哪个工具、传什么参数，应用执行后把结果回灌模型得到最终回答。</li>
+    <li>模型训练有截止时间，企业内部文档、最新数据它一无所知——直接问就是<strong>幻觉</strong>；</li>
+    <li>模型只能吐文字，不能查库、下单、调接口——"会聊天的 demo"落不了地；</li>
+    <li>大多数教程停在"调一次 API"，不讲<strong>多轮状态管理、检索调参、工具执行权</strong>这些真正决定能不能上生产的工程问题。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：解决模型「不知道私有知识、不会动真实系统」两个硬伤。</p>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>想把大模型接入业务系统（知识库问答、智能工单、助手类功能）</td><td>想训练/微调模型 → 属算法方向，本篇不涉及</td></tr>
+    <tr><td>面试要讲清 RAG / Function Calling 的链路与边界</td><td>只想在聊天框里用好模型 → 《大模型应用》</td></tr>
+    <tr><td>评审团队里"AI 功能"的技术方案</td><td>AI 辅助写代码的工作流 → 《AI 辅助开发》</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>独立完成一次 <strong>Chat Completions 调用</strong>并正确管理多轮对话状态（理解 API 无状态）；</li>
+    <li>画出 <strong>RAG 离线/在线完整链路</strong>，说清切块、Embedding、top-k、Rerank 各环节的作用与调参方向；</li>
+    <li>实现一个 <strong>Function Calling 闭环</strong>，并解释"为什么工具参数必须校验、执行权为什么必须在你的后端"；</li>
+    <li>识别五类典型坑（密钥前置、幻觉、召回漂移等）并给出工程对策。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：能读写 JS/TS 的 fetch 与 async/await（01 模块）；HTTP 基础（01 模块 05 篇）；JSON Schema 的基本概念（用到时现查即可）。</p>
+  <p><strong>难度等级</strong>：★★★☆☆（链路概念多，但每段代码都很短）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>第一次接触 LLM API</td><td>按顺序读第 2、3 章 → 跑第 6 章 Demo → 第 7 章坑当检查清单</td></tr>
+    <tr><td>要设计方案/评审</td><td>第 5 章链路图 → 第 8 章重点讲解（含设计题）</td></tr>
+    <tr><td>只查 API 用法</td><td>第 3 章按场景检索代码</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点（Rerank、协议差异细节、成本取舍）；第 8 章的设计题。<strong>务必动手</strong>：第 6 章 Demo——不跑通一次检索+工具调用闭环，第 2 章的概念全是纸上谈兵。</p>
+  <p><strong>诚实声明</strong>：本篇的自建 Demo 处于<strong>自学与最小可行验证阶段，未上生产</strong>；文中会明确区分"跑通验证的"与"生产还需要补的"。这与《AI 辅助开发》里的真实编码工作流是两回事，不混为一谈。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>本章按依赖顺序讲五个核心模型：先会"调一次 API"（2.1），再理解它的两个硬约束——Token 与窗口（2.2）、无状态（2.1 内）；然后是让输出可控的提示词工程（2.3）；最后是两条增强路径 RAG（2.4）与 Function Calling（2.5）。<strong>2.4 和 2.5 是本篇的主菜</strong>。</p>
+
+  <h3>2.1 Chat Completions 与 messages 结构</h3>
+  <p><strong>一次对话就是一组带角色的 messages 数组，模型根据上下文补全下一条</strong>。角色四种：<code>system</code>（定人设/约束）、<code>user</code>（用户）、<code>assistant</code>（模型历史回复）、<code>tool</code>（工具返回，见 2.5）。<br><br>
+  <strong>关键约束——API 是无状态的</strong>：服务端不记你的聊天，多轮对话要<strong>自己把历史 messages 全量带上</strong>。"第二轮失忆"的 bug 全部源于忽略这一点。<br><br>
+  <strong>协议差异要注意</strong>：OpenAI 原生是 <code>POST /v1/chat/completions</code>（DeepSeek 等兼容此格式）；Anthropic Claude 原生是 <code>POST /v1/messages</code>，且 system 是顶层参数而非 messages 里的角色——<strong>两者不互通</strong>，要统一调用需经 OpenAI 兼容网关（接口字段以最新官方文档为准）。工程含义：选型时先确认"走兼容网关还是分头适配"。</p>
+
+  <h3>2.2 Token 与上下文窗口</h3>
+  <p><strong>输入和输出都按 token 计费、都消耗上下文窗口</strong>。窗口决定一次能塞多少内容，由此推出两个工程约束：①RAG 召回的片段不能贪多——top-k 太大既撑爆窗口又推高成本还稀释注意力；②超长文档分析要么选长上下文模型，要么靠 RAG 只送相关片段。<strong>成本意识从第一行代码就要有</strong>：messages 是全量重发，多轮长对话的成本是平方级增长的。</p>
+
+  <h3>2.3 提示词工程：让输出稳定可解析</h3>
+  <p>用<strong>结构化、可复用的指令模板</strong>稳定模型输出。五要素：<strong>角色、任务、约束、输入数据、输出格式</strong>——要 JSON 就明确给 schema 或示例。三个高频技巧：<strong>few-shot</strong>（给一两个输入输出示例，格式遵从性立竿见影）、<strong>先想后答</strong>（要求模型先列分析再给结论，复杂问题准确率提升）、<strong>限定范围</strong>（"只依据以下资料回答，没有就说不知道"——RAG 场景的标配约束）。工程化要点：提示词当<strong>代码管理</strong>——版本化、可测试，改一版跑一轮测试集，不要在聊天框里凭感觉改。</p>
+
+  <h3>2.4 RAG 检索链路：把"记忆"问题变成"检索"问题</h3>
+  <p>RAG 分<strong>离线</strong>与<strong>在线</strong>两段：</p>
   <ul>
-    <li><strong>知识时效/私有</strong>：模型训练有截止时间，企业内部文档、最新需求它不知道——RAG 补。</li>
-    <li><strong>行动能力</strong>：模型只能吐文字，不能查库、下单、调接口——Function Calling 补。</li>
-    <li><strong>幻觉抑制</strong>：有了检索到的真实片段做依据，模型编造概率下降。</li>
+    <li><strong>离线</strong>：文档 → <strong>切块</strong>（chunk，粒度是召回质量的第一变量）→ <strong>Embedding 向量化</strong> → 存入向量库（PG 向量扩展 / FAISS 等）；</li>
+    <li><strong>在线</strong>：用户问题用<strong>同一个 Embedding 模型</strong>向量化（保证同空间可比）→ 向量库按相似度召回 <strong>top-k</strong> 片段 → 作为"参考资料"拼进 messages（system 里加"只依据资料回答"）→ 模型据资料生成。</li>
   </ul>
+  <p><strong>为什么 RAG 能抑制幻觉</strong>：模型从"凭参数记忆编"变成"照着给定资料答"，且答案可<strong>溯源到具体文档</strong>。为什么不需要重训模型就能更新知识——换文档、重新入库即可，这是 RAG 相比微调的最大工程优势（对比详见 8.2）。完整链路图见第 5 章。</p>
+
+  <h3>2.5 Function Calling：模型点菜，后端炒菜</h3>
+  <p><strong>模型不真的执行任何代码</strong>——它只输出"要调哪个函数、参数是什么"的结构化 JSON，<strong>真正的执行在你的应用里</strong>。闭环四步：</p>
+  <ol>
+    <li><strong>声明</strong>：请求里带 <code>tools</code>，每个工具给 name、描述、参数 JSON Schema（描述写得好坏直接决定模型会不会正确用它）；</li>
+    <li><strong>决策</strong>：模型判断该不该调工具，返回 <code>tool_calls</code>（不是最终回答）；<code>tool_choice</code> 参数可控制行为：auto（模型自定）/ required（必须调）/ 指定某工具 / none（禁用）；</li>
+    <li><strong>执行</strong>：你的代码<strong>校验参数后</strong>执行真实查询；把结果作为 <code>role:'tool'</code> 消息再发一次；</li>
+    <li><strong>收口</strong>：模型基于工具结果生成面向用户的自然语言回答。</li>
+  </ol>
+  <p class="note"><strong>协议差异</strong>：Claude 原生不用 <code>tool_calls</code>/<code>role:tool</code>，而是 assistant 消息里的 <code>tool_use</code> 内容块、user 消息里的 <code>tool_result</code> 内容块来回灌（以最新官方文档为准）。<strong>安全铁律</strong>：<code>tool_calls</code> 里的参数必须经 schema 校验后才能执行——模型会编造参数值，直接信任等于把 SQL 注入的门重新打开。</p>
+
+  <h3>2.6 两条路径怎么选：不是二选一</h3>
+  <p>真实应用往往<strong>同时用两条</strong>：智能工单助手 = RAG（检索历史工单与内部文档）+ Function Calling（查订单状态、创建工单）。判断口诀：<strong>问题是"知识性的"→ RAG；问题是"操作性的"→ Function Calling；混合问题 → 先检索再调工具再生成</strong>。两条路径的位置关系见第 5 章图 1。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心 API 与代码（按场景）</h2>
+  <p>四个场景从最小调用到完整闭环，代码全部可跑（配 Node 18+ 与任一 OpenAI 兼容 API Key）。</p>
+
+  <h3>3.1 场景一：最小对话请求</h3>
+<pre class="code" data-lang="ts"><code>const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: '你是需求管理助手，只依据提供的资料回答。' },
+      { role: 'user', content: '本期 Sprint 包含哪些需求？' }
+    ],
+    temperature: 0.2 // 低温度：要稳定、少发挥
+  })
+})
+// ❌ 注意：API_KEY 只能存在于后端。出现在前端 = 任何人打开 DevTools 就能盗刷你的账户</code></pre>
+  <p><code>temperature</code> 怎么调：知识问答/结构化输出用低值（0~0.3，求稳定）；创意生成用高值（0.7+）。生产环境给模型调用加<strong>超时与重试</strong>（网络失败是常态）。</p>
+
+  <h3>3.2 场景二：多轮对话（自己管状态）</h3>
+<pre class="code" data-lang="ts"><code>// 服务端维护会话历史——API 无状态，每次全量重发
+const history = [
+  { role: 'system', content: SYSTEM_PROMPT },
+];
+async function chat(userText: string) {
+  history.push({ role: 'user', content: userText });
+  const reply = await callLLM(history);          // 封装 3.1 的 fetch
+  history.push({ role: 'assistant', content: reply });
+  return reply;
+}
+// ⚠️ 历史无限增长会撑爆窗口+成本飙升：超长会话做截断或摘要压缩，
+//    但 system 消息永远保留在第一条</code></pre>
+
+  <h3>3.3 场景三：RAG 检索拼装</h3>
+<pre class="code" data-lang="ts"><code>// 在线段：检索 + 拼 prompt（离线切块入库见第 6 章 Demo）
+const chunks = await vectorStore.search(question, { topK: 3 })
+const context = chunks.map(c =&gt; c.text).join('\n---\n')
+const messages = [
+  { role: 'system', content: `只依据以下资料回答，资料没有就说不知道：\n${context}` },
+  { role: 'user', content: question }
+]
+// 关键点：
+// ① system 里那句"没有就说不知道"是幻觉的第一道闸
+// ② 每个片段带上来源（文件名/段落号），让回答可溯源
+// ③ 召回质量差先调三件事：chunk 大小、相似度阈值、top-k（详见 7.3）</code></pre>
+
+  <h3>3.4 场景四：Function Calling 闭环</h3>
+<pre class="code" data-lang="ts"><code>// 1) 声明工具：查需求列表
+tools = [{ type: 'function', function: {
+  name: 'list_requirements',
+  description: '按状态查询本期需求列表',        // 描述写给模型看：它据此决定何时调用
+  parameters: { type: 'object', properties: { status: { type: 'string' } } }
+}}]
+// 2) 模型返回 tool_calls（不是最终回答），应用执行真正的查询
+// 3) 把执行结果作为 role:'tool' 再发一次，模型据此生成自然语言回答
+messages.push({ role: 'assistant', tool_calls: res.tool_calls })
+messages.push({ role: 'tool', tool_call_id, content: JSON.stringify(realData) })
+// 再次请求 → 得到最终面向用户的回答
+
+// 4) 执行前必须校验参数——模型会编造参数值
+const args = JSON.parse(tool_call.function.arguments);
+if (!ALLOWED_STATUS.includes(args.status)) throw new Error('非法参数');  // schema/白名单校验</code></pre>
+  <p class="key-sentence"><strong>职责分界</strong>：模型负责"决定调什么、传什么"（自然语言 → 结构化意图），你的后端负责"校验并执行"（真实系统操作）。<strong>执行权永远在后端</strong>——这句话是 Function Calling 安全设计的全部。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>本章讲检索质量优化、协议适配与成本工程。前置：已跑通第 6 章 Demo。</p>
+
+  <h3>4.1 Rerank：召回之后的二次精排</h3>
+  <p>向量检索（双塔/近似检索）快但粗——它比的是"整体语义相似"，经常召回"话题相关但答非所问"的片段。<strong>Rerank</strong> 用 cross-encoder 类模型（如 bge-reranker、Cohere Rerank，选型以最新官方文档为准）把"问题+片段"成对精算相关性，对召回的 top-20 重排出 top-3 再拼 prompt。<strong>取舍</strong>：Rerank 显著提升相关性，但增加一次模型调用延迟——只对"召回候选"做，不对全库做。</p>
+
+  <h3>4.2 多协议适配：兼容网关 vs 分头适配</h3>
+  <p>2.1 说过 OpenAI 与 Claude 格式不互通。两种工程方案：<strong>兼容网关</strong>（自建或用网关层把 Claude 转成 OpenAI 格式，业务代码只写一种）——省心但多一跳、丢特性；<strong>分头适配</strong>——为每家写 adapter（统一内部的 messages 表示，出口各自转换）——灵活但维护面大。选型依据：<strong>只用一家 → 直连；多模型路由/切换 → 网关或 adapter 层</strong>。无论哪种，把"协议适配"收敛在一个模块里，不要散在业务代码里。</p>
+
+  <h3>4.3 tool_choice 与工具调用的可控性</h3>
+  <p><code>tool_choice</code> 四档（auto / required / 指定工具 / none）对应不同产品形态：聊天助手用 <code>auto</code>（模型自己判断）；结构化抽取用 <code>required</code>（强制走工具，输出格式天然稳定）；流程固定的场景直接指定工具（把模型当"参数填充器"用，确定性最高）；纯闲聊入口用 <code>none</code> 省成本。<strong>从 auto 收紧到指定，确定性递增、灵活性递减</strong>——按业务对"答错"的容忍度选。</p>
+
+  <h3>4.4 成本工程：token 预算的三个阀门</h3>
+  <p>①<strong>输入阀门</strong>：top-k 截断、历史压缩（摘要代替全量）、片段去重；②<strong>模型阀门</strong>：简单请求路由小模型（意图分类/改写），复杂推理才上大模型；③<strong>输出阀门</strong>：<code>max_tokens</code> 限长 + 提示词里限定输出结构。监控口径：每次调用记录 prompt/completion token 数，按功能聚合——没有这个，月底账单会教你做人。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>架构与流程图</h2>
+
+  <h3>5.1 两条增强路径的位置关系</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="RAG 与 Function Calling 在 LLM 应用中的位置示意图">
       <defs>
@@ -597,49 +749,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 RAG 与 Function Calling 两条增强路径（示意）</p>
   </div>
-</section>
+  <p><strong>读图要点</strong>：RAG 喂给模型的是<strong>信息</strong>（改变"它知道什么"），Function Calling 从模型拿走的是<strong>意图</strong>（改变"它能做什么"）。两者方向相反、可组合：混合型问题走"检索 → 调工具 → 生成"三段式。</p>
 
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 Chat Completions 与 messages 结构</h3>
-  <p class="lead"><b>一句话定位</b>：一次对话就是一组带角色的 messages 数组，模型根据上下文补全下一条。</p>
-  <ul>
-    <li><strong>角色</strong>：<code>system</code>（定人设/约束）、<code>user</code>（用户）、<code>assistant</code>（模型历史回复）、<code>tool</code>（工具返回）。</li>
-    <li><strong>无状态</strong>：API 本身不记聊天，多轮要自己把历史 messages 全量带上。</li>
-    <li><strong>注意协议差异</strong>：上述 <code>system/user/assistant/tool</code> 角色结构是 OpenAI Chat Completions 的约定；Claude 原生 Messages API 里 <code>system</code> 是顶层参数而非 messages 内的 <code>role:system</code> 消息，二者不互通，统一调用需经 OpenAI 兼容网关（以最新官方文档为准）。</li>
-  </ul>
-  <h3>2.2 提示词工程（Prompt Engineering）</h3>
-  <p class="lead"><b>一句话定位</b>：用结构化、可复用的指令模板，稳定模型输出。</p>
-  <ul>
-    <li><strong>要素</strong>：角色、任务、约束、输入数据、输出格式（要 JSON 就明确给 schema/示例）。</li>
-    <li><strong>技巧</strong>：给示例（few-shot）、要求先想后答、限定范围减少幻觉。</li>
-  </ul>
-  <h3>2.3 RAG 检索链路</h3>
-  <p class="lead"><b>一句话定位</b>：离线把文档切块向量化入库，在线按问题召回 top-k 片段拼进 prompt。</p>
-  <ul>
-    <li><strong>离线</strong>：文档→切块（chunk）→Embedding 向量化→存向量库（如 PG 向量/FAISS）。</li>
-    <li><strong>在线</strong>：用户问题向量化→相似度检索 top-k→作为「参考资料」拼进上下文→模型据资料作答。</li>
-    <li><strong>重排（Rerank）</strong>：召回 top-k 后常用 cross-encoder/rerank 模型对片段二次精排再拼 prompt，进一步提升相关性（如 bge-reranker、Cohere Rerank，选型以最新官方文档为准）。</li>
-  </ul>
-  <h3>2.4 Function Calling 工具调用</h3>
-  <p class="lead"><b>一句话定位</b>：模型不真的执行代码，而是输出「要调哪个函数、参数是什么」的结构化 JSON，由应用执行。</p>
-  <ul>
-    <li><strong>声明</strong>：请求里带 <code>tools</code>，每个工具给 name/描述/参数 JSON Schema。</li>
-    <li><strong>tool_choice</strong>：用 <code>tool_choice</code> 控制是否、以及如何调工具（auto / required / 指定某工具 / none），OpenAI 与 Anthropic 均支持。</li>
-    <li><strong>闭环</strong>：模型返回 <code>tool_calls</code>→应用执行→把结果作为 <code>role:tool</code> 消息再发一次→模型给最终自然语言回答。</li>
-    <li><strong>Claude 差异</strong>：Claude 原生不用 <code>tool_calls</code>/<code>role:tool</code>，而是 assistant 消息里的 <code>tool_use</code> 内容块、user 消息里的 <code>tool_result</code> 内容块来回灌（以最新官方文档为准）。</li>
-  </ul>
-  <h3>2.5 Token 与上下文窗口</h3>
-  <p class="lead"><b>一句话定位</b>：输入+输出都消耗 token，上下文窗口决定一次能塞多少内容。</p>
-  <ul>
-    <li><strong>约束</strong>：RAG 召回太多片段会撑爆窗口、推高成本，需 top-k 截断。</li>
-    <li><strong>取舍</strong>：超长文档分析选长上下文模型，或靠 RAG 只送相关片段。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 RAG 一次问答的完整链路</h3>
+  <h3>5.2 RAG 在线问答链路（含异常分支）</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="RAG 检索增强生成一次问答流程图">
       <defs>
@@ -671,140 +783,238 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="200" y="166" text-anchor="middle" font-size="12" font-weight="600" fill="#4f6348">离线准备：文档切块 → embedding → 入库</text>
       <text x="200" y="183" text-anchor="middle" font-size="11" fill="#7a8a70">只做一次，供在线检索复用</text>
       <line x1="200" y1="144" x2="438" y2="110" stroke="#9cae90" stroke-dasharray="4 3"/>
+      <rect x="330" y="196" width="200" height="36" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="430" y="212" text-anchor="middle" font-size="11" fill="#991b1b">异常分支：召回为空/相似度过低</text>
+      <text x="430" y="227" text-anchor="middle" font-size="11" fill="#991b1b">→ 直答"资料里没有"，不硬编</text>
     </svg>
-    <p class="diagram-caption">图 2 RAG 一次问答的完整链路（示意）</p>
+    <p class="diagram-caption">图 2 RAG 一次问答的完整链路（含空召回分支）</p>
   </div>
   <ul>
-    <li><strong>1 问题向量化</strong>：把用户问题用同一个 Embedding 模型转成向量，保证与文档向量同空间可比。</li>
-    <li><strong>2 相似度召回</strong>：向量库按余弦相似度取 top-k 最相关文档片段，这是「私有知识」来源。</li>
-    <li><strong>3 拼上下文</strong>：把片段作为参考资料 + 用户问题拼成 messages，system 里要求「只依据资料回答」。</li>
-    <li><strong>4 生成</strong>：模型基于给定片段生成答案，而非凭参数记忆，幻觉与越权回答显著减少。</li>
+    <li><strong>1 问题向量化</strong>：用与文档<strong>同一个 Embedding 模型</strong>转向量，保证同空间可比；</li>
+    <li><strong>2 相似度召回</strong>：取 top-k 最相关片段——这是"私有知识"的来源，也是质量瓶颈所在；</li>
+    <li><strong>3 拼上下文</strong>：片段 + 问题组装 messages，system 要求"只依据资料回答"；</li>
+    <li><strong>4 生成</strong>：模型基于片段作答而非凭参数记忆，幻觉显著减少且可溯源。</li>
   </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>Why：RAG 把「记忆」问题变成「检索」问题——不必重训模型即可更新知识，且可溯源到具体文档。</p>
-</section>
+  <p class="key-sentence"><strong>要点</strong>：RAG 把"记忆"问题变成"检索"问题——不必重训模型即可更新知识，答案可溯源到具体文档。<strong>异常分支</strong>：召回相似度低于阈值时，正确行为是直答"资料里没有"，而不是让模型自由发挥——<strong>空召回分支的设计质量，决定用户信不信任你的 AI 功能</strong>。</p>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 一次最小对话请求</h3>
-<pre class="code" data-lang="ts"><code>const res = await fetch('https://api.openai.com/v1/chat/completions', {
-  method: 'POST',
-  headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: '你是需求管理助手，只依据提供的资料回答。' },
-      { role: 'user', content: '本期 Sprint 包含哪些需求？' }
-    ],
-    temperature: 0.2 // 低温度：要稳定、少发挥
-  })
-})</code></pre>
-  <h3>4.2 Function Calling 的请求与回灌</h3>
-  <p class="lead"><b>一句话定位</b>：模型只决定「调哪个工具、传什么参」，真正执行在你的后端。</p>
-<pre class="code" data-lang="ts"><code>// 1) 声明工具：查需求列表
-tools = [{ type: 'function', function: {
-  name: 'list_requirements',
-  description: '按状态查询本期需求列表',
-  parameters: { type: 'object', properties: { status: { type: 'string' } } }
-}}]
-// 2) 模型返回 tool_calls（不是最终回答），应用执行真正的查询
-// 3) 把执行结果作为 role:'tool' 再发一次，模型据此生成自然语言回答
-messages.push({ role: 'assistant', tool_calls: res.tool_calls })
-messages.push({ role: 'tool', tool_call_id, content: JSON.stringify(realData) })
-// 再次请求 → 得到最终面向用户的回答</code></pre>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>注意：模型不会真的连数据库，<code>tool_calls</code> 里的参数必须由你的代码校验后再执行，不能直接信任。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-  <div class="warn-box"><strong>说明</strong>：本节为<strong>自学 + 自建 demo，非生产环境项目</strong>。RAG/Function Calling 处于学习与最小可行验证阶段，尚未上生产；业务系统 集成 AI 仅为规划。本人真实经验在「AI 辅助编码工作流」（Cursor/Codex/ChatGPT/Claude/DeepSeek），与本 demo 区分。</div>
-
-  <h3>5.1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：AI 辅助编码已日常使用，想把大模型真正做进应用，补 RAG/工具调用的链路认知。</p>
-  <ul>
-    <li><strong>缺口</strong>：只在聊天框用模型，没跑通"检索+生成+工具调用"完整链路。</li>
-  </ul>
-
-  <h3>5.2 搭建的 demo 是什么</h3>
-  <p class="lead"><b>一句话定位</b>：本地 RAG 问答 + Function Calling 工具调用的最小验证。</p>
-  <ul>
-    <li><strong>功能</strong>：文档切块→Embedding 入库→向量检索 top-k→拼 system 问答；暴露"查需求详情"工具。</li>
-  </ul>
-
-  <h3>5.3 落地步骤</h3>
-<pre class="code" data-lang="ts"><code>// 最小可行：RAG 检索后拼 prompt（伪代码，链路示意）
-const chunks = await vectorStore.search(question, { topK: 3 })
-const context = chunks.map(c =&gt; c.text).join('\n---\n')
-const messages = [
-  { role: 'system', content: `只依据以下资料回答，资料没有就说不知道：\n${context}` },
-  { role: 'user', content: question }
-]</code></pre>
-
-  <h3>5.4 自学过程中遇到的坑与解决</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>检索不相关</strong>：切块太大/太小、Embedding 不匹配召回无关片段——调 chunk 大小与 top-k。</li>
-    <li><span class="tag-pit">坑</span><strong>密钥前置</strong>：API Key 绝不能放前端，必须经后端代理，否则被盗刷。</li>
-    <li><span class="tag-pit">坑</span><strong>模型编造参数</strong>：Function Calling 传出参数要做 schema 校验，不能直接执行。</li>
-  </ul>
-
-  <h3>5.5 成果（可验证能力清单）</h3>
-  <ul>
-    <li><span class="tag-point">要点</span>跑通文档切分+嵌入+向量检索+LLM 问答链路。</li>
-    <li><span class="tag-point">要点</span>验证模型能否正确决定何时调用工具、参数是否合理。</li>
-  </ul>
-
-  <h3>5.6 与真实项目的差异</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span>单机 demo、小规模文档、无高可用监控与评测体系，未上生产。</li>
-    <li><span class="tag-point">要点</span>业务系统 集成 AI 为规划项，架构上密钥与模型调用收敛后端、前端只拿最终答案。</li>
-  </ul>
-
-  <h3>5.7 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「我自建了 RAG 与 Function Calling 最小 demo 跑通检索+生成+工具调用链路，清楚密钥后端代理、检索调参与参数校验这些工程边界，业务系统 集成 AI 是规划项。」</p>
+  <h3>5.3 Function Calling 闭环时序（文字版）</h3>
+  <ol>
+    <li>应用 → 模型：messages + tools 声明；</li>
+    <li>模型 → 应用：<code>tool_calls</code>（工具名 + 参数 JSON）——<strong>此时没有任何事发生</strong>；</li>
+    <li>应用内部：<strong>schema/白名单校验参数</strong> → 执行真实操作（查库/调接口）→ 拿到结果；</li>
+    <li>应用 → 模型：追加 assistant(tool_calls) + tool(结果) 消息，再次请求；</li>
+    <li>模型 → 用户：基于真实数据的自然语言回答。</li>
+  </ol>
+  <p><strong>异常分支</strong>：参数校验失败 → 不调工具，把校验错误作为 tool 消息回灌，让模型修正参数重试一次；重试仍失败 → 降级为人工处理提示。模型不会真的连数据库——它只是"填单员"。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 把 API Key 放前端</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质声明</strong>：这是<strong>自学 + 自建 demo，非生产环境项目</strong>——目标是 30 分钟跑通"检索 + 生成 + 工具调用"完整链路。生产化差距见 6.5。</p>
+  <p>保存为 <code>llm-demo.mjs</code>（Node 18+，<code>npm i openai</code>，设置环境变量 <code>OPENAI_API_KEY</code>）：本地知识库（3 条需求文档）+ RAG 问答 + 一个"查需求详情"工具。</p>
+
+  <h3>6.1 完整代码</h3>
+<pre class="code" data-lang="js"><code>import OpenAI from 'openai';
+const client = new OpenAI();                       // 读 OPENAI_API_KEY 环境变量
+
+// ===== 离线：知识库切块 + 伪向量检索（Demo 用关键词匹配代替真实向量库）=====
+const docs = [
+  { id: 'REQ-101', text: '需求101：登录页支持手机号+验证码登录，验证码60秒有效期。' },
+  { id: 'REQ-102', text: '需求102：订单列表支持按状态筛选，默认展示待支付订单。' },
+  { id: 'REQ-103', text: '需求103：个人中心展示近30天的积分变动明细。' },
+];
+function search(question, topK = 2) {              // 生产环境换真向量库（见 6.5）
+  return docs
+    .map(d =&gt; ({ ...d, score: matchScore(question, d.text) }))
+    .sort((a, b) =&gt; b.score - a.score).slice(0, topK)
+    .filter(d =&gt; d.score &gt; 0);
+}
+function matchScore(q, text) {                     // 极简相关性：关键词重合数
+  return q.split('').filter((_, i) =&gt; text.includes(q.slice(i, i + 2))).length;
+}
+
+// ===== 工具声明：查需求详情 =====
+const tools = [{
+  type: 'function',
+  function: {
+    name: 'get_requirement',
+    description: '按需求编号查询需求的详细内容',
+    parameters: { type: 'object', properties: { req_id: { type: 'string' } }, required: ['req_id'] },
+  },
+}];
+function execTool(args) {                          // 执行权在后端 + 参数白名单校验
+  if (!/^REQ-\d{3}$/.test(args.req_id)) throw new Error('非法需求编号');
+  return docs.find(d =&gt; d.id === args.req_id)?.text ?? '未找到该需求';
+}
+
+// ===== 主流程：RAG 拼装 → 调用（含工具闭环） =====
+async function ask(question) {
+  const hits = search(question);
+  const context = hits.map(h =&gt; `[${h.id}] ${h.text}`).join('\n') || '（资料库中无相关内容）';
+  const messages = [
+    { role: 'system', content: `你是需求管理助手。只依据以下资料回答，资料没有就说不知道：\n${context}` },
+    { role: 'user', content: question },
+  ];
+  let res = await client.chat.completions.create({ model: 'gpt-4o-mini', messages, tools });
+
+  // Function Calling 闭环：模型可能要求调工具
+  while (res.choices[0].finish_reason === 'tool_calls') {
+    for (const call of res.choices[0].message.tool_calls) {
+      const args = JSON.parse(call.function.arguments);
+      let result;
+      try { result = execTool(args); } catch (e) { result = `参数校验失败：${e.message}`; }
+      messages.push(res.choices[0].message);                       // assistant(tool_calls)
+      messages.push({ role: 'tool', tool_call_id: call.id, content: result });  // 回灌结果
+    }
+    res = await client.chat.completions.create({ model: 'gpt-4o-mini', messages, tools });
+  }
+  return res.choices[0].message.content;
+}
+
+console.log(await ask('验证码登录的有效期是多久？'));   // 走 RAG：命中 REQ-101
+console.log(await ask('查一下 REQ-103 的详情'));        // 走 Function Calling
+console.log(await ask('公司年假有几天？'));             // 空召回：应回答"资料里没有"</code></pre>
+
+  <h3>6.2 逐段解析</h3>
   <ul>
-    <li><strong>现象</strong>：前端代码里写死模型密钥。</li>
-    <li><strong>原因</strong>：浏览器可被任何人查看网络请求与源码。</li>
+    <li><code>search()</code>：Demo 用关键词重合度模拟向量检索——<strong>链路与真实 RAG 完全一致</strong>（检索 → 拼 prompt），只是相似度算法换了；生产换 FAISS/PG 向量即可，其余代码不动；</li>
+    <li>system 里的"没有就说不知道"：空召回分支（第三个问题）的守护约束——运行结果里它会如实回答不知道，而不是编一个年假天数；</li>
+    <li><code>while (finish_reason === 'tool_calls')</code>：闭环循环——模型可能连续要求调多个工具，直到给出最终回答；</li>
+    <li><code>execTool</code> 的正则白名单：模型如果编造 <code>REQ-99999</code> 或传注入字符串，在执行前就被拦下——2.5 的"执行权在后端"落到代码上就是这一行。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：后端代理模型请求，前端只调自己的业务接口。</p>
-  <h3>6.2 不验证就用模型产出</h3>
+
+  <h3>6.3 运行结果说明</h3>
+<pre class="code" data-lang="text"><code>验证码有效期为 60 秒。（来源：REQ-101）          ← RAG：答案来自检索片段，非模型记忆
+REQ-103：个人中心展示近 30 天的积分变动明细。      ← Function Calling：工具返回真实数据
+抱歉，资料库中没有关于年假的信息。                ← 空召回分支：诚实承认，未幻觉</code></pre>
+
+  <h3>6.4 与真实生产的差距（诚实清单）</h3>
   <ul>
-    <li><strong>现象</strong>：直接采信模型生成的代码/SQL/参数。</li>
-    <li><strong>原因</strong>：模型会幻觉，编造不存在的 API 或参数。</li>
+    <li><strong>检索</strong>：关键词匹配 → 真实 Embedding 向量库 + 相似度阈值 + Rerank；</li>
+    <li><strong>规模</strong>：3 条文档 → 企业级文档量需要分块策略、增量入库、权限过滤（谁能检索哪些文档）；</li>
+    <li><strong>工程</strong>：无评测集（回答质量怎么回归测试）、无监控（token 消耗/延迟/失败率）、无流式输出体验；</li>
+    <li><strong>安全</strong>：单机 Key 明文 → 密钥收敛后端代理 + 调用审计。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：所有产出本地跑通、schema 校验后再用。</p>
-  <h3>6.3 RAG 召回太多或不相关</h3>
-  <ul>
-    <li><strong>现象</strong>：答非所问或上下文被无关片段淹没。</li>
-    <li><strong>原因</strong>：切块策略/相似度阈值/top-k 没调好。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：调 chunk 大小、加相似度阈值、控制 top-k 在 3~5 段。</p>
-  <h3>6.4 把模型结论当权威</h3>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：版本/参数/行为以官方文档与本地实测为准，模型只是辅助。</p>
-  <h3>6.5 忘记多轮上下文要自己带</h3>
-  <ul>
-    <li><strong>现象</strong>：第二轮提问模型「失忆」。</li>
-    <li><strong>原因</strong>：Chat Completions 无状态，每次要传完整 messages。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：前端/后端维护对话历史，每次请求带上完整 messages。</p>
+
+  <h3>6.5 生产改造扩展方向</h3>
+  <ol>
+    <li>把伪检索换成真实 Embedding + 向量库，观察召回质量差异，练习调 chunk 大小与 top-k；</li>
+    <li>加流式输出（<code>stream: true</code>），体验打字机效果的实现方式；</li>
+    <li>给 Demo 加一层"后端代理"：前端只调你自己的 <code>/api/ask</code>，Key 永不出后端——这是上生产的第一个硬要求。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"接入 → 开发 → 上线"三阶段分组，五要素格式。</p>
+
+  <h3>7.1 接入阶段</h3>
+  <p><strong>坑 1：API Key 放前端</strong></p>
+  <ul>
+    <li><strong>现象</strong>：功能能用，几天后账户余额被刷光；</li>
+    <li><strong>根因</strong>：浏览器里的一切（源码、网络请求）对用户可见，Key 写在前端等于公开；</li>
+    <li><strong>复现</strong>：打开自己页面的 DevTools → Network，看请求头；</li>
+    <li><strong>修复</strong>：Key 只存后端环境变量，前端调你自己的 <code>/api/ask</code> 代理接口；已泄漏的 Key 立即作废；</li>
+    <li><strong>规避</strong>：code review 硬规则——前端目录出现 sk- 开头的字符串直接打回。</li>
+  </ul>
+
+  <h3>7.2 开发阶段</h3>
+  <p><strong>坑 2：第二轮提问模型"失忆"</strong></p>
+  <ul>
+    <li><strong>现象</strong>：第一轮说的内容第二轮它不知道了；</li>
+    <li><strong>根因</strong>：Chat Completions <strong>无状态</strong>，每次请求只看当次传入的 messages；</li>
+    <li><strong>复现</strong>：两次独立调用，第二次不带上文；</li>
+    <li><strong>修复</strong>：服务端维护会话历史，每次全量带上（3.2 代码）；超长会话做截断/摘要；</li>
+    <li><strong>规避</strong>：把"管理 messages 历史"当作和"管理数据库连接"同级别的工程任务。</li>
+  </ul>
+  <p><strong>坑 3：RAG 召回不相关，答非所问</strong></p>
+  <ul>
+    <li><strong>现象</strong>：明明库里有答案，模型却答错或答得含糊；</li>
+    <li><strong>根因</strong>：召回环节没把对的片段送进上下文——切块太大（一个 chunk 塞了多个主题，相似度被稀释）或太小（语义不完整）、top-k 太小漏掉、太大淹没、Embedding 模型与文档语言/领域不匹配；</li>
+    <li><strong>复现</strong>：打印每次召回的片段人工检查——<strong>RAG 调试的第一原则：先看检索到了什么，再怪模型</strong>；</li>
+    <li><strong>修复</strong>：调 chunk 大小（经验起点 300~500 字 + 重叠）、加相似度阈值、top-k 控制在 3~5 段、必要时上 Rerank；</li>
+    <li><strong>规避</strong>：建立一个小评测集（20 个问题+期望命中的文档），检索改动后跑一遍防回归。</li>
+  </ul>
+  <p><strong>坑 4：直接信任模型输出的参数/代码</strong></p>
+  <ul>
+    <li><strong>现象</strong>：tool_calls 里的参数没校验直接执行，模型编造的 ID/数值引发业务异常甚至注入；</li>
+    <li><strong>根因</strong>：把"模型输出结构化 JSON"误解为"输出可信"——结构化≠正确；</li>
+    <li><strong>复现</strong>：让模型传一个不存在的需求编号；</li>
+    <li><strong>修复</strong>：所有工具执行前过 schema/白名单校验（6.1 的 <code>execTool</code>），失败回灌让模型重试；</li>
+    <li><strong>规避</strong>：模型产出与用户输入同级对待——<strong>都是不可信输入</strong>。</li>
+  </ul>
+
+  <h3>7.3 上线阶段</h3>
+  <p><strong>坑 5：把模型结论当权威</strong></p>
+  <ul>
+    <li><strong>现象</strong>：模型说的版本号/API/行为与实际不符，照抄出事故；</li>
+    <li><strong>根因</strong>：训练截止时间 + 幻觉概率；</li>
+    <li><strong>修复/规避</strong>：版本、参数、行为以<strong>官方文档与本地实测</strong>为准；面向用户的 AI 功能必须加"来源标注 + 人工复核路径"，不要让 AI 答案成为唯一决策依据。</li>
+  </ul>
+  <p><strong>坑 6：没做成本与超时控制</strong></p>
+  <ul>
+    <li><strong>现象</strong>：月底账单爆炸；或模型偶发响应 30 秒拖死整个接口；</li>
+    <li><strong>根因</strong>：多轮全量重发 + 无 max_tokens + 无超时重试（4.4 的三个阀门一个都没装）；</li>
+    <li><strong>修复</strong>：加 <code>max_tokens</code>、请求超时与有限重试、按功能的 token 监控；</li>
+    <li><strong>规避</strong>：LLM 调用当外部依赖对待——超时、降级、熔断一个都不能少（对应 09 模块的思路）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：RAG 和微调（Fine-tuning）怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：先看知识变化的频率与溯源要求。<strong>RAG</strong> 解决"知识更新与私有化"：文档随时增删、答案可溯源到具体段落、无需训练成本——知识库问答、文档助手的首选；<strong>微调</strong>解决"行为与风格"：让模型学会特定的输出格式、领域话术、任务模式——但它<strong>不适合灌知识</strong>（训练贵、更新慢、易过拟合且无法溯源）。<br><br>
+  <strong>口诀</strong>：知识问题用 RAG，行为问题用微调，两个都要就 RAG + 轻度微调组合。<strong>追问：为什么微调不适合灌知识？</strong>——知识存在参数里无法定位更新，新增一条文档要重训；而 RAG 里知识在外置库中，增删改查即生效。</p>
+
+  <p><strong>Q2：Function Calling 里，为什么工具的执行权必须在应用侧？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层原因。<strong>①能力</strong>：模型只能生成文本，没有运行时，"执行"物理上就只能由应用完成；<strong>②安全</strong>：模型会编造参数（幻觉），执行前必须 schema/白名单校验——执行权在应用侧才有校验的落点，直接信任等于把用户输入注入的老问题在 LLM 层重演；<strong>③审计</strong>：真实系统操作需要鉴权、限流、日志，这些都长在应用侧。<br><br>
+  <strong>口诀</strong>：模型是"填单员"——决定调什么工具、填什么参数；应用是"柜员"——验单、执行、反馈。单可以由 AI 填，章必须人来盖。</p>
+
+  <p><strong>Q3：为什么 RAG 能抑制幻觉？它消灭幻觉了吗？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>抑制的机制</strong>：RAG 把生成约束从"凭参数记忆自由发挥"改为"依据给定资料作答"，system 里再叠加"资料没有就说不知道"——模型的输出空间被收窄到"资料内容 + 忠实转述"，编造概率显著下降；同时答案可溯源（引用了哪个片段），错了能定位。<br><br>
+  <strong>但没有消灭</strong>：模型仍可能"资料里有 A，它答成 A 的变体"（忠实性偏差）、或资料互相矛盾时选错。所以工程上还要：答案附引用来源、低相似度走"直答没有"分支、关键场景保留人工复核。幻觉管理是<strong>概率压低 + 后果兜底</strong>，不是消灭。</p>
+
+  <p><strong>Q4：RAG 召回质量差，你的调参顺序是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：先定位再调参——<strong>打印召回片段人工检查</strong>，区分"没检索到"还是"检索到了但模型没用好"。<br><br>
+  <strong>检索侧（最常见）</strong>，按顺序调：①chunk 大小与重叠（300~500 字起步，一块一个主题）；②top-k 与相似度阈值（k=3~5，阈值过滤垃圾召回）；③Embedding 模型与领域/语言匹配度；④上 Rerank 精排。<strong>生成侧</strong>：system 是否强约束"只依据资料"、片段是否带来源标注、资料冲突时给模型裁决规则。<strong>兜底</strong>：空召回直答"没有"。<br><br>
+  <strong>追问：怎么证明你的调参有效？</strong>——建评测集（问题 + 期望命中片段/期望答案），每次改动跑回归。没有评测集的 RAG 调参 = 凭感觉。</p>
+
+  <p><strong>Q5：自测 5 问</strong></p>
+  <ol>
+    <li>messages 的四种角色各干什么？API 无状态意味着什么工程责任？</li>
+    <li>RAG 离线与在线各做哪几步？为什么问题向量化要用"同一个 Embedding 模型"？</li>
+    <li>Function Calling 闭环四步？"执行权在后端"对应哪行代码？</li>
+    <li>tool_choice 四档分别适用什么产品形态？</li>
+    <li>RAG 抑制幻觉的机制是什么？为什么说"抑制"而不是"消灭"？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>OpenAI 官方 Quickstart（10 分钟跑通第一次调用）</li>
+    <li>DeepSeek 开放平台文档（OpenAI 兼容格式，国内可直连，适合练手）：<a href="https://platform.deepseek.com/" rel="noopener">platform.deepseek.com</a></li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>RAG 原始论文（Lewis et al., Retrieval-Augmented Generation，arXiv 可查）——理解设计的理论源头</li>
+    <li>Anthropic《Building effective agents》——工作流与 Agent 的模式划分</li>
+    <li>向量检索实践：Weaviate 文档与示例：<a href="https://github.com/weaviate/weaviate" rel="noopener">github.com/weaviate/weaviate</a></li>
+  </ul>
   <h3>官方文档</h3>
   <ul>
-    <li>OpenAI API 文档（Chat Completions / Function Calling 规范）：<a href="https://platform.openai.com/docs" rel="noopener">platform.openai.com/docs</a></li>
-    <li>Anthropic Claude 文档：<a href="https://docs.anthropic.com/" rel="noopener">docs.anthropic.com</a></li>
-    <li>DeepSeek 开放平台文档：<a href="https://platform.deepseek.com/" rel="noopener">platform.deepseek.com</a></li>
+    <li>OpenAI API 文档（Chat Completions / Function Calling / 结构化输出）：<a href="https://platform.openai.com/docs" rel="noopener">platform.openai.com/docs</a></li>
+    <li>Anthropic Claude 文档（Messages API / tool_use 内容块）：<a href="https://docs.anthropic.com/" rel="noopener">docs.anthropic.com</a></li>
   </ul>
-  <h3>延伸阅读</h3>
-  <ul>
-    <li>RAG 综述（Retrieval-Augmented Generation）：可在 arXiv 检索原始论文 RAG (Lewis et al.)。</li>
-    <li>向量检索实践：<a href="https://github.com/weaviate/weaviate" rel="noopener">github.com/weaviate/weaviate</a>（向量库参考）。</li>
-  </ul>
+  <h3>练习项目（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo，把伪检索换成真实 Embedding + 向量库，记录召回质量变化；</li>
+    <li>给 Demo 加多轮会话（自己维护 messages），实测"失忆"坑并修复；</li>
+    <li>搭一个 20 题的检索评测集，练习 chunk/top-k 调参并用评测集验证；</li>
+    <li>加后端代理层（前端不碰 Key）+ 流式输出，做成可给同事演示的迷你知识库。</li>
+  </ol>
 </section>
 
 </main>

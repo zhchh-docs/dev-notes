@@ -534,9 +534,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>AI 辅助开发：Cursor 与 Codex</h1>
     <div class="meta-row">
       <span class="badge deep">深入</span>
-      <span class="meta">定位：AI 编码工作流——补全模型 / Agent 循环 / 上下文工程</span>
+      <span class="meta">定位：AI 编码工作流——补全与 Agent 的场景路由 / 上下文工程 / 验收规范</span>
     </div>
-    <p class="hero-desc">AI 辅助编码已从"单行补全"演进到"Agent 自动改代码"：Cursor 是 AI 原生 IDE，Codex / Claude Code 是能读仓库、跑命令、改文件的编码 Agent。本页基于本人真实工作流（Cursor/Codex/ChatGPT/Claude/DeepSeek 用于编码、调试、评审），讲透其原理（上下文窗口、补全模型、agent 循环）、提示词策略与落地规范，并诚实说明局限与风险。</p>
+    <p class="hero-desc">本篇把 AI 辅助编码整理成一套可复用的工作流：先分清补全层与 Agent 层各自的控制流，再讲清它们共同的约束——上下文窗口与检索，然后按"小改动/跨文件/调试/评审"四个场景给出渐进式工作法，最后落地为规则文件、四要素任务书与验收四件套。每个概念标注【进阶】与跳过建议，配 10 分钟可跑通的 Demo 与分阶段排错清单。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
@@ -548,30 +548,67 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心用法要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">工作流（按场景渐进）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">架构与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：AI 辅助编码分两层——补全层预测下一段，Agent 层自己读文件改代码跑测试。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇讲的是"AI 编码工作流"</strong>——不是工具测评，而是把补全、Agent、上下文工程、验收规范串成一套可复用的日常工作方法。AI 辅助编码分两层：<strong>补全层</strong>预测你下一段代码；<strong>Agent 层</strong>（Cursor Agent、Codex、Claude Code）给定目标后自己读文件、改代码、跑测试、根据报错迭代。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>补全层</strong>：根据上下文预测下一段代码。</li>
-    <li><strong>Agent 层</strong>（Cursor Agent、Codex、Claude Code）：给目标，Agent 读相关文件、改代码、跑测试、根据报错迭代。</li>
+    <li>很多人"装了 AI 插件"，但还是一行行手写——不会委派，Agent 的价值用不出来；</li>
+    <li>随手把大任务丢给 Agent，收获一堆<strong>连带改动</strong>和<strong>幻觉 API</strong>，清理比手写还慢；</li>
+    <li>团队没有验收规范，AI 代码直接进主干，线上出事说不清责任。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：工程师角色从"逐行写"转向"拆任务、给上下文、审结果、定方向"。</p>
-  <ul>
-    <li><strong>提速场景</strong>：样板代码、跨文件改动、解释陌生代码、写测试。</li>
-  </ul>
+  <p>根源都是同一个：把 AI 当"自动写代码机"，而不是"需要明确任务书与验收流程的初级同事"。</p>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>想把 AI 编码从"偶尔用用"升级为稳定工作流</td><td>想了解大模型原理与 API → 《大模型应用》/《LLM 应用开发》</td></tr>
+    <tr><td>团队要建立 AI 代码的验收规范</td><td>纯工具安装教程 → 各工具官方文档</td></tr>
+    <tr><td>面试要讲"你如何用 AI 提效"</td><td>提示词的通用写作课 → 第 4 章只讲编码场景</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>按场景正确路由：<strong>什么时候用补全、什么时候委派 Agent</strong>，并给出判断依据；</li>
+    <li>写出"目标 + 约束 + 上下文 + 验收标准"四要素的<strong>合格任务描述</strong>，配好团队规则文件；</li>
+    <li>建立"AI 产出必须本地验证 + 逐 diff 人工审"的<strong>落地规范</strong>，说出三类典型坑的防法；</li>
+    <li>用工程语言（上下文窗口、Agent 循环、工具调用、MCP）讲清这些工具的工作原理。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：01 模块的 JavaScript/TypeScript 基础（例子以 TS 项目为背景）；日常使用任意一款 AI 编码工具的经验（哪怕只会补全）。</p>
+  <p><strong>难度等级</strong>：★★★☆☆（概念不难，难在习惯养成）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>刚开始用 AI 编码</td><td>按顺序读第 2、3 章 → 跑第 6 章 Demo → 第 7 章坑当检查清单</td></tr>
+    <tr><td>已在用、想系统化</td><td>直接读第 3 章工作流 + 第 4 章进阶（规则文件与 MCP）</td></tr>
+    <tr><td>面试准备</td><td>第 2 章原理 → 第 8 章重点讲解全过</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点（MCP 协议细节、模型路由依据）；第 8 章的原理追问级题目。<strong>务必动手</strong>：第 6 章 Demo 的规则文件配置——本篇的价值 80% 在于照做。</p>
+  <p><strong>本篇不涉及</strong>：大模型 API 调用与 RAG 应用开发（见《LLM 应用开发》）；ChatGPT/Claude 的通用对话技巧（见《大模型应用》）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>本章按认知顺序讲清这些工具的五个核心模型。<strong>每一节都依赖前一节</strong>：先分清两层工具（2.1），再理解它们共同的约束——上下文窗口（2.2），然后是 Agent 层的运行方式（2.3~2.5），最后是模型选择的依据（2.6）。</p>
+
+  <h3>2.1 补全层 vs Agent 层：先分清你在用哪一层</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="补全层与Agent层对比示意图">
       <defs>
@@ -593,7 +630,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 补全层与 Agent 层（示意）</p>
   </div>
-  <h3>横向对比：Cursor vs GitHub Copilot vs Codex / Claude Code</h3>
+  <p>两层的本质区别是<strong>谁掌握控制流</strong>：补全层里人写代码、AI 猜下文，控制流在人手里；Agent 层里你只给目标，控制流交给 Agent——它自己决定读哪个文件、改哪里、跑什么命令验证。控制流交出去换来的效率，要靠 2.2 的上下文管理和 2.8 的验收规范赎回来。</p>
+  <h4>工具形态对比：Cursor vs GitHub Copilot vs Codex / Claude Code</h4>
   <table>
     <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
     <thead><tr><th>维度</th><th>Cursor</th><th>GitHub Copilot</th><th>Codex / Claude Code</th></tr></thead>
@@ -603,218 +641,288 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>取舍</td><td>日常主力 IDE</td><td>插件内问答/跨文件改</td><td>后台跑整任务</td></tr>
     </tbody>
   </table>
-  <div class="diagram">
-    <svg viewBox="0 0 800 170" role="img" aria-label="Cursor与Copilot与Codex对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">三款 AI 编码工具怎么选？（示意）</text>
+  <p>选型结论（以当前版本为准）：主力 IDE 选 Cursor（三层能力一体）；已被 VSCode 工作流绑住选 Copilot；整任务后台托管（CI 跑任务、批量重构）选 Codex / Claude Code。</p>
 
-      <!-- Cursor -->
-      <rect x="30" y="45" width="240" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="150" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Cursor</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">AI 原生 IDE</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">补全+Chat+Agent 一体</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">日常主力 IDE</text>
+  <h3>2.2 上下文窗口：模型一次能"看到"什么</h3>
+  <p><strong>上下文窗口（Context Window）是模型单次推理能容纳的 token 上限</strong>，它决定了 Agent "看得见"什么。关键推论：<strong>上下文质量决定输出质量——给错文件，再强的模型也改错地方</strong>。Agent 的很多"聪明"或"愚蠢"，本质都是它上下文里装了什么：装了正确的相关文件片段，它就是专家；装了无关文件，它就是瞎猜。所以第 3 章的工作流里，"框定上下文"是人的核心职责之一。</p>
 
-      <!-- Copilot -->
-      <rect x="280" y="45" width="240" height="110" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-      <text x="400" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f8a63">GitHub Copilot</text>
-      <text x="300" y="95" font-size="11" fill="#4f6348">IDE 插件形态</text>
-      <text x="300" y="117" font-size="11" fill="#4f6348">补全+Chat/Edits</text>
-      <text x="300" y="137" font-size="11" font-weight="600" fill="#4f8a63">VSCode 里轻量用</text>
+  <h3>2.3 Agent 循环：目标驱动的自动迭代</h3>
+  <p>补全层没有"过程"，Agent 层有：<strong>接收目标 → 调工具 → 观察结果 → 判断是否完成，未完成回到调工具</strong>——这就是 Agent 循环（Agent Loop），也是 2.5 工具调用存在的意义（详细图见第 5 章）。理解循环的意义在于知道<strong>在哪介入</strong>：循环可能跑偏（改错方向、越改越乱），人要在关键节点审阅 diff、决定是否继续——<strong>人是验收者与方向把控者</strong>，不是旁观者。</p>
 
-      <!-- Codex/Claude Code -->
-      <rect x="530" y="45" width="240" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="650" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Codex / Claude Code</text>
-      <text x="550" y="95" font-size="11" fill="#4f6348">命令行编码 Agent</text>
-      <text x="550" y="117" font-size="11" fill="#4f6348">读仓库/跑测试/自动改</text>
-      <text x="550" y="137" font-size="11" font-weight="600" fill="#047857">后台跑整任务</text>
-    </svg>
-    <p class="diagram-caption">图 1 三款 AI 编码工具对比（示意）</p>
-  </div>
-</section>
+  <h3>2.4 工具调用与 MCP：Agent 的手和脚</h3>
+  <p>Agent 不只是生成文本，它通过<strong>工具调用（Tool Use）</strong>与环境交互：编辑文件、运行 shell、查搜索、跑测试。每个工具是一个"声明了入参和用途的函数"，模型输出"调哪个工具+参数"，宿主执行后把结果回填给模型——这就是循环里"调工具→观察结果"的实现。<br><br>
+  <strong>MCP（Model Context Protocol）</strong>则是把"接入工具"这件事标准化的协议：数据库、浏览器、issue 系统……都能以统一方式接入编码 Agent，是当下 Agent 生态的事实标准（以最新官方文档为准）。理解 MCP 的意义：团队内部的系统（内部 API 文档、工单系统）也能变成 Agent 的工具——这是下一阶段定制化的入口。</p>
 
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 上下文窗口（Context Window）</h3>
-  <p class="lead"><b>一句话定位</b>：上下文质量决定输出质量——给错文件，再强的模型也改错地方。</p>
-  <ul>
-    <li><strong>本质</strong>：模型一次能"看到"的 token 上限；Agent 只把相关文件片段塞进上下文。</li>
-  </ul>
-  <h3>2.2 补全模型 vs 推理模型</h3>
-  <p class="lead"><b>一句话定位</b>：按场景路由——行内预测用补全模型，复杂 Agent 用推理模型。</p>
-  <ul>
-    <li><strong>补全模型</strong>：小而快；<strong>推理模型</strong>：大而慢。</li>
-  </ul>
-  <h3>2.3 Agent 循环（Agent Loop）</h3>
-  <p class="lead"><b>一句话定位</b>：目标→调工具→观察结果→再决定下一步，直到完成或人叫停。</p>
-  <ul>
-    <li><strong>工具</strong>：读文件/跑命令/改文件——这是 Codex/Claude Code 的核心。</li>
-  </ul>
-  <h3>2.4 仓库索引 / RAG</h3>
-  <p class="lead"><b>一句话定位</b>：按问题检索相关代码片段注入上下文，缓解窗口装不下整个仓库。</p>
-  <ul>
-    <li><strong>做法</strong>：对全仓库建索引（符号/向量）。</li>
-  </ul>
-  <h3>2.5 工具调用（Tool Use）</h3>
-  <p class="lead"><b>一句话定位</b>：Agent 通过工具与环境交互，而不是只生成文本。</p>
-  <ul>
-    <li><strong>工具</strong>：编辑文件、运行 shell、查搜索。</li>
-    <li><strong>MCP（Model Context Protocol）</strong>：编码 Agent 通过 MCP 标准协议接入外部工具/数据源，是当下 Agent 生态的事实标准（以最新官方文档为准）。</li>
-  </ul>
-  <h3>2.6 提示词工程（Prompting）</h3>
-  <p class="lead"><b>一句话定位</b>：好提示 = 明确目标 + 约束 + 给上下文 + 验收标准。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span>模糊指令得到模糊结果。</li>
-    <li><strong>规则文件</strong>：把项目约束、代码规范、常用命令沉淀为 .cursorrules（Cursor）、AGENTS.md（Codex 等通用）、CLAUDE.md（Claude Code），作为常驻上下文自动加载，免去每次重复交代。</li>
-  </ul>
-  <h3>2.7 上下文隔离</h3>
-  <p class="lead"><b>一句话定位</b>：跨任务不串味——新任务开干净会话，不带入上个任务的假设。</p>
-  <ul>
-    <li><strong>习惯</strong>："不要参考之前的对话"式清空。</li>
-  </ul>
-  <h3>2.8 落地规范（Guardrails）</h3>
-  <p class="lead"><b>一句话定位</b>：AI 提效不等于免审。</p>
-  <ul>
-    <li><strong>必须</strong>：本地验证可运行、过 lint/测试、人审 diff、敏感逻辑人工把关。</li>
-  </ul>
+  <h3>2.5 仓库索引 / RAG：装不下整个仓库怎么办</h3>
+  <p>大仓库远超上下文窗口。解法是<strong>检索增强</strong>：对全仓库建索引（符号索引/向量索引），你的问题进来先检索出相关代码片段，只把片段注入上下文。这也是为什么 Agent 偶尔"找不到"你说的那个文件——检索没命中。<strong>工程含义</strong>：给任务时主动点名相关文件路径，比指望检索万无一失靠谱得多。</p>
+
+  <h3>2.6 补全模型 vs 推理模型【进阶】</h3>
+  <p>工具背后通常路由两类模型：<strong>补全模型</strong>小而快（毫秒级出下一段，行内预测）；<strong>推理模型</strong>大而慢（先"想"再答，适合规划跨文件改动、分析复杂报错）。你不需要记型号，只需要记住路由原则：<strong>高频低延迟的场景用补全模型，低频高难度的场景用推理模型</strong>——工具已经帮你路由好了，但理解这件事能解释为什么 Chat 里"思考模式"更慢也更准。</p>
+
+  <h3>2.7 上下文隔离：跨任务不串味</h3>
+  <p>会话是有记忆的——上个任务的假设、失败的尝试、错误的结论都会留在上下文里。<strong>新任务开干净会话</strong>，不带旧假设；这是最容易被忽视却最影响输出质量的习惯。"这个 bug 修了三版都不对"很多时候是会话里已经堆满了错误前提，开个新会话重述问题反而一次过。</p>
+
+  <h3>2.8 落地规范（Guardrails）：AI 提效不等于免审</h3>
+  <p><strong>必须四件套</strong>：①本地验证可运行（build/test 通过）；②过 lint 与既有测试；③人审 diff（逐条看，不接受"看起来没问题"）；④敏感/核心逻辑人工把关（权限、支付、加密）。这套规范是 2.3"人是验收者"的工程化落地，第 3 章工作流和第 6 章 Demo 都建立在它之上。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Agent 循环</h3>
+  <h2><span class="num">3</span>工作流（按场景渐进）</h2>
+  <p>本章按四个日常场景给出渐进式工作流。每个场景都遵循同一框架：<strong>框定上下文 → 给任务书 → 验收</strong>，差别只在介入深度。</p>
+
+  <h3>3.1 场景一：小改动、熟悉代码 → 用补全</h3>
+  <p>手写到哪补到哪。适用：样板代码（表单、类型定义、重复结构的第三个实例）、你非常熟悉的语言与模块。<strong>判断依据</strong>：改动范围在你脑子里已经清晰、不需要 AI 理解项目其他部分——这时补全最快，开 Agent 反而慢。</p>
+
+  <h3>3.2 场景二：跨文件任务 → 委派 Agent</h3>
+  <p>适用：跨文件重构、不熟悉模块的新功能。关键是任务书。四要素模板：</p>
+<pre class="code" data-lang="text"><code>目标：给某个列表加虚拟滚动。
+约束：不改现有 API；保留 Vue3 + TS；行数 1000+ 也要流畅。
+上下文：相关文件 X.ts/Y.vue，现有实现见 Z。
+验收：本地 npm run build 通过，滚动不卡顿。</code></pre>
+  <p><strong>正反例对比</strong>：</p>
+<pre class="code" data-lang="text"><code>❌ "帮我优化一下这个列表"            —— 目标模糊、无约束、无验收 → 得到泛泛的"建议"
+✅ 上面的四要素模板                   —— Agent 能直接开工，且你能机械地验收</code></pre>
+  <p>再补一个习惯：<strong>让模型先说方案再动手</strong>。先问"你打算怎么改，涉及哪些文件"，方案对了再放行执行——方案审查的成本远低于回滚错误改动。</p>
+
+  <h3>3.3 场景三：调试定位 → 喂报错栈，不喂猜测</h3>
+  <p>把<strong>完整报错栈 + 相关代码 + 复现步骤</strong>贴给模型，让它给"最可能的原因排序"。两个要点：①贴原始报错，不要自己转述（转述丢信息）；②让它给<strong>可验证的假设</strong>（"如果是 X，改 Y 应该会 Z"），你本地验证——不要让它直接"改好"，调试的价值在于你理解了根因。</p>
+
+  <h3>3.4 场景四：评审 diff → 模型初筛，人终审</h3>
+  <p>AI 产出的 diff（或同事的 PR）先让模型扫一遍："找出潜在 bug、遗漏的边界、与项目规范的冲突"，输出问题清单；你再带着清单人工过一遍。<strong>模型初筛解决"看不细"，人终审解决"看不偏"</strong>——模型不知道业务上下文里哪些改动静电危险（比如动了支付回调），你知道。</p>
+  <div class="note"><strong>全篇的取舍总结</strong>：小而熟用补全；大而跨文件委派 Agent（先审方案）；调试喂原始报错要假设不要魔法；评审模型初筛人终审。所有场景的兜底都是 2.8 的四件套。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点<span class="tag-key">进阶</span></h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>本章讲配置层与生态层，用于把个人习惯升级为团队规范。前置：已实践第 3 章。</p>
+
+  <h3>4.1 规则文件：把"每次都要交代的话"沉淀下来</h3>
+  <p>团队约束、代码规范、常用命令不该每次重复打——各工具支持<strong>常驻上下文的规则文件</strong>，自动加载：<code>.cursorrules</code>（Cursor）、<code>AGENTS.md</code>（Codex 等通用）、<code>CLAUDE.md</code>（Claude Code）。内容写三类：技术栈与版本约束、目录结构与命名规范、验证命令（"改完必须跑 npm run lint &amp;&amp; npm run test"）。<strong>这是把个人技巧变成团队资产的最低成本方式</strong>——规则文件随仓库提交，新人 clone 下来 AI 就"懂规矩"。</p>
+
+  <h3>4.2 MCP 深入：把内部系统接进 Agent</h3>
+  <p>2.4 讲了 MCP 是什么，这里讲怎么用：<strong>三个典型接入</strong>——①数据库只读工具（Agent 能直接查 schema 写迁移代码）；②内部文档检索（Agent 回答"我们项目的登录流程"时有据可依）；③工单系统（"按 issue #142 的描述修"自动读单）。接入后配套收紧权限：内部工具只给只读或白名单操作，<strong>Agent 能调用的面 = 攻击面</strong>。</p>
+
+  <h3>4.3 上下文工程：比提示词工程更进一步</h3>
+  <p>提示词工程关注"怎么说"，<strong>上下文工程关注"让模型看到什么"</strong>——在 Agent 时代后者权重更大。三个手段：①主动框定（点名相关文件，别指望检索）；②清理干扰（关掉无关 tab、别把日志噪音贴进会话）；③规则文件常驻（2.6 的 4.1 节），把稳定约束从每次对话挪到常驻层。</p>
+
+  <h3>4.4 模型路由与成本意识【进阶】</h3>
+  <p>团队落地后的现实问题：token 就是钱。实践原则：<strong>高频操作（补全、小问答）走小模型，大任务（跨文件重构、架构分析）才上推理模型</strong>；长会话定期开新会话——上下文越长越贵也越慢，且质量先升后降。给团队算账：一次跨文件重构省下的 2 小时 vs Agent 消耗的 token 费，通常差两个数量级，该用就用。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>架构与流程图</h2>
+  <p>把 2.3 的 Agent 循环画完整，并补上<strong>异常分支</strong>——循环不是总往"完成"走，真正的工作流里人审与验证是回路的一部分：</p>
   <div class="diagram">
-    <svg viewBox="0 0 800 230" role="img" aria-label="编码 Agent 循环示意图">
+    <svg viewBox="0 0 800 300" role="img" aria-label="编码 Agent 循环示意图">
       <defs>
         <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
           <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
         </marker>
       </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">编码 Agent 的循环（示意）</text>
-      <rect x="40" y="70" width="150" height="54" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="115" y="94" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">接收目标</text>
-      <text x="115" y="112" text-anchor="middle" font-size="11" fill="#4f6348">+ 检索相关上下文</text>
-      <line x1="190" y1="97" x2="230" y2="97" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      <rect x="234" y="70" width="150" height="54" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-      <text x="309" y="94" text-anchor="middle" font-size="12.5" font-weight="600" fill="#4f8a63">调工具</text>
-      <text x="309" y="112" text-anchor="middle" font-size="11" fill="#4f6348">读/写/跑命令</text>
-      <line x1="384" y1="97" x2="424" y2="97" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      <rect x="428" y="70" width="150" height="54" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="503" y="94" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">观察结果</text>
-      <text x="503" y="112" text-anchor="middle" font-size="11" fill="#4f6348">测试报错/输出</text>
-      <line x1="578" y1="97" x2="618" y2="97" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      <rect x="622" y="70" width="150" height="54" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="697" y="94" text-anchor="middle" font-size="12.5" font-weight="600" fill="#047857">完成？</text>
-      <text x="697" y="112" text-anchor="middle" font-size="11" fill="#4f6348">否→回到调工具</text>
-      <path d="M697,124 C697,190 309,190 309,124" fill="none" stroke="#7a8a70" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
-      <text x="400" y="215" text-anchor="middle" font-size="12.5" fill="#7a8a70">人在关键节点审阅 diff、决定是否继续——人是验收者与方向把控者。</text>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">编码 Agent 的循环（含异常分支）</text>
+      <rect x="40" y="60" width="140" height="54" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="110" y="84" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">接收目标</text>
+      <text x="110" y="102" text-anchor="middle" font-size="11" fill="#4f6348">+ 检索相关上下文</text>
+      <line x1="180" y1="87" x2="215" y2="87" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <rect x="219" y="60" width="130" height="54" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="284" y="84" text-anchor="middle" font-size="12.5" font-weight="600" fill="#4f8a63">调工具</text>
+      <text x="284" y="102" text-anchor="middle" font-size="11" fill="#4f6348">读/写/跑命令</text>
+      <line x1="349" y1="87" x2="384" y2="87" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <rect x="388" y="60" width="130" height="54" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="453" y="84" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">观察结果</text>
+      <text x="453" y="102" text-anchor="middle" font-size="11" fill="#4f6348">测试报错/输出</text>
+      <line x1="518" y1="87" x2="553" y2="87" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <rect x="557" y="60" width="110" height="54" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="612" y="84" text-anchor="middle" font-size="12.5" font-weight="600" fill="#047857">完成？</text>
+      <text x="612" y="102" text-anchor="middle" font-size="11" fill="#4f6348">未完成→回调工具</text>
+      <path d="M612,114 C612,175 284,175 284,118" fill="none" stroke="#7a8a70" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+      <line x1="667" y1="87" x2="700" y2="87" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <rect x="704" y="60" width="80" height="54" rx="8" fill="#f0fdf4" stroke="#047857" stroke-width="2.5"/>
+      <text x="744" y="84" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">人审 diff</text>
+      <text x="744" y="102" text-anchor="middle" font-size="11" fill="#047857">+ 本地验证</text>
+      <line x1="744" y1="114" x2="744" y2="150" stroke="#b91c1c" stroke-width="2" marker-end="url(#arr2)"/>
+      <text x="756" y="136" font-size="11" fill="#b91c1c">✗ 驳回</text>
+      <rect x="640" y="155" width="144" height="44" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="712" y="175" text-anchor="middle" font-size="11.5" fill="#991b1b">幻觉/连带改动</text>
+      <text x="712" y="192" text-anchor="middle" font-size="11" fill="#991b1b">→ 重述任务或人工接手</text>
+      <text x="400" y="265" text-anchor="middle" font-size="12.5" fill="#7a8a70">人在关键节点审阅 diff、决定是否继续——人是验收者与方向把控者。</text>
     </svg>
-    <p class="diagram-caption">图 2 编码 Agent 的循环（示意）</p>
+    <p class="diagram-caption">图 2 编码 Agent 的循环（含人审与驳回分支）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心用法要点</h2>
-  <h3>4.1 好任务描述模板</h3>
-<pre class="code" data-lang="text"><code>目标：给某个列表加虚拟滚动。
-约束：不改现有 API；保留 Vue3 + TS；行数 1000+ 也要流畅。
-上下文：相关文件 X.ts/Y.vue，现有实现见 Z。
-验收：本地 npm run build 通过，滚动不卡顿。</code></pre>
-  <h3>4.2 写法对比：补全 vs 委派 Agent</h3>
-<pre class="code" data-lang="text"><code>// 补全：手写到哪补到哪（熟悉代码、小改动）
-// Agent：一句话委派一个可验收的子任务，让它跑通再交付（跨文件重构）</code></pre>
-  <div class="note"><strong>取舍</strong>：小而熟用补全；大而跨文件委派 Agent，人审 diff。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：在 业务系统/一体化等真实项目里用 AI 工具链提效编码、调试与评审。</p>
-  <ul>
-    <li><strong>场景</strong>：日常开发涉及大量样板代码、跨文件改动与陌生技术调研。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：本人一线开发者，把 AI 工具融入个人工作流。</p>
-  <ul>
-    <li><strong>分工</strong>：人把控核心逻辑与验收，AI 做样板与初稿。</li>
-  </ul>
-
-  <h3>5.3 技术栈/工具</h3>
-  <ul>
-    <li><strong>编码</strong>：Cursor（主力 IDE）；<strong>调研</strong>：ChatGPT/Claude/DeepSeek。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键做法）</h3>
-  <p class="lead"><b>一句话定位</b>：Cursor 写样板+委派跨文件，模型做调试定位与 diff 初评。</p>
-  <ul>
-    <li><strong>编码</strong>：Cursor 行内补全写样板，Agent 委派跨文件任务。</li>
-    <li><strong>调试</strong>：贴报错栈让模型定位，本地验证。</li>
-    <li><strong>评审</strong>：模型先扫 diff，再人工把关。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <ul>
-    <li><span class="tag-point">要点</span>提示词策略：任务拆小、给足上下文、明确验收标准；新任务开干净会话；让模型先解释方案再动手。</li>
-  </ul>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>幻觉</strong>：编造不存在的 API——必须本地跑通验证。</li>
-    <li><span class="tag-pit">坑</span><strong>上下文给错</strong>：就改错地方——先框定上下文。</li>
-    <li><span class="tag-pit">坑</span><strong>连带改动</strong>：大批量自动改引入连带改动——逐 diff 审。</li>
-    <li><span class="tag-point">要点</span><strong>核心逻辑人写</strong>：敏感/核心逻辑仍要人写。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>提效</strong>：样板与跨文件改动提速明显（主观估算）。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与团队对齐"AI 产出必须本地验证+人工评审"的提交规范。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>AI 做初稿、人做验收</strong>。</li>
-    <li><span class="tag-point">要点</span><strong>干净会话防串味</strong>。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「我把 Cursor 作主力 IDE 写样板与跨文件改动，用模型做调试定位与 diff 初评，但坚持本地跑通验证、核心逻辑人写、逐 diff 人工把关。」</p>
+  <p><strong>读图要点</strong>：①"完成？"是 Agent 自己的判断，不可信——后面必须接人审；②驳回分支（幻觉 API、连带改动）不是失败，是工作流的正常一环，驳回后的正确动作是<strong>重述任务（补充约束）或人工接手</strong>，而不是反复"再试一次"（会话已被污染）。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 不验证就提交 AI 代码</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：AI 生成必须本地 build/test 通过、人审 diff。</p>
-  <h3>6.2 上下文给错/给少</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：把相关文件与约束讲清，宁可多给上下文。</p>
-  <h3>6.3 一个大任务丢给 Agent 不管</h3>
-  <ul>
-    <li><strong>现象</strong>：改出一堆连带改动。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：拆小任务、关键节点审阅。</p>
-  <h3>6.4 跨任务不隔离上下文</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：新任务开干净会话，不带旧假设。</p>
-  <h3>6.5 盲目相信模型说的</h3>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：API/版本/行为以文档与本地实测为准。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>10 分钟给一个真实项目配好"AI 工作流最小套件"：一个规则文件 + 一个四要素任务 + 一套验收动作。全程在 Cursor（或任一支持规则文件的工具）里完成。</p>
+
+  <h3>6.1 第一步：配置规则文件</h3>
+  <p>项目根目录新建 <code>.cursorrules</code>（或 <code>AGENTS.md</code>）：</p>
+<pre class="code" data-lang="text"><code># 项目约束
+- 技术栈：Vue3 + TypeScript + Vite，禁止引入新框架
+- 状态管理用 Pinia，样式用 Tailwind，不要写原生 CSS 文件
+- 所有异步用 async/await，禁止 .then 链
+- 提交前必须通过：npm run lint &amp;&amp; npm run build
+
+# 代码风格
+- 组件用 &lt;script setup lang="ts"&gt;
+- API 层统一放 src/api/，返回类型必须显式声明
+
+# 禁止
+- 不要修改 src/core/ 目录（核心逻辑，人工维护）
+- 不要升级任何依赖版本</code></pre>
+
+  <h3>6.2 第二步：用四要素模板委派一个真实任务</h3>
+  <p>在 Agent 对话中输入（替换成你项目的真实文件）：</p>
+<pre class="code" data-lang="text"><code>目标：给 src/views/OrderList.vue 的订单表格加服务端分页。
+约束：不改 src/api/order.ts 的现有函数签名；保留现有筛选逻辑；
+     分页状态放 Pinia，不放进组件。
+上下文：表格组件在 src/components/KTable.vue，分页参数规范见
+     src/api/types.ts 里的 PageResult。
+验收：npm run build 通过；翻页时 network 面板只发一次请求；
+     筛选条件变化时分页重置到第 1 页。
+先给出你的改动方案和涉及文件清单，我确认后再动手。</code></pre>
+
+  <h3>6.3 第三步：验收（机械可执行）</h3>
+  <ol>
+    <li>Agent 先输出<strong>方案与文件清单</strong>——检查：有没有它不该碰的文件（对照规则文件的"禁止"节）；</li>
+    <li>放行后逐个文件<strong>看 diff</strong>——重点看：有没有顺带改了无关代码（连带改动）；</li>
+    <li>本地跑 <code>npm run lint &amp;&amp; npm run build</code>——不过就打回；</li>
+    <li>按"验收"三条手动验证——翻页请求数、筛选重置行为；</li>
+    <li>全部通过才 commit，commit message 写"AI 协助：订单列表服务端分页"。</li>
+  </ol>
+
+  <h3>6.4 运行结果说明与对照</h3>
+  <p>做完这 10 分钟你会得到两组对照体验：<strong>没有规则文件时</strong>，Agent 可能给你引入新库、改掉 API 签名、写 .then 链——每条都要人肉纠正；<strong>有规则文件后</strong>，这些约束自动生效，驳回率显著下降。四要素任务书让 Agent 的产出从"碰运气"变成"可验收"。</p>
+
+  <h3>6.5 生产改造扩展方向</h3>
+  <ol>
+    <li>把 6.1 的规则文件提交进仓库并写进团队 README——新人与 AI 共用同一份规范；</li>
+    <li>团队约定 commit 前缀区分"AI 协助/人工"，评审时对 AI 协助的 diff 加严一级；</li>
+    <li>接入 MCP：把内部接口文档、数据库 schema（只读）接给 Agent，减少"上下文靠手贴"。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"配置 → 编码 → 验收"三个阶段分组，每条五要素：<strong>现象 → 根因 → 复现 → 修复 → 规避</strong>。</p>
+
+  <h3>7.1 配置阶段</h3>
+  <p><strong>坑 1：没有规则文件，每个任务都要重复交代规范</strong></p>
+  <ul>
+    <li><strong>现象</strong>：每次对话都要说"用 TS""别改这个文件"，漏说就翻车；</li>
+    <li><strong>根因</strong>：稳定约束放在了会话层，而会话是易失的；</li>
+    <li><strong>复现</strong>：新会话问同一个项目问题，答案风格与上次完全不同；</li>
+    <li><strong>修复</strong>：按 6.1 配置规则文件；</li>
+    <li><strong>规避</strong>：规则文件进版本库，团队共用。</li>
+  </ul>
+
+  <h3>7.2 编码阶段</h3>
+  <p><strong>坑 2：上下文给错/给少，改错地方</strong></p>
+  <ul>
+    <li><strong>现象</strong>：Agent 改了"同名但不是你要的"函数，或自作主张新建了一套平行实现；</li>
+    <li><strong>根因</strong>：模型只能看见上下文里的东西——检索没命中 + 你没点名文件；</li>
+    <li><strong>复现</strong>：只说"优化列表性能"，不给文件路径；</li>
+    <li><strong>修复</strong>：任务书里点名相关文件（四要素的"上下文"栏），必要时贴关键代码；</li>
+    <li><strong>规避</strong>：宁可多给上下文；发现 Agent 理解偏差立刻纠正而不是将错就错。</li>
+  </ul>
+  <p><strong>坑 3：幻觉——编造不存在的 API</strong></p>
+  <ul>
+    <li><strong>现象</strong>：代码引用了一个看起来很合理的函数/参数，实际不存在或版本不符；</li>
+    <li><strong>根因</strong>：语言模型按概率生成，"合理的 API"不等于"存在的 API"，训练数据 cutoff 之后的版本变化尤其常见；</li>
+    <li><strong>复现</strong>：问一个很新的库的用法，与官方文档对照；</li>
+    <li><strong>修复</strong>：一律以<strong>官方文档与本地实测</strong>为准；IDE 里安装对应类型包，幻觉 API 会直接标红；</li>
+    <li><strong>规避</strong>：验收四件套的"本地验证可运行"就是幻觉过滤器——编译都过不了的代码不存在"看起来对"。</li>
+  </ul>
+  <p><strong>坑 4：跨任务不隔离上下文</strong></p>
+  <ul>
+    <li><strong>现象</strong>：修一个新 bug，Agent 的方案总带着上个任务的残留假设，越聊越歪；</li>
+    <li><strong>根因</strong>：会话上下文里堆满了上一个任务的错误尝试与结论；</li>
+    <li><strong>复现</strong>：同一个会话连问三个不相关问题；</li>
+    <li><strong>修复</strong>：新任务开干净会话，重新给最小上下文；</li>
+    <li><strong>规避</strong>：任务切换 = 会话切换，把"上下文隔离"变成肌肉记忆。</li>
+  </ul>
+
+  <h3>7.3 验收阶段</h3>
+  <p><strong>坑 5：一个大任务丢给 Agent 不管</strong></p>
+  <ul>
+    <li><strong>现象</strong>："把这个项目重构一下"，回来收获 40 个文件的大 diff，还引入了连带 bug；</li>
+    <li><strong>根因</strong>：任务粒度超出单次循环的可靠范围，且中途无人纠偏；</li>
+    <li><strong>修复</strong>：拆小任务（一个可验收的子任务一次委派），关键节点审阅；</li>
+    <li><strong>规避</strong>：委派粒度 = "你能在一个 diff 里看完并判断对错"的粒度。</li>
+  </ul>
+  <p><strong>坑 6：不验证就提交 AI 代码</strong></p>
+  <ul>
+    <li><strong>现象</strong>：代码"看起来对"，合并后线上挂——最常见的是没跑过的分支逻辑和幻觉依赖；</li>
+    <li><strong>根因</strong>："AI 写的"带来的虚假信任感；</li>
+    <li><strong>修复</strong>：严格执行验收四件套（build/test/lint/人审）；</li>
+    <li><strong>规避</strong>：团队规范写死："AI 协助的代码与人工代码执行完全相同的评审标准"，没有例外。</li>
+  </ul>
+
+  <h3>7.4 通用排查思路</h3>
+  <ul>
+    <li><strong>产出不对 → 先查上下文</strong>：它看到了哪些文件？规则文件加载了吗？（绝大多数"AI 太笨"是上下文问题）</li>
+    <li><strong>反复修不好 → 换干净会话重述</strong>，而不是在同一会话里继续叠补丁；</li>
+    <li><strong>怀疑幻觉 → 查文档 + 本地实测</strong>，永远不让"模型说的"直接进主干。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+  <p>按 概念题 → 原理追问 → 场景设计题 递进，每题附详细答案。</p>
+
+  <p><strong>Q1：补全和 Agent 分别适合什么场景？怎么判断？</strong></p>
+  <p class="note"><strong>参考答案</strong>：判断维度是<strong>控制流和上下文范围</strong>。改动范围小、逻辑已在脑中、不需要理解项目其他部分 → 补全（人保持控制流，毫秒级反馈）；改动跨文件、需要理解仓库结构、任务可描述为"目标+验收"→ Agent（控制流交给它，人审 diff 收回控制权）。<br><br>
+  <strong>追问：为什么不大任务全用 Agent？</strong>——三个原因：①粒度失控（产出大 diff 难审，连带改动多）；②成本（推理模型 + 长上下文贵且慢）；③风险（控制流完全交出，人失去对代码库的"手感"）。工作流的本质是<strong>按任务特征分配控制流</strong>。</p>
+
+  <p><strong>Q2：什么是上下文工程？它和提示词工程的关系？</strong></p>
+  <p class="note"><strong>参考答案</strong>：提示词工程关注<strong>指令的表达</strong>（怎么说清楚）；上下文工程关注<strong>信息的选择与组织</strong>（让模型在推理那一刻看到什么）。在补全/问答时代提示词权重更大；在 Agent 时代，上下文工程权重反超——因为 Agent 的行为由它"看到"的文件、检索结果、规则文件共同决定，指令只占其中一小部分。<br><br>
+  <strong>实践三手段</strong>：主动框定相关文件（别指望检索）、清理无关干扰、用规则文件把稳定约束常驻化。<strong>一句话</strong>：与其琢磨怎么措辞，不如琢磨"它到底看见了什么"。</p>
+
+  <p><strong>Q3：AI 生成的代码，你们的验收流程是什么？为什么这么设计？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四件套——<strong>本地验证可运行（build/test 通过）→ 过 lint 与既有测试 → 人逐 diff 审 → 敏感/核心逻辑人工把关</strong>。<br><br>
+  <strong>为什么这样设计</strong>：每一层拦一类问题——build/test 拦幻觉 API 与语法错误（机器可判）；lint/测试拦风格偏移与回归（既有测试是安全网）；人审拦连带改动与业务语义错误（只有人知道哪段是雷区）；核心逻辑人工把关是责任与合规要求（支付/权限代码不接受黑箱产出）。<br><br>
+  <strong>追问：会不会太重、抵消了提效？</strong>——不会：四件套中前三步是自动化的秒级操作，真正花时间的人审只对"AI 产出"加严，而这份加严远小于清理一次幻觉事故的成本。</p>
+
+  <p><strong>Q4：MCP 是什么？它解决了什么问题？</strong></p>
+  <p class="note"><strong>参考答案</strong>：MCP（Model Context Protocol）是把<strong>外部工具与数据源接入 AI 应用</strong>标准化的协议。解决的问题：此前每个工具要为每个 Agent 单独写适配，MCP 之后工具方实现一次协议，任何支持 MCP 的 Agent 都能接入——类似 USB-C 之于外设。<br><br>
+  <strong>工程意义</strong>：团队可以把内部系统（数据库 schema 只读、接口文档、工单）封装成 MCP 工具，让编码 Agent 直接"看到"组织内的真实信息，而不是靠人肉粘贴上下文。<br><br>
+  <strong>追问：接入内部系统有什么风险？</strong>——Agent 的可调用面 = 攻击面：只读权限、白名单操作、敏感数据脱敏，三件事要在接入前定好。</p>
+
+  <p><strong>Q5：自测 5 问</strong></p>
+  <ol>
+    <li>任务书四要素是哪四个？缺"验收标准"会发生什么？</li>
+    <li>Agent 循环的四个环节？"完成？"的判断为什么不可信？</li>
+    <li>规则文件解决什么问题？写哪三类内容？</li>
+    <li>幻觉的根因是什么？两道过滤网是什么？</li>
+    <li>"上下文给错"和"提示词写得差"，哪个更常见？为什么？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Cursor 官方文档的 Agent 模式与 Rules 章节（工作流的最小集合）</li>
+    <li>Anthropic 的 Claude Code 最佳实践博客（任务拆分与 CLAUDE.md 写法）</li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>MCP 官方规范与示例服务器（理解工具生态的标准化方向）</li>
+    <li>Anthropic《Building effective agents》——Agent 设计模式的权威短文</li>
+  </ul>
   <h3>官方文档</h3>
   <ul>
-    <li>Cursor 官方文档：<a href="https://docs.cursor.com/" rel="noopener">docs.cursor.com</a></li>
+    <li>Cursor：<a href="https://docs.cursor.com/" rel="noopener">docs.cursor.com</a></li>
     <li>OpenAI Codex：<a href="https://openai.com/codex/" rel="noopener">openai.com/codex</a></li>
     <li>Claude Code：<a href="https://docs.anthropic.com/en/docs/claude-code" rel="noopener">docs.anthropic.com/en/docs/claude-code</a></li>
   </ul>
+  <h3>练习项目</h3>
+  <ol>
+    <li>完成第 6 章 Demo（规则文件 + 四要素任务 + 机械验收），记录前后驳回率对比；</li>
+    <li>用 Agent 完成一次真实跨文件重构，全程只通过"方案确认 → diff 审 → 验收"三关交互；</li>
+    <li>给团队写一份《AI 编码协作规范》草案（规则文件模板 + 验收四件套 + commit 约定）。</li>
+  </ol>
 </section>
 
 </main>
