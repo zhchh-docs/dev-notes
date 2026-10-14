@@ -21,6 +21,8 @@
     const M = window.KB_MANIFEST;
     if(!M) return;
 
+    const SHELL_IDS = ['kb-progress','kb-topbar','kb-sidebar','kb-mask','kb-pager'];
+
     let here = decodeURIComponent(location.pathname.split('/').slice(-2).join('/'));
     let curIdx = -1, prev = null, next = null, curCat = null;
     let flat = [];
@@ -178,7 +180,6 @@
     /* ============================================================
        SPA 无刷新导航：拦截内部链接，只替换文章内容
        ============================================================ */
-    const SHELL_IDS = ['kb-progress','kb-topbar','kb-sidebar','kb-mask','kb-pager'];
 
     function isShell(el){
       if(el.id && SHELL_IDS.includes(el.id)) return true;
