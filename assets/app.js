@@ -46,7 +46,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </a>
       <div id="kb-crumb">
-        ${curCat ? `<span class="kb-cat">${curCat.icon} ${curCat.name}</span><span class="kb-sep">·</span>` : ''}
+        ${curCat ? `<a class="kb-cat" href="../index.html#cat-${encodeURIComponent(curCat.key)}" title="回到首页 · 定位到「${curCat.name}」模块">${curCat.icon} ${curCat.name}</a><span class="kb-sep">·</span>` : ''}
         <span class="kb-title">${document.title.replace('｜全栈技术知识库','')}</span>
       </div>
       <div class="kb-right">
@@ -207,7 +207,7 @@
           // 更新面包屑
           const crumb = document.getElementById('kb-crumb');
           if(crumb && curCat){
-            crumb.innerHTML = `<span class="kb-cat">${curCat.icon} ${curCat.name}</span><span class="kb-sep">·</span><span class="kb-title">${doc.title.replace('｜全栈技术知识库','')}</span>`;
+            crumb.innerHTML = `<a class="kb-cat" href="../index.html#cat-${encodeURIComponent(curCat.key)}" title="回到首页 · 定位到「${curCat.name}」模块">${curCat.icon} ${curCat.name}</a><span class="kb-sep">·</span><span class="kb-title">${doc.title.replace('｜全栈技术知识库','')}</span>`;
           }
           // 先把新内容准备好
           const temp = document.createElement('div');
