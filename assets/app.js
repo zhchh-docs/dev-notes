@@ -1,7 +1,8 @@
 /* ============================================================
    知识库阅读外壳 app.js
-   自动注入顶栏 / 侧边抽屉 / 进度条 / 上下篇 / 暗色模式
-   支持 SPA 无刷新导航（点击侧边栏不闪烁）
+   自动注入顶栏 / 目录栏 / 进度条 / 上下篇 / 暗色模式
+   目录栏与正文双栏各自独立滚动，点目录平滑跳转正文
+   支持 SPA 无刷新导航
    ============================================================ */
 (function(){
   // 动态加载 manifest.js
@@ -21,7 +22,7 @@
     const M = window.KB_MANIFEST;
     if(!M) return;
 
-    const SHELL_IDS = ['kb-progress','kb-topbar','kb-sidebar','kb-mask','kb-pager'];
+    const SHELL_IDS = ['kb-progress','kb-topbar','kb-toc','kb-content','kb-pager'];
 
     let here = decodeURIComponent(location.pathname.split('/').slice(-2).join('/'));
     let curIdx = -1, prev = null, next = null, curCat = null;
@@ -41,9 +42,6 @@
     const bar = document.createElement('header');
     bar.id = 'kb-topbar';
     bar.innerHTML = `
-      <button class="kb-btn" id="kbMenuBtn" title="目录 (Alt+M)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      </button>
       <a class="kb-btn" href="../index.html" title="返回首页" style="text-decoration:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </a>
@@ -52,28 +50,11 @@
         <span class="kb-title">${document.title.replace('｜全栈技术知识库','')}</span>
       </div>
       <div class="kb-right">
-        <button class="kb-btn" id="kbSearchBtn" title="搜索">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>
-        </button>
         <button class="kb-btn" id="kbThemeBtn" title="切换主题">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>`;
     document.body.appendChild(bar);
-
-    /* ---------- 3. 侧边栏 ---------- */
-    const mask = document.createElement('div');
-    mask.id = 'kb-mask';
-    document.body.appendChild(mask);
-
-    const side = document.createElement('nav');
-    side.id = 'kb-sidebar';
-    side.innerHTML = `
-      <div class="kb-side-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="kbSideSearch" placeholder="过滤文章…"></div>`;
-    const listWrap = document.createElement('div');
-    listWrap.id = 'kbSideList';
-    side.appendChild(listWrap);
-    document.body.appendChild(side);
 
     /* ---------- 内容包装：右侧独立滚动容器 ---------- */
     let content = document.getElementById('kb-content');
@@ -84,53 +65,20 @@
       document.body.appendChild(content);
     }
 
-    function renderSide(filter=''){
-      listWrap.innerHTML = '';
-      const q = filter.trim().toLowerCase();
-      M.cats.forEach(c => {
-        const arts = c.arts.filter(a => !q || a.t.toLowerCase().includes(q));
-        if(q && arts.length === 0) return;
-        const g = document.createElement('div');
-        g.className = 'kb-cat-group';
-        g.innerHTML = `<div class="kb-cat-name">${c.icon} ${c.name}</div>`;
-        arts.forEach(a => {
-          const item = document.createElement('a');
-          item.className = 'kb-art' + (a.u === here ? ' active' : '');
-          item.href = '../' + encodeURI(a.u);
-          item.innerHTML = `<span class="dot ${a.d}"></span><span>${a.t}</span>`;
-          g.appendChild(item);
-        });
-        listWrap.appendChild(g);
-      });
+    /* ---------- 3. 目录栏：把文章自带目录提取到左侧固定栏，独立滚动 ---------- */
+    function extractToc(){
+      const oldPanel = document.getElementById('kb-toc');
+      if(oldPanel) oldPanel.remove();
+      document.body.classList.remove('has-kb-toc');
+      const tocEl = content.querySelector('nav.toc') || content.querySelector('aside.sidebar');
+      if(!tocEl) return;
+      const panel = document.createElement('div');
+      panel.id = 'kb-toc';
+      panel.appendChild(tocEl);
+      document.body.appendChild(panel);
+      document.body.classList.add('has-kb-toc');
     }
-    renderSide();
-    document.getElementById('kbSideSearch').addEventListener('input', e => renderSide(e.target.value));
-
-    function openSide(){
-      side.classList.add('open');
-      document.body.classList.add('kb-sidebar-on');
-      if(window.innerWidth < 1280) mask.classList.add('show');
-    }
-    function closeSide(){
-      side.classList.remove('open');
-      document.body.classList.remove('kb-sidebar-on');
-      mask.classList.remove('show');
-    }
-    document.getElementById('kbMenuBtn').onclick = () => side.classList.contains('open') ? closeSide() : openSide();
-    document.getElementById('kbSearchBtn').onclick = openSide;
-    mask.onclick = closeSide;
-
-    function syncSidebarMode(){
-      if(window.innerWidth >= 1280){
-        side.classList.add('open');
-        document.body.classList.add('kb-sidebar-on');
-      } else {
-        side.classList.remove('open');
-        document.body.classList.remove('kb-sidebar-on');
-      }
-    }
-    syncSidebarMode();
-    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(syncSidebarMode, 150); });
+    extractToc();
 
     /* ---------- 4. 暗色切换 ---------- */
     document.getElementById('kbThemeBtn').onclick = () => {
@@ -164,9 +112,9 @@
       prog.style.width = (max > 0 ? (content.scrollTop / max) * 100 : 0) + '%';
     }, {passive:true});
 
-    /* ---------- 7. TOC 锚点平滑滚动 ---------- */
+    /* ---------- 7. 目录点击：平滑跳转正文 ---------- */
     document.addEventListener('click', e => {
-      const a = e.target.closest('.toc a, .toc ol a, .toc ul a');
+      const a = e.target.closest('#kb-toc a, .toc a');
       if(!a) return;
       const href = a.getAttribute('href');
       if(!href || !href.startsWith('#')) return;
@@ -204,8 +152,6 @@
 
     // 切换到新页面内容
     function navigateTo(url, pushUrl){
-      // 保存侧边栏滚动位置
-      const savedScroll = side.scrollTop;
       // 进度条动画
       prog.style.width = '20%';
       prog.style.transition = 'width 0.2s ease';
@@ -234,9 +180,8 @@
             content.appendChild(el);
             el.classList.add('kb-article-in');
           });
-          // 更新侧边栏 active，保持滚动位置
-          renderSide(document.getElementById('kbSideSearch').value);
-          side.scrollTop = savedScroll;
+          // 重新提取目录栏
+          extractToc();
           // 重建 pager
           buildPager();
           // 重新初始化术语
