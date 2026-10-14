@@ -4,9 +4,9 @@
 
 ## 在线访问
 
-🌐 **GitHub Pages**: https://zhchh-create.github.io/zhchh-docx/
+🌐 **GitHub Pages**: https://zhchh-docs.github.io/dev-notes/
 
-💻 **GitHub 仓库**: https://github.com/zhchh-create/zhchh-docx
+💻 **GitHub 仓库**: https://github.com/zhchh-docs/dev-notes
 
 ---
 
@@ -73,7 +73,7 @@
 
 1. 克隆仓库：
 ```bash
-git clone https://github.com/zhchh-create/zhchh-docx.git
+git clone https://github.com/zhchh-docs/dev-notes.git
 ```
 
 2. 直接用浏览器打开 `index.html` 即可浏览全部内容。
