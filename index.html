@@ -131,6 +131,35 @@ main{max-width:780px;margin:0 auto;padding:80px 20px 60px;position:relative;z-in
 .pill:hover{background:rgba(255,255,255,.8)}
 .pill.on{background:var(--forest);color:#fff;font-weight:500}
 
+/* 继续读 */
+.cont-bar{
+  display:none;align-items:center;gap:10px;margin:0 0 18px;
+  background:rgba(255,255,255,.75);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.9);border-radius:14px;
+  padding:11px 16px;box-shadow:0 4px 16px rgba(61,122,79,.12);
+  font-size:13.5px;
+}
+.cont-bar .cont-label{color:var(--forest-deep);font-weight:600;flex:none}
+.cont-bar a{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cont-bar a:hover{color:var(--forest)}
+
+/* 学习路径 */
+.route-wrap{margin:0 0 30px}
+.route-title{font-size:13px;color:var(--forest-deep);font-weight:700;margin-bottom:10px;letter-spacing:.02em}
+.route{display:flex;flex-wrap:wrap;gap:8px}
+.route-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12.5px;color:var(--ink-2);
+  background:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.9);
+  border-radius:999px;padding:5px 13px 5px 6px;cursor:pointer;transition:.15s;
+}
+.route-chip:hover{background:#fff;transform:translateY(-1px);box-shadow:0 4px 12px rgba(61,122,79,.15)}
+.route-chip em{
+  font-style:normal;width:20px;height:20px;border-radius:50%;
+  display:grid;place-items:center;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,#6BA070,#3D7A4F);color:#fff;
+}
+
 /* 贴纸墙 */
 .wall{display:grid;grid-template-columns:1fr;gap:26px}
 @media(min-width:680px){.wall{grid-template-columns:1fr 1fr;gap:30px}}
@@ -181,6 +210,12 @@ main{max-width:780px;margin:0 auto;padding:80px 20px 60px;position:relative;z-in
   cursor:pointer;transition:.12s;
 }
 .arts li:last-child{border-bottom:none}
+.arts li.read{opacity:.55}
+.arts li.read .t{color:var(--forest)}
+.more-btn{padding:7px 0 2px;font-size:12px;color:var(--forest);cursor:pointer;font-weight:600}
+.more-btn:hover{text-decoration:underline}
+.prog{height:4px;border-radius:2px;background:rgba(0,0,0,.07);margin:0 0 10px;overflow:hidden}
+.prog i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#6BA070,#3D7A4F);transition:width .4s}
 .arts li:hover{color:var(--ink);padding-left:4px}
 .arts li .dot{width:6px;height:6px;border-radius:50%;flex:none}
 .arts li .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -299,6 +334,15 @@ main{max-width:780px;margin:0 auto;padding:80px 20px 60px;position:relative;z-in
     </div>
   </section>
 
+  <div id="contBar" class="cont-bar">
+    <span class="cont-label">📖 上次读到</span>
+  </div>
+
+  <div class="route-wrap">
+    <div class="route-title">🧭 学习路径 · 按顺序走一遍</div>
+    <div class="route" id="route"></div>
+  </div>
+
   <div class="wall" id="wall"></div>
 
   <div class="foot">🌳 树荫下笔记 · 慢慢读，自然会</div>
@@ -324,6 +368,45 @@ let total = 0;
 M.cats.forEach(c => total += c.arts.length);
 $('#totalN').textContent = total;
 
+/* 已读记录 */
+let readSet;
+try{ readSet = new Set(JSON.parse(localStorage.getItem('kb_read') || '[]')); }
+catch(e){ readSet = new Set(); }
+
+/* 学习路径条 */
+const route = $('#route');
+M.cats.forEach((cat, idx) => {
+  const a = document.createElement('a');
+  a.className = 'route-chip';
+  a.href = '#cat-' + encodeURIComponent(cat.key);
+  a.innerHTML = `<em>${idx+1}</em>${cat.icon} ${cat.name}`;
+  a.onclick = e => { e.preventDefault(); scrollToCat(cat.key, false); };
+  route.appendChild(a);
+});
+
+/* 继续阅读 */
+(function(){
+  let last = null;
+  try{ last = JSON.parse(localStorage.getItem('kb_last') || 'null'); }catch(e){}
+  if(!last || !last.u) return;
+  let hit = null;
+  M.cats.forEach(c => c.arts.forEach(a => { if(a.u === last.u) hit = a; }));
+  if(!hit) return;
+  const bar = $('#contBar');
+  bar.innerHTML = `<span class="cont-label">📖 上次读到</span><a href="${encodeURI(hit.u)}">${hit.t}</a>`;
+  bar.style.display = 'flex';
+})();
+
+function scrollToCat(key, flash = true){
+  const el = wall.querySelector(`[data-cat="${key}"]`);
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  if(flash){
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 2400);
+  }
+}
+
 /* 渲染贴纸墙 */
 const wall = $('#wall');
 let curDepth = 'all';
@@ -333,6 +416,7 @@ function render(){
     const arts = cat.arts.filter(a => curDepth === 'all' || a.d === curDepth);
     if(!arts.length) return;
     const n = idx % 7;
+    const readCnt = cat.arts.filter(a => readSet.has(a.u)).length;
     const card = document.createElement('div');
     card.className = 'sticky s' + n;
     card.dataset.cat = cat.key;
@@ -340,21 +424,29 @@ function render(){
       <div class="cat-head">
         <div class="cat-ic">${cat.icon}</div>
         <h3>${cat.name}</h3>
-        <span class="cnt">${arts.length} 篇</span>
+        <span class="cnt">${readCnt > 0 ? '已读 ' + readCnt + '/' : ''}${arts.length} 篇</span>
       </div>
       <div class="desc">${cat.desc}</div>
+      <div class="prog"><i style="width:${arts.length ? Math.round(readCnt/arts.length*100) : 0}%"></i></div>
       <ul class="arts"></ul>`;
     const list = card.querySelector('.arts');
-    arts.slice(0, 5).forEach(a => {
+    function makeLi(a){
       const li = document.createElement('li');
-      li.innerHTML = `<span class="dot"></span><span class="t">${a.t}</span><span class="tag ${a.d}">${a.d==='deep'?'深入':a.d==='std'?'标准':'入门'}</span>`;
+      const read = readSet.has(a.u);
+      li.innerHTML = `<span class="dot"></span><span class="t">${read ? '✓ ' : ''}${a.t}</span><span class="tag ${a.d}">${a.d==='deep'?'深入':a.d==='std'?'标准':'入门'}</span>`;
+      if(read) li.classList.add('read');
       li.onclick = () => location.href = encodeURI(a.u);
-      list.appendChild(li);
-    });
+      return li;
+    }
+    arts.slice(0, 5).forEach(a => list.appendChild(makeLi(a)));
     if(arts.length > 5){
       const more = document.createElement('div');
-      more.style.cssText = 'padding:6px 0 0;font-size:12px;color:var(--ink-3)';
-      more.textContent = `还有 ${arts.length - 5} 篇…`;
+      more.className = 'more-btn';
+      more.textContent = `展开其余 ${arts.length - 5} 篇 ▾`;
+      more.onclick = () => {
+        arts.slice(5).forEach(a => list.appendChild(makeLi(a)));
+        more.remove();
+      };
       list.appendChild(more);
     }
     wall.appendChild(card);
@@ -366,14 +458,7 @@ render();
 (function(){
   const hash = decodeURIComponent(location.hash || '');
   if(!hash.startsWith('#cat-')) return;
-  const key = hash.slice(5);
-  setTimeout(() => {
-    const el = wall.querySelector(`[data-cat="${key}"]`);
-    if(!el) return;
-    el.scrollIntoView({behavior:'smooth', block:'center'});
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 2400);
-  }, 150);
+  setTimeout(() => scrollToCat(hash.slice(5)), 150);
 })();
 
 $$('.pill').forEach(p => {

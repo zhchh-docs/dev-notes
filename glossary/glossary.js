@@ -76,12 +76,17 @@
         frag.appendChild(document.createTextNode(text.slice(lastIndex, m.index)));
       }
       var term = m[0];
-      var span = document.createElement('span');
-      span.className = 'gloss-term';
-      span.setAttribute('data-term', term);
-      span.textContent = term;
-      frag.appendChild(span);
-      usedTerms[term] = true;
+      if (usedTerms[term]) {
+        // 只标注首次出现，后续保持纯文本
+        frag.appendChild(document.createTextNode(term));
+      } else {
+        var span = document.createElement('span');
+        span.className = 'gloss-term';
+        span.setAttribute('data-term', term);
+        span.textContent = term;
+        frag.appendChild(span);
+        usedTerms[term] = true;
+      }
       lastIndex = m.index + term.length;
     }
     // 尾部剩余

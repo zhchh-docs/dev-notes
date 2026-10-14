@@ -50,11 +50,47 @@
         <span class="kb-title">${document.title.replace('｜全栈技术知识库','')}</span>
       </div>
       <div class="kb-right">
+        <span class="kb-pos" id="kbPos"></span>
+        <button class="kb-btn kb-read-btn" id="kbReadBtn" title="标记已读">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </button>
         <button class="kb-btn" id="kbThemeBtn" title="切换主题">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>`;
     document.body.appendChild(bar);
+
+    /* ---------- 2.5 已读打卡 / 模块内进度 / 继续阅读 ---------- */
+    const READ_KEY = 'kb_read';
+    let readSet;
+    try{ readSet = new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')); }
+    catch(e){ readSet = new Set(); }
+    function saveRead(){ try{ localStorage.setItem(READ_KEY, JSON.stringify([...readSet])); }catch(e){} }
+    function syncReadBtn(){
+      const btn = document.getElementById('kbReadBtn');
+      if(!btn) return;
+      const on = readSet.has(here);
+      btn.classList.toggle('on', on);
+      btn.title = on ? '已读（点击取消）' : '标记已读';
+    }
+    document.getElementById('kbReadBtn').onclick = () => {
+      readSet.has(here) ? readSet.delete(here) : readSet.add(here);
+      saveRead();
+      syncReadBtn();
+    };
+    function syncPos(){
+      const pos = document.getElementById('kbPos');
+      if(!pos) return;
+      if(curCat){
+        const i = curCat.arts.findIndex(a => a.u === here);
+        pos.textContent = (i >= 0) ? `${i+1} / ${curCat.arts.length} 篇` : '';
+      }else{
+        pos.textContent = '';
+      }
+    }
+    try{ localStorage.setItem('kb_last', JSON.stringify({ u: here })); }catch(e){}
+    syncPos();
+    syncReadBtn();
 
     /* ---------- 内容包装：右侧独立滚动容器 ---------- */
     let content = document.getElementById('kb-content');
@@ -226,6 +262,10 @@
           extractToc();
           // 重建 pager
           buildPager();
+          // 更新进度/已读状态与继续阅读记录
+          try{ localStorage.setItem('kb_last', JSON.stringify({ u: here })); }catch(e){}
+          syncPos();
+          syncReadBtn();
           // 重新初始化术语
           reinitGlossary();
           // 滚动到顶（内容容器）
