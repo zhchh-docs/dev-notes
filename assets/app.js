@@ -100,12 +100,14 @@
         const pager = document.createElement('div');
         pager.id = 'kb-pager';
         const pos = (curIdx >= 0) ? `<div class="kb-pager-pos">第 ${curIdx + 1} / ${flat.length} 篇</div>` : '';
+        const arrowL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>';
+        const arrowR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
         pager.innerHTML = pos + `
           ${prev
-            ? `<a class="prev" href="../${encodeURI(prev.u)}"><div class="dir">← 上一篇</div><div class="name">${prev.t}</div></a>`
+            ? `<a class="prev" href="../${encodeURI(prev.u)}"><div class="dir">${arrowL} 上一篇</div><div class="name">${prev.t}</div></a>`
             : `<div class="none">已是第一篇</div>`}
           ${next
-            ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 →</div><div class="name">${next.t}</div></a>`
+            ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 ${arrowR}</div><div class="name">${next.t}</div></a>`
             : `<div class="none">已是最后一篇</div>`}`;
         const footer = content.querySelector('footer');
         if(footer) content.insertBefore(pager, footer);
@@ -120,7 +122,9 @@
         edge.href = '../' + encodeURI(art.u);
         edge.title = (isPrev ? '上一篇（←）' : '下一篇（→）') + art.t;
         edge.innerHTML = `
-          <span class="chev">${isPrev ? '‹' : '›'}</span>
+          <span class="chev">${isPrev
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'}</span>
           <span class="meta"><em>${isPrev ? '上一篇' : '下一篇'}</em><b>${art.t}</b></span>`;
         document.body.appendChild(edge);
       }
