@@ -82,6 +82,12 @@ window.KB_MANIFEST = {
       "desc": "Vue / React / 组件化 / Pinia / Redux / 微前端 / SSR",
       "arts": [
         {
+          "t": "框架与状态 · 模块导览【精讲】",
+          "f": "00_前端框架与状态管理模块导览【精讲】.html",
+          "u": "02_前端框架与状态管理/00_前端框架与状态管理模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
           "t": "Vue框架【标准】",
           "f": "01_Vue框架【标准】.html",
           "u": "02_前端框架与状态管理/01_Vue框架【标准】.html",
@@ -150,6 +156,12 @@ window.KB_MANIFEST = {
       "desc": "ECharts / AntV G6 / Three.js / Canvas / SVG / 大屏",
       "arts": [
         {
+          "t": "数据可视化 · 模块导览【精讲】",
+          "f": "00_数据可视化模块导览【精讲】.html",
+          "u": "03_数据可视化/00_数据可视化模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
           "t": "可视化技术选型与原理【标准】",
           "f": "01_可视化技术选型与原理【标准】.html",
           "u": "03_数据可视化/01_可视化技术选型与原理【标准】.html",
@@ -212,6 +224,12 @@ window.KB_MANIFEST = {
       "desc": "WebSocket / SSE / WebRTC / Janus / 音视频协议",
       "arts": [
         {
+          "t": "实时通信 · 模块导览【精讲】",
+          "f": "00_实时通信模块导览【精讲】.html",
+          "u": "04_实时通信/00_实时通信模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
           "t": "音视频基础与流媒体协议【标准】",
           "f": "01_音视频基础与流媒体协议【标准】.html",
           "u": "04_实时通信/01_音视频基础与流媒体协议【标准】.html",
@@ -231,8 +249,8 @@ window.KB_MANIFEST = {
         },
         {
           "t": "Socket.io 实战",
-          "f": "05_Socket.io实战【标准】.html",
-          "u": "04_实时通信/05_Socket.io实战【标准】.html",
+          "f": "04_Socket.io实战【标准】.html",
+          "u": "04_实时通信/04_Socket.io实战【标准】.html",
           "d": "std"
         },
         {
@@ -261,6 +279,12 @@ window.KB_MANIFEST = {
       "icon": "🧰",
       "desc": "Axios / vxe-table / JsPlumb / Monaco / VueUse / Lodash",
       "arts": [
+        {
+          "t": "工具库 · 模块导览【精讲】",
+          "f": "00_前端常用工具库模块导览【精讲】.html",
+          "u": "05_前端常用工具库/00_前端常用工具库模块导览【精讲】.html",
+          "d": "std"
+        },
         {
           "t": "Lodash 工具函数库",
           "f": "01_Lodash工具函数库【标准】.html",
@@ -292,12 +316,6 @@ window.KB_MANIFEST = {
           "d": "std"
         },
         {
-          "t": "vue_draggable与v-code-diff【标准】",
-          "f": "06_vue_draggable与v-code-diff【标准】.html",
-          "u": "05_前端常用工具库/06_vue_draggable与v-code-diff【标准】.html",
-          "d": "std"
-        },
-        {
           "t": "vxe-table表格【深入】",
           "f": "06_vxe_table表格【深入】.html",
           "u": "05_前端常用工具库/06_vxe_table表格【深入】.html",
@@ -320,6 +338,12 @@ window.KB_MANIFEST = {
           "f": "09_JsPlumb连线【深入】.html",
           "u": "05_前端常用工具库/09_JsPlumb连线【深入】.html",
           "d": "deep"
+        },
+        {
+          "t": "vue_draggable与v-code-diff【标准】",
+          "f": "10_vue_draggable与v-code-diff【标准】.html",
+          "u": "05_前端常用工具库/10_vue_draggable与v-code-diff【标准】.html",
+          "d": "std"
         }
       ]
     },
@@ -329,6 +353,12 @@ window.KB_MANIFEST = {
       "icon": "⚙️",
       "desc": "Vite / Webpack / Git / ESLint / 测试 / Monorepo",
       "arts": [
+        {
+          "t": "工程化 · 模块导览【精讲】",
+          "f": "00_前端工程化与工具链模块导览【精讲】.html",
+          "u": "06_前端工程化与工具链/00_前端工程化与工具链模块导览【精讲】.html",
+          "d": "std"
+        },
         {
           "t": "npm与包管理【基础】",
           "f": "01_npm与包管理【基础】.html",
@@ -398,6 +428,12 @@ window.KB_MANIFEST = {
       "desc": "Java / Spring / Spring Boot / MyBatis / RESTful / JWT",
       "arts": [
         {
+          "t": "后端开发 · 模块导览【精讲】",
+          "f": "00_后端开发模块导览【精讲】.html",
+          "u": "07_后端开发/00_后端开发模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
           "t": "Java基础【标准】",
           "f": "01_Java基础【标准】.html",
           "u": "07_后端开发/01_Java基础【标准】.html",
@@ -465,6 +501,12 @@ window.KB_MANIFEST = {
       "icon": "🗄️",
       "desc": "MySQL / Redis / Oracle / ES / MongoDB / 分库分表",
       "arts": [
+        {
+          "t": "数据库 · 模块导览【精讲】",
+          "f": "00_数据库与建模模块导览【精讲】.html",
+          "u": "08_数据库与建模/00_数据库与建模模块导览【精讲】.html",
+          "d": "std"
+        },
         {
           "t": "MySQL【深入】",
           "f": "01_MySQL【深入】.html",
@@ -534,6 +576,12 @@ window.KB_MANIFEST = {
       "desc": "Nginx / Docker / K8s / CI-CD / Linux / 监控",
       "arts": [
         {
+          "t": "DevOps · 模块导览【精讲】",
+          "f": "00_DevOps部署与运维模块导览【精讲】.html",
+          "u": "09_DevOps部署与运维/00_DevOps部署与运维模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
           "t": "Linux基础与常用命令【标准】",
           "f": "01_Linux基础与常用命令【标准】.html",
           "u": "09_DevOps部署与运维/01_Linux基础与常用命令【标准】.html",
@@ -601,6 +649,12 @@ window.KB_MANIFEST = {
       "icon": "🤖",
       "desc": "敏捷 / 代码评审 / AI 编程 / RAG / 技术选型",
       "arts": [
+        {
+          "t": "研发流程与AI · 模块导览【精讲】",
+          "f": "00_研发流程与AI辅助模块导览【精讲】.html",
+          "u": "10_研发流程与AI辅助/00_研发流程与AI辅助模块导览【精讲】.html",
+          "d": "std"
+        },
         {
           "t": "需求分析与技术选型方法论",
           "f": "01_需求分析与技术选型【标准】.html",
@@ -782,5 +836,5 @@ window.KB_MANIFEST = {
       ]
     }
   ],
-  "total": 114
+  "total": 123
 };
