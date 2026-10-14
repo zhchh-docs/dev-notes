@@ -26,6 +26,7 @@ CAT_META = {
     "09_DevOps部署与运维": ("DevOps",    "🚀", "Nginx / Docker / K8s / CI-CD / Linux / 监控"),
     "10_研发流程与AI辅助": ("研发与AI",  "🤖", "敏捷 / 代码评审 / AI 编程 / RAG / 技术选型"),
     "11_全面学习":      ("体系精讲",   "🎯", "知识总纲 + 6 篇体系化精讲，全领域知识点分层覆盖"),
+    "12_全栈技术路线图": ("技术路线图", "🗺️", "从计算机底层到项目实战：底层/前端/Node/数据库/中间件/安全/实战"),
 }
 
 def depth_of(fname: str) -> str:
@@ -55,7 +56,8 @@ for cname, cdir in CATS:
                 head = f.read(2000)
             m = re.search(r"<title>([^<]+)</title>", head)
             if m:
-                title = m.group(1).replace("｜全栈技术知识库", "").strip()
+                title = m.group(1).strip()
+                title = re.sub(r"\s*[-｜—]\s*(全栈技术路线图|全栈技术知识库).*$", "", title).strip()
         except Exception:
             pass
         if not title:
@@ -83,4 +85,4 @@ with open(out_path, "w", encoding="utf-8") as f:
 
 print(f"OK: {manifest['total']} articles, {len(manifest['cats'])} categories -> {out_path}")
 for c in manifest["cats"]:
-    print(f"  {c['icon']} {c['name']}: {len(c['arts'])}")
+    print(f"  {c['name']} ({c['key']}): {len(c['arts'])}")

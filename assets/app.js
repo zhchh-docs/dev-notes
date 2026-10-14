@@ -73,6 +73,15 @@
     side.appendChild(listWrap);
     document.body.appendChild(side);
 
+    /* ---------- 内容包装：右侧独立滚动容器 ---------- */
+    let content = document.getElementById('kb-content');
+    if(!content){
+      content = document.createElement('div');
+      content.id = 'kb-content';
+      Array.from(document.body.children).forEach(el => { if(!isShell(el)) content.appendChild(el); });
+      document.body.appendChild(content);
+    }
+
     function renderSide(filter=''){
       listWrap.innerHTML = '';
       const q = filter.trim().toLowerCase();
@@ -95,8 +104,16 @@
     renderSide();
     document.getElementById('kbSideSearch').addEventListener('input', e => renderSide(e.target.value));
 
-    function openSide(){ side.classList.add('open'); mask.classList.add('show'); }
-    function closeSide(){ side.classList.remove('open'); mask.classList.remove('show'); }
+    function openSide(){
+      side.classList.add('open');
+      document.body.classList.add('kb-sidebar-on');
+      if(window.innerWidth < 1280) mask.classList.add('show');
+    }
+    function closeSide(){
+      side.classList.remove('open');
+      document.body.classList.remove('kb-sidebar-on');
+      mask.classList.remove('show');
+    }
     document.getElementById('kbMenuBtn').onclick = () => side.classList.contains('open') ? closeSide() : openSide();
     document.getElementById('kbSearchBtn').onclick = openSide;
     mask.onclick = closeSide;
@@ -132,18 +149,17 @@
         pager.innerHTML = `
           ${prev ? `<a class="prev" href="../${encodeURI(prev.u)}"><div class="dir">← 上一篇</div><div class="name">${prev.t}</div></a>` : '<span></span>'}
           ${next ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 →</div><div class="name">${next.t}</div></a>` : '<span></span>'}`;
-        const footer = document.querySelector('footer');
-        if(footer) document.body.insertBefore(pager, footer);
-        else document.body.appendChild(pager);
+        const footer = content.querySelector('footer');
+        if(footer) content.insertBefore(pager, footer);
+        else content.appendChild(pager);
       }
     }
     buildPager();
 
-    /* ---------- 6. 滚动：进度条 ---------- */
-    window.addEventListener('scroll', () => {
-      const h = document.documentElement;
-      const max = h.scrollHeight - h.clientHeight;
-      prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    /* ---------- 6. 滚动：进度条（监听内容容器） ---------- */
+    content.addEventListener('scroll', () => {
+      const max = content.scrollHeight - content.clientHeight;
+      prog.style.width = (max > 0 ? (content.scrollTop / max) * 100 : 0) + '%';
     }, {passive:true});
 
     /* ---------- 7. TOC 锚点平滑滚动 ---------- */
@@ -211,12 +227,10 @@
             if(el.tagName === 'SCRIPT' && el.src && el.src.includes('app.js')) return;
             temp.appendChild(document.importNode(el, true));
           });
-          // 一次性替换
-          Array.from(document.body.children).forEach(el => {
-            if(!isShell(el)) el.remove();
-          });
+          // 一次性替换（在内容容器内）
+          Array.from(content.children).forEach(el => el.remove());
           Array.from(temp.children).forEach(el => {
-            document.body.appendChild(el);
+            content.appendChild(el);
             el.classList.add('kb-article-in');
           });
           // 更新侧边栏 active，保持滚动位置
@@ -226,8 +240,8 @@
           buildPager();
           // 重新初始化术语
           reinitGlossary();
-          // 滚动到顶
-          window.scrollTo(0, 0);
+          // 滚动到顶（内容容器）
+          content.scrollTop = 0;
           prog.style.width = '100%';
           setTimeout(() => { prog.style.width = '0'; }, 200);
         })

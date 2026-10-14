@@ -29,8 +29,14 @@
   --kb-shadow:0 8px 30px rgba(0,0,0,.5);
 }
 
-/* 给文章主体腾出顶栏位置 */
-body{padding-top:var(--kb-topbar-h) !important;}
+/* 独立双栏滚动：顶栏/侧栏固定，右侧内容自成滚动容器 */
+html,body{height:100%;overflow:hidden}
+#kb-content{
+  position:fixed;top:var(--kb-topbar-h);left:0;right:0;bottom:0;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+body.kb-sidebar-on #kb-content{left:var(--kb-sidebar-w)}
 
 /* ============ 阅读进度条 ============ */
 #kb-progress{
@@ -75,12 +81,20 @@ body{padding-top:var(--kb-topbar-h) !important;}
 
 /* ============ 侧边抽屉 ============ */
 #kb-sidebar{
-  display:none !important;
-}
-#kb-mask{
-  display:none !important;
+  position:fixed;top:var(--kb-topbar-h);bottom:0;left:0;
+  width:var(--kb-sidebar-w);z-index:9997;
+  background:var(--kb-elev);border-right:1px solid var(--kb-border);
+  overflow-y:auto;overscroll-behavior:contain;
+  transform:translateX(-100%);transition:transform .25s ease;
+  padding:10px 8px 24px;
 }
 #kb-sidebar.open{transform:translateX(0);box-shadow:var(--kb-shadow)}
+#kb-mask{
+  position:fixed;inset:var(--kb-topbar-h) 0 0 0;z-index:9996;
+  background:rgba(42,61,42,.3);backdrop-filter:blur(2px);
+  opacity:0;visibility:hidden;transition:.25s;
+}
+#kb-mask.show{opacity:1;visibility:visible}
 #kb-sidebar .kb-home{
   display:flex;align-items:center;gap:8px;
   padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:600;
@@ -122,12 +136,11 @@ body{padding-top:var(--kb-topbar-h) !important;}
 #kb-sidebar .kb-art .dot.std{background:#5A9E6A}
 #kb-sidebar .kb-art .dot.basic{background:#D4A050}
 
-#kb-mask{
-  position:fixed;inset:var(--kb-topbar-h) 0 0 0;z-index:9996;
-  background:rgba(42,61,42,.3);backdrop-filter:blur(2px);
-  opacity:0;visibility:hidden;transition:.25s;
-}
-#kb-mask.show{opacity:1;visibility:visible}
+/* 两个滚动区各自独立的细滚动条 */
+#kb-content::-webkit-scrollbar,#kb-sidebar::-webkit-scrollbar{width:8px;height:8px}
+#kb-content::-webkit-scrollbar-thumb,#kb-sidebar::-webkit-scrollbar-thumb{background:var(--kb-border);border-radius:4px}
+#kb-content::-webkit-scrollbar-thumb:hover,#kb-sidebar::-webkit-scrollbar-thumb:hover{background:var(--kb-ink-4)}
+#kb-content::-webkit-scrollbar-track,#kb-sidebar::-webkit-scrollbar-track{background:transparent}
 
 /* ============ 上下篇导航 ============ */
 #kb-pager{
@@ -234,11 +247,9 @@ a{color:#3D7A4F !important}
   #kb-pager{grid-template-columns:1fr;padding:0 14px 40px}
 }
 
-/* 宽屏：侧边栏已隐藏，内容占满 */
-@media (min-width:1280px){
-  body.kb-sidebar-on{
-    padding-left:0 !important;
-  }
+/* 移动端：抽屉为覆盖式，内容占满 */
+@media (max-width:1279px){
+  body.kb-sidebar-on #kb-content{left:0}
 }
 
 /* 术语弹窗 */
@@ -346,3 +357,91 @@ pre.code{margin:16px 0 !important;padding:14px 16px !important}
 .kb-article-in section.card:nth-child(3){animation-delay:.1s}
 .kb-article-in section.card:nth-child(4){animation-delay:.15s}
 .kb-article-in section.card:nth-child(5){animation-delay:.2s}
+
+/* ============================================================
+   正文内容样式（原 common.css 迁入，旧壳已删除）
+   仅保留正文依赖：Prism 高亮 / 可读性排版 / 移动端适配
+   ============================================================ */
+
+/* Prism 代码高亮基础 */
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-],pre[class*=language-]{background:#272822}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}
+.token.punctuation{color:#f8f8f2}
+.token.namespace{opacity:.7}
+.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}
+.token.boolean,.token.number{color:#ae81ff}
+.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}
+.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}
+.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}
+.token.keyword{color:#66d9ef}
+.token.important,.token.regex{color:#fd971f}
+.token.bold,.token.important{font-weight:700}
+.token.italic{font-style:italic}
+.token.entity{cursor:help}
+
+/* 可读性排版 */
+body{line-height:1.85}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid #10b981;color:#1e293b;line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid #e2e8f0;color:#334155;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0;color:#334155}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8;color:#334155}
+
+/* 手机端优化 */
+@media(max-width:768px){
+  html, body {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  body {
+    line-height: 1.7 !important;
+    font-size: 15px !important;
+  }
+  .container {
+    padding: 0 10px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  section.card {
+    padding: 16px 14px !important;
+    margin: 12px 0 !important;
+    border-radius: 8px !important;
+  }
+  section.card h2 {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+    padding-left: 10px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 20px 0 8px !important;
+  }
+  section.card p {
+    font-size: 14.5px !important;
+    line-height: 1.75 !important;
+    margin: 10px 0 !important;
+  }
+  code {
+    font-size: 13px !important;
+    padding: 2px 5px !important;
+    border-radius: 4px !important;
+    white-space: normal !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+  }
+  pre.code {
+    font-size: 12px !important;
+    padding: 10px !important;
+    overflow-x: auto !important;
+    border-radius: 6px !important;
+  }
+  .diagram {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+    overflow-x: auto !important;
+    border-radius: 8px !important;
+  }
+}
