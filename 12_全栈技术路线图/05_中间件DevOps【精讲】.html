@@ -70,6 +70,7 @@ footer{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;bor
 <aside class="sidebar">
   <h3>📚 中间件与 DevOps</h3>
   <ul class="toc-tree">
+    <li class="l1"><a href="#sec0">5.0 简介与阅读指引</a></li>
     <li class="l1"><a href="#sec1">5.1 Nginx 反向代理</a></li>
     <li class="l1"><a href="#sec2">5.2 Nginx 负载均衡</a></li>
     <li class="l1"><a href="#sec3">5.3 消息队列</a></li>
@@ -79,10 +80,41 @@ footer{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;bor
     <li class="l1"><a href="#sec7">6.4 Docker Compose</a></li>
     <li class="l1"><a href="#sec8">6.5 CI/CD 流水线</a></li>
     <li class="l1"><a href="#sec9">6.6 部署架构</a></li>
+  <li class="l1"><a href="#sec10">5.10 常见坑 &amp; Debug</a></li>
+    <li class="l1"><a href="#sec11">5.11 重点讲解与资源</a></li>
   </ul>
 </aside>
 
 <main class="main-content">
+
+<section id="sec0" class="card">
+  <h2><span class="num">5.0</span>简介与阅读指引</h2>
+  <h3>定位</h3>
+  <p class="lead">这一阶段是"代码之外的半壁江山"：<strong>Nginx 管流量入口</strong>，<strong>消息队列管异步解耦</strong>，<strong>Git 管协作</strong>，<strong>Docker 管环境一致性</strong>，<strong>CI/CD 管交付自动化</strong>。它决定你的项目是"本地能跑"还是"任何人随时可用的线上服务"。</p>
+  <h3>痛点</h3>
+  <p>两个经典崩溃场景：本地好好的，服务器上环境不一样跑不起来（→ 容器化解决）；每次上线靠 SSH 手工传文件、改配置、重启（→ CI/CD 解决）。DevOps 的全部意义就是把"人的不可靠"从发布流程里移出去。</p>
+  <h3>前置知识</h3>
+  <ul>
+    <li>阶段 3 的后端服务（要被部署的对象）；</li>
+    <li>阶段 4 的 MySQL/Redis（要被编排的中间件）；</li>
+    <li>09 模块的 Linux 基础（命令行是 DevOps 的母语）。</li>
+  </ul>
+  <h3>阅读指引</h3>
+  <ul>
+    <li><strong>主线必读</strong>：5.1（Nginx 入口）→ 5.4（Git 与 Docker）→ 5.5（实操配置）→ 5.6（一键起全套实验）；</li>
+    <li><strong>第一遍可跳过</strong>：5.3 消息队列的选型细节、5.7 的部署架构全景；</li>
+    <li><strong>务必动手</strong>：5.6 用 Compose 把"前端+后端+MySQL+Redis"四容器一键起起来——这是本阶段的里程碑；</li>
+    <li><strong>面试冲刺</strong>：5.10 坑 + 5.11 重点讲解五题。</li>
+  </ul>
+  <h3>学习目标：读完本阶段你能</h3>
+  <ol>
+    <li>配置 Nginx 完成静态服务 + 反向代理 + 负载均衡，并解释每种负载均衡策略的适用场景；</li>
+    <li>写出利用层缓存的 Dockerfile，说清"为什么改一行代码不用重装依赖"；</li>
+    <li>用 Compose 一键编排前后端 + 数据库 + 缓存；</li>
+    <li>设计一条 lint → test → build → deploy 的流水线，并说出 MQ 选型的依据。</li>
+  </ol>
+</section>
+
 
 <section id="sec1" class="card">
   <h2><span class="num">5.1</span>Nginx 反向代理</h2>
@@ -303,6 +335,86 @@ CMD ["node", "dist/main.js"]</code></pre>
     </svg>
     <div class="diagram-caption">图 6.6-1　一个全栈项目最小可用部署架构</div>
   </div>
+</section>
+
+
+<section id="sec10" class="card">
+  <h2><span class="num">5.10</span>常见坑 &amp; Debug</h2>
+
+  <p><strong>坑 1：Nginx 反代返回 502 Bad Gateway</strong></p>
+  <ul>
+    <li><strong>现象</strong>：静态页面能开，所有 <code>/api</code> 请求 502；</li>
+    <li><strong>根因</strong>：upstream 指向的后端没启动 / 端口写错 / 防火墙拦截——Nginx 连不上上游；</li>
+    <li><strong>排查</strong>：在服务器本机 <code>curl 127.0.0.1:3000/api/health</code> 先确认后端活着，再看 Nginx error.log 的 connect() failed 行；</li>
+    <li><strong>规避</strong>：后端加 /health 健康检查端点；Nginx 配 upstream 时写重试与超时。</li>
+  </ul>
+
+  <p><strong>坑 2：容器里连不上 MySQL——localhost 不通</strong></p>
+  <ul>
+    <li><strong>现象</strong>：Compose 起了 mysql 和 api，api 日志报 ECONNREFUSED 127.0.0.1:3306；</li>
+    <li><strong>根因</strong>：每个容器有独立网络栈，容器里的 localhost 是容器自己——要用<strong>服务名</strong>当主机名（Compose 自动建网络并做 DNS）；</li>
+    <li><strong>修复</strong>：<code>DB_HOST=mysql</code>（服务名），不是 <code>DB_HOST=localhost</code>；</li>
+    <li><strong>规避</strong>：记住口诀"容器互访用服务名，暴露给人用 ports"。</li>
+  </ul>
+
+  <p><strong>坑 3：改一行代码，Docker 构建重装全部依赖</strong></p>
+  <ul>
+    <li><strong>现象</strong>：每次 build 都卡在 npm install 几分钟；</li>
+    <li><strong>根因</strong>：<code>COPY . .</code> 写在了 npm install 之前——任何文件变了，依赖层的缓存全部失效；</li>
+    <li><strong>修复</strong>：先 <code>COPY package*.json ./</code> → <code>RUN npm ci</code> → 再 <code>COPY . .</code>（层缓存按指令顺序命中，见 6.3）；</li>
+    <li><strong>规避</strong>：写 .dockerignore（node_modules、.git 不进构建上下文），上下文越小构建越快。</li>
+  </ul>
+
+  <p><strong>坑 4：MQ 消息重复消费，用户收到三条一样的短信</strong></p>
+  <ul>
+    <li><strong>现象</strong>：偶发同一通知发多次；</li>
+    <li><strong>根因</strong>：网络抖动导致消费者 ACK 失败，MQ 按设计重新投递——<strong>重复不可避免，只能幂等</strong>；</li>
+    <li><strong>修复</strong>：消费端按唯一消息 ID 去重（Redis SETNX 或去重表），处理过直接 ACK；</li>
+    <li><strong>规避</strong>：把"消费端必须幂等"写成接入 MQ 的第一规范（对应 5.3 的三大问题）。</li>
+  </ul>
+
+  <p><strong>坑 5：测试挂了还是部署上去了</strong></p>
+  <ul>
+    <li><strong>现象</strong>：流水线"绿了"，但线上出现单测早就覆盖的 bug；</li>
+    <li><strong>根因</strong>：脚本里写了 <code>npm test || true</code>，或某一步失败没让流水线退出；</li>
+    <li><strong>修复</strong>：每一step 显式检查退出码，任何失败立即终止（fail-fast）；</li>
+    <li><strong>规避</strong>：流水线的可信度就是它的生命——宁可红着，不许假绿。</li>
+  </ul>
+
+  <p><strong>坑 6：pm2 启动的服务读不到 .env</strong></p>
+  <ul>
+    <li><strong>现象</strong>：SSH 手动 node 跑正常，pm2 拉起后 JWT_SECRET 是 undefined；</li>
+    <li><strong>根因</strong>：pm2 守护进程不继承你交互 shell 的环境变量；</li>
+    <li><strong>修复</strong>：用 ecosystem.config.js 的 <code>env</code> 字段声明，或 <code>pm2 restart app --update-env</code>；</li>
+    <li><strong>规避</strong>：环境变量统一走配置文件注入（注意 .env 不入库），不依赖 shell。</li>
+  </ul>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">5.11</span>重点讲解与学习资源</h2>
+
+  <p><strong>Q1：Node 自己就能起 HTTP 服务，为什么前面还要架一层 Nginx？</strong></p>
+  <p class="note"><strong>参考答案</strong>：职责分离。<strong>静态文件</strong>：Nginx sendfile 直出，比 Node 流式响应高效且不占事件循环；<strong>TLS 终止</strong>：证书与加解密在 Nginx 层完成，后端保持纯 HTTP 内网通信；<strong>负载均衡</strong>：多个 Node 实例的流量分发与健康检查；<strong>路由聚合</strong>：/api 到后端、/static 到 OSS、其他回前端，一个域名统一入口；<strong>附加能力</strong>：限流、gzip、缓存、访问日志。Node 专注动态逻辑——这才是它擅长的。<br><br><strong>延伸</strong>：容器化之后这层关系不变，只是 upstream 从"127.0.0.1:3001"变成 Compose/K8s 的服务名。</p>
+
+  <p><strong>Q2：消息队列怎么选型？RabbitMQ、Kafka、Redis Stream？</strong></p>
+  <p class="note"><strong>参考答案</strong>：按量级与语义选。<strong>Redis Stream</strong>：已有 Redis 的小团队首选，轻量，支持消费者组与 ACK，但持久化与吞吐有限；<strong>RabbitMQ</strong>：路由灵活（exchange 模型）、管理界面完善、投递语义成熟，适合中小规模业务解耦（发短信、发通知）；<strong>Kafka</strong>：超高吞吐、日志化存储、消息可重放，适合日志管道、事件溯源、大数据流。<br><br><strong>延伸</strong>：不管选哪个，5.3 的三大问题（不丢/不重/积压）都要回答——选型差异只在"哪些问题框架帮你解决了"。</p>
+
+  <p><strong>Q3：为什么 Dockerfile 的指令顺序能影响构建速度？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Docker 构建是<strong>逐层缓存</strong>的：每条指令生成一层，只有"指令本身 + 输入内容"都没变才会命中缓存；某层失效后，<strong>它之后的所有层全部重建</strong>。依赖（package.json）很少变，源代码天天变——所以依赖层必须放在源代码层之前。<br><br><strong>延伸</strong>：.dockerignore 同样关键——node_modules 和 .git 进了构建上下文，COPY . . 的上下文哈希永远在变，缓存全废；多阶段构建（builder 阶段装 devDependencies，运行阶段只拷产物）可把最终镜像缩小一半以上。</p>
+
+  <p><strong>Q4：蓝绿部署、滚动部署、灰度发布怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>蓝绿</strong>——新旧两套环境，流量一键切换；回滚最快（切回去就行），但资源要双份。<strong>滚动</strong>——逐批替换实例，省资源，但发布窗口内新旧版本并存（要求接口向后兼容）。<strong>灰度</strong>——按流量比例（1%→10%→100%）逐步放量给新版本，可控试错，需要网关支持按权重路由。<br><br><strong>延伸</strong>：小团队上"滚动 + 快速回滚"就够了；要灰度需要 Ingress/网关层能力（K8s + istio 或 Nginx + lua）。三者共同前提：数据库变更向后兼容（先加字段再切逻辑，两步发布）。</p>
+
+  <p><strong>Q5：数据库密码等敏感配置怎么管理？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层纪律。①<strong>不入库</strong>：.env 加入 .gitignore，镜像里不打明文；②<strong>注入式</strong>：本地 .env 文件、Compose 用 env_file、K8s 用 Secret（且最好配合外部密钥管理如 Vault）；③<strong>最小可见</strong>：只有需要它的服务能读到，定期轮换。<br><br><strong>延伸</strong>：CI/CD 平台的 Secrets 功能同理——日志里可能打印环境变量，敏感值一律用平台的掩码机制标记。</p>
+
+  <h3>学习资源</h3>
+  <ul>
+    <li>Nginx 官方文档（beginner's guide + reverse proxy 两章）</li>
+    <li>Docker 官方 Get Started（Part 1-6 跟完就有完整认知）</li>
+    <li>《Pro Git》免费在线——分支模型与 rebase 的权威解释</li>
+    <li>《凤凰架构：冰山下的系统设计》（周志明，免费在线）——本阶段与下一阶段之间的桥梁</li>
+  </ul>
 </section>
 
 <footer>🌳 阶段5+6 完 · 接下来学阶段7+8 安全与系统设计</footer>
