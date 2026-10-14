@@ -110,7 +110,7 @@
             ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 ${arrowR}</div><div class="name">${next.t}</div></a>`
             : `<div class="none">已是最后一篇</div>`}`;
         const footer = content.querySelector('footer');
-        if(footer) content.insertBefore(pager, footer);
+        if(footer && footer.parentElement === content) content.insertBefore(pager, footer);
         else content.appendChild(pager);
       }
 
