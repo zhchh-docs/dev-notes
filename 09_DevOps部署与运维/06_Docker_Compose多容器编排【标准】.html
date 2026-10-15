@@ -484,347 +484,334 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Docker Compose 多容器编排</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：一键启动多服务环境</span>
+      <span class="meta">定位：服务名即 DNS / 数据卷分离 / 健康等待</span>
     </div>
-    <p class="hero-desc">本文系统讲解 Docker Compose 多容器编排 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">Docker Compose 用一个 YAML 描述一组容器、一条命令整组起停——本地与测试环境的多容器标配。本篇讲透三个核心模型：服务声明（部署说明书）、容器网络（服务名即 DNS，localhost 是头号坑）、数据卷分离（数据库用命名卷、配置用绑定挂载），并给 healthcheck + depends_on.condition 解决"顺序≠就绪"。配四容器（Nginx+API+MySQL+Redis）一键起 Demo 与五条高频坑。</p>
   </div>
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/05_Docker容器化【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/07_Kubernetes【基础】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">编排拓扑图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>Docker Compose 多容器编排</strong> 是现代开发中广泛使用的技术方案之一，用于解决 Docker Compose 编排 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 Docker Compose 多容器编排 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Docker Compose 是"用一个 YAML 文件描述一组容器，一条命令整组起停"的编排工具</strong>——单机多容器的标配。前端的典型场景：本地/测试环境要同时跑<strong>前端 Nginx + 后端 API + MySQL + Redis</strong>，四条 docker run 参数各一大串——Compose 把它们收敛成一个文件，<code>docker compose up -d</code> 一键全起。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
+    <li>多条 <code>docker run</code> 手敲：参数长、顺序敏感、换台机器就配错；</li>
+    <li>容器间怎么互访（localhost 不通！）不知道——网络是新手第一堵墙；</li>
+    <li>MySQL 数据没挂卷，容器一删数据全没。</li>
   </ul>
-  
-  <p>Docker Compose 多容器编排 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Docker Compose 多容器编排 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">Docker Compose 多容器编排 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
-  <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>Docker Compose 多容器编排</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合用 Compose</th><th>不适合（看别的）</th></tr>
+    <tr><td>本地开发环境、单机测试环境、演示环境</td><td>多机集群/自动扩缩容 → 07 Kubernetes</td></tr>
+    <tr><td>单容器应用想省参数 → 也值得写 compose</td><td>镜像构建细节 → 05 Docker 篇</td></tr>
+    <tr><td>面试（容器互访/数据卷/depends_on 是高频）</td><td>CI/CD 流水线 → 08 篇</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>写出四容器（Nginx/API/MySQL/Redis）的 <strong>compose.yml</strong>：构建、端口、数据卷、环境变量、依赖关系；</li>
+    <li>理解<strong>容器网络</strong>：compose 自动建网，服务名就是 DNS——容器互访用服务名不用 localhost；</li>
+    <li>用 <strong>healthcheck + depends_on.condition</strong> 解决"后端起在 MySQL 前面"的经典问题；</li>
+    <li>掌握五条高频坑（localhost 误区、数据卷丢失、启动顺序等）。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：Docker 基础（镜像/容器/数据卷，本模块 05 篇）；YAML 语法。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（yml 直观，网络与就绪顺序是重点）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>第一次用</td><td>按顺序读第 2、3 章 → 第 6 章 Demo 抄跑</td></tr>
+    <tr><td>已在用</td><td>第 4 章进阶（healthcheck/env/profiles）→ 第 7 章坑自查</td></tr>
+    <tr><td>面试准备</td><td>第 2 章 → 第 8 章重点讲解</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶。<strong>务必动手</strong>：第 6 章 Demo——本地开发环境编排是最实用的练手项目。</p>
+  <p><strong>本篇不涉及</strong>：K8s（07 篇）；镜像构建优化（05 篇）。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 Docker Compose 多容器编排 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>Docker Compose 多容器编排 的架构通常分为几层：</p>
-  <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
-  </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>三个核心模型：<strong>服务声明</strong>（compose.yml 怎么读）→ <strong>容器网络</strong>（服务名即 DNS，全篇最重要）→ <strong>数据卷</strong>（状态持久化）。</p>
+
+  <h3>2.1 服务声明：一个 service = 一组容器</h3>
+  <p>compose.yml 的顶层三段：<strong>services</strong>（每个服务 = 镜像/构建/端口/卷/环境变量/依赖）、<strong>networks</strong>（默认自动建，一般不用手写）、<strong>volumes</strong>（命名卷声明）。<code>docker compose up -d</code> 按 yml 创建整组容器与网络；<code>down</code> 整组删除（<code>-v</code> 连卷一起删——<strong>小心数据</strong>）。<strong>心智模型：compose.yml 就是"这台机器的部署说明书"，可提交进仓库、可复现</strong>。</p>
+
+  <h3>2.2 容器网络：服务名就是 DNS（全篇最重要）</h3>
+  <p class="key-sentence"><strong>Compose 自动创建一个网络，把所有服务加进去，且每个服务可以用"服务名"当域名互相访问</strong>——后端容器连数据库写 <code>mysql:3306</code>，<strong>不是 localhost:3306</strong>！localhost 在容器里指容器自己。这一条是 Compose 新手的第一个大坑（坑 1），也是理解容器网络的钥匙：每个容器有独立网络栈，"跨容器访问"本质是 DNS 解析到对方容器 IP。</p>
+
+  <h3>2.3 数据卷：状态与容器分离</h3>
+  <p>容器是可抛奔的，数据必须在卷里：<strong>命名卷</strong>（<code>mysql_data:</code>，由 Docker 管理，适合数据库文件）与<strong>绑定挂载</strong>（<code>./nginx.conf:/etc/nginx/nginx.conf</code>，宿主机路径直接映射，适合配置文件与前端 dist）。<strong>原则：数据库用命名卷，配置用绑定挂载</strong>；<code>down -v</code> 会删命名卷——生产操作禁用或三思。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>Docker Compose 多容器编排 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：常用命令四件套</h3>
+<pre class="code" data-lang="bash"><code>docker compose up -d        # 按 yml 启动整组（后台）
+docker compose ps           # 看组内容器状态
+docker compose logs -f api  # 跟踪某服务日志
+docker compose down         # 停止并删除整组（保留卷）
+docker compose up -d --build api   # 只重建并重启 api 服务</code></pre>
+
+  <h3>3.2 场景二：改配置只重启单个服务</h3>
+  <p>改了 yml 里某个服务的配置或代码：<code>docker compose up -d --build &lt;服务名&gt;</code>——<strong>只重建该服务</strong>，其他容器不动。<strong>改了配置文件（绑定挂载）甚至只需 <code>restart</code></strong>——这是绑定挂载开发体验好的原因。</p>
+
+  <h3>3.3 场景三：查看与调试网络</h3>
+<pre class="code" data-lang="bash"><code>docker compose exec api ping mysql    # 验证服务名解析
+docker network ls                     # 看自动创建的网络
+docker compose exec mysql mysql -uroot -p   # 进容器内调试</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：第 6 章 Demo 已跑通。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
-  </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <h3>4.1 healthcheck + depends_on.condition：真正的"等待就绪"</h3>
+  <p><code>depends_on</code> 默认只保证<strong>启动顺序</strong>（MySQL 容器先起），不保证<strong>服务就绪</strong>（MySQL 进程能接连接要再等几秒）——后端起来就连库失败。解法：MySQL 加 healthcheck（探测 mysqladmin ping），后端 depends_on 用 <code>condition: service_healthy</code>——<strong>等健康才启动</strong>。这是 6.4 生产改造的核心一步。</p>
+
+  <h3>4.2 .env 变量化：一份 yml 多环境用</h3>
+  <p>yml 里写 <code>MYSQL_PASSWORD: ${MYSQL_PASSWORD}</code>，同目录 <code>.env</code> 提供值——<strong>密码/端口等环境差异不进仓库</strong>。compose 自动读同目录 .env；不同环境给不同 .env，yml 不改一行。</p>
+
+  <h3>4.3 profiles：按需启动部分服务</h3>
+  <p><code>profiles: ["dev"]</code> 标记可选服务——<code>docker compose --profile dev up</code> 才启动。用途：默认只起核心服务，调试工具（phpMyAdmin/mailhog）按需开。</p>
+
+  <h3>4.4 override 文件：基础与差异分层</h3>
+  <p><code>docker compose -f compose.yml -f compose.prod.yml up</code>——<strong>后者覆盖前者</strong>。实践：compose.yml 放公共定义，compose.prod.yml 只放生产差异（资源限制、镜像 tag）。比维护两份完整 yml 干净得多。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>编排拓扑图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="Compose 四容器编排拓扑图">
+      <defs>
+        <marker id="arrc" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Compose 四容器拓扑（示意）</text>
+      <rect x="70" y="55" width="180" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="160" y="79" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">nginx（前端）</text>
+      <text x="160" y="98" text-anchor="middle" font-size="10.5" fill="#4f6348">ports: 80:80 ← 宿主机入口</text>
+      <line x1="250" y1="83" x2="320" y2="83" stroke="#7a8a70" marker-end="url(#arrc)"/>
+      <text x="285" y="73" text-anchor="middle" font-size="10" fill="#b45309">proxy_pass api:8080</text>
+      <rect x="324" y="55" width="160" height="56" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="404" y="79" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">api（后端）</text>
+      <text x="404" y="98" text-anchor="middle" font-size="10.5" fill="#115e59">不映射端口，仅内网</text>
+      <line x1="404" y1="111" x2="404" y2="150" stroke="#7a8a70" marker-end="url(#arrc)"/>
+      <text x="420" y="135" font-size="10" fill="#b45309">mysql:3306 / redis:6379</text>
+      <rect x="290" y="155" width="140" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="360" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">mysql</text>
+      <text x="360" y="196" text-anchor="middle" font-size="10.5" fill="#92400e">命名卷 mysql_data</text>
+      <rect x="450" y="155" width="140" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="520" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">redis</text>
+      <text x="520" y="196" text-anchor="middle" font-size="10.5" fill="#92400e">命名卷 redis_data</text>
+      <rect x="560" y="55" width="200" height="56" rx="8" fill="#eef3e5" stroke="#9cae90"/>
+      <text x="660" y="79" text-anchor="middle" font-size="12" font-weight="600" fill="#4f6348">compose 默认网络</text>
+      <text x="660" y="98" text-anchor="middle" font-size="10.5" fill="#7a8a70">服务名 = DNS（mysql/redis/api）</text>
+      <text x="400" y="245" text-anchor="middle" font-size="12.5" fill="#7a8a70">只有 nginx 映射宿主机端口；容器互访全走服务名，不走 localhost。</text>
+      <text x="400" y="270" text-anchor="middle" font-size="12.5" fill="#b45309">数据库数据必须在命名卷里——down 不删卷，down -v 才删。</text>
+    </svg>
+    <p class="diagram-caption">图 1 Compose 四容器编排拓扑（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①<strong>唯一对外出口是 nginx 的端口映射</strong>——api/mysql/redis 都不暴露宿主机端口（安全 + 强制走网关）；②容器互访走服务名（compose 内置 DNS）；③两个命名卷承载有状态数据——容器可抛奔、数据不丢。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
-  <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
-  </ul>
-</section>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>四容器本地开发环境：<strong>Nginx（前端）+ API（后端）+ MySQL + Redis</strong>，10 分钟一键起。</p>
 
-<section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
+  <h3>6.1 compose.yml 完整文件</h3>
+<pre class="code" data-lang="yaml"><code>services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"                                   # 唯一对外出口
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf   # 配置：绑定挂载
+      - ./dist:/usr/share/nginx/html                  # 前端产物：绑定挂载
+    depends_on:
+      - api
+
+  api:
+    build: ./backend                               # 用 Dockerfile 构建
+    environment:
+      - DB_HOST=mysql                              # ⭐ 服务名，不是 localhost！
+      - DB_PASSWORD=${MYSQL_PASSWORD}              # 从 .env 读
+      - REDIS_HOST=redis
+    depends_on:
+      mysql:
+        condition: service_healthy                 # 等 MySQL 健康
+      redis:
+        condition: service_started
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: app
+    volumes:
+      - mysql_data:/var/lib/mysql                  # ⭐ 数据：命名卷
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:</code></pre>
+
+  <h3>6.2 配套 nginx.conf（关键一行）</h3>
+<pre class="code" data-lang="nginx"><code>location /api/ {
+    proxy_pass http://api:8080;    # ⭐ 容器网络里用服务名，不是 localhost
+}</code></pre>
+
+  <h3>6.3 启动与验证</h3>
+<pre class="code" data-lang="bash"><code>echo "MYSQL_PASSWORD=secret123" &gt; .env    # 环境变量不进仓库
+docker compose up -d
+docker compose ps                          # 四个容器都 Up（api 要等 mysql healthy）
+curl http://localhost/                     # 前端页面 ✓
+curl http://localhost/api/health           # 后端探活 ✓（nginx → api 服务名转发）</code></pre>
+
+  <h3>6.4 逐段解析</h3>
   <ul>
-    <li>Docker Compose 官方文档：<a href="https://docs.docker.com/compose/" rel="noopener">https://docs.docker.com/compose/</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/docker/compose" rel="noopener">https://github.com/docker/compose</a></li>
-    <li>官方示例项目：<a href="https://github.com/docker/awesome-compose" rel="noopener">https://github.com/docker/awesome-compose</a></li>
+    <li><strong>端口只映射 nginx</strong>：80 对外，其余容器纯内网——攻击面最小；</li>
+    <li><strong>两类挂载分工</strong>：nginx 配置与 dist 用绑定挂载（改了即生效/重启生效），数据库用命名卷（Docker 管理生命周期）；</li>
+    <li><strong>healthcheck + condition</strong>：api 等到 MySQL 真正能接连接才启动——消灭"起太快连库失败"；</li>
+    <li><strong>.env 变量化</strong>：yml 可提交仓库，密码留本地。</li>
   </ul>
-  <h3>学习建议</h3>
+
+  <h3>6.5 生产改造扩展方向</h3>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>加 override 文件区分 dev/prod（4.4）：prod 用镜像 tag 而非本地构建；</li>
+    <li>全服务加 healthcheck；</li>
+    <li>数据备份：cron 定时 <code>docker compose exec mysql mysqldump</code> 到宿主机（衔接 01 篇 crontab）。</li>
   </ol>
 </section>
 
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑，每条五要素。</p>
 
+  <h3>7.1 坑 1：容器互访写 localhost</h3>
+  <ul>
+    <li><strong>现象</strong>：后端连数据库报 Connection refused，宿主机 telnet 却通；</li>
+    <li><strong>根因</strong>：容器里的 localhost 是<strong>容器自己</strong>——跨容器必须走 compose 网络；</li>
+    <li><strong>复现</strong>：<code>docker compose exec api ping mysql</code>（通）vs 容器内 curl localhost:3306（不通）；</li>
+    <li><strong>修复</strong>：连接串全部改服务名（mysql/redis）；</li>
+    <li><strong>规避</strong>：所有容器内配置文件禁出现 localhost 指向别的服务。</li>
+  </ul>
+  <h3>7.2 坑 2：数据没挂卷，down 后丢失</h3>
+  <ul>
+    <li><strong>现象</strong>：<code>down</code> 再 <code>up</code>，数据库表全没了；</li>
+    <li><strong>根因</strong>：数据写在容器可写层，容器删除即销毁；</li>
+    <li><strong>修复</strong>：数据库目录挂命名卷（6.1）；</li>
+    <li><strong>规避</strong>：有状态服务（DB/队列/上传目录）评审时必查卷；<strong>down -v 会删卷，生产禁用</strong>。</li>
+  </ul>
+  <h3>7.3 坑 3：depends_on 只管顺序不管就绪</h3>
+  <ul>
+    <li><strong>现象</strong>：加了 depends_on: mysql，api 起来还是连库失败；</li>
+    <li><strong>根因</strong>：depends_on 默认只等容器<strong>启动</strong>，MySQL 进程初始化（初始化库表）要数秒；</li>
+    <li><strong>修复</strong>：MySQL 加 healthcheck + condition: service_healthy（4.1）；或 api 侧重试连接；</li>
+    <li><strong>规避</strong>："依赖数据库的服务"默认带健康等待。</li>
+  </ul>
+  <h3>7.4 坑 4：改了文件不生效</h3>
+  <ul>
+    <li><strong>现象</strong>：改了后端代码/yml，容器行为没变；</li>
+    <li><strong>根因</strong>：镜像构建的服务不会自动吸收新代码——需要 rebuild；yml 改动需要 up 重建对应容器；</li>
+    <li><strong>修复</strong>：<code>docker compose up -d --build api</code> 只重建该服务；</li>
+    <li><strong>规避</strong>：开发期后端代码走绑定挂载 + 热重载，避免频繁 rebuild。</li>
+  </ul>
+  <h3>7.5 坑 5：yml 缩进/枚举名错误</h3>
+  <ul>
+    <li><strong>现象</strong>：up 报 yaml 解析错误或 services.xxx 不存在；</li>
+    <li><strong>根因</strong>：YAML 对缩进敏感；旧教程用 version 字段/第一版命令 docker-compose（新版已并入 docker compose 子命令）；</li>
+    <li><strong>修复</strong>：检查缩进（统一 2 空格）；新版 Compose 无需 version 字段，命令用 <code>docker compose</code>（空格）；</li>
+    <li><strong>规避</strong>：编辑器装 YAML 校验插件；以官方最新文档为准。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Compose 里容器之间怎么互访？为什么不能用 localhost？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Compose 自动创建网络并把所有服务接入，<strong>每个服务名注册为该网络的 DNS</strong>——容器互访直接用服务名（<code>mysql:3306</code>、<code>http://api:8080</code>）。<strong>不能用 localhost</strong>：每个容器有独立网络栈，容器里的 localhost 指容器自身回环，不是宿主机也不是其他容器。<br><br>
+  <strong>追问：容器访问宿主机服务呢？</strong>——用 <code>host.docker.internal</code>（Docker Desktop/新版引擎支持）或宿主机内网 IP。</p>
+
+  <p><strong>Q2：depends_on 解决了什么？没解决什么？怎么补？</strong></p>
+  <p class="note"><strong>参考答案</strong>：depends_on 解决<strong>启动顺序</strong>（被依赖的容器先创建启动）；<strong>不解决就绪</strong>——MySQL 容器"启动"到"能接连接"之间有初始化窗口。补法：<strong>healthcheck 定义健康探测 + depends_on 的 condition: service_healthy</strong>，依赖方等到健康才启动；应用侧再加连接重试兜底。<br><br>
+  <strong>这题考的分寸感</strong>：知道 depends_on 的边界比会写 yml 更重要——"顺序 ≠ 就绪"是分布式系统的一般规律在单机的缩影。</p>
+
+  <p><strong>Q3：命名卷和绑定挂载怎么选？down 会删数据吗？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>命名卷</strong>（volumes 顶层声明）由 Docker 管理路径与生命周期——适合数据库文件等纯数据；<strong>绑定挂载</strong>（宿主机路径:容器路径）直接映射——适合配置文件、前端产物等"人要编辑"的东西。<strong>down</strong> 默认保留卷；<strong>down -v 连命名卷一起删</strong>——生产环境禁用或三思。数据备份永远不依赖"卷还在"——定期 mysqldump 导出。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>compose.yml 顶层三段是什么？为什么说它是"部署说明书"？</li>
+    <li>容器互访用什么地址？localhost 在容器里指什么？</li>
+    <li>绑定挂载 vs 命名卷的分工？down 与 down -v 的区别？</li>
+    <li>healthcheck + condition: service_healthy 解决什么问题？</li>
+    <li>改了后端代码为什么不生效？正确的重建命令？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Docker Compose 官方文档（yml 参考与命令索引）：<a href="https://docs.docker.com/compose/" rel="noopener">docs.docker.com/compose</a></li>
+    <li>Compose 快速上手（官方示例 get started）</li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>awesome-compose（官方场景样例库：nginx+flask+db 等几十种组合）：<a href="https://github.com/docker/awesome-compose" rel="noopener">github.com/docker/awesome-compose</a></li>
+    <li>healthcheck 与 depends_on condition 官方章节（4.1 的权威细节）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>照第 6 章搭四容器环境，故意把 DB_HOST 写成 localhost 复现坑 1 并修复；</li>
+    <li>给 api 加 healthcheck，观察启动顺序变化；</li>
+    <li>用 override 文件分离 dev/prod 配置，验证只改差异层。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/05_Docker容器化【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/07_Kubernetes【基础】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考

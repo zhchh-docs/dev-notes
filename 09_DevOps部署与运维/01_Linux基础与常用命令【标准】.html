@@ -534,13 +534,13 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Linux 基础与常用命令</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：服务器运维必备——按用途分类的命令速查与一次实战排障</span>
+      <span class="meta">定位：排障链四步 / rwx 权限 / 日志三件套 / 高危命令纪律</span>
     </div>
-    <p class="hero-desc">前端部署到服务器后，大量问题要在 Linux 上定位：服务起没起、日志在哪、端口被谁占、权限对不对。本页不堆命令，而是按"看日志/查进程/查端口/权限/部署"五个运维高频场景组织命令表，并用一次真实的服务器排障收尾。</p>
+    <p class="hero-desc">前端部署到 Linux 后，"页面打不开"不能靠猜——本篇以排障链四步（服务状态→端口监听→日志→文件权限）为主线组织全部命令：rwx 权限数字怎么算、tail/grep/less 三件套怎么配合、高危命令（rm -rf/kill -9/nginx -t）的纪律。配 15 分钟部署排障演练与六条高频坑，读完能在现场独立定位部署问题。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/08_CI_CD_Jenkins与流水线【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/00_DevOps部署与运维模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/02_Shell脚本【基础】.html">下一篇 →</a>
 </nav>
@@ -548,69 +548,70 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">命令分类速查</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">命令分类速查</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">排障流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Linux 是绝大多数服务器的操作系统——前端产物、后端服务、数据库都跑在它上面：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Linux 是绝大多数服务器的操作系统</strong>——前端产物、后端服务、数据库都跑在它上面。本篇的立场：<strong>前端不需要成为运维，但必须能在 SSH 上完成基本运维动作</strong>——部署文件、看日志、查进程、查端口、改权限。本篇不堆命令，按"排障流程 + 用途分类速查"组织，并用一次真实的部署排障收尾。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>定位</strong>：前端不需要成为运维，但必须能在 SSH 上完成基本运维动作。</li>
-    <li><span class="tag-key">关键</span><strong>日常动作</strong>：部署文件、看日志、查进程、查端口、改权限——电力项目现场尤其高频（见 Xshell 页）。</li>
+    <li>线上"页面打不开"只能干猜——不知道还能上服务器自己看；</li>
+    <li>命令会敲但不成体系：不知道"先查什么后查什么"，一次排障半小时；</li>
+    <li>权限/端口/防火墙三类根因反复踩，每次都像第一次。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：线上出问题时"页面打不开"不能只靠猜，要能上服务器自己看：</p>
-  <ul>
-    <li><strong>排障清单</strong>：Nginx 起没起？服务进程在不在？端口听没听？日志报什么错？</li>
-    <li><strong>定位</strong>：这套命令是定位问题的基本功。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 170" role="img" aria-label="线上排障的定位思路流程图">
-      <defs>
-        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">线上问题的定位思路（示意）</text>
-      <rect x="40" y="60" width="150" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="115" y="84" text-anchor="middle" font-size="12" fill="#2d6a3f">服务起没起</text>
-      <text x="115" y="102" text-anchor="middle" font-size="11" fill="#4f6348">ps / systemctl</text>
-      <line x1="190" y1="88" x2="236" y2="88" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <rect x="240" y="60" width="150" height="56" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-      <text x="315" y="84" text-anchor="middle" font-size="12" fill="#4f8a63">端口听没听</text>
-      <text x="315" y="102" text-anchor="middle" font-size="11" fill="#4f6348">ss / netstat</text>
-      <line x1="390" y1="88" x2="436" y2="88" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <rect x="440" y="60" width="150" height="56" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="515" y="84" text-anchor="middle" font-size="12" fill="#b45309">日志报什么</text>
-      <text x="515" y="102" text-anchor="middle" font-size="11" fill="#4f6348">tail / less</text>
-      <line x1="590" y1="88" x2="636" y2="88" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <rect x="640" y="60" width="130" height="56" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="705" y="84" text-anchor="middle" font-size="12" fill="#047857">定位根因</text>
-      <text x="705" y="102" text-anchor="middle" font-size="11" fill="#4f6348">对症修复</text>
-    </svg>
-    <p class="diagram-caption">图 1 线上排障的标准定位路径（示意）</p>
-  </div>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要把前端产物部署到 Linux 服务器并负责一线排障</td><td>Shell 脚本编程 → 本模块 02 篇</td></tr>
+    <tr><td>排查"服务/端口/日志/权限"四类部署问题</td><td>远程工具操作 → 本模块 03 篇 Xshell</td></tr>
+    <tr><td>面试（chmod 755、查端口、排障顺序是高频题）</td><td>Linux 系统管理深耕 → 运维方向</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>按<strong>排障链四步</strong>（服务状态→端口监听→日志→文件权限）在 15 分钟内定位"页面打不开"；</li>
+    <li>理解 <strong>rwx 权限数字</strong>（755/644 各是什么、给谁用），会用 chmod/chown 修权限；</li>
+    <li>熟练组合 <strong>tail -f / grep / less 日志三件套</strong>；</li>
+    <li>守住高危命令纪律（rm -rf、kill -9、改配置先校验）。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：用过任意 SSH 工具连过服务器；Nginx 基本概念（本模块 04 篇可后读）。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（命令靠多用，体系靠排障链）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>第一次上服务器</td><td>按顺序读第 2 章 → 第 3 章速查当手册 → 第 6 章照做</td></tr>
+    <tr><td>要独立排障</td><td>第 5 章流程图背下来 → 第 7 章坑清单对照</td></tr>
+    <tr><td>面试准备</td><td>第 2.2 节 → 第 8 章重点讲解</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点。<strong>务必动手</strong>：第 6 章 Demo——命令不敲永远只会"看懂"不会"会用"。</p>
+  <p><strong>本篇不涉及</strong>：Shell 脚本编写（02 篇）；Linux 内核与系统调优（运维方向）。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>三个核心模型：<strong>一切皆文件</strong>（世界观）→ <strong>权限模型</strong>（部署第一坑）→ <strong>进程与日志</strong>（排障主场）。</p>
+
   <h3>2.1 一切皆文件</h3>
-  <p class="lead"><b>一句话定位</b>：Linux 里设备、进程、配置大多抽象成文件——日志是读文件、端口是查文件句柄、配置是改文件。</p>
-  <p class="key-sentence">抓住这一点，就理解了线上排障为什么都是"读文件、查句柄、改文件"。</p>
-  <h3>2.2 用户与权限（rwx / chmod）</h3>
-  <p class="lead"><b>一句话定位</b>：每个文件有属主/属组和 r/w/x 三种权限，权限不对是部署高频根因。</p>
-  <ul>
-    <li><strong>命令</strong>：<code>chmod</code> 改权限，<code>chown</code> 改属主。</li>
-    <li><strong>数字</strong>：<code>755</code> = 属主 rwx、其他人 r-x；<code>644</code> = 文本文件常见权限。</li>
-    <li><span class="tag-pit">坑</span><strong>高频症状</strong>：上传文件权限不对→Nginx 读不到、脚本没执行权限。</li>
-  </ul>
+  <p>Linux 里设备、进程信息、配置大多抽象成文件——<strong>日志是读文件、端口是查文件句柄、配置是改文件</strong>。抓住这一点就理解了线上排障为什么都是"读文件、查句柄、改文件"：没有神秘的黑盒，只有你还没找到的文件。</p>
+
+  <h3>2.2 权限模型：rwx 与数字表示</h3>
+  <p>每个文件有<strong>属主/属组/其他人</strong>三组身份，各持 <strong>r/w/x</strong> 三种权限（读=4、写=2、执行=1，数字相加表示）。<code>chmod</code> 改权限、<code>chown</code> 改属主。权限不对是部署高频根因——<strong>上传文件属主是 root，Nginx 读不到 → 403</strong>。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="rwx权限数字拆解图">
       <defs>
@@ -620,7 +621,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">权限数字怎么算（r=4, w=2, x=1）</text>
 
-      <!-- 三组权限 -->
       <rect x="60" y="50" width="200" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="160" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">属主 user（u）</text>
       <text x="160" y="100" text-anchor="middle" font-size="12" fill="#4f6348">rwx = 4+2+1 = 7</text>
@@ -643,18 +643,12 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 rwx 权限数字拆解（示意）</p>
   </div>
-  <h3>2.3 进程与服务（systemd）</h3>
-  <p class="lead"><b>一句话定位</b>：现代 Linux 用 systemd 管理服务，查服务优先 systemctl 而非 ps 猜。</p>
-  <ul>
-    <li><strong>服务管理</strong>：<code>systemctl status/restart nginx</code> 查/管服务。</li>
-    <li><strong>进程/资源</strong>：<code>ps</code> 查进程、<code>top/htop</code> 看资源占用。</li>
-  </ul>
-  <h3>2.4 日志与重定向（tail / less）</h3>
-  <p class="lead"><b>一句话定位</b>：日志就是文本文件，线上排障九成时间在看日志。</p>
-  <ul>
-    <li><strong>实时跟踪</strong>：<code>tail -f xxx.log</code>。</li>
-    <li><strong>翻页/过滤</strong>：<code>less</code> 翻页，<code>grep</code> 过滤关键词。</li>
-  </ul>
+
+  <h3>2.3 进程与服务：systemd 时代</h3>
+  <p>现代 Linux 用 <strong>systemd</strong> 管理服务：查服务状态优先 <code>systemctl status nginx</code>（还能看到最近日志片段），而不是 ps 里瞎猜。<code>ps -ef</code> 查进程、<code>top/htop</code> 看资源占用。<strong>区分"服务"与"进程"</strong>：systemctl 管的是注册过的服务（有开机自启、日志聚合），裸起的进程只有 ps 能看到——这也是"为什么我起的进程重启后没了"的原因（没注册成服务）。</p>
+
+  <h3>2.4 日志三件套：tail / grep / less</h3>
+  <p>日志就是文本文件，<strong>线上排障九成时间在看日志</strong>。三件套各司其职：</p>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="日志查看三件套协作图">
       <defs>
@@ -693,13 +687,10 @@ p, li, h1, h2, h3, h4, h5, h6 {
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>结合图 1，线上"页面打不开"的标准定位路径：① <code>systemctl status nginx</code> 看服务起没起；② <code>ss -ltnp</code> 看 80 端口听没听、被谁占；③ <code>tail -f</code> 看 Nginx/应用日志报什么错；④ 对症修复（重启服务 / 改配置 / 改权限 / 放端口）。前端部署场景下，"权限不对导致 Nginx 读不到 dist""端口被旧进程占""防火墙没放行"是三类最高频根因。</p>
-</section>
+  <h2><span class="num">3</span>命令分类速查</h2>
+  <p>按用途背场景，不按字母背命令。<strong>每条命令都对应一个排障动作</strong>。</p>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>命令分类速查</h2>
-  <h3>4.1 文件与目录</h3>
+  <h3>3.1 文件与目录</h3>
   <table>
     <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
     <thead><tr><th>命令</th><th>作用</th></tr></thead>
@@ -712,7 +703,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td><code>grep -rn "err" .</code></td><td>递归搜关键词</td></tr>
     </tbody>
   </table>
-  <h3>4.2 进程与端口</h3>
+
+  <h3>3.2 进程与端口</h3>
   <table>
     <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
     <thead><tr><th>命令</th><th>作用</th></tr></thead>
@@ -721,10 +713,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td><code>systemctl restart nginx</code></td><td>重启服务</td></tr>
       <tr><td><code>ss -ltnp</code></td><td>列监听端口及对应进程</td></tr>
       <tr><td><code>ps -ef | grep java</code></td><td>找 java 进程</td></tr>
-      <tr><td><code>kill -9 PID</code></td><td>强杀进程（慎用）</td></tr>
+      <tr><td><code>kill -9 PID</code></td><td>强杀进程（慎用，最后手段）</td></tr>
     </tbody>
   </table>
-  <h3>4.3 权限与部署</h3>
+
+  <h3>3.3 权限与部署</h3>
   <table>
     <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
     <thead><tr><th>命令</th><th>作用</th></tr></thead>
@@ -737,87 +730,193 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </table>
 </section>
 
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：第 3 章命令已顺手。</p>
+
+  <h3>4.1 journalctl：systemd 服务的统一日志入口</h3>
+  <p>systemd 服务的日志不都在 /var/log 下——<code>journalctl -u nginx -f</code> 跟踪指定服务的日志、<code>--since "10 min ago"</code> 按时间过滤。<strong>service 类问题先 journalctl 再翻文件</strong>，能省一半时间。</p>
+
+  <h3>4.2 文本三剑客：grep / sed / awk 的分工</h3>
+  <p>日志处理进阶三件：<strong>grep 找行</strong>、<strong>sed 改文本</strong>（批量替换/按行删除）、<strong>awk 取列</strong>（<code>awk '{print $1}'</code> 按空格切列）。前端够用的组合：grep 找到错误行 → awk 取出其中的耗时/URL 字段 → sort/uniq -c 统计频次——一条管道完成简易日志分析。</p>
+
+  <h3>4.3 nohup 与后台运行</h3>
+  <p>SSH 断开进程就死？<code>nohup node app.js &amp;</code> 让进程脱离会话存活，输出进 nohup.log。<strong>更正规的做法</strong>：注册成 systemd 服务（Restart=always 自动拉起）——裸 nohup 只是临时方案，进程挂了没人管。</p>
+
+  <h3>4.4 crontab 定时任务</h3>
+  <p><code>crontab -e</code> 编辑，五行表达式（分 时 日 月 周）+ 命令——日志切割、定时备份的标配。<strong>坑</strong>：cron 的环境变量与登录 shell 不同，路径写绝对路径、输出重定向到日志文件以便排查。</p>
+</section>
+
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：现场服务器日常运维与排障</h3>
-  <p class="lead"><b>一句话定位</b>：大屏项目部署到现场服务器，出问题要能上 Linux 自己定位，不能事事等运维。</p>
-  <ul><li><strong>场景</strong>：把大屏项目 dist 部署到现场 Linux 服务器，部署完页面打不开需上服务器定位。</li></ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责前端产物部署与一线排障（服务/端口/日志/权限），复杂运维交给后端/运维。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Linux 命令行：systemctl、ss、chown、tail、ps、kill；Nginx。</li></ul>
-
-  <h3>5.4 落地设计：分层排查顺序</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>排查链</strong>：服务状态 → 端口监听 → 日志 → 文件权限。</li>
-    <li><strong>从外到内</strong>：先看 Nginx 是否跑、端口是否监听，再看目录属主是否可读。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code>systemctl status nginx
-ss -ltnp | grep :80
-chown -R nginx:nginx /usr/share/nginx/html
-systemctl restart nginx</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>文件传上去属主是 root</strong>：Nginx 无权读——chown 给 Nginx 实际运行用户修正（CentOS 为 nginx、Ubuntu 为 www-data，先 <code>ps -ef | grep nginx</code> 看属主）。</li>
-    <li><span class="tag-pit">坑</span><strong>端口被旧进程占着</strong>：ss 查到后 kill 旧进程。</li>
-    <li><span class="tag-pit">坑</span><strong>rm -rf 路径写错</strong>：删除前务必 pwd 确认。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>一线常见部署问题（权限/端口/服务）能自己快速定位恢复，不必事事等运维。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul><li><strong>流程</strong>：上传 dist → 起 Nginx → 打不开就按排查链自检；解决不了再升级运维。</li></ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>服务→端口→日志→权限</strong>是部署排障的固定顺序。</li>
-    <li><span class="tag-point">要点</span><strong>高危命令先确认</strong>：rm/kill 前看清路径与进程。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中现场服务器自己排障——按 systemctl 看服务、ss 看端口、chown 修权限的顺序，定位过大屏部署后页面打不开是 Nginx 读不到 root 属主的 dist。"</p>
+  <h2><span class="num">5</span>排障流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 170" role="img" aria-label="线上排障的定位思路流程图">
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">线上问题的定位思路（示意）</text>
+      <rect x="40" y="60" width="150" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="115" y="84" text-anchor="middle" font-size="12" fill="#2d6a3f">服务起没起</text>
+      <text x="115" y="102" text-anchor="middle" font-size="11" fill="#4f6348">ps / systemctl</text>
+      <line x1="190" y1="88" x2="236" y2="88" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="240" y="60" width="150" height="56" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="315" y="84" text-anchor="middle" font-size="12" fill="#4f8a63">端口听没听</text>
+      <text x="315" y="102" text-anchor="middle" font-size="11" fill="#4f6348">ss / netstat</text>
+      <line x1="390" y1="88" x2="436" y2="88" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="440" y="60" width="150" height="56" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="515" y="84" text-anchor="middle" font-size="12" fill="#b45309">日志报什么</text>
+      <text x="515" y="102" text-anchor="middle" font-size="11" fill="#4f6348">tail / less</text>
+      <line x1="590" y1="88" x2="636" y2="88" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="640" y="60" width="130" height="56" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="705" y="84" text-anchor="middle" font-size="12" fill="#047857">定位根因</text>
+      <text x="705" y="102" text-anchor="middle" font-size="11" fill="#4f6348">对症修复</text>
+    </svg>
+    <p class="diagram-caption">图 1 线上排障的标准定位路径（示意）</p>
+  </div>
+  <p><strong>四步排查链的展开</strong>：①<code>systemctl status nginx</code> 看服务起没起；②<code>ss -ltnp</code> 看 80 端口听没听、被谁占；③<code>tail -f</code> 看 Nginx/应用日志报什么错；④对症修复（重启服务/改配置/改权限/放端口）。<strong>前端部署场景三类最高频根因</strong>：权限不对（Nginx 读不到 dist）、端口被旧进程占、防火墙没放行。<strong>顺序的意义</strong>：从外到内排除——服务没起就不用查权限，端口没听就不用看日志，每一步都在缩小范围。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 rm -rf 高危</h3>
-  <p class="lead"><b>一句话定位</b>：路径写错就是灾难。</p>
-  <p class="pit-sentence">纪律：删除前先 pwd/ls 确认，绝不带通配符盲删。</p>
-  <h3>6.2 权限不对读不到</h3>
-  <p class="lead"><b>一句话定位</b>：上传文件属主/权限不对，Nginx 或服务读不到，表现为 403 或空白。</p>
-  <p class="key-sentence">正解：chmod/chown 修权限。</p>
-  <h3>6.3 端口被占</h3>
-  <p class="lead"><b>一句话定位</b>：新服务起不来常是旧进程占着端口。</p>
-  <p class="key-sentence">正解：<code>ss -ltnp</code> 找到占用进程，kill 旧的。</p>
-  <h3>6.4 改配置不校验</h3>
-  <p class="lead"><b>一句话定位</b>：Nginx 改完不校验就 reload，语法错误会让服务挂。</p>
-  <p class="key-sentence">先 <code>nginx -t</code> 再 reload。</p>
-  <h3>6.5 kill -9 滥用</h3>
-  <p class="lead"><b>一句话定位</b>：强杀可能导致进程来不及清理，是最后手段。</p>
-  <p class="key-sentence">优先正常停（systemctl stop），kill -9 只作最后手段。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p><strong>15 分钟部署排障演练</strong>：把前端 dist 部署到服务器并修好"页面打不开"。全程用第 3 章命令 + 第 5 章排查链。</p>
+
+  <h3>6.1 完整流程</h3>
+<pre class="code" data-lang="bash"><code># ① 上传产物（本地执行）
+scp dist.zip user@10.0.0.5:/tmp/
+
+# ② 登录后：解压到 Nginx 站点目录
+cd /usr/share/nginx/html
+tar -zxvf /tmp/dist.zip -C .
+
+# ③ 访问失败！开始排查链——
+# 3.1 服务起没起？
+systemctl status nginx          # → active (running)，服务没问题
+# 3.2 端口听没听？
+ss -ltnp | grep :80             # → LISTEN 0.0.0.0:80 nginx，端口没问题
+# 3.3 日志报什么？
+tail -f /var/log/nginx/error.log
+# → "open() /usr/share/nginx/html/index.html failed (13: Permission denied)"
+#    ↑ 权限问题实锤！
+# 3.4 修权限：先看 Nginx worker 的实际用户
+ps -ef | grep nginx             # → worker 用户是 nginx
+chown -R nginx:nginx /usr/share/nginx/html
+# ④ 页面恢复 ✓</code></pre>
+
+  <h3>6.2 逐段解析</h3>
+  <ul>
+    <li><strong>排查链的顺序价值</strong>：前两步各花 10 秒就排除了服务/端口，日志直接给出 Permission denied——比全服务器翻一遍快 10 倍；</li>
+    <li><strong>先确认 worker 用户再 chown</strong>：CentOS 是 nginx、Ubuntu 是 www-data——写死属主在另一个发行版上就是新的坑；</li>
+    <li><strong>error.log 是权限问题的实锤来源</strong>：403 的浏览器侧信息量为零，服务器日志才有一切。</li>
+  </ul>
+
+  <h3>6.3 生产改造扩展方向</h3>
+  <ol>
+    <li>把这套排查链写成 deploy.sh 一键部署脚本（衔接 02 Shell 篇）；</li>
+    <li>加上防火墙检查（<code>firewall-cmd --list-ports</code>）作为排查链第 0 步；</li>
+    <li>部署后自动 curl 探活，失败输出排查链提示。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>学习资源</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：rm -rf 路径写错</h3>
   <ul>
-    <p>Linux 命令无需死记，用多即熟。入门可参考：</p>
+    <li><strong>现象</strong>：删错目录，轻则丢部署产物，重则丢系统文件；</li>
+    <li><strong>根因</strong>：带变量/通配符的路径没展开验证，手滑；</li>
+    <li><strong>复现</strong>：<code>rm -rf $DIR/*</code> 而 DIR 为空时等于 <code>rm -rf /*</code>；</li>
+    <li><strong>修复</strong>：删除前先 <code>pwd</code> + <code>ls</code> 确认目标真实存在；</li>
+    <li><strong>规避</strong>：脚本里 <code>rm -rf "$DIR/"*</code> 加引号并判空；高危命令纪律写进团队规范。</li>
+  </ul>
+  <h3>7.2 坑 2：权限不对读不到（403）</h3>
+  <ul>
+    <li><strong>现象</strong>：部署完 403 或空白页；</li>
+    <li><strong>根因</strong>：上传文件属主是 root（或权限 600），Nginx worker 用户读不到；</li>
+    <li><strong>复现</strong>：error.log 见 Permission denied；</li>
+    <li><strong>修复</strong>：chown 给 Nginx 实际运行用户 + 目录保证 x 可进入；</li>
+    <li><strong>规避</strong>：部署脚本里固定 chown 步骤。</li>
+  </ul>
+  <h3>7.3 坑 3：端口被旧进程占</h3>
+  <ul>
+    <li><strong>现象</strong>：新服务起不来，报 Address already in use；</li>
+    <li><strong>根因</strong>：旧进程还活着占着端口；</li>
+    <li><strong>修复</strong>：<code>ss -ltnp</code> 找到占用进程 → 优先正常停（systemctl stop），kill -9 只作最后手段；</li>
+    <li><strong>规避</strong>：启动脚本里先检查端口再启动。</li>
+  </ul>
+  <h3>7.4 坑 4：改配置不校验就 reload</h3>
+  <ul>
+    <li><strong>现象</strong>：Nginx 改完 reload，服务挂了整站 502；</li>
+    <li><strong>根因</strong>：配置语法错误，reload 失败且旧配置未保住；</li>
+    <li><strong>修复</strong>：永远先 <code>nginx -t</code> 校验再 reload；</li>
+    <li><strong>规避</strong>：把 nginx -t 写进部署脚本，校验不过直接退出。</li>
+  </ul>
+  <h3>7.5 坑 5：kill -9 滥用</h3>
+  <ul>
+    <li><strong>现象</strong>：强杀后数据文件损坏、临时文件残留；</li>
+    <li><strong>根因</strong>：kill -9 不给进程清理机会（SIGKILL 不可捕获）；</li>
+    <li><strong>修复</strong>：优先 systemctl stop 或 kill（SIGTERM，允许优雅退出）；</li>
+    <li><strong>规避</strong>：kill -9 只在进程完全僵死后作为最后手段。</li>
+  </ul>
+  <h3>7.6 坑 6：SSH 断开进程就死</h3>
+  <ul>
+    <li><strong>现象</strong>：SSH 里起的进程，断开连接后就没了；</li>
+    <li><strong>根因</strong>：进程随会话收到 SIGHUP；</li>
+    <li><strong>修复</strong>：临时用 <code>nohup cmd &amp;</code>，正规做法注册 systemd 服务（4.3）；</li>
+    <li><strong>规避</strong>：任何要长期存活的服务不裸起。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：755 是什么意思？644 呢？什么时候用哪个？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三位数字分别对应<strong>属主/属组/其他人</strong>，每位是 r(4)+w(2)+x(1) 的和。<strong>755</strong> = 属主 rwx、属组与其他人 r-x——<strong>目录和需要执行的东西</strong>（脚本、可执行文件）用它；<strong>644</strong> = 属主 rw、其他人 r——<strong>普通文本文件</strong>（配置、日志）用它，不需要执行位。<br><br>
+  <strong>追问：部署后 403 一般是什么原因？</strong>——Nginx worker 用户读不到文件：属主不对（chown 修）或目录没有 x 权限（不可进入）。先 ps 确认 worker 实际用户（发行版差异）再修。</p>
+
+  <p><strong>Q2：线上页面打不开，你的排查步骤？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>四步排查链，从外到内</strong>——①<code>systemctl status nginx</code> 服务状态；②<code>ss -ltnp | grep :80</code> 端口监听；③<code>tail -f error.log</code> 看报错（403 权限/502 后端挂/404 路径错各有特征）；④对症修复。<br><br>
+  <strong>面试官想听的</strong>：顺序感（每步缩小范围）与高频根因库（权限/端口占用/防火墙）——而不是罗列命令。能补一句"防火墙没放行"作为第 0 步（外部可达性）更加分。</p>
+
+  <p><strong>Q3：怎么找到占用 80 端口的进程？kill -9 有什么问题？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>ss -ltnp | grep :80</code>（或 lsof -i:80）直接显示监听进程与 PID。<strong>kill -9 的问题</strong>：SIGKILL 不可捕获，进程没有机会清理——数据文件损坏、子进程残留、锁未释放。正确姿势：<strong>优先 systemctl stop（服务）或 kill（SIGTERM，允许优雅退出）</strong>，kill -9 只对完全僵死的进程作最后手段。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>"一切皆文件"怎么指导排障？</li>
+    <li>755 与 644 各给什么文件？目录为什么必须有 x？</li>
+    <li>排障链四步的顺序为什么是"从外到内"？</li>
+    <li>tail -f / grep / less 各适合什么场景？组合用法？</li>
+    <li>为什么改 Nginx 配置必须先 nginx -t？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
     <li>Linux 命令大全（中文速查）：<a href="https://linuxtools-rst.readthedocs.io/zh_CN/latest/" rel="noopener">linuxtools-rst.readthedocs.io</a></li>
     <li>《鸟哥的 Linux 私房菜》（系统入门经典）：<a href="https://linux.vbird.org/" rel="noopener">linux.vbird.org</a></li>
   </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>《Linux 命令行与 Shell 脚本大全》——从命令到脚本的过渡</li>
+    <li>explainshell.com（粘贴命令逐段解释，验证你理解的参数语义）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>在一台测试机完成第 6 章 15 分钟排障演练（可人为制造权限坑再修）；</li>
+    <li>用 grep+awk 给一份 access.log 做访问 TOP10 统计；</li>
+    <li>把自己项目的部署+排障动作写成 deploy.sh（衔接 02 篇）。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/08_CI_CD_Jenkins与流水线【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/00_DevOps部署与运维模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/02_Shell脚本【基础】.html">下一篇 →</a>
 </nav>
