@@ -540,29 +540,137 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/02_Vue3组合式API与响应式原理【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/10_jQuery与Bootstrap【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/04_状态管理_Vuex与Pinia【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：组件设计模式指组件之间如何传数据、传内容、传事件。Vue 提供四件套：<strong>props</strong>（父→子传数据，单向）、<strong>emit</strong>（子→父发事件）、<strong>slot</strong>（父把内容插进子组件的占位）、<strong>provide/inject</strong>（祖先→后代跨层级注入）。再配合 <code>&lt;component :is&gt;</code> 动态组件，就能做到"配置驱动渲染"。</p>
-  <p><strong>解决什么问题</strong>：组件复用的灵活性。一个通用组件（弹窗、表格、容器）要适应不同业务，不能把内容写死——就得留 slot 口子、通过 props 配行为。本技术栈数据编排平台的 通用物料插槽 就是把"渲染哪个组件、传什么属性、绑什么事件"全部配置化，是低代码平台动态物料渲染的核心。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>组件设计模式是"组件之间如何传数据、传内容、传事件"</strong>。Vue 四件套：<strong>props</strong>（父→子传数据，单向）、<strong>emit</strong>（子→父发事件）、<strong>slot</strong>（父把内容插进子组件的占位）、<strong>provide/inject</strong>（祖先→后代跨层级注入）；再配 <code>&lt;component :is&gt;</code> 动态组件，就能做到<strong>配置驱动渲染</strong>。它解决的是"通用组件的灵活性"：弹窗/表格/容器要适应不同业务，不能把内容写死——留 slot 口子、props 配行为。<strong>数据编排平台的通用物料插槽</strong>（渲染哪个组件/传什么属性/绑什么事件全部配置化）就是这套机制的低代码应用。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>通用组件内容写死——换业务就要改组件；</li>
+    <li>深层 props 层层透传（prop drilling）；</li>
+    <li>动态渲染时组件没注册/事件名不对——渲染空白。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清四件套各自的职责与取舍（按层级距离选）；</li>
+    <li>分清<strong>默认/具名/作用域插槽</strong>三级（作用域插槽是核心）；</li>
+    <li>落地<strong>配置驱动渲染</strong>容器（component :is + v-bind/v-on + 动态插槽）；</li>
+    <li>避开五条高频坑（改 props/slot 不分发/未注册/滥用 inject/v-model 约定）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇组件基础、02 篇组合式。<strong>难度</strong>：★★★☆☆。<strong>务必动手</strong>：第 6 章 Demo。<strong>本篇不涉及</strong>：跨页面全局状态（04 篇 Pinia）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>props 单向数据流</strong>→ <strong>emit 与 v-model 本质</strong>→ <strong>slot 三级</strong>→ <strong>provide/inject</strong>→ <strong>动态组件与配置驱动</strong>。</p>
+
+  <h3>2.1 props：父→子单向数据流</h3>
+  <p>子组件声明 props 接收父级数据，props 是组件的<strong>对外接口</strong>（配 type/required/default 校验）。<strong>单向</strong>：子组件不改 props——破坏单向流会导致父子状态不一致；要改就 emit 让父级改，或子组件内部复制一份。</p>
+
+  <h3>2.2 emit 与 v-model 的本质</h3>
+  <p>子 <code>$emit('event', payload)</code>、父 <code>@event="handler"</code>。<strong>v-model 的本质</strong>：Vue2 是 <code>:value + @input</code> 的语法糖；<strong>Vue3 改为 <code>:modelValue + @update:modelValue</code></strong>，并支持 <code>v-model:title</code> 多个具名 v-model——自定义组件要按新约定收 modelValue、发 update 事件。</p>
+
+  <h3>2.3 slot 三级：内容分发出口</h3>
+  <ul>
+    <li><strong>默认插槽</strong>：组件模板留 <code>&lt;slot&gt;&lt;/slot&gt;</code>，父标签内容渲染到这里；</li>
+    <li><strong>具名插槽</strong>：<code>&lt;slot name="head"&gt;</code> 留多个口子，父级 <code>#head</code> 对应；</li>
+    <li><strong>作用域插槽</strong>：<strong>子组件把内部数据回传给父级决定怎么渲染</strong>（如 el-table 列模板）——从"塞内容"升级到"塞渲染逻辑"。</li>
+  </ul>
+
+  <h3>2.4 provide/inject：跨层级但要克制</h3>
+  <p>祖先 provide、任意后代 inject，免去层层 props——<strong>适用真正跨层级的全局配置</strong>（主题、登录态、字典）。<span class="tag-pit">坑</span>：过度使用会让数据来源不清晰难追踪——普通父子通信仍用 props/emit（通信谱系见 01 篇 4.4）。</p>
+
+  <h3>2.5 动态组件：配置驱动的钥匙</h3>
+  <p><code>&lt;component :is="compName"&gt;</code> 按变量选组件渲染；render 函数用 JS 描述渲染结果更灵活。<span class="tag-point">核心</span>：<strong>一份配置描述"用哪个组件、什么 props、绑什么事件"，运行时动态渲染</strong>——通用物料插槽容器，低代码"拖拽出页面"的底层机制。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：props / emit 基本用法</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件 --&gt;
+&lt;button @click="$emit('select', item)"&gt;{{ title }}&lt;/button&gt;
+&lt;script&gt;
+export default { props: { title: String, item: Object } }
+&lt;/script&gt;
+&lt;!-- 父组件 --&gt;
+&lt;Child :title="'标题'" :item="row" @select="onSelect" /&gt;</code></pre>
+
+  <h3>3.2 场景二：作用域插槽（子把数据回传）</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件：把 row 通过插槽暴露给父级 --&gt;
+&lt;slot :row="row"&gt;&lt;/slot&gt;
+&lt;!-- 父组件：决定这行长什么样 --&gt;
+&lt;MyList&gt;
+  &lt;template #default="{ row }"&gt;{{ row.name }} &lt;b&gt;{{ row.status }}&lt;/b&gt;&lt;/template&gt;
+&lt;/MyList&gt;</code></pre>
+
+  <h3>3.3 场景三：动态组件配置驱动</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 通用物料插槽：根据配置动态渲染 --&gt;
+&lt;component
+  :is="resolveComp(config.comp)"
+  v-bind="config.props"
+  v-on="config.on"&gt;
+&lt;/component&gt;</code></pre>
+
+  <h3>3.4 场景四：四种通信方式取舍</h3>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>方式</th><th>适用</th><th>注意</th></tr></thead>
+    <tbody>
+      <tr><th>props</th><th>父→子传数据</th><th>单向，子不应改 props</th></tr>
+      <tr><th>emit</th><th>子→父发事件</th><th>配 v-model 可双向</th></tr>
+      <tr><th>slot</th><th>父给子塞内容</th><th>作用域插槽回传数据</th></tr>
+      <tr><th>provide/inject</th><th>跨层级共享</th><th>别滥用，来源要清晰</th></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：配置驱动容器已跑通。</p>
+
+  <h3>4.1 递归组件与树形渲染</h3>
+  <p>组件在自身模板里引用自己（<code>&lt;TreeNode&gt;</code> 套 <code>&lt;TreeNode&gt;</code>），配合配置树的 children 字段递归渲染——菜单/分类树/低代码画布的标准实现。<strong>两个条件</strong>：递归终止条件 + <strong>稳定 key</strong>（唯一 id，index 会错乱，实战坑 7.4）。</p>
+
+  <h3>4.2 attrs 与透传</h3>
+  <p><code>$attrs</code> 收集父传的<strong>未声明 props 与事件</strong>，<code>inheritAttrs: false</code> + <code>v-bind="$attrs"</code> 实现"包装组件透传"——封装 el-table 加默认配置又允许调用方覆盖，是二次封装组件库的关键技巧。</p>
+
+  <h3>4.3 依赖注入的响应性与设计</h3>
+  <p>provide 传 ref/computed 保持响应性；用 <strong>InjectionKey（Symbol）+ TS 泛型</strong>给 inject 标类型、防 key 冲突。设计约定：provide 只提供"读多写少"的上下文，可变业务状态走 store（04 篇）——inject 是"配置通道"不是"数据总线"。</p>
+
+  <h3>4.4 渲染策略：h 函数与函数式组件</h3>
+  <p>h 函数（createVNode）比模板更底层：动态属性名、条件复杂、性能敏感时用；<strong>函数式组件</strong>（无状态、无实例）适合纯展示包装件。配置驱动容器在插槽分发逻辑复杂时，render 比 template 更好写。</p>
+
+  <h3>4.5 组件设计的分层判断</h3>
+  <p>给一个新需求选组件形态：<strong>展示复用→props+slot；行为复用→composable（02 篇）；跨层级配置→provide；跨页面状态→store</strong>。多数"想抽组件"的需求其实是"想抽逻辑"——先问复用的是结构还是行为。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="Vue 组件通信四件套关系示意图">
       <defs>
@@ -588,47 +696,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 组件通信方式全景（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 props：父→子单向数据流</h3>
-  <p class="lead"><b>一句话定位</b>：子组件声明 props 接收父级数据，且不应修改 props——要改就 emit 让父级改。</p>
-  <ul>
-    <li><strong>契约</strong>：props 是组件对外接口，配合 <code>type/required/default</code> 校验。</li>
-    <li><strong>单向</strong>：子组件不改 props，破坏单向数据流会导致父子状态不一致。</li>
-  </ul>
-  <h3>2.2 emit：子→父自定义事件</h3>
-  <p class="lead"><b>一句话定位</b>：子组件 $emit 触发事件，父组件 @事件 监听——配合 v-model 是组件双向绑定的底层。</p>
-  <ul>
-    <li><strong>用法</strong>：子 <code>$emit('event', payload)</code>，父 <code>@event="handler"</code>。</li>
-    <li><strong>v-model</strong>：本质是 <code>:value</code> + <code>@input</code> 的语法糖。</li>
-  </ul>
-  <h3>2.3 slot：内容分发出口</h3>
-  <p class="lead"><b>一句话定位</b>：组件留 slot 占位，父组件标签内写的内容就渲染到这里。</p>
-  <ul>
-    <li><strong>默认插槽</strong>：组件模板留 <code>&lt;slot&gt;&lt;/slot&gt;</code>。</li>
-    <li><strong>具名插槽</strong>：<code>&lt;slot name="head"&gt;</code> 允许留多个口子。</li>
-    <li><strong>作用域插槽</strong>：子组件把内部数据回传给父级决定怎么渲染（如 el-table 的列模板）。</li>
-  </ul>
-  <h3>2.4 provide / inject：跨层级注入</h3>
-  <p class="lead"><b>一句话定位</b>：祖先 provide、任意后代 inject，免去层层 props——但要克制使用。</p>
-  <ul>
-    <li><strong>适用</strong>：真正跨层级的全局配置（主题、登录态）。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>过度使用会让数据来源不清晰、难追踪——普通父子通信仍用 props/emit。</p>
-  <h3>2.5 动态组件与 render 函数</h3>
-  <p class="lead"><b>一句话定位</b>：&lt;component :is&gt; 按变量动态渲染组件，是配置驱动渲染（低代码）的核心。</p>
-  <ul>
-    <li><strong>动态组件</strong>：<code>&lt;component :is="compName"&gt;</code> 根据变量选哪个组件渲染。</li>
-    <li><strong>render 函数</strong>：用 JS 描述渲染结果，比模板更灵活。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">核心</span>一份配置描述"用哪个组件、什么 props、绑什么事件"，运行时用动态组件/render 渲染——这就是 通用物料插槽 容器。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 配置驱动渲染：从配置到组件树</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="配置驱动渲染流程示意图">
       <defs>
@@ -654,43 +721,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 配置驱动渲染（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 props / emit 基本用法</h3>
-<pre class="code" data-lang="vue"><code>&lt;!-- 子组件 --&gt;
-&lt;button @click="$emit('select', item)"&gt;{{ title }}&lt;/button&gt;
-&lt;script&gt;
-export default { props: { title: String, item: Object } }
-&lt;/script&gt;
-&lt;!-- 父组件 --&gt;
-&lt;Child :title="'标题'" :item="row" @select="onSelect" /&gt;</code></pre>
-  <h3>4.2 作用域插槽（子组件把数据回传）</h3>
-<pre class="code" data-lang="vue"><code>&lt;!-- 子组件：把 row 通过插槽暴露给父级 --&gt;
-&lt;slot :row="row"&gt;&lt;/slot&gt;
-&lt;!-- 父组件：决定这行长什么样 --&gt;
-&lt;MyList&gt;
-  &lt;template #default="{ row }"&gt;{{ row.name }} &lt;b&gt;{{ row.status }}&lt;/b&gt;&lt;/template&gt;
-&lt;/MyList&gt;</code></pre>
-  <h3>4.3 动态组件配置驱动</h3>
-<pre class="code" data-lang="vue"><code>&lt;!-- 通用物料插槽：根据配置动态渲染 --&gt;
-&lt;component
-  :is="resolveComp(config.comp)"
-  v-bind="config.props"
-  v-on="config.on"&gt;
-&lt;/component&gt;</code></pre>
-  <h3>4.4 四种通信方式取舍</h3>
-  <table>
-    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
-    <thead><tr><th>方式</th><th>适用</th><th>注意</th></tr></thead>
-    <tbody>
-      <tr><th>props</th><th>父→子传数据</th><th>单向，子不应改 props</th></tr>
-      <tr><th>emit</th><th>子→父发事件</th><th>配 v-model 可双向</th></tr>
-      <tr><th>slot</th><th>父给子塞内容</th><th>作用域插槽回传数据</th></tr>
-      <tr><th>provide/inject</th><th>跨层级共享</th><th>别滥用，来源要清晰</th></tr>
-    </tbody>
-  </table>
   <div class="diagram">
     <svg viewBox="0 0 800 140" role="img" aria-label="四种通信方式对比图">
       <defs>
@@ -700,148 +730,131 @@ export default { props: { title: String, item: Object } }
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">组件通信怎么选？（示意）</text>
 
-      <!-- props -->
       <rect x="20" y="45" width="180" height="80" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="110" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">props</text>
       <text x="110" y="92" text-anchor="middle" font-size="11" fill="#4f6348">父→子传数据</text>
       <text x="110" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">单向数据流</text>
 
-      <!-- emit -->
       <rect x="215" y="45" width="180" height="80" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="305" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#4f8a63">emit</text>
       <text x="305" y="92" text-anchor="middle" font-size="11" fill="#4f6348">子→父发事件</text>
       <text x="305" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#4f8a63">配 v-model 双向</text>
 
-      <!-- slot -->
       <rect x="410" y="45" width="180" height="80" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="500" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">slot</text>
       <text x="500" y="92" text-anchor="middle" font-size="11" fill="#4f6348">父给子塞内容</text>
       <text x="500" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#b45309">作用域插槽回传</text>
 
-      <!-- provide/inject -->
       <rect x="605" y="45" width="175" height="80" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="692" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">provide/inject</text>
       <text x="692" y="92" text-anchor="middle" font-size="11" fill="#4f6348">跨层级共享</text>
       <text x="692" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">别滥用</text>
     </svg>
-    <p class="diagram-caption">图 1 四种通信方式对比（示意）</p>
+    <p class="diagram-caption">图 3 四种通信方式对比（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 的主干是"props 向下、emit 向上"的单向流，slot 是第三个维度（传内容）；②图 2 的容器本质是 <strong>component :is + v-bind + v-on + 动态插槽</strong>四个机制的组合；③图 3 的选型逻辑按"传什么、隔多远"——传数据就近 props、传内容 slot、跨层级 inject、跨页面 store（04 篇）。</p>
 </section>
 
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：数据编排平台/低代码平台真实落地——通用物料插槽配置驱动渲染容器。</p>
 
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：数据编排平台/低代码平台需要一个通用容器——传入一段配置（用哪个组件、传什么属性、绑什么事件、插什么内容）就渲染出对应物料。</p>
-  <ul>
-    <li><strong>业务场景</strong>：设计器里物料拖拽后，靠这个 通用物料插槽 渲染预览。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责 通用物料插槽 配置驱动渲染容器的设计与落地。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算）；实践中通常做这个动态渲染容器，设计器/渲染器共用。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Vue2 + ElementUI + <code>&lt;component :is&gt;</code> + v-bind/v-on + 具名/作用域插槽。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>配置结构</strong>：约定 <code>{ comp, props, on, slots }</code>。</li>
-    <li><strong>动态渲染</strong>：<code>&lt;component :is&gt;</code> 按 comp 取真实组件，v-bind 绑属性、v-on 绑事件。</li>
-    <li><strong>插槽分发</strong>：具名插槽把 slots 内容分发进去；作用域插槽回传行数据。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 容器渲染逻辑
+  <h3>6.1 完整实现（registry + 动态渲染 + 插槽分发）</h3>
+  <p><strong>配置结构约定</strong>：<code>{ comp, props, on, slots }</code>；动态渲染按 comp 取真实组件、v-bind 绑属性、v-on 绑事件；具名插槽分发 slots 内容、作用域插槽回传行数据。</p>
+<pre class="code" data-lang="js"><code>// 容器渲染逻辑
 const registry = { 'el-button': ElButton, 'search-panel': SearchPanel };
 // config = { comp:'el-button', props:{ type:'primary' }, on:{ click: onOk } }
 // 模板：&lt;component :is="registry[config.comp]" v-bind="config.props" v-on="config.on"&gt;
 //   &lt;template v-for="(slot,name) in config.slots" #[name]&gt;{{ slot }}&lt;/template&gt;
 // &lt;/component&gt;</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>组件未注册</strong>：<code>:is</code> 写字符串名时组件未全局/本地注册会渲染空白；维护 registry 并确保注册。</li>
-    <li><strong>事件名用 Vue 名</strong>：<code>v-on="config.on"</code> 事件名要用 click 而非 onClick，否则绑不上。</li>
-    <li><strong>作用域插槽没暴露</strong>：回传数据时子组件忘 <code>&lt;slot :row&gt;</code> 暴露，父级拿不到。</li>
-    <li><strong>递归 key 用 index</strong>：深层嵌套递归渲染 key 用 index 致更新错乱，改配置项唯一 id。</li>
+    <li><strong>组件未注册</strong>：:is 写字符串名时组件未注册渲染空白——维护 registry 并确保注册；</li>
+    <li><strong>事件名用 Vue 名</strong>：<code>v-on="config.on"</code> 事件名要用 click 而非 onClick，否则绑不上；</li>
+    <li><strong>作用域插槽没暴露</strong>：回传数据时子组件忘 <code>&lt;slot :row&gt;</code> 暴露，父级拿不到；</li>
+    <li><strong>递归 key 用 index</strong>：深层嵌套递归渲染更新错乱——改配置项唯一 id。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li>物料从"写死组件"变成"配置描述"，设计器与渲染器共用一套配置。</li>
+    <li><strong>registry 而非字符串直填</strong>：显式注册表 = 白名单 + 类型安全，杜绝"渲染空白"这类静默失败；</li>
+    <li><strong>v-on 的事件名口径</strong>：配置里存原生事件名（click），容器不做转换——契约写进文档；</li>
+    <li><strong>动态插槽 #[name]</strong>：插槽名也是配置的一部分——comp/props/on/slots 四维齐备才是完整的物料描述。</li>
   </ul>
 
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与设计器团队约定 config 结构（comp/props/on/slots）。</li>
-    <li><strong>排期</strong>：先跑通单组件渲染，再补插槽与递归嵌套。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>配置驱动 = 组件 + props + events + slots 的抽象</strong>：四个维度都要覆盖。</li>
-    <li><strong>动态组件要先注册</strong>：维护 registry 是安全做法。</li>
+  <h3>6.4 复盘与可复用经验</h3>
+  <ol>
+    <li><strong>配置驱动 = 组件 + props + events + slots 的抽象</strong>：四个维度都要覆盖；</li>
+    <li><strong>动态组件要先注册</strong>：registry 是安全做法；</li>
     <li><strong>递归列表用稳定 key</strong>：别用 index。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用 &lt;component :is&gt; + v-bind/v-on + 具名插槽做了一个配置驱动渲染容器 通用物料插槽，把物料从写死组件变成可描述配置，并踩平了事件命名与递归 key 这几个动态渲染坑。</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 子组件修改 props</h3>
-  <p class="lead"><b>一句话定位</b>：子组件改 props 破坏单向数据流，要 emit 让父级改。</p>
-  <ul>
-    <li><strong>危害</strong>：破坏单向数据流，父子状态不一致。</li>
-    <li><strong>正解</strong>：emit 通知父级改，子组件内部用 data 复制一份。</li>
-  </ul>
-  <h3>6.2 slot 内容没正确分发</h3>
-  <p class="lead"><b>一句话定位</b>：多口子用具名插槽，父子 name 对应。</p>
-  <ul>
-    <li><strong>正解</strong>：多口子用具名插槽，子组件写 <code>&lt;slot name="x"&gt;</code>，父级 <code>#x</code> 对应。</li>
-  </ul>
-  <h3>6.3 动态组件没注册或 key 错误</h3>
-  <p class="lead"><b>一句话定位</b>：:is 渲染空白多半是组件没注册；更新错乱是 key 不稳。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>:is</code> 渲染空白或更新错乱。</li>
-    <li><strong>正解</strong>：组件已注册 + 给稳定 key。</li>
-  </ul>
-  <h3>6.4 滥用 provide/inject</h3>
-  <p class="lead"><b>一句话定位</b>：provide/inject 只用于真正跨层级的全局配置。</p>
-  <ul>
-    <li><strong>危害</strong>：数据来源不清晰、难追踪。</li>
-    <li><strong>正解</strong>：普通父子用 props/emit。</li>
-  </ul>
-  <h3>6.5 v-model 的实现理解</h3>
-  <p class="lead"><b>一句话定位</b>：v-model 是 :value + @input 的语法糖，自定义组件要自己收 value、emit input。</p>
-  <ul>
-    <li><strong>要点</strong>：自定义组件支持 v-model，需 props 收 value、emit input 事件。</li>
-    <li><strong>Vue3 变化</strong>：Vue3 的 v-model 改为 <code>:modelValue</code> + <code>@update:modelValue</code>（不再是 <code>:value</code> + <code>@input</code>），并支持 <code>v-model:title</code> 这样的多个/具名 v-model——本资料整体跑在 Vue3，写自定义组件要按新约定。</li>
-  </ul>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 子组件修改 props</h3>
+  <p><strong>危害</strong>：破坏单向数据流，父子状态不一致。<strong>正解</strong>：emit 通知父级改，子组件内部需要可变副本就用 data/ref 复制一份。</p>
+
+  <h3>7.2 slot 内容没正确分发</h3>
+  <p><strong>正解</strong>：多口子用具名插槽，子组件 <code>&lt;slot name="x"&gt;</code>、父级 <code>#x</code> 严格对应；动态插槽名用 <code>#[name]</code>。</p>
+
+  <h3>7.3 动态组件没注册或 key 错误</h3>
+  <p><strong>现象</strong>：:is 渲染空白或更新错乱。<strong>正解</strong>：组件已注册（registry）+ 给稳定 key。</p>
+
+  <h3>7.4 滥用 provide/inject</h3>
+  <p><strong>危害</strong>：数据来源不清晰、难追踪。<strong>正解</strong>：只用于真正跨层级的全局配置（主题/字典/登录态）；普通父子用 props/emit；可变业务状态走 store。</p>
+
+  <h3>7.5 v-model 约定搞混</h3>
+  <p><strong>要点</strong>：自定义组件支持 v-model 要自己收 value、emit 事件；<strong>Vue3 是 modelValue/update:modelValue</strong>（不再是 value/input），且支持 v-model:title 具名多个——写自定义组件按新约定。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Vue 组件间有哪些通信方式？各自适用什么场景？</strong></p>
+  <p class="note"><strong>参考答案</strong>：按"层级距离"选——<strong>props/emit</strong>（父子主干，单向数据流）；<strong>slot</strong>（父向子分发内容，作用域插槽可回传子组件数据）；<strong>provide/inject</strong>（祖先→任意后代的跨层级配置注入，别当数据总线）；<strong>store</strong>（跨页面全局状态，04 篇）；v-model 是 props+emit 的语法糖（Vue3 为 modelValue 约定）。<strong>原则</strong>：通信方式随层级递增而升级，别一步到位上全局 store。</p>
+
+  <p><strong>Q2：作用域插槽解决什么问题？和普通插槽的区别？</strong></p>
+  <p class="note"><strong>参考答案</strong>：普通插槽是"父传内容给子"——内容由父级数据决定；<strong>作用域插槽是"子的数据、父的渲染"</strong>——子组件通过 <code>&lt;slot :row="row"&gt;</code> 把内部数据回传，父级用 <code>#default="{ row }"</code> 决定这行长什么样。典型场景：el-table 列模板（表格组件拥有数据与排序逻辑，但每列的展示形态由使用者定制）。<strong>本质</strong>：把"渲染决策权"从子组件转移到父级，同时保留数据所有权在子组件——通用组件灵活性的关键。</p>
+
+  <p><strong>Q3：低代码"配置驱动渲染"的底层机制是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：一份 JSON 配置描述物料的四个维度——<strong>comp（哪个组件）+ props（什么属性）+ on（绑什么事件）+ slots（插什么内容）</strong>；容器用 <code>&lt;component :is="registry[config.comp]" v-bind="config.props" v-on="config.on"&gt;</code> 加 <code>#[name]</code> 动态插槽分发渲染。配置变→渲染结果变，这就是"拖拽出页面"的底层。<strong>工程要点</strong>：registry 显式注册（白名单防静默失败）、事件名用原生口径、递归渲染用稳定 key。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四件套各自的传输方向与内容？</li>
+    <li>v-model 在 Vue2/Vue3 的实现差异？</li>
+    <li>作用域插槽的"数据所有权与渲染决策权"怎么分？</li>
+    <li>配置驱动容器的配置四维度？动态渲染两大静默失败点？</li>
+    <li>provide/inject 的适用边界？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Vue 组件基础与 Props/自定义事件：<a href="https://cn.vuejs.org/guide/components/" rel="noopener">cn.vuejs.org/guide/components</a></li>
     <li>插槽 Slots：<a href="https://cn.vuejs.org/guide/components/slots.html" rel="noopener">cn.vuejs.org/guide/components/slots</a></li>
     <li>依赖注入 Provide / Inject：<a href="https://cn.vuejs.org/guide/components/provide-inject.html" rel="noopener">cn.vuejs.org/guide/components/provide-inject</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>写一个 MyList 组件：props 收数据 + 作用域插槽回传行自定义渲染；</li>
+    <li>写一个 v-model 自定义输入组件（Vue3 约定）；</li>
+    <li>复现第 6 章配置驱动容器，故意用 onClick 事件名复现绑定失败再修复。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/02_Vue3组合式API与响应式原理【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/10_jQuery与Bootstrap【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/04_状态管理_Vuex与Pinia【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 组件设计模式与插槽机制【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

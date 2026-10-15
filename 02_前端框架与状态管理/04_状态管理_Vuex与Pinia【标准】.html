@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/02_Vue3组合式API与响应式原理【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/03_组件设计模式与插槽机制【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/05_React与Hooks【基础】.html">下一篇 →</a>
 </nav>
@@ -548,21 +548,144 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Vuex 与 Pinia 都是 Vue 的<strong>集中式状态管理库</strong>。它们把应用的共享状态存进一个单一 store，所有组件都能读写，并通过约定的修改方式（mutation/action）让"状态怎么变"可追踪、可调试。Vuex 是 Vue2 时代的标准方案，Pinia 是 Vue 官方在 Vue3 时代推荐的新一代——去掉了 mutation、更轻、TS 原生、支持组合式写法。</p>
-  <p><strong>解决什么问题</strong>：跨层级/跨兄弟组件共享状态。没有 store 时，登录态要从 App 一层层 props 传到深层组件，改又要一层层 emit 上来，即"props drilling"。store 把它拎到全局，谁用谁取。本技术栈数据编排平台用 Vuex 组织大应用，业务系统 迁到 Pinia。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Vuex 与 Pinia 都是 Vue 的集中式状态管理库</strong>：把共享状态存进单一 store，所有组件读写，并通过约定通道（mutation/action）让"状态怎么变"可追踪、可调试。Vuex 是 Vue2 时代标准方案；Pinia 是 Vue3 官方推荐的新一代——<strong>去掉 mutation、更轻、TS 原生、支持组合式写法</strong>。它解决的是跨层级/跨兄弟共享状态的 props drilling：登录态从 App 层层传到深层组件、改又要层层 emit 上来——store 拎到全局，谁用谁取。本技术栈：数据编排平台用 Vuex 组织大应用，业务系统迁到 Pinia。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>props drilling——跨层级传改都要层层过手；</li>
+    <li>状态散在各组件——"这个数据谁改的"查不到；</li>
+    <li>解构 store 丢响应——Pinia 最常见"视图不更新"。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 Vuex 四件套链路（dispatch→action→commit→mutation）与 Pinia 三件套差异；</li>
+    <li>写出两种 store（Vuex namespaced module / Pinia setup 风格）；</li>
+    <li>掌握 <strong>storeToRefs</strong> 取用规范与模块化拆分；</li>
+    <li>避开五条高频坑（直接改 state 的口径差异/解构丢响应/滥用 store/忘 return/root:true）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：02 篇组合式 API。<strong>难度</strong>：★★☆☆☆。<strong>务必动手</strong>：第 6 章 Demo。<strong>本篇不涉及</strong>：React 状态方案（05 篇对照）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>集中式与单向数据流</strong>（store 的价值）→ <strong>Vuex 四件套</strong>→ <strong>Pinia 三件套</strong>→ <strong>模块化拆分</strong>。</p>
+
+  <h3>2.1 集中式状态管理：唯一可信状态源</h3>
+  <p>全局 store 是唯一可信状态源：组件读 state 渲染、变更走约定通道。<strong>可预测性</strong>是核心价值——修改都走约定通道，devtools 才能记录每次变更、做时间旅行调试；这是相对"各组件自己存状态"的根本区别。</p>
+
+  <h3>2.2 Vuex 四件套：dispatch→action→commit→mutation</h3>
+  <ul>
+    <li><strong>state</strong>：唯一状态数据源；<strong>getters</strong>：store 的计算属性；</li>
+    <li><strong>mutations</strong>：唯一能改 state 的地方——<strong>同步</strong>、带 type 名，便于 devtools 追踪；</li>
+    <li><strong>actions</strong>：处理异步（发请求），做完再 commit mutation 改 state。</li>
+  </ul>
+  <p class="key-sentence">链路：组件 dispatch action → action 异步完成后 commit mutation → mutation 同步改 state → 组件重渲染。</p>
+
+  <h3>2.3 Pinia 三件套：砍掉 mutation</h3>
+  <p>概念只剩 <strong>state/getters/actions</strong>：state 直接改、action 同步异步都行、没有 commit 层；写法 setup 或 options 风格、TS 原生。<strong>两个高频点</strong>：<code>$reset()</code> 在 Setup Store 中不可用（需自行实现）；登录态持久化常用 <code>pinia-plugin-persistedstate</code>。<strong>Vue3+TS 项目的默认选择。</strong></p>
+
+  <h3>2.4 模块化：按业务拆 store</h3>
+  <p>应用一大就按业务拆模块，避免大 store 失控：<strong>Vuex</strong> 用 modules 拆（user/app/demand…）+ <code>namespaced:true</code> 隔离；<strong>Pinia 天然一个模块一个 store 文件</strong>，无需手动拆分。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Vuex module（Vue2 项目）</h3>
+<pre class="code" data-lang="js"><code>// store/modules/user.js
+export default {
+  namespaced: true,
+  state: () =&gt; ({ token: '', profile: null }),
+  getters: {
+    isLogin: (state) =&gt; !!state.token
+  },
+  mutations: {
+    SET_TOKEN(state, t) { state.token = t; }
+  },
+  actions: {
+    async login({ commit }, payload) {
+      const { token } = await api.login(payload);
+      commit('SET_TOKEN', token);
+    }
+  }
+};</code></pre>
+
+  <h3>3.2 场景二：Pinia setup 风格（Vue3+TS）</h3>
+<pre class="code" data-lang="ts"><code>// stores/user.ts
+export const useUserStore = defineStore('user', () =&gt; {
+  const token = ref('');
+  const profile = ref&lt;Profile | null&gt;(null);
+  const isLogin = computed(() =&gt; !!token.value);
+  async function login(payload: LoginReq) {       // action 可直接异步
+    const { token: t } = await api.login(payload);
+    token.value = t;                              // 直接改 state，无 mutation
+  }
+  return { token, profile, isLogin, login };
+});</code></pre>
+
+  <h3>3.3 场景三：组件中正确取用</h3>
+<pre class="code" data-lang="ts"><code>import { useUserStore } from '@/stores/user';
+import { storeToRefs } from 'pinia';
+const userStore = useUserStore();
+const { token, isLogin } = storeToRefs(userStore);  // 保持响应性
+function onLogin() { userStore.login(form); }        // action 直接调</code></pre>
+  <p><strong>取用红线</strong>：state/getters 用 storeToRefs 解构；action（函数）可直接解构——方法不丢响应。</p>
+
+  <h3>3.4 场景四：Vuex vs Pinia 选型</h3>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>Vuex</th><th>Pinia</th></tr></thead>
+    <tbody>
+      <tr><th>mutation</th><td>必须，同步改 state 的唯一通道</td><td>无，action 直接改</td></tr>
+      <tr><th>模块化</th><td>手动 modules + namespaced</td><td>每 store 文件即模块</td></tr>
+      <tr><th>TS 支持</th><td>较弱，需辅助类型</td><td>原生，自动推导</td></tr>
+      <tr><th>组合式</th><td>mapState 等辅助函数</td><td>setup 风格，直接 ref</td></tr>
+      <tr><th>体积</th><td>较大</td><td>更轻</td></tr>
+    </tbody>
+  </table>
+  <p><strong>结论</strong>：Vuex 是 Vue2 存量维护，新项目 Vue3+TS 一律 Pinia。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：两种 store 已写熟。</p>
+
+  <h3>4.1 持久化：登录态怎么活过刷新</h3>
+  <p>store 在内存里，刷新即失——持久化三选：①<strong>pinia-plugin-persistedstate</strong> 插件（配置 paths 粒度控制存哪些字段）；②手动 watch store 写 localStorage；③关键 token 同时放 Cookie（HttpOnly）由后端管理。持久化的字段要克制——<strong>敏感全量 state 入 localStorage 会放大 XSS 面</strong>（01 模块 09 篇）。</p>
+
+  <h3>4.2 store 之间的依赖</h3>
+  <p>Pinia 里一个 store 可直接 import 另一个 store 调用（无 Vuex 的 root:true 字符串魔法）；注意<strong>循环依赖</strong>：storeA 引 storeB、storeB 又引 storeA 时，把共享逻辑下沉到第三个 store 或 composable。</p>
+
+  <h3>4.3 服务端数据与 store 的边界</h3>
+  <p>不是所有接口数据都进 store：判断标准是"<strong>多组件共享 + 需要跨页面存活</strong>"。列表页临时数据留在页面组件；字典/用户/权限这类进 store。混着放的结果是 store 膨胀且缓存失效问题丛生。</p>
+
+  <h3>4.4 Setup Store 的 $reset 问题</h3>
+  <p>Options 风格 store 有 <code>$reset()</code>（回到初始 state）；<strong>Setup 风格没有</strong>——需自行写 reset 函数（把每个 ref 重设初始值）。退出登录清空状态时高频用到，封一个 useResetable 模式或统一在 store 里导出 reset。</p>
+
+  <h3>4.5 devtools 时间旅行</h3>
+  <p>Vuex/Pinia 均接入 Vue Devtools：记录每次变更（action 名/payload）、状态快照回溯。调试"谁改了这个状态"：Pinia 用 <code>$subscribe</code> 或 devtools 时间线；Vuex 靠 mutation type——<strong>这就是当年"必须走 mutation"的初衷</strong>（Pinia 用更轻的方式达成了同样可观测性）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="集中式状态管理单向数据流示意图">
       <defs>
@@ -590,43 +713,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 集中式状态管理的单向数据流（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 state / getters / mutations / actions（Vuex 四件套）</h3>
-  <p class="lead"><b>一句话定位</b>：Vuex 约定"组件→dispatch action→commit mutation→改 state"，让状态变更可追踪。</p>
-  <ul>
-    <li><strong>state</strong>：唯一的状态数据源。</li>
-    <li><strong>getters</strong>：store 的计算属性（派生 state）。</li>
-    <li><strong>mutations</strong>：唯一能改 state 的地方，同步、带 type 名，便于 devtools 追踪。</li>
-    <li><strong>actions</strong>：处理异步（发请求），做完再 commit mutation 改 state。</li>
-  </ul>
-  <h3>2.2 Pinia：更简洁的三件套</h3>
-  <p class="lead"><b>一句话定位</b>：Pinia 砍掉 mutation，state 直接改、action 同步异步都行，没有 commit 这层。</p>
-  <ul>
-    <li><strong>概念只剩</strong>：state / getters / actions。</li>
-    <li><strong>写法</strong>：更接近 setup 或 options，TS 原生。</li>
-    <li><strong>两个高频坑</strong>：<code>$reset()</code> 在 Setup Store 中不可用、需自行实现；持久化登录态常用 <code>pinia-plugin-persistedstate</code> 插件。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">结论</span>它是 Vue3 + TS 项目的默认选择。</p>
-  <h3>2.3 modules 模块化</h3>
-  <p class="lead"><b>一句话定位</b>：应用一大就按业务拆模块；Pinia 天然"一个模块一个 store 文件"。</p>
-  <ul>
-    <li><strong>Vuex</strong>：用 <code>modules</code> 拆子模块（user/app/需求…），靠 <code>namespaced:true</code> 隔离。</li>
-    <li><strong>Pinia</strong>：天然就是分文件 store，无需手动拆分。</li>
-  </ul>
-  <h3>2.4 状态可预测与 devtools</h3>
-  <p class="lead"><b>一句话定位</b>：修改都走约定通道，devtools 才能记录每次变更、做时间旅行调试。</p>
-  <ul>
-    <li><strong>价值</strong>：记录每次 mutation、回到历史某状态；Pinia 同样接入。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>这是集中式管理相对"各组件自己存状态"的核心价值。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Vuex 一次状态变更的完整链路</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="Vuex 状态变更链路流程图">
       <defs>
@@ -656,52 +742,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Vuex 单向数据流（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Vuex module 写法（数据编排平台所用）</h3>
-<pre class="code" data-lang="js"><code>// store/modules/user.js
-export default {
-  namespaced: true,
-  state: () =&gt; ({ token: '', profile: null }),
-  getters: {
-    isLogin: (state) =&gt; !!state.token
-  },
-  mutations: {
-    SET_TOKEN(state, t) { state.token = t; }
-  },
-  actions: {
-    async login({ commit }, payload) {
-      const { token } = await api.login(payload);
-      commit('SET_TOKEN', token);
-    }
-  }
-};</code></pre>
-  <h3>4.2 Pinia setup 写法（业务系统 所用）</h3>
-<pre class="code" data-lang="ts"><code>// stores/user.ts
-export const useUserStore = defineStore('user', () =&gt; {
-  const token = ref('');
-  const profile = ref&lt;Profile | null&gt;(null);
-  const isLogin = computed(() =&gt; !!token.value);
-  async function login(payload: LoginReq) {       // action 可直接异步
-    const { token: t } = await api.login(payload);
-    token.value = t;                              // 直接改 state，无 mutation
-  }
-  return { token, profile, isLogin, login };
-});</code></pre>
-  <h3>4.3 Vuex vs Pinia 对照</h3>
-  <table>
-    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
-    <thead><tr><th>维度</th><th>Vuex</th><th>Pinia</th></tr></thead>
-    <tbody>
-      <tr><th>mutation</th><td>必须，同步改 state 的唯一通道</td><td>无，action 直接改</td></tr>
-      <tr><th>模块化</th><td>手动 modules + namespaced</td><td>每 store 文件即模块</td></tr>
-      <tr><th>TS 支持</th><td>较弱，需辅助类型</td><td>原生，自动推导</td></tr>
-      <tr><th>组合式</th><td>mapState 等辅助函数</td><td>setup 风格，直接 ref</td></tr>
-      <tr><th>体积</th><td>较大</td><td>更轻</td></tr>
-    </tbody>
-  </table>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="Vuex与Pinia对比图">
       <defs>
@@ -711,133 +751,109 @@ export const useUserStore = defineStore('user', () =&gt; {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Vuex vs Pinia 怎么选？（示意）</text>
 
-      <!-- Vuex -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Vuex</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">mutation 必须，同步改 state 唯一通道</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">手动 modules + namespaced 拆模块</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">Vue2 老项目存量</text>
 
-      <!-- Pinia -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Pinia</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">无 mutation，action 直接改 state</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">TS 原生支持、setup 风格、更轻</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">Vue3 + TS 新项目默认</text>
     </svg>
-    <p class="diagram-caption">图 1 Vuex vs Pinia（示意）</p>
+    <p class="diagram-caption">图 3 Vuex vs Pinia（示意）</p>
   </div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：数据编排平台（Vue2）用 Vuex modules 管大型后台状态，业务系统（Vue3+TS）用 Pinia 重写——亲历两套状态管理的组织与迁移。</p>
-  <ul>
-    <li><strong>数据编排平台</strong>：Vue2+ElementUI 大型后台，登录态/菜单/需求数据。</li>
-    <li><strong>业务系统</strong>：Vue3+TS+Pinia，store 按业务拆分、setup 风格。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责 store 模块拆分与 Vuex→Pinia 迁移。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算）；实践中通常做状态层设计与迁移。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>数据编排平台：Vue2 + Vuex（namespaced modules）；业务系统：Vue3 + Pinia（setup 风格 + storeToRefs）。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>按业务拆模块</strong>：user/menu/demand 命名空间拆分，避免大 store 失控。</li>
-    <li><strong>Pinia 单文件</strong>：state 用 ref、getters 用 computed、actions 直接异步。</li>
-    <li><strong>取用规范</strong>：组件用 storeToRefs 取状态，action 直接调。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="ts"><code>// 组件中正确取用（Pinia）
-import { useUserStore } from '@/stores/user';
-import { storeToRefs } from 'pinia';
-const userStore = useUserStore();
-const { token, isLogin } = storeToRefs(userStore);  // 保持响应性
-function onLogin() { userStore.login(form); }        // action 直接调</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><strong>解构 store 丢响应</strong>：<code>const { token } = useUserStore()</code> 视图不更新；必须 storeToRefs。</li>
-    <li><strong>action 忘 return</strong>：Vuex 时代 action 忘 return promise，组件 await 不到登录完成。</li>
-    <li><strong>跨模块调用</strong>：Vuex 模块间要 <code>dispatch('other/action', root, { root: true })</code>；迁 Pinia 后直接 import 另一个 store 调用，清晰很多。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>迁 Pinia 后样板代码大幅减少，跨模块调用从 root:true 字符串变成直接 import。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>排期</strong>：先迁 user/menu 这类基础 store，再迁业务数据 store，逐模块替换。</li>
-    <li><strong>协作</strong>：迁移时与组件开发约定 storeToRefs 取用规范，避免"解构丢响应"。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>按业务拆 store</strong>：别堆一个大 store。</li>
-    <li><strong>storeToRefs 是取用规范</strong>：解构状态就用它。</li>
-    <li><strong>Pinia 比 Vuex 省样板</strong>：无 mutations、无 root:true 字符串魔法。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>亲历 Vuex namespaced modules 到 Pinia setup 风格的迁移，最直观的收益是跨模块调用从 root:true 字符串变成直接 import，并守住了 storeToRefs 这条取用红线。</p>
+  <p><strong>读图要点</strong>：①图 1 的核心是"唯一可信状态源 + 约定变更通道"；②图 2 的四环链路里 action 与 mutation 的分工是<strong>异步边界</strong>——异步在 action、同步在 mutation，devtools 按环记录；③图 3 的选型一句话：存量 Vuex、新项目 Pinia。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 组件里直接改 state：Vuex 与 Pinia 不同</h3>
-  <p class="lead"><b>一句话定位</b>：这条"铁律"只对 Vuex 成立；Pinia 允许直接改 state，官方只是推荐用 action。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实演进——数据编排平台（Vue2+Vuex modules）→ 业务系统（Vue3+TS+Pinia）迁移。</p>
+
+  <h3>6.1 迁移落地设计</h3>
   <ul>
-    <li><strong>Vuex</strong>：mutation 是改 state 的唯一入口，strict 模式下组件直接改 <code>store.state.x = 1</code> 会直接报错。</li>
-    <li><strong>Pinia</strong>：<code>store.token = 'x'</code> 是合法且响应式的写法，并不报错；官方仍推荐放进 action，以便复用、追踪与测试。</li>
-    <li><strong>结论</strong>：别把"必须走 mutation"当成两个库共同的铁律——那是 Vuex 的约束，Pinia 已放宽。</li>
+    <li><strong>按业务拆模块</strong>：user/menu/demand 命名空间拆分，避免大 store 失控；</li>
+    <li><strong>Pinia 单文件</strong>：state 用 ref、getters 用 computed、actions 直接异步；</li>
+    <li><strong>取用规范</strong>：组件用 storeToRefs 取状态，action 直接调（3.3 代码）。</li>
   </ul>
-  <h3>6.2 解构 store 丢响应性</h3>
-  <p class="lead"><b>一句话定位</b>：Pinia 里取 state/getters 必须用 storeToRefs。</p>
+
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>正解</strong>：用 <code>storeToRefs</code> 取 state/getters；action 可直接解构调用（方法不丢响应）。</li>
+    <li><strong>解构 store 丢响应</strong>：<code>const { token } = useUserStore()</code> 视图不更新——必须 storeToRefs；</li>
+    <li><strong>action 忘 return</strong>：Vuex 时代 action 忘 return promise，组件 await 不到登录完成；</li>
+    <li><strong>跨模块调用</strong>：Vuex 要 <code>dispatch('other/action', root, { root: true })</code>；Pinia 直接 import 另一个 store，清晰很多。</li>
   </ul>
-  <h3>6.3 滥用全局 store</h3>
-  <p class="lead"><b>一句话定位</b>：store 只放跨组件共享的状态，组件私有状态留在组件里。</p>
-  <ul>
-    <li><strong>误区</strong>：把只在局部用的状态也塞进全局。</li>
-    <li><strong>正解</strong>：否则 store 膨胀、难以维护。</li>
-  </ul>
-  <h3>6.4 Vuex action 忘了 return</h3>
-  <p class="lead"><b>一句话定位</b>：action 不返回 Promise，组件就 await 不到异步完成。</p>
-  <ul>
-    <li><strong>现象</strong>：组件 <code>await dispatch('login')</code> 不等待。</li>
-    <li><strong>正解</strong>：action 返回 Promise，组件才能 await 异步完成。</li>
-  </ul>
-  <h3>6.5 Vuex modules 命名空间混淆</h3>
-  <p class="lead"><b>一句话定位</b>：跨模块调用要记得 root:true；Pinia 无此问题。</p>
-  <ul>
-    <li><strong>正解</strong>：用 <code>namespaced: true</code>，跨模块调用记得 <code>{ root: true }</code>。</li>
-  </ul>
+
+  <h3>6.3 验证与经验</h3>
+  <ol>
+    <li>登录后 isLogin 变化驱动路由守卫与导航渲染（单一状态源生效）；</li>
+    <li>devtools 里能看到每次 action 与状态快照；</li>
+    <li><strong>经验</strong>：按业务拆 store 别堆大 store；storeToRefs 是取用红线；Pinia 省样板（无 mutations、无 root:true 字符串魔法）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 组件里直接改 state：两库口径不同</h3>
+  <p><strong>关键认知</strong>：这条"铁律"只对 Vuex 成立——Vuex strict 模式下直接改 <code>store.state.x=1</code> 报错（mutation 是唯一入口）；<strong>Pinia 里 <code>store.token='x'</code> 合法且响应式</strong>，官方仍推荐放 action（复用/追踪/测试）。别把 Vuex 的约束当成两库共同铁律。</p>
+
+  <h3>7.2 解构 store 丢响应性</h3>
+  <p><strong>正解</strong>：state/getters 用 <code>storeToRefs</code>；action 可直接解构（方法不丢响应）。这是 Pinia 取用规范的第一红线。</p>
+
+  <h3>7.3 滥用全局 store</h3>
+  <p><strong>误区</strong>：局部状态也塞全局。<strong>正解</strong>：store 只放跨组件共享状态（4.3 边界判断），否则 store 膨胀难维护。</p>
+
+  <h3>7.4 Vuex action 忘 return</h3>
+  <p><strong>现象</strong>：<code>await dispatch('login')</code> 不等待。<strong>正解</strong>：action 返回 Promise，组件才能 await 异步完成。</p>
+
+  <h3>7.5 Vuex modules 命名空间混淆</h3>
+  <p><strong>正解</strong>：<code>namespaced: true</code>；跨模块调用记得 <code>{ root: true }</code>——迁 Pinia 后此坑消失。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：为什么需要集中式状态管理？解决 props drilling 的本质是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：跨层级/跨兄弟共享状态时，无 store 就要层层 props 传下、层层 emit 传上（props drilling），链路上的每个组件都被迫认识这个状态。集中式 store 把共享状态拎到全局单一可信源——<strong>任何组件直接读写，链路中间组件不再掺和</strong>；更重要的是所有变更走约定通道，devtools 可记录可回溯（时间旅行）——<strong>状态从"散落难查"变成"集中可预测"</strong>。</p>
+
+  <p><strong>Q2：Vuex 与 Pinia 的核心差异？Pinia 为什么去掉 mutation？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四点——①<strong>mutation 层</strong>：Vuex 强制同步 mutation 作为唯一改 state 通道（为了 devtools 按 type 追踪），Pinia 砍掉、action 直接改；②<strong>TS</strong>：Vuex 类型支持弱，Pinia 原生推导；③<strong>模块化</strong>：Vuex 手动 modules+namespaced，Pinia 一文件一 store；④<strong>体积与写法</strong>：Pinia 更轻、setup 风格与组合式一致。<strong>去掉 mutation 的逻辑</strong>：mutation 这层的"可追踪"收益可以用更轻的方式实现（devtools 直接记录 action），而它的样板成本（每个变更两处写）在大项目里很重。<br><br>
+  <strong>加分点</strong>：指出"直接改 state"在两库的口径不同（7.1）。</p>
+
+  <p><strong>Q3：哪些状态该进 store，哪些不该？</strong></p>
+  <p class="note"><strong>参考答案</strong>：判断标准两条——<strong>多组件共享 + 需要跨页面/跨路由存活</strong>。典型进 store：登录态/用户信息、菜单权限、全局字典、主题配置。不进：列表页临时筛选、弹窗开关、表单草稿（组件私有或路由级状态）。<strong>反面后果</strong>：什么都进 store → store 膨胀成"第二数据库"、缓存失效与重置逻辑复杂化、组件复用性下降（依赖全局）。持久化另算一层：只持久化必要字段（token/偏好），敏感全量入 localStorage 会放大 XSS 面。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>Vuex 一次状态变更的完整链路？异步放在哪一环？</li>
+    <li>Pinia 砍掉 mutation 后，可追踪性靠什么保证？</li>
+    <li>storeToRefs 解构什么、不解构什么？</li>
+    <li>"组件直接改 state"在 Vuex 与 Pinia 的口径差异？</li>
+    <li>什么状态进 store、什么不进？判断标准？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Pinia 官方文档（中文，Vue 官方推荐）：<a href="https://pinia.vuejs.org/zh/" rel="noopener">pinia.vuejs.org/zh</a></li>
-    <li>Vuex 官方文档（数据编排平台所用版本）：<a href="https://vuex.vuejs.org/zh/" rel="noopener">vuex.vuejs.org/zh</a></li>
+    <li>Vuex 官方文档（Vue2 项目所用）：<a href="https://vuex.vuejs.org/zh/" rel="noopener">vuex.vuejs.org/zh</a></li>
   </ul>
   <h3>概念参考</h3>
   <ul>
     <li>Flux 单向数据流思想（Redux 同源）：<a href="https://facebook.github.io/flux/" rel="noopener">facebook.github.io/flux</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>分别用 Vuex module 与 Pinia setup 写一个 user store（登录/登出/isLogin）；</li>
+    <li>复现 storeToRefs 缺失的"视图不更新"，修复并总结取用规范；</li>
+    <li>给 Pinia store 接 persistedstate 插件，只持久化 token，验证刷新后登录态存活。</li>
+  </ol>
 </section>
 
 </main>
