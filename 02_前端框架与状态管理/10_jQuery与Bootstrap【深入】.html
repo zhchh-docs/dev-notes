@@ -540,31 +540,137 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/03_组件设计模式与插槽机制【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/09_微信小程序与uni-app【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/08_Nuxt3与SSR_SSG【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p><strong>jQuery</strong> 是一个 DOM 操作库：用 <code>$(selector)</code> 选中元素，链式调用方法操作它们，抹平浏览器差异。<strong>Bootstrap</strong> 是 CSS+JS 框架：栅格布局、按钮/表格/弹窗等现成组件，快速搭出一致的后台。在 Vue/React 出现前，它们是前端开发的事实标准。</p>
-  <h3>解决什么问题</h3>
-  <p>原生 DOM 操作冗长、各浏览器 API 不一致、要自己拼样式。jQuery 一行代码选中并操作元素；Bootstrap 一套类名搭出布局与组件。代价是：<strong>命令式</strong>——你要一步步告诉浏览器"做什么"（选中、改文本、绑事件），状态和 DOM 的同步全靠自己维护。这正是现代声明式框架要解决的痛点。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>jQuery 是 DOM 操作库</strong>：<code>$(selector)</code> 选中元素、链式调用操作它们、抹平浏览器差异。<strong>Bootstrap 是 CSS+JS 框架</strong>：栅格布局+现成组件，快速搭出一致的后台。Vue/React 出现前它们是事实标准；<strong>其"命令式"范式（一步步告诉浏览器做什么，状态与 DOM 同步全靠自己）正是现代声明式框架要解决的痛点</strong>——从 jQuery 到 Vue，本质是把"DOM 同步"这件手工活自动化。</p>
+
+  <h3>1.2 痛点与承接</h3>
+  <ul>
+    <li>jQuery：状态与 DOM 手动同步、选择器散落、插件难组合；</li>
+    <li>现代框架：声明式描述结果、DOM 同步自动化、复用从插件升级为组件；</li>
+    <li><strong>渐进承接</strong>：新项目用现代框架，老项目可局部引入 jQuery 逐步重写——智能监控大屏就是 Vue2+jQuery 共存的过渡态。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>命令式 vs 声明式</strong>的范式差异（本篇是 Vue 各篇的"历史注脚"）；</li>
+    <li>掌握<strong>链式调用、事件委托、$.fn 插件机制</strong>三件 jQuery 核心；</li>
+    <li>理解 Bootstrap <strong>12 列栅格</strong>的底层（v3 float / v4+ Flex）；</li>
+    <li>写出"插件三件套"合格的 jQuery 插件；</li>
+    <li>避开六条高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇 Vue 数据驱动（对照读）。<strong>难度</strong>：★★☆☆☆。<strong>本篇不涉及</strong>：Layui/ExtJS 等其他老库（实战提到 Layui 仅作改造对象）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>选择器与链式</strong>→ <strong>事件委托</strong>→ <strong>$.fn 插件机制</strong>→ <strong>Bootstrap 栅格与组件</strong>。</p>
+
+  <h3>2.1 选择器与链式调用</h3>
+  <p><code>$(selector)</code> 返回<strong>包裹 DOM 集合的 jQuery 对象</strong>，后续方法都作用在集合上；<strong>几乎所有方法返回 this</strong>——一次选中、find().addClass().on() 一路串下去（链式）。</p>
+
+  <h3>2.2 事件委托：动态元素的解</h3>
+  <p>把子元素事件绑在<strong>不变的父容器</strong>上，靠冒泡统一处理：<code>$('#list').on('click','li',fn)</code>。<strong>好处</strong>：动态新增的 li 不用重新绑定；绑一个 vs 绑 N 个省内存。<span class="tag-point">要点</span>：动态列表的点击处理<strong>必须委托到不变的父容器</strong>，否则翻页/新增后监听丢失。</p>
+
+  <h3>2.3 $.fn 插件机制</h3>
+  <p>插件 = 往 <code>$.fn</code> 上加方法：<code>$.fn.grid = function(opts){...}</code> 之后 <code>$('#x').grid()</code> 就能用。<span class="tag-key">注意</span>：<code>$.extend({}, defaults, options)</code> 是<strong>浅拷贝</strong>——嵌套对象会被各实例共享，深拷贝须 <code>$.extend(true, target, src)</code>；插件末尾 <code>return this.each(...)</code> 保持可链式。</p>
+
+  <h3>2.4 Bootstrap：12 列栅格与现成组件</h3>
+  <p><strong>栅格</strong>：容器分 12 列，row 包 col-md-* 指定占几列、加起来 ≤12 多了换行；<strong>底层</strong>：v3 是 float+百分比+媒体查询，<strong>v4/5 已改 Flexbox</strong>。<strong>组件</strong>：按钮/表格/弹窗/下拉配类名即用，JS 交互靠 data 属性或 API。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：链式调用与 DOM 操作</h3>
+<pre class="code" data-lang="js"><code>$('#list')
+  .find('li.active')      // 选中子元素
+  .addClass('highlight')   // 加类
+  .text('已选中')          // 改文本
+  .on('click', function(){ /* ... */ });</code></pre>
+
+  <h3>3.2 场景二：事件委托</h3>
+<pre class="code" data-lang="js"><code>// 动态新增的 li 不用重新绑定
+$('#list').on('click', 'li', function () {
+  console.log($(this).text());
+});</code></pre>
+
+  <h3>3.3 场景三：写一个 jQuery 插件</h3>
+<pre class="code" data-lang="js"><code>$.fn.grid = function (options) {
+  return this.each(function () {       // 返回 this 保持链式
+    const $el = $(this);
+    const cfg = $.extend({}, $.fn.grid.defaults, options);
+    // 渲染表格、绑事件……
+  });
+};
+$.fn.grid.defaults = { pageSize: 20 };
+// 使用：$('#table').grid({ url: '/list' });</code></pre>
+
+  <h3>3.4 场景四：自研表格插件（配置驱动）</h3>
+<pre class="code" data-lang="js"><code>$.fn.grid = function (opts) {
+  return this.each(function () {
+    const $wrap = $(this).empty();
+    opts.columns.forEach(c =&gt; { /* 渲染表头 */ });
+    opts.data.forEach(row =&gt; { /* 渲染行 */ });
+    $wrap.on('click', 'tr', () =&gt; opts.onRowClick?.(row)); // 事件委托
+  });
+};
+// 业务：$('#alarmGrid').grid({ columns, data, onRowClick })</code></pre>
+
+  <h3>3.5 场景五：Bootstrap 栅格</h3>
+<pre class="code" data-lang="html"><code>&lt;div class="container"&gt;
+  &lt;div class="row"&gt;
+    &lt;div class="col-md-4"&gt;左侧&lt;/div&gt;
+    &lt;div class="col-md-8"&gt;右侧&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三件核心与栅格已掌握。</p>
+
+  <h3>4.1 插件生命周期：destroy 与实例管理</h3>
+  <p>成熟插件必须提供 <code>destroy()</code>（.off 解绑、清容器、删实例标记 <code>.data('grid')</code>）——面板切走不清理就内存泄漏。实例状态挂 <code>$.data()</code> 而非全局变量，多实例互不干扰。</p>
+
+  <h3>4.2 事件委托的性能边界</h3>
+  <p>委托不是万能：委托目标离根越近，<strong>冒泡路径上每次点击都要走 target 匹配</strong>；大列表高频交互委托到 document 反而慢——委托到<strong>最近的稳定容器</strong>是平衡点。</p>
+
+  <h3>4.3 jQuery 的 Deferred 与现代 Promise</h3>
+  <p><code>$.ajax</code> 返回的 jqXHR 兼容 Promise 接口但非标准（有 .done/.fail 双套）；$.Deferred 是 Promise 规范的先行者——<strong>现代代码统一用标准 Promise/async-await</strong>，老代码对照读即可。</p>
+
+  <h3>4.4 Bootstrap 5 的 JS 零依赖</h3>
+  <p>Bootstrap 5 <strong>移除了 jQuery 依赖</strong>（原生 ES 模块实现交互组件）——"老框架去 jQuery 化"是行业缩影；data-bs-* 属性驱动用法保持不变，迁移成本主要在 data 属性改名。</p>
+
+  <h3>4.5 老项目改造路线</h3>
+  <p>Layui/jQuery 老项目三条路：<strong>①局部混用</strong>（Vue 挂动态面板，DOM 所有权划清——01 篇渐进引入）；②<strong>逐页重写</strong>（路由级替换，共享登录态用 URL/cookie）；③<strong>整体重写</strong>（仅当维护成本压不住）。实战样本：大屏 Layui→Vue2 从高频面板试点。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="命令式jQuery与声明式框架的范式对比示意图">
       <defs>
@@ -589,70 +695,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 命令式 jQuery 与声明式框架的范式对比（示意）</p>
   </div>
-  <h3>横向对比：jQuery 时代与现代框架的承接</h3>
-  <ul>
-    <li><strong>DOM 操作</strong>：jQuery 手写 <code>$('#x').text(v)</code>；现代框架只改状态，框架改 DOM。</li>
-    <li><strong>事件绑定</strong>：jQuery <code>.on('click')</code>；现代框架模板里 <code>@click</code>。</li>
-    <li><strong>组件复用</strong>：jQuery 靠插件（<code>$.fn.grid</code>）；现代框架靠组件/SFC。</li>
-    <li><strong>布局</strong>：Bootstrap 栅格类；现代框架用 Flex/Grid + 组件库（Element 等）。</li>
-    <li><strong>渐进承接</strong>：新项目用现代框架，老项目可局部引入 jQuery，或逐步重写——智能监控大屏 就是 Vue2+jQuery 共存的过渡态。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 选择器与 DOM 操作核心</h3>
-  <p class="lead"><b>一句话定位</b>：$(selector) 返回包裹 DOM 集合的 jQuery 对象，后续方法都作用在集合上。</p>
-  <ul>
-    <li><strong>核心动作</strong>：用 CSS 选择器选中，再链式操作 text/html/attr/css/append。</li>
-  </ul>
-  <h3>2.2 链式调用（Chaining）</h3>
-  <p class="lead"><b>一句话定位</b>：几乎所有 jQuery 方法都返回 this，所以能一路 find().addClass().on() 串下去。</p>
-  <ul>
-    <li><strong>关键</strong>：方法返回当前 jQuery 对象——一次选中、连续操作。</li>
-  </ul>
-  <h3>2.3 事件委托（Event Delegation）</h3>
-  <p class="lead"><b>一句话定位</b>：把子元素事件绑在父元素上，靠冒泡统一处理动态新增的子元素。</p>
-  <ul>
-    <li><strong>写法</strong>：<code>$('#list').on('click','li',fn)</code>。</li>
-    <li><strong>好处</strong>：动态新增的 li 不用重新绑定；绑一个 vs 绑 N 个更省内存。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>动态列表的点击处理必须委托到不变的父容器，否则翻页/新增后监听丢失。</p>
-  <h3>2.4 jQuery 插件机制</h3>
-  <p class="lead"><b>一句话定位</b>：插件 = 往 $.fn 上加方法，之后 $(...).插件名() 就能用。</p>
-  <ul>
-    <li><strong>写法</strong>：<code>$.fn.grid = function(opts){ ... }</code>，之后 <code>$('#x').grid()</code>。</li>
-  </ul>
-  <p>智能监控大屏 的 Grid/Tree/Dialog 都是这么做的；插件末尾要 <code>return this.each(...)</code> 保持可链式。</p>
-  <h3>2.5 Ajax 封装</h3>
-  <p class="lead"><b>一句话定位</b>：$.ajax/$.get/$.post 把 XHR 封装成回调/Promise，是 fetch/axios 之前的标准请求方式。</p>
-  <ul>
-    <li><strong>价值</strong>：比手写 XMLHttpRequest 简洁、抹平浏览器差异。</li>
-  </ul>
-  <h3>2.6 Bootstrap 栅格系统</h3>
-  <p class="lead"><b>一句话定位</b>：把容器分 12 列，row 包 col-md-* 指定占几列，自动响应式。</p>
-  <ul>
-    <li><strong>本质</strong>：Bootstrap 3 栅格基于 float + 百分比宽度 + 媒体查询；Bootstrap 4/5 已改为 Flexbox（<code>display:flex</code>）。</li>
-    <li><strong>规则</strong>：一行内 col-* 加起来 ≤12，多了会换行。</li>
-  </ul>
-  <h3>2.7 Bootstrap 组件</h3>
-  <p class="lead"><b>一句话定位</b>：按钮/表格/表单/弹窗/下拉等现成组件，配类名即用。</p>
-  <ul>
-    <li><strong>交互</strong>：JS 交互靠 data 属性或 API 触发。</li>
-  </ul>
-  <p>后台系统的快速搭建靠它。</p>
-  <h3>2.8 与现代框架的承接</h3>
-  <p class="lead"><b>一句话定位</b>：理解 jQuery 的痛点，就理解 Vue/React 为什么出现。</p>
-  <ul>
-    <li><strong>jQuery 痛点</strong>：状态与 DOM 手动同步、选择器散落、插件难以组合。</li>
-    <li><strong>现代框架的解法</strong>：命令式变声明式、DOM 同步自动化、复用从插件升级为组件。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">样本</span>智能监控大屏 的 Vue2+jQuery 混用、大屏 Layui→Vue2 改造，正是这一承接的真实样本。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 事件委托：为什么动态元素也能响应</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="jQuery 事件委托原理示意图">
       <defs>
@@ -678,7 +720,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 事件委托原理（示意）</p>
   </div>
-  <h3>3.2 Bootstrap 栅格：12 列如何实现响应式</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="Bootstrap 栅格 12 列原理示意图">
       <defs>
@@ -698,167 +739,107 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 Bootstrap 栅格 12 列（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 链式调用与 DOM 操作</h3>
-<pre class="code" data-lang="js"><code>$('#list')
-  .find('li.active')      // 选中子元素
-  .addClass('highlight')   // 加类
-  .text('已选中')          // 改文本
-  .on('click', function(){ /* ... */ });</code></pre>
-  <h3>4.2 事件委托</h3>
-<pre class="code" data-lang="js"><code>// 动态新增的 li 不用重新绑定
-$('#list').on('click', 'li', function () {
-  console.log($(this).text());
-});</code></pre>
-  <h3>4.3 写一个 jQuery 插件（$.fn）</h3>
-<pre class="code" data-lang="js"><code>$.fn.grid = function (options) {
-  return this.each(function () {       // 返回 this 保持链式
-    const $el = $(this);
-    const cfg = $.extend({}, $.fn.grid.defaults, options);
-    // 渲染表格、绑事件……
-  });
-};
-$.fn.grid.defaults = { pageSize: 20 };
-// 使用：$('#table').grid({ url: '/list' });</code></pre>
-  <p class="key-sentence"><span class="tag-key">注意</span><code>$.extend({}, defaults, options)</code> 是浅拷贝，嵌套对象会被各实例共享；要深拷贝须写 <code>$.extend(true, target, src)</code>——defaults 含嵌套配置时，浅合并会导致多实例互相污染。</p>
-  <h3>4.4 Bootstrap 栅格类</h3>
-<pre class="code" data-lang="html"><code>&lt;div class="container"&gt;
-  &lt;div class="row"&gt;
-    &lt;div class="col-md-4"&gt;左侧&lt;/div&gt;
-    &lt;div class="col-md-8"&gt;右侧&lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：jQuery 时代的两处实战——智能监控大屏 自研 Grid/Tree/Dialog 插件，以及数据可视化大屏项目 Layui+Vue 混合改造。</p>
-  <ul>
-    <li><strong>智能监控大屏</strong>（2016-2018）：监控场景要高度定制的表格/树/弹窗，无合适现成库，自研 jQuery 插件。</li>
-    <li><strong>数据可视化大屏项目</strong>：早期基于 Layui（带 jQuery 的 UI 框架），后局部引入 Vue2。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责自研 jQuery 插件库与 Layui→Vue 渐进改造。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算）；我写插件与改造方案。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>jQuery + <code>$.fn</code> 插件机制 + 事件委托 + Layui；后期局部 Vue2。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>插件化</strong>：Grid/Tree/Dialog 往 <code>$.fn</code> 挂方法，配置驱动渲染 DOM。</li>
-    <li><strong>事件委托</strong>：行/分页事件绑容器，动态重建的行也能响应。</li>
-    <li><strong>渐进改造</strong>：Layui 负责静态结构，Vue 局部挂动态数据面板。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 自研表格插件：配置驱动渲染
-$.fn.grid = function (opts) {
-  return this.each(function () {
-    const $wrap = $(this).empty();
-    opts.columns.forEach(c =&gt; { /* 渲染表头 */ });
-    opts.data.forEach(row =&gt; { /* 渲染行 */ });
-    $wrap.on('click', 'tr', () =&gt; opts.onRowClick?.(row)); // 事件委托
-  });
-};
-// 业务：$('#alarmGrid').grid({ columns, data, onRowClick })</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><strong>没 return this</strong>：插件忘 <code>return this.each</code>，链式断、页面复用报错。</li>
-    <li><strong>动态行绑事件丢失</strong>：事件绑动态生成的行，翻页重建后监听丢失；改事件委托绑容器。</li>
-    <li><strong>插件无销毁方法</strong>：面板切走事件还挂着内存泄漏；补 <code>destroy()</code>。</li>
-    <li><strong>抢同一 DOM 节点</strong>：Layui 与 Vue 都改同一节点互相覆盖；划清管辖区域。</li>
-    <li><strong>切屏没清理</strong>：图表/定时器切屏未清，内存只涨不降。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>一套 Grid/Tree/Dialog 插件复用到多个监控面板，渐进改造不推翻重写。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>排期</strong>：先做 Grid 插件跑通，再抽 Tree/Dialog；改造从高频面板试点。</li>
-    <li><strong>协作</strong>：与维护老 Layui 页面的同事约定 DOM 边界。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>插件三件套</strong>：return this、事件委托、提供 destroy。</li>
-    <li><strong>命令式 DOM 管理的痛点</strong>：正是这些催生了后来全面转向 Vue 数据驱动。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">教训</span>这些都是"命令式手工管理 DOM"时代的典型痛点，也正是后来全面转向 Vue 数据驱动的原因。</p>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>在 jQuery 时代用 $.fn 插件机制自研了可复用的 Grid/Tree/Dialog，并亲历了 Layui→Vue 的渐进改造，因此深刻理解命令式 DOM 管理的痛点与数据驱动的价值。</p>
+  <p><strong>读图要点</strong>：①图 1 是全篇总纲——命令式的"手工同步"是所有痛点的源头；②图 2 事件委托依赖冒泡——委托目标必须是<strong>不变的父容器</strong>；③图 3 栅格的响应式 = 类名占列 + 断点媒体查询，底层实现两代不同（float→Flex）。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 插件不 return this 破坏链式</h3>
-  <p class="lead"><b>一句话定位</b>：插件末尾不 return this，链式调用就断了。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：jQuery 时代真实实战——智能监控大屏自研 Grid/Tree/Dialog 插件 + 大屏项目 Layui→Vue 渐进改造。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>正解</strong>：插件末尾 <code>return this.each(...)</code>，保持可链式调用。</li>
+    <li><strong>插件化</strong>：Grid/Tree/Dialog 往 $.fn 挂方法，配置驱动渲染 DOM；</li>
+    <li><strong>事件委托</strong>：行/分页事件绑容器，动态重建的行也能响应；</li>
+    <li><strong>渐进改造</strong>：Layui 负责静态结构，Vue 局部挂动态数据面板。</li>
   </ul>
-  <h3>6.2 动态元素直接绑事件丢失</h3>
-  <p class="lead"><b>一句话定位</b>：动态 DOM 重建后监听丢失，要委托到不变的父容器。</p>
+
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>现象</strong>：翻页/新增 DOM 后点击无反应。</li>
-    <li><strong>正解</strong>：用事件委托绑在不变的父容器上。</li>
+    <li><strong>没 return this</strong>：插件忘 <code>return this.each</code>，链式断、页面复用报错；</li>
+    <li><strong>动态行绑事件丢失</strong>：事件绑动态生成的行，翻页重建后监听丢失——改事件委托绑容器；</li>
+    <li><strong>插件无销毁方法</strong>：面板切走事件还挂着内存泄漏——补 <code>destroy()</code>；</li>
+    <li><strong>抢同一 DOM 节点</strong>：Layui 与 Vue 都改同一节点互相覆盖——划清管辖区域；</li>
+    <li><strong>切屏没清理</strong>：图表/定时器切屏未清，内存只涨不降。</li>
   </ul>
-  <h3>6.3 事件与 DOM 不清理导致泄漏</h3>
-  <p class="lead"><b>一句话定位</b>：面板切走后事件还挂着、DOM 没清，内存泄漏。</p>
-  <ul>
-    <li><strong>正解</strong>：组件销毁/面板切走时 <code>.off()</code>、清空容器、移除插件实例。</li>
-  </ul>
-  <h3>6.4 jQuery 与 Vue 直接改同一节点</h3>
-  <p class="lead"><b>一句话定位</b>：两边都改同一节点会互相覆盖、状态不一致。</p>
-  <ul>
-    <li><strong>正解</strong>：划清"谁管哪块"，不交叉操作。</li>
-  </ul>
-  <h3>6.5 过度用 jQuery 操作该用状态的场景</h3>
-  <p class="lead"><b>一句话定位</b>：命令式 DOM 同步极易漏改，新功能优先声明式。</p>
-  <ul>
-    <li><strong>教训</strong>：新功能优先声明式（Vue），jQuery 只用于过渡/特殊 DOM。</li>
-  </ul>
-  <h3>6.6 Bootstrap 栅格数学错误</h3>
-  <p class="lead"><b>一句话定位</b>：一行内 col-* 加起来超过 12 就会换行错位。</p>
-  <ul>
-    <li><strong>现象</strong>：列换行错位。</li>
-    <li><strong>正解</strong>：一行内 col-* 加起来 ≤12，多了会换行。</li>
-  </ul>
+
+  <h3>6.3 复盘与教训</h3>
+  <ol>
+    <li><strong>插件三件套</strong>：return this、事件委托、提供 destroy；</li>
+    <li><strong>命令式 DOM 管理的痛点</strong>（漏改/泄漏/复用难）正是催生全面转向 Vue 数据驱动的原因——这些坑后来在声明式框架里结构性消失；</li>
+    <li>一套 Grid/Tree/Dialog 插件复用到多个监控面板，渐进改造不推翻重写。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 插件不 return this 破坏链式</h3>
+  <p><strong>正解</strong>：插件末尾 <code>return this.each(...)</code>，保持可链式调用。</p>
+
+  <h3>7.2 动态元素直接绑事件丢失</h3>
+  <p><strong>现象</strong>：翻页/新增 DOM 后点击无反应。<strong>正解</strong>：事件委托绑在不变的父容器上（图 2）。</p>
+
+  <h3>7.3 事件与 DOM 不清理导致泄漏</h3>
+  <p><strong>正解</strong>：面板切走/销毁时 <code>.off()</code>、清空容器、移除插件实例（destroy 方法）。</p>
+
+  <h3>7.4 jQuery 与 Vue 抢同一节点</h3>
+  <p><strong>现象</strong>：两边互相覆盖、状态不一致。<strong>正解</strong>：划清"谁管哪块"，不交叉操作。</p>
+
+  <h3>7.5 过度用 jQuery 操作该用状态的场景</h3>
+  <p><strong>教训</strong>：命令式 DOM 同步极易漏改——新功能优先声明式（Vue），jQuery 只用于过渡/特殊 DOM。</p>
+
+  <h3>7.6 Bootstrap 栅格数学错误</h3>
+  <p><strong>现象</strong>：列换行错位。<strong>正解</strong>：一行内 col-* 加起来 ≤12，多了会换行。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：jQuery 是命令式的，Vue 是声明式的——这个"范式差异"到底指什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>命令式</strong>——开发者一步步描述"怎么做"（选中元素→改文本→绑事件），状态变了要<strong>自己找到对应 DOM 改掉</strong>，状态与 DOM 的同步全靠手工维护，漏改就是 bug；<strong>声明式</strong>——只描述"状态下界面长什么样"（模板），状态变框架自动更新 DOM。<strong>本质</strong>：从 jQuery 到 Vue 是把"DOM 同步"这件手工活自动化。jQuery 时代的典型痛点（动态元素监听丢失、事件泄漏、插件难组合）在声明式范式里结构性消失。</p>
+
+  <p><strong>Q2：jQuery 的事件委托是什么？为什么动态元素也能响应？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>$('#list').on('click','li',fn)</code>——监听绑在<strong>不变的父容器</strong>上，点击 li 时事件<strong>冒泡</strong>到 #list，由它统一判断 event.target 是否命中 li 再执行。<strong>动态元素能响应</strong>的原因：监听在父容器上，父容器不会因列表重建而消失，新加的 li 天然在冒泡路径上。<strong>附带收益</strong>：绑 1 个 vs 绑 N 个省内存。注意委托目标的层级要"最近的稳定容器"（4.2 性能边界）。</p>
+
+  <p><strong>Q3：写一个合格的 jQuery 插件要注意什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>插件三件套</strong>——①<code>return this.each(...)</code>：保持链式与多元素集合遍历；②<strong>事件委托</strong>：动态重建的行也能响应；③<strong>提供 destroy()</strong>：.off 解绑、清容器、删实例，防内存泄漏。再加两个细节：配置合并用 <code>$.extend({}, defaults, options)</code>——<strong>浅拷贝</strong>，defaults 有嵌套对象时多实例会共享污染，须 <code>$.extend(true,...)</code>；实例状态挂 <code>$.data()</code> 不用全局变量。这些坑都来自"命令式手工管理 DOM"时代，也是后来转向声明式的动因。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>命令式与声明式的本质差异？各自痛点？</li>
+    <li>链式调用能成立的机制？</li>
+    <li>事件委托的原理与好处？委托目标怎么选？</li>
+    <li>$.fn 插件三件套？$.extend 浅深拷贝的坑？</li>
+    <li>Bootstrap 栅格 v3 与 v4/5 的底层差异？12 列规则？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>jQuery 官方文档（中文）：<a href="https://api.jquery.com/" rel="noopener">api.jquery.com</a></li>
+    <li>jQuery 官方 API 文档：<a href="https://api.jquery.com/" rel="noopener">api.jquery.com</a></li>
     <li>Bootstrap 官方文档：<a href="https://getbootstrap.com/" rel="noopener">getbootstrap.com</a></li>
   </ul>
   <h3>概念对照</h3>
   <ul>
-    <li>从 jQuery 到声明式框架的范式转变，可对照本目录 Vue 各页——理解"为什么需要现代框架"。</li>
+    <li>从 jQuery 到声明式框架的范式转变，对照本模块 Vue 各篇——理解"为什么需要现代框架"。</li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>写一个 $.fn 插件（含三件套），故意漏 return this 复现链式断裂；</li>
+    <li>动态列表分别用"直接绑定"与"事件委托"，翻页后对比点击行为；</li>
+    <li>用 Bootstrap 栅格搭一个 4+8 布局，故意写 col-md-7+col-md-8 复现换行错位。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/03_组件设计模式与插槽机制【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/09_微信小程序与uni-app【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/08_Nuxt3与SSR_SSG【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · jQuery与Bootstrap【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
