@@ -534,9 +534,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Xshell 与 WinSCP 远程管理</h1>
     <div class="meta-row">
       <span class="badge deep">深入</span>
-      <span class="meta">定位：SSH 原理（密钥交换/端口转发）+ 现场服务器管理实操与安全基线</span>
+      <span class="meta">定位：密钥认证 / SSH 隧道 / 安全基线</span>
     </div>
-    <p class="hero-desc">Xshell（SSH 终端）与 WinSCP（SFTP 文件传输）是电力项目现场管理服务器的日常工具。本页不停留在"怎么连"，而是深入到 SSH 协议本身——非对称密钥怎么完成一次安全登录、端口转发怎么穿透内网、密钥登录比密码登录安全在哪，并以现场服务器管理的真实场景收尾，给出一份可落地的 SSH 安全基线。</p>
+    <p class="hero-desc">两个工具一条通道：终端与 SFTP 同走 SSH 加密连接。本篇讲透四个核心模型：密钥对与挑战-应答（私钥签名公钥验签，密码不过网络）、密钥交换（握手非对称、传数据对称）、主机指纹防中间人、SSH 隧道穿内网（用完即关）；配 15 分钟密钥登录+隧道全流程 Demo、安全基线四件套与六条高频坑。电力现场多服务器管理实战贯穿。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
@@ -548,36 +548,121 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心配置与实操要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：两个 Windows 工具，都跑在 SSH 协议之上：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Xshell 与 WinSCP 是两个跑在 SSH 协议之上的 Windows 工具</strong>：Xshell 是 SSH 终端客户端（远程登录敲命令），WinSCP 是基于 SFTP 的图形化文件传输（本地↔服务器拖文件）。服务器在机房/内网，你在笔记本上既要敲命令又要传部署包/日志——这套组合是国内 Windows 运维圈最常用的答案，且两者打通（Xshell 一键开 WinSCP 到当前目录）。<strong>安全根源</strong>：所有命令与文件传输都在 SSH 加密通道里（图 1，第 5 章）。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>Xshell</strong>：Windows 上的 SSH 终端客户端，远程登录 Linux 服务器敲命令。</li>
-    <li><strong>WinSCP</strong>：基于 SFTP 的图形化文件传输工具，在本地和服务器之间拖文件。</li>
-    <li><span class="tag-key">关键</span><strong>安全根源</strong>：两者都跑在 SSH（Secure Shell）之上，所有命令与文件传输都在加密通道里。</li>
+    <li>密码登录被全网扫描暴力破解；</li>
+    <li>内网服务（如 MySQL）不对外暴露，要查数据怎么办；</li>
+    <li>多台服务器来回连，会话管理混乱。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：服务器在机房/内网，你要在现场笔记本上操作它——既要敲命令（Xshell），又要传部署文件/日志（WinSCP）。SSH 让远程操作既加密、又能密钥认证：</p>
+
+  <h3>1.3 横向对比与选型</h3>
   <ul>
-    <li><strong>加密 + 认证</strong>：不被窃听/篡改，密钥认证不用每次输密码、更安全。</li>
-    <li><strong>现场特殊需求</strong>：电力现场网络复杂，还常要用 SSH 端口转发穿透到内网服务。</li>
+    <li><strong>vs 原生 ssh/scp（命令行）</strong>：原生 ssh 是 Linux/Mac 自带的最轻量方式，<strong>脚本化（CI 里）首选</strong>；Xshell/WinSCP 是 Windows 图形化，适合现场人肉操作（多会话/拖文件/记住会话）。取舍：<strong>自动化用 ssh/scp，现场运维用 Xshell+WinSCP</strong>；</li>
+    <li><strong>vs 其他客户端</strong>：同类有 MobaXterm、Putty、Tabby；</li>
+    <li><strong>协议层</strong>：终端走 SSH，文件走 <strong>SFTP（SSH 的子系统）</strong>，不是老式 FTP——同样在加密通道里。</li>
   </ul>
-  <h3>横向对比：Xshell / WinSCP / 原生 ssh+scp</h3>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>密钥认证的原理</strong>（私钥签名、公钥验签、密码不过网络）；</li>
+    <li>落地<strong>密钥登录</strong>（ssh-keygen + ssh-copy-id）与<strong>SSH 隧道</strong>（-L 本地转发）；</li>
+    <li>掌握<strong>SSH 安全基线</strong>（改端口/禁密码/禁 root/fail2ban）；</li>
+    <li>避开六条高频坑（爆破/私钥泄露/指纹/root/隧道不关/加密关系搞混）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：Linux 基础（本模块 01 篇）；非对称加密概念。<strong>难度</strong>：★★★☆☆（加密原理部分是最深的一篇）。<strong>务必动手</strong>：第 6 章 Demo——本机或虚拟机配一次完整密钥登录。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>密钥对与挑战-应答</strong>（认证的核心）→ <strong>密钥交换</strong>（加密通道怎么建立）→ <strong>主机指纹</strong>（防中间人）→ <strong>端口转发</strong>（隧道穿内网）。</p>
+
+  <h3>2.1 密钥对与挑战-应答：密码从不经过网络</h3>
+  <p>公钥放服务器、私钥自己留着。认证时<strong>服务器发一段随机挑战，客户端用私钥对挑战做数字签名回传，服务器用公钥验签</strong>通过即认证。<span class="tag-key">关键</span><strong>不是"公钥加密、私钥解密"</strong>——尤其 ed25519 只做签名、根本不做加密。整个过程<strong>密码不经过网络</strong>，不被窃听、无法暴力破解——这就是安全基线要求"禁用密码登录、只用密钥"的根本原因。</p>
+
+  <h3>2.2 密钥交换：握手非对称、传数据对称</h3>
+  <p>客户端与服务器先经非对称握手<strong>协商出共享的会话密钥</strong>，之后所有通信用会话密钥做<strong>对称加密</strong>。<strong>为什么这么设计</strong>：非对称安全但慢，对称快但要先安全地共享密钥——SSH 兼得两者：安全与速度兼顾。<span class="tag-key">考点</span>：别答成"全程非对称"（坑 7.6）。</p>
+
+  <h3>2.3 主机指纹与中间人风险</h3>
+  <p>首次连接客户端问"这台服务器指纹你确认吗"——冒充者指纹会不一样；确认后存进 <strong>known_hosts</strong>，以后再连不一致就报警。<strong>第一次务必核对指纹再 yes，否则可能连到假服务器。</strong></p>
+
+  <h3>2.4 端口转发：把加密通道当隧道</h3>
+  <p><strong>本地转发</strong>：把"本地某端口"经 SSH 隧道转到"内网某机某端口"——本地浏览器访问 localhost:xxxx，就能摸到内网原本够不着的数据库/管理后台（图 3 见第 5 章）。电力现场访问内网服务这招极高频；代价是<strong>隧道等于在内网开口子，用完即关</strong>。</p>
+
+  <h3>2.5 会话、跳板机与安全基线</h3>
   <ul>
-    <li><strong>vs 原生 ssh/scp（命令行）</strong>：原生 ssh 是 Linux/Mac 自带的最轻量方式，脚本化（如 CI 里）首选；Xshell/WinSCP 是 Windows 图形化，适合现场人肉操作——多会话管理、可视化拖文件、记住会话。取舍：自动化脚本用 ssh/scp，现场运维用 Xshell+WinSCP。</li>
-    <li><strong>vs 其他客户端</strong>：同类有 MobaXterm、Putty、Tabby。Xshell+WinSCP 在国内 Windows 运维圈用得最广，且两者打通（Xshell 里一键开 WinSCP 到当前目录）。</li>
-    <li><strong>协议层</strong>：终端走 SSH，文件走 SFTP（SSH File Transfer Protocol，SSH 的子系统），不是老式的 FTP——SFTP 也在加密通道里。</li>
+    <li><strong>会话</strong>：地址/账号/密钥存成 Xshell 会话，双击即连；</li>
+    <li><strong>跳板机（堡垒机）</strong>：先登跳板机再登业务机，所有操作经过审计——Xshell 会话可配成经跳板机跳转；</li>
+    <li><strong>安全基线</strong>：改默认端口、禁密码登录、禁 root 直登、限制可登用户、fail2ban 防爆破。</li>
   </ul>
+  <p class="key-sentence">对称加密传数据、非对称握手换密钥、指纹防中间人——<strong>HTTPS 与 SSH 是同一套思想</strong>（见浏览器原理篇）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：生成密钥对并部署公钥</h3>
+<pre class="code" data-lang="bash"><code>ssh-keygen -t ed25519 -C "现场运维"   # 生成密钥对（公钥 .pub + 私钥）
+# 把公钥追加到服务器的 ~/.ssh/authorized_keys
+ssh-copy-id user@server</code></pre>
+  <p>Xshell 对应操作：会话属性里选"公钥认证"导入私钥。</p>
+
+  <h3>3.2 场景二：SSH 本地端口转发（穿内网）</h3>
+<pre class="code" data-lang="bash"><code># 本地 3307 → 经 SSH 服务器 → 内网 MySQL:3306
+ssh -L 3307:内网数据库IP:3306 user@ssh服务器
+# 然后用客户端连 localhost:3307</code></pre>
+  <p>Xshell 里在会话的"隧道/port forwarding"图形界面配，本质与 <code>-L</code> 一样。</p>
+
+  <h3>3.3 场景三：收紧 sshd（安全基线核心）</h3>
+<pre class="code" data-lang="bash"><code># /etc/ssh/sshd_config
+Port 2222                 # 改默认端口
+PasswordAuthentication no  # 禁用密码登录，只用密钥
+PermitRootLogin no         # 禁止 root 直接登录
+PubkeyAuthentication yes
+# 改完 systemctl restart sshd</code></pre>
+  <p><strong>纪律</strong>：改 sshd 配置前先<strong>另开一个连接测试</strong>再退出旧会话——配置错了把所有人锁在外面（与 Nginx 先 -t 同类的止损思路）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：密钥登录与隧道已配通。</p>
+
+  <h3>4.1 ed25519 vs RSA</h3>
+  <p>ed25519 密钥更短、签名更快、安全性更现代，是当前推荐；RSA 需 3072+ 位才够安全，老系统兼容才用。<strong>同一句话记住推荐项：生成密钥默认 ed25519。</strong></p>
+
+  <h3>4.2 fail2ban：自动封爆破 IP</h3>
+  <p>监控 auth 日志，同一 IP 短时间多次认证失败即封禁（iptables 规则）。配合"禁密码"后意义仍在：公钥认证失败与扫端口行为也能被记录封禁——纵深防御的一环。</p>
+
+  <h3>4.3 代理跳转与 ProxyJump</h3>
+  <p>多级跳转时，SSH 客户端一条命令直达：<code>ssh -J jump user@内网机</code>（或 ~/.ssh/config 里配 ProxyJump）——比"先登跳板机再 ssh 业务机"省事且本地终端直连内网机。<strong>~/.ssh/config</strong> 把常用主机别名化，是命令行侧的"会话管理"。</p>
+
+  <h3>4.4 远程端口转发与 scp/rsync 补充</h3>
+  <ul>
+    <li><strong>远程转发（-R）</strong>：反向——让服务器能访问"你本地的服务"（如给现场同事临时演示本地开发环境）；</li>
+    <li><strong>scp vs rsync</strong>：scp 简单拷贝；rsync 增量同步（只传差异），大目录/定时同步用 rsync。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="SSH 加密通道连接示意图">
       <defs>
@@ -600,62 +685,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 SSH 加密通道：终端与文件传输同走一条加密连接（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 非对称加密与密钥对（公钥/私钥）</h3>
-  <p class="lead"><b>一句话定位</b>：公钥放服务器、私钥自己留着，靠挑战-应答认证，密码从不经过网络。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>机制</strong>：服务器发一段随机挑战，客户端用<strong>私钥对挑战做数字签名</strong>回传，服务器用<strong>公钥验签</strong>通过即认证通过——不是"公钥加密、私钥解密"；尤其本文推荐的 ed25519 只做签名、根本不做加密。</li>
-    <li><strong>为什么安全</strong>：整个过程密码不经过网络，不被窃听、也无法暴力破解——比密码登录安全得多。</li>
-  </ul>
-  <p class="key-sentence">这就是安全基线要求"禁用密码登录、只用密钥"的根本原因。</p>
-  <h3>2.2 密钥交换（Key Exchange）</h3>
-  <p class="lead"><b>一句话定位</b>：握手用非对称协商出会话密钥，之后传数据用对称加密——安全与速度兼顾。</p>
-  <ul>
-    <li><strong>非对称握手</strong>：客户端与服务器先协商出双方共享的会话密钥。</li>
-    <li><strong>对称传数据</strong>：之后所有通信都用会话密钥做对称加密。</li>
-  </ul>
-  <p class="key-sentence">握手用非对称、传数据用对称——SSH 既安全又不至于太慢。</p>
-  <h3>2.3 主机指纹与中间人风险</h3>
-  <p class="lead"><b>一句话定位</b>：首次连接要核对主机指纹，就是在防中间人冒充服务器。</p>
-  <ul>
-    <li><strong>机制</strong>：首次连接客户端问"这台服务器指纹你确认吗"，冒充者指纹会不一样。</li>
-    <li><strong>后续</strong>：确认后存进 known_hosts，以后再连不一致就报警。</li>
-  </ul>
-  <p class="pit-sentence">第一次务必核对指纹再 yes，否则可能连到假服务器。</p>
-  <h3>2.4 端口转发（Port Forwarding / 隧道）</h3>
-  <p class="lead"><b>一句话定位</b>：把 SSH 加密通道当隧道转发其他端口流量，本地就能摸内网服务。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>本地转发</strong>：把"本地某端口"经 SSH 隧道转到"内网某机某端口"。</li>
-    <li><strong>效果</strong>：本地浏览器访问 localhost:xxxx，就能摸到内网原本够不着的数据库/管理后台。</li>
-  </ul>
-  <p class="key-sentence">电力现场要访问内网服务时这招极高频。</p>
-  <h3>2.5 X11 / SFTP 子系统</h3>
-  <p class="lead"><b>一句话定位</b>：SFTP 是 SSH 内置的文件传输子系统（不是独立 FTP）。</p>
-  <ul>
-    <li><strong>WinSCP</strong>：基于 SFTP 做图形化文件管理，支持拖拽、断点续传、权限保留。</li>
-  </ul>
-  <h3>2.6 会话管理与跳板机</h3>
-  <p class="lead"><b>一句话定位</b>：Xshell 把每台服务器连接信息存成会话，生产环境常要求先登跳板机再登业务机。</p>
-  <ul>
-    <li><strong>会话</strong>：把地址/账号/密钥存成会话，下次双击即连。</li>
-    <li><strong>跳板机（堡垒机）</strong>：先登跳板机再登业务机，所有操作经过审计——Xshell 会话可配成经跳板机跳转。</li>
-  </ul>
-  <h3>2.7 安全基线（Hardening）</h3>
-  <p class="lead"><b>一句话定位</b>：把出厂偏宽松的 SSH 配置收紧——改端口、禁密码、禁 root 直登、防爆破。</p>
-  <ul>
-    <li><strong>收紧动作</strong>：改默认端口、禁用密码登录只留密钥、禁止 root 直接登录、限制可登用户、fail2ban 防爆破。</li>
-  </ul>
-  <h3>2.8 与 Web 安全的关系</h3>
-  <p class="lead"><b>一句话定位</b>：理解 SSH 加密通道，也就理解了 HTTPS——思想一脉相承。</p>
-  <p class="key-sentence">对称加密传数据、非对称握手换密钥、证书防中间人——HTTPS 与 SSH 是同一套思想（见浏览器原理页）。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次密钥登录的完整握手</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 260" role="img" aria-label="SSH 密钥认证握手流程示意图">
       <defs>
@@ -690,7 +719,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 SSH 密钥认证握手（示意）</p>
   </div>
-  <h3>3.2 端口转发怎么穿内网</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="SSH 本地端口转发隧道示意图">
       <defs>
@@ -715,118 +743,136 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 SSH 本地端口转发（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心配置与实操要点</h2>
-  <h3>4.1 生成密钥对并部署公钥</h3>
-<pre class="code" data-lang="bash"><code>ssh-keygen -t ed25519 -C "现场运维"   # 生成密钥对（公钥 .pub + 私钥）
-# 把公钥追加到服务器的 ~/.ssh/authorized_keys
-ssh-copy-id user@server</code></pre>
-  <h3>4.2 本地端口转发命令</h3>
-<pre class="code" data-lang="bash"><code># 本地 3307 → 经 SSH 服务器 → 内网 MySQL:3306
-ssh -L 3307:内网数据库IP:3306 user@ssh服务器</code></pre>
-  <h3>4.3 收紧 sshd 配置（安全基线核心）</h3>
-<pre class="code" data-lang="bash"><code># /etc/ssh/sshd_config
-Port 2222                 # 改默认端口
-PasswordAuthentication no  # 禁用密码登录，只用密钥
-PermitRootLogin no         # 禁止 root 直接登录
-PubkeyAuthentication yes
-# 改完 systemctl restart sshd</code></pre>
-  <div class="note">Xshell/WinSCP 里对应操作：会话属性里选"公钥认证"导入私钥；端口转发在 Xshell 的"隧道/port forwarding"图形界面里配，本质和上面的 <code>-L</code> 一样。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：电力现场多台服务器的远程管理</h3>
-  <p class="lead"><b>一句话定位</b>：服务器在机房，现场笔记本要登录查日志、传部署包、改配置，还要安全地访问不对外暴露的内网库。</p>
-  <ul><li><strong>项目</strong>：电力项目（可视化大屏系统、大屏项目，2016-2022）现场服务器管理。</li></ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：在实践中现场用 Xshell/WinSCP 日常管理服务器（部署/日志/配置），按安全基线配密钥登录与隧道。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Xshell（SSH 终端+会话管理+端口转发）+ WinSCP（SFTP 文件同步）；公钥认证。</li></ul>
-
-  <h3>5.4 落地设计：会话复用 + 密钥登录 + SSH 隧道</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>会话管理</strong>：几台服务器地址/账号/密钥存成 Xshell 会话，双击即连。</li>
-    <li><strong>密钥登录</strong>：公钥认证免密且更安全；WinSCP 从 Xshell 一键开当前目录。</li>
-    <li><strong>SSH 隧道</strong>：本地端口转发到跳板机后的内网 MySQL，不开数据库外网端口。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code># 现场高频：传部署包 + 跟踪日志
-# WinSCP 拖 dist.tar.gz 上去
-ssh user@server
-tail -f /var/log/myapp/app.log</code></pre>
-  <pre class="code" data-lang="bash"><code># SSH 本地转发：本地 3307 → 跳板机 → 内网 MySQL:3306
-ssh -L 3307:内网MySQL:3306 user@跳板机
-# 然后用客户端连 localhost:3307</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>首次连接指纹没核对</strong>：有中间人风险——核对 host key。</li>
-    <li><span class="tag-pit">坑</span><strong>私钥没设口令</strong>：笔记本丢=服务器失守——给私钥加 passphrase。</li>
-    <li><span class="tag-pit">坑</span><strong>密码登录被爆破</strong>：改密钥登录+改端口+fail2ban。</li>
-    <li><span class="tag-pit">坑</span><strong>隧道用完没关</strong>：等于在内网开口子——用完即关。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>现场多机管理不乱、传文件高效；不用开数据库外网端口就安全核对了内网数据。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul><li><strong>流程</strong>：现场驻场运维，部署与排障即时进行；安全基线按信息安全部门要求整改。</li></ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>密钥 + 改端口 + fail2ban</strong>是 SSH 安全基线三件套。</li>
-    <li><span class="tag-point">要点</span><strong>隧道用完即关、私钥妥善保管</strong>。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中电力现场用 Xshell 会话+密钥登录管多台服务器，用 WinSCP 拖部署包和日志，并用 SSH 本地转发隧道安全访问不对外暴露的内网 MySQL；按安全基线改成密钥登录、改端口、私钥加 passphrase。"</p>
+  <p><strong>读图要点</strong>：①图 1 是"两个工具一条通道"——终端与 SFTP 同走 SSH，工具只是通道两端的皮；②图 2 握手六步里，②是防中间人（指纹）、③④⑤是认证核心（挑战-应答，密码不过网络）；③图 3 的关键是 SSH 服务器"既能被你连、又能访问内网"——它是桥，隧道安全的前提是这台桥本身可信、且用完拆桥。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 密码登录被爆破</h3>
-  <p class="lead"><b>一句话定位</b>：默认 22 端口 + 密码登录，会被全网扫、暴力破解。</p>
-  <p class="pit-sentence">正解：禁用密码登录只留密钥、改默认端口、配 fail2ban。</p>
-  <h3>6.2 私钥泄露 = 服务器失守</h3>
-  <p class="lead"><b>一句话定位</b>：私钥就是"门钥匙"，泄露即等于服务器失守。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>15 分钟在本机/虚拟机配通"密钥登录 + 隧道"全流程：</p>
+
+  <h3>6.1 完整命令序列</h3>
+<pre class="code" data-lang="bash"><code># ① 生成密钥对（本地笔记本）
+ssh-keygen -t ed25519 -C "demo"          # 回车默认路径，passphrase 建议设置
+
+# ② 部署公钥到服务器
+ssh-copy-id user@192.168.1.100           # 服务器侧 authorized_keys 追加
+
+# ③ 验证密钥登录（应免密直接进）
+ssh user@192.168.1.100
+
+# ④ 收紧服务器 sshd
+sudo vim /etc/ssh/sshd_config            # PasswordAuthentication no / PermitRootLogin no / Port 2222
+sudo systemctl restart sshd              # ⚠️ 先另开连接测试再退旧会话
+
+# ⑤ 隧道摸内网 MySQL
+ssh -L 3307:10.0.0.5:3306 user@192.168.1.100 -p 2222
+# 本地 mysql -h 127.0.0.1 -P 3307 验证连通</code></pre>
+
+  <h3>6.2 验证清单</h3>
+  <ol>
+    <li>密码登录被拒（PasswordAuthentication no 生效）；</li>
+    <li>密钥登录免密进入；</li>
+    <li>22 端口不通、2222 通（改端口生效）；</li>
+    <li>localhost:3307 能查到内网 MySQL 数据；</li>
+    <li>关掉隧道后 3307 立刻不通（口子已关）。</li>
+  </ol>
+
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>纪律</strong>：私钥设 passphrase、妥善保管、不进 Git；泄露即作废该密钥对。</li>
+    <li><strong>ssh-copy-id 做的事</strong>：把公钥追加进服务器 ~/.ssh/authorized_keys——手工人肉易错（权限位 700/600 有讲究）；</li>
+    <li><strong>-p 2222</strong>：改端口后所有连接命令/会话都要跟上；</li>
+    <li><strong>另开连接测试</strong>：sshd 配错 = 所有人锁在外面，这是运维最贵的错误之一。</li>
   </ul>
-  <h3>6.3 首次连接不核对主机指纹</h3>
-  <p class="lead"><b>一句话定位</b>：不验证对方身份，可能连到中间人冒充的服务器。</p>
-  <p class="key-sentence">正解：首次严格核对指纹。</p>
-  <h3>6.4 root 直接登录</h3>
-  <p class="lead"><b>一句话定位</b>：root 是固定账号，最好猜，不该直接对外。</p>
-  <p class="key-sentence">正解：<code>PermitRootLogin no</code>，用普通用户登、需要时 sudo。</p>
-  <h3>6.5 隧道用完不关</h3>
-  <p class="lead"><b>一句话定位</b>：端口转发等于在内网开了个临时口子。</p>
-  <p class="pit-sentence">纪律：用完即关，不在公共机器上长期挂隧道。</p>
-  <h3>6.6 密钥交换/对称加密关系搞混</h3>
-  <p class="lead"><b>一句话定位</b>：握手用非对称换会话密钥，传数据用对称——别答成"全程非对称"。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>考点</strong>：公钥认证是<strong>私钥签名、公钥验签</strong>（不是公钥加密/私钥解密）；握手用非对称协商会话密钥、传数据用对称加密。</li>
-  </ul>
+
+  <h3>6.4 生产改造扩展方向</h3>
+  <ol>
+    <li>会话化：Xshell 存会话（地址/密钥/隧道配置）；命令行侧用 ~/.ssh/config 别名化（4.3）；</li>
+    <li>跳板机：按 4.3 ProxyJump 配多级跳转；</li>
+    <li>fail2ban 上防爆破（4.2），安全基线完整落齐。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑，前四条五要素、后两条考点型。</p>
+
+  <h3>7.1 坑 1：密码登录被爆破</h3>
+  <ul>
+    <li><strong>现象</strong>：/var/log/secure 里海量"Failed password"记录；</li>
+    <li><strong>根因</strong>：默认 22 端口 + 密码登录，被全网扫描暴力破解；</li>
+    <li><strong>复现</strong>：lastb 查爆破记录；</li>
+    <li><strong>修复</strong>：禁密码只留密钥、改端口、fail2ban；</li>
+    <li><strong>规避</strong>：新服务器初始化清单固定含安全基线四条。</li>
+  </ul>
+  <h3>7.2 坑 2：私钥泄露 = 服务器失守</h3>
+  <ul>
+    <li><strong>现象/风险</strong>：笔记本丢失或私钥被拷走，等于服务器门钥匙被偷；</li>
+    <li><strong>根因</strong>：私钥没设 passphrase；</li>
+    <li><strong>修复</strong>：私钥设 passphrase（丢失者也无法使用）；泄露即<strong>作废该密钥对</strong>换新；</li>
+    <li><strong>规避</strong>：私钥不进 Git、不共享、每台设备独立密钥。</li>
+  </ul>
+  <h3>7.3 坑 3：首次连接不核对主机指纹</h3>
+  <ul>
+    <li><strong>现象</strong>：弹指纹就一路 yes，没核对；</li>
+    <li><strong>根因</strong>：不了解指纹的防中间人意义（2.3）；</li>
+    <li><strong>修复</strong>：首次连接严格核对指纹（现场有可信渠道比对）；</li>
+    <li><strong>规避</strong>：known_hosts 突然报警要认真对待——可能服务器重装，也可能有异常。</li>
+  </ul>
+  <h3>7.4 坑 4：隧道用完不关</h3>
+  <ul>
+    <li><strong>现象</strong>：本地端口长期转着内网数据库；</li>
+    <li><strong>根因</strong>：忘了它是"内网开着的口子"；</li>
+    <li><strong>修复/纪律</strong>：用完即关，不在公共机器上长期挂隧道；</li>
+    <li><strong>规避</strong>：审计视角——隧道也应纳入安全部门的可见范围。</li>
+  </ul>
+  <h3>7.5 坑 5：root 直接登录</h3>
+  <p>root 是固定账号最好猜，不该直接对外——<code>PermitRootLogin no</code>，普通用户登录、需要时 sudo（操作还有审计记录）。</p>
+  <h3>7.6 坑 6：加密关系答反</h3>
+  <p>高频考点：<strong>公钥认证是"私钥签名、公钥验签"，不是公钥加密/私钥解密</strong>；握手用非对称协商会话密钥，<strong>传数据用对称加密</strong>——别答成"全程非对称"。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：SSH 密钥认证比密码登录安全在哪？原理是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：原理是<strong>挑战-应答</strong>——服务器发随机挑战，客户端用<strong>私钥签名</strong>回传，服务器用公钥<strong>验签</strong>通过。安全性：①<strong>密码从不经过网络</strong>——无窃听面；②私钥无法从公钥反推——无暴力破解面；③可禁用密码登录，爆破直接失效（配合 fail2ban/改端口纵深防御）。<br><br>
+  <strong>纠错点</strong>：不是"公钥加密、私钥解密"，ed25519 只做签名。私钥是"门钥匙"——设 passphrase、不进 Git、泄露即作废。</p>
+
+  <p><strong>Q2：SSH 隧道（本地端口转发）怎么理解？有什么风险？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>ssh -L 3307:内网IP:3306 user@跳板机</code>——把本地 3307 端口的流量经 SSH 加密通道转到跳板机，再由它转发给内网 MySQL:3306。<strong>原理</strong>：跳板机"既能被你连、又能访问内网"，是桥。价值：<strong>不开数据库外网端口</strong>就能安全访问内网服务，全程加密。<strong>风险</strong>：隧道=内网开着的临时口子——用完即关、不长期挂、纳入审计；桥本身必须可信（指纹核对）。</p>
+
+  <p><strong>Q3：一台新服务器的 SSH 安全基线怎么做？为什么改端口也有用？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四件套——①<strong>禁密码登录</strong>（PasswordAuthentication no，只留密钥）；②<strong>禁 root 直登</strong>（PermitRootLogin no，普通用户+sudo，留审计）；③<strong>改默认端口</strong>（躲开全网扫描器的默认探测，把日志噪音降一个量级）；④<strong>fail2ban</strong>（自动封爆破 IP）。改端口的正确理解：<strong>不是加密增强，是减少暴露面/日志噪音</strong>——真攻击者扫全端口照样能找到，但自动化的无差别扫描会大量放弃。<br><br>
+  <strong>纪律</strong>：改 sshd 前另开连接测试，防止把自己锁在外面。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>挑战-应答的完整流程？密码在哪个环节参与？</li>
+    <li>握手与传数据分别用什么加密？为什么这样组合？</li>
+    <li>known_hosts 与主机指纹的作用？突然报警说明什么？</li>
+    <li>本地转发的命令与流量路径？两条风险纪律？</li>
+    <li>安全基线四件套？改端口的真实作用是什么？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>OpenSSH 官方文档：<a href="https://www.openssh.com/manual.html" rel="noopener">openssh.com/manual.html</a></li>
-    <li>SSH 协议规范概览（The Secure Shell 学习路径）：<a href="https://www.ssh.com/academy/ssh" rel="noopener">ssh.com/academy/ssh</a></li>
+    <li>SSH 协议规范概览：<a href="https://www.ssh.com/academy/ssh" rel="noopener">ssh.com/academy/ssh</a></li>
   </ul>
   <h3>工具</h3>
   <ul>
     <li>Xshell / Xftp（NetSarang 官方）：<a href="https://www.netsarang.com/" rel="noopener">netsarang.com</a></li>
     <li>WinSCP 官方：<a href="https://winscp.net/" rel="noopener">winscp.net</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo 全流程与五项验证；</li>
+    <li>把"禁密码/禁 root/改端口"落到自己虚拟机，用 lastb 观察爆破噪音变化；</li>
+    <li>用 ~/.ssh/config 给三台主机配别名与 ProxyJump 跳转（4.3）。</li>
+  </ol>
 </section>
 
 </main>
