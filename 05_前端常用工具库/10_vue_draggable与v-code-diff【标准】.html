@@ -534,78 +534,130 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>vue-draggable 与 v-code-diff</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：拖拽排序组件 + 代码差异对比组件</span>
+      <span class="meta">定位：拖拽四件套 / clone 跨列表 / diff 快照契约</span>
     </div>
-    <p class="hero-desc">vue-draggable（SortableJS 的 Vue 封装）提供列表拖拽排序；v-code-diff 提供代码/文本的差异高亮对比。低代码平台用 vue-draggable 做组件布局拖拽，低代码开发平台用 v-code-diff 做版本对比。本页讲透两者用法与落地。</p>
+    <p class="hero-desc">一对低代码基石组件：vue-draggable（SortableJS 封装，拖完自动同步数组——管"编辑体验"）与 v-code-diff（行对齐 diff 高亮——管"变更追溯"）。本篇讲透拖拽四件套（v-model/group/handle/filter）、clone 克隆语义的跨列表画布、diff 快照契约与格式规范化，配跨列看板 Demo 与四个高频坑。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/07_ZTree树组件【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/09_JsPlumb连线【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/04_VueUse组合式工具库【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：两个拿来即用的交互组件——拖拽排序与代码对比。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇把两个"拿来即用"的交互组件放在一起讲</strong>：<strong>vue-draggable</strong>（SortableJS 的 Vue 封装——数组列表变可拖拽排序，拖完自动同步顺序）与 <strong>v-code-diff</strong>（基于 diff 算法的文本对比组件——并排展示新旧文本，增删改行高亮）。它们是低代码平台的一对基石：<strong>拖拽管"编辑体验"，diff 管"变更追溯"</strong>。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>vue-draggable</strong>：SortableJS 的 Vue 封装，数组列表变可拖拽排序，拖拽后自动同步顺序。</li>
-    <li><strong>v-code-diff</strong>：基于 diff 算法的文本/代码对比组件，并排展示新旧文本，高亮增删改行。</li>
+    <li>手写 HTML5 拖拽 API（dragstart/dragover/drop）要自己管位置计算、占位动画、数组同步——一堆边界；</li>
+    <li>配置/流程有版本管理，但用户看不到"这次改了什么"——<strong>不可追溯的配置等于不可信任的配置</strong>；</li>
+    <li>整卡都能拖导致误操作、大 JSON diff 卡顿这些细节决定组件能不能真上线。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：不必自己写拖拽与 diff 算法。</p>
-  <ul>
-    <li><strong>拖拽排序</strong>：低代码/表单设计器的基础交互。</li>
-    <li><strong>版本对比</strong>：配置变更可追溯的基础能力。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 200" role="img" aria-label="vue-draggable 与 v-code-diff 用途示意图">
-      <defs>
-        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">两个组件的用途（示意）</text>
-      <rect x="60" y="55" width="300" height="110" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="210" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">vue-draggable</text>
-      <text x="80" y="106" font-size="12" fill="#255a36">· 列表拖拽排序</text>
-      <text x="80" y="130" font-size="12" fill="#255a36">· 低代码组件布局</text>
-      <rect x="440" y="55" width="300" height="110" rx="10" fill="#f0f5e6" stroke="#5a9e6a"/>
-      <text x="590" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#4f8a63">v-code-diff</text>
-      <text x="460" y="106" font-size="12" fill="#115e59">· 新旧文本差异高亮</text>
-      <text x="460" y="130" font-size="12" fill="#115e59">· 低代码平台版本对比</text>
-    </svg>
-    <p class="diagram-caption">图 1 两个组件的用途（示意）</p>
-  </div>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>做列表拖拽排序 / 低代码画布</td><td>画布内节点连线 → 《JsPlumb》（本模块 09 篇）</td></tr>
+    <tr><td>做配置版本对比 / 审计展示</td><td>Git 文本 diff 原理深究 → 超出前端范围</td></tr>
+    <tr><td>面试（拖拽同步原理/diff 对齐）</td><td>文件拖拽上传 → 本模块 05 篇</td></tr>
+  </table>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>用 <code>v-model + group + handle + filter</code> 四件套配出<strong>生产级拖拽列表</strong>（含跨列表）；</li>
+    <li>用 v-code-diff 搭出<strong>并排/行内可切换的版本对比</strong>视图；</li>
+    <li>知道拖拽同步数组的原理与 diff 行对齐的机制；</li>
+    <li>避开四类坑（数组未同步、整卡误拖、group 不一致、大文本卡顿）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：Vue 响应式数组与 v-model（02 模块）。<strong>难度</strong>：★☆☆☆☆。<strong>务必动手</strong>：第 6 章 Demo——两个组件各 15 分钟即可跑通。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 draggable 与数组绑定</h3>
-  <p class="lead"><b>一句话定位</b>：v-model 绑数组，拖拽后顺序自动更新。</p>
-  <ul>
-    <li><strong>写法</strong>：<code>&lt;draggable v-model="list"&gt;</code>，SortableJS 封装，无需手动改数组。</li>
-  </ul>
-  <h3>2.2 group 跨列表拖拽</h3>
-  <p class="lead"><b>一句话定位</b>：group 配置让两个列表共享分组，实现跨列表拖拽。</p>
-  <ul>
-    <li><strong>用途</strong>：从组件库 A 列表拖到画布 B 列表。</li>
-  </ul>
+  <h2><span class="num">2</span>核心模型</h2>
+
+  <h3>2.1 vue-draggable：v-model 绑数组是全部心智</h3>
+  <p><code>&lt;draggable v-model="list"&gt;</code> 绑定响应式数组，<strong>拖拽结束后顺序自动写回数组</strong>——你不需要碰任何拖拽事件就能拿到新顺序（要监听细节才有 <code>@end/@change</code>）。底层是 SortableJS 做 DOM 拖拽交互，封装层负责把"DOM 顺序变化"翻译回"数组顺序变化"。<strong>关键推论</strong>：数组必须是响应式的——非响应式数组拖完 UI 不更新（坑 1）。</p>
+
+  <h3>2.2 group：跨列表拖拽的开关</h3>
+  <p><code>group: "canvas"</code> 配置让<strong>同名 group 的列表互相拖拽</strong>——从组件库 A 拖到画布 B（低代码平台的标准交互）。group 还可配对象形式精确控制：<code>{ name: 'canvas', pull: 'clone', put: true }</code>（clone = 拖出的是克隆，源列表不减——组件库拖入画布的正确形态）。</p>
+
+  <h3>2.3 handle 与 filter：拖拽的边界控制</h3>
+  <p><strong>handle</strong> 指定手柄选择器（<code>handle: ".drag-handle"</code>）——只有手柄可拖，整卡不误触；<strong>filter</strong> 禁止特定元素被拖（输入框、按钮）。<strong>工程判断</strong>：列表项含表单控件或链接时，handle 是必配项而非可选项。</p>
+
+  <h3>2.4 v-code-diff：输入两串文本，其余交给 diff</h3>
+  <p>组件输入 <code>old-string</code>/<code>new-string</code>，内部 diff 算法做<strong>行对齐</strong>（最小化差异）：保留行对齐显示、删除行红色（旧侧）、新增行绿色（新侧）。三个视图配置：<code>output-format</code>（<code>side-by-side</code> 并排 / <code>line-by-line</code> 行内）、<code>theme</code> 明暗、<code>language</code> 高亮语言（json/javascript/plaintext 等）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：列表拖拽排序</h3>
+<pre class="code" data-lang="html"><code>&lt;draggable v-model="list" handle=".drag-handle" animation="150"&gt;
+  &lt;div v-for="item in list" :key="item.id"&gt;
+    &lt;span class="drag-handle"&gt;⣿&lt;/span&gt; {{ item.name }}
+  &lt;/div&gt;
+&lt;/draggable&gt;</code></pre>
+  <p><strong>要点</strong>：<code>:key="item.id"</code> 用业务 id（不用索引）——拖拽本质是数组重排，索引 key 会导致渲染错乱；animation 给移动过渡动画。</p>
+
+  <h3>3.2 场景二：跨列表拖拽（低代码画布）</h3>
+<pre class="code" data-lang="html"><code>&lt;!-- 组件库：pull: 'clone' 拖出的是克隆，源列表不减 --&gt;
+&lt;draggable :list="palette" group="canvas"
+           :clone="cloneComp" :sort="false"&gt;
+  &lt;div v-for="c in palette" :key="c.type"&gt;{{ c.label }}&lt;/div&gt;
+&lt;/draggable&gt;
+
+&lt;!-- 画布：接收放入的组件并排序 --&gt;
+&lt;draggable v-model="compList" group="canvas" handle=".drag-handle"&gt;
+  &lt;component v-for="c in compList" :is="c.comp" :key="c.id" /&gt;
+&lt;/draggable&gt;</code></pre>
+  <p><strong>关键细节</strong>：palette 侧用 <code>:list</code> + <code>clone</code>（拖入画布的是深拷贝新实例，改画布组件属性不影响组件库原型）；<code>:sort="false"</code> 让组件库内部不可排序。</p>
+
+  <h3>3.3 场景三：配置版本对比</h3>
+<pre class="code" data-lang="html"><code>&lt;code-diff
+  :old-string="oldJson"
+  :new-string="newJson"
+  output-format="side-by-side"
+  theme="light"
+  language="json" /&gt;</code></pre>
+  <p><strong>数据来源</strong>：后端保存每次配置变更的 JSON 快照（新旧各一份），前端取两份快照直接喂组件——<strong>diff 的工程质量取决于快照契约</strong>（何时存快照、存什么粒度），而不是组件本身。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：两类组件已跑通。</p>
+
+  <h3>4.1 拖拽的状态同步策略</h3>
+  <p>三个事件节点的分工：<code>@start</code>（记录拖前快照，用于撤销）、<code>@change</code>（added/removed/moved 结构化差异——跨列表时在此做两侧数组的业务校验）、<code>@end</code>（持久化新顺序到后端）。<strong>顺序持久化方案</strong>：存 order 数组或给每项加 sort 字段——不要依赖数组天然顺序（其他端可能并发改序）。</p>
+
+  <h3>4.2 diff 前的文本规范化</h3>
+  <p>大 JSON 直接 diff 又卡又全是噪音（格式差异被当内容差异）。<strong>先规范化再对比</strong>：JSON.parse 后 <code>JSON.stringify(obj, null, 2)</code> 统一缩进格式，把"格式差异"从 diff 里剔除——剩下的才是真实内容差异。超大对象先按业务维度拆块对比。</p>
+
+  <h3>4.3 与 JsPlumb 的分层：拖拽布局 vs 逻辑连线</h3>
+  <p>低代码画布的完整拼图：<strong>vue-draggable 管"组件怎么摆"</strong>（列表语义、自由度低、实现成本低），<strong>JsPlumb 管"组件怎么连"</strong>（端点连线、自由度高、成本高）。多数流程画布两者都用：draggable 摆面板、JsPlumb 连逻辑。选型判断：只是排序列表用 draggable，需要表达"关系"才上 JsPlumb。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="跨列表拖拽group原理图">
       <defs>
@@ -615,44 +667,21 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">group 同名 = 允许跨列表拖拽（示意）</text>
 
-      <!-- 组件库列表 -->
       <rect x="50" y="50" width="250" height="90" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="175" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">组件库列表 A</text>
       <text x="70" y="100" font-size="11" fill="#4f6348">group: "canvas"</text>
       <text x="70" y="122" font-size="11" fill="#4f6348">按钮、输入框、表格...</text>
 
-      <!-- 箭头 -->
       <line x1="300" y1="95" x2="470" y2="95" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr)"/>
       <text x="385" y="85" text-anchor="middle" font-size="11" fill="#7a8a70">拖拽</text>
 
-      <!-- 画布列表 -->
       <rect x="480" y="50" width="270" height="90" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="615" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">画布列表 B</text>
       <text x="500" y="100" font-size="11" fill="#4f6348">group: "canvas"（同名）</text>
       <text x="500" y="122" font-size="11" fill="#4f6348">拖进来的组件按顺序排列</text>
     </svg>
-    <p class="diagram-caption">图 3 跨列表拖拽：group 名称一致即可互通（示意）</p>
+    <p class="diagram-caption">图 1 跨列表拖拽：group 名称一致即可互通（示意）</p>
   </div>
-  <h3>2.3 handle 与过滤</h3>
-  <p class="lead"><b>一句话定位</b>：只有拖拽手柄可拖，filter 禁止某些元素被拖。</p>
-  <ul>
-    <li><strong>配置</strong>：<code>handle</code> 指定手柄；<code>filter</code> 禁止特定元素。</li>
-  </ul>
-  <h3>2.4 diff 对比模型</h3>
-  <p class="lead"><b>一句话定位</b>：输入 oldValue/newValue，内部 diff 对齐行，增删改着色。</p>
-  <ul>
-    <li><strong>视图</strong>：并排（split）或行内（line）。</li>
-  </ul>
-  <h3>2.5 视图模式</h3>
-  <p class="lead"><b>一句话定位</b>：主题/并排切换/格式可配。</p>
-  <ul>
-    <li><strong>配置</strong>：<code>theme</code> 明暗、<code>outputFormat</code> 展示模式（<code>side-by-side</code> 并排 / <code>line-by-line</code> 行内）、<code>language</code> 高亮语言（json/javascript/plaintext 等）。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 diff 对齐原理</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="v-code-diff 差异对齐原理示意图">
       <defs>
@@ -674,114 +703,141 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 diff 行对齐原理（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 vue-draggable 拖拽列表</h3>
-<pre class="code" data-lang="html"><code>&lt;draggable v-model="list" group="components" handle=".drag-handle"&gt;
-  &lt;div v-for="item in list" :key="item.id"&gt;
-    &lt;span class="drag-handle"&gt;⣿&lt;/span&gt; {{ item.name }}
-  &lt;/div&gt;
-&lt;/draggable&gt;</code></pre>
-  <h3>4.2 v-code-diff 版本对比</h3>
-<pre class="code" data-lang="html"><code>&lt;code-diff
-  :old-string="oldJson"
-  :new-string="newJson"
-  output-format="side-by-side"
-  theme="light"
-  language="json" /&gt;</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：低代码平台要拖拽组件入画布，低代码平台要对比配置版本差异。</p>
-  <ul>
-    <li><strong>低代码</strong>（Vue2）：组件库拖入画布并排序，实时预览。</li>
-    <li><strong>低代码平台</strong>（Vue3）：流程/配置版本对比高亮。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：拖拽与 diff 层前端，负责列表联动与版本展示。</p>
-  <ul>
-    <li><strong>分工</strong>：封装 draggable 画布容器与 code-diff 展示组件。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>拖拽</strong>：vue-draggable；<strong>diff</strong>：v-code-diff。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：draggable 绑响应式数组，group 跨列表、handle 限定手柄；code-diff 并排展示新旧 JSON。</p>
-  <ul>
-    <li><strong>拖拽</strong>：<code>&lt;draggable&gt;</code> 绑定组件列表，<code>group</code> 从组件库拖入画布。</li>
-    <li><strong>diff</strong>：<code>&lt;code-diff&gt;</code> 并排展示新旧配置 JSON。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-<pre class="code" data-lang="html"><code>&lt;draggable v-model="compList" group="canvas" handle=".drag-handle"&gt;
-  &lt;component v-for="c in compList" :is="c.comp" :key="c.id" /&gt;
-&lt;/draggable&gt;
-&lt;code-diff :old-string="oldJson" :new-string="newJson" language="json" /&gt;</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>拖拽后数组未同步</strong>：确保 v-model 绑响应式数组。</li>
-    <li><span class="tag-pit">坑</span><strong>整卡都触发拖拽</strong>：加 <code>handle</code> 限定手柄避免误操作。</li>
-    <li><span class="tag-pit">坑</span><strong>diff 大 JSON 卡</strong>：先格式化再比对。</li>
-    <li><span class="tag-point">要点</span><strong>跨列表 group 一致</strong>：跨列表拖拽 group 名称要一致。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>体验</strong>：组件拖入即排版，配置变更差异一目了然。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端约定配置 JSON 快照结构供 diff。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>handle 限定拖拽区</strong>：避免整卡误拖。</li>
-    <li><span class="tag-point">要点</span><strong>diff 前先格式化</strong>。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「低代码画布实践中常采用 vue-draggable 绑响应式数组+group+handle 做跨列表拖拽，低代码平台用 v-code-diff 并排高亮配置版本差异。」</p>
+  <p><strong>读图要点</strong>：①group 是"频道"——同名才互通，不同名列表互相隔离（用频道思维管理多组列表的拖拽权限）；②diff 的对齐是<strong>最小编辑距离</strong>意义下的对齐——所以格式差异会污染结果，先规范化（4.2）。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 拖拽未同步数组</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：v-model 绑定响应式数组。</p>
-  <h3>6.2 误触发拖拽</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：用 <code>handle</code> 限定拖拽手柄。</p>
-  <h3>6.3 跨列表 group 不一致</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：源/目标列表 group 名称一致。</p>
-  <h3>6.4 diff 大文本卡顿</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：先格式化/压缩再比对。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个"待办看板"迷你页：左列待办、右列已完成，跨列拖拽 + 顶部完成情况；再加一个配置版本对比块。</p>
+
+  <h3>6.1 跨列拖拽看板</h3>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;div style="display:flex;gap:16px"&gt;
+    &lt;draggable v-model="todo" group="board" handle=".h" animation="150"
+               class="col" item-key="id"&gt;
+      &lt;template #item="{ element }"&gt;
+        &lt;div class="card"&gt;&lt;span class="h"&gt;⣿&lt;/span&gt; {{ element.text }}&lt;/div&gt;
+      &lt;/template&gt;
+    &lt;/draggable&gt;
+    &lt;draggable v-model="done" group="board" handle=".h" class="col" item-key="id"&gt;
+      &lt;template #item="{ element }"&gt;
+        &lt;div class="card done"&gt;&lt;span class="h"&gt;⣿&lt;/span&gt; {{ element.text }}&lt;/div&gt;
+      &lt;/template&gt;
+    &lt;/draggable&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script setup lang="ts"&gt;
+import { ref } from 'vue'
+import draggable from 'vuedraggable'
+const todo = ref([{ id: 1, text: '写周报' }, { id: 2, text: '修 bug' }])
+const done = ref&lt;{ id: number; text: string }[]&gt;([])
+// 拖到哪列就自动进哪个数组——group 同名自动互通
+&lt;/script&gt;</code></pre>
+
+  <h3>6.2 配置版本对比</h3>
+<pre class="code" data-lang="html"><code>&lt;code-diff :old-string="oldCfg" :new-string="newCfg"
+           output-format="side-by-side" language="json" /&gt;</code></pre>
+
+  <h3>6.3 运行结果说明</h3>
+  <ul>
+    <li>两个数组与同名 group 组成看板：卡片拖过去，数组自动增删——<strong>零事件代码</strong>；</li>
+    <li>handle 限定拖拽点，卡内文字可正常选中复制；</li>
+    <li>diff 块并排显示 JSON 差异，改过哪行一目了然。</li>
+  </ul>
+
+  <h3>6.4 生产改造扩展方向</h3>
+  <ol>
+    <li>看板顺序持久化：<code>@end</code> 里把两列 id 顺序提交后端（4.1）；</li>
+    <li>拖入校验：@change 里按业务规则拒绝非法移动（回退数组）；</li>
+    <li>对比页加"时间轴选择"——任选两个版本快照做 diff。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：拖拽后数组未同步</h3>
   <ul>
-    <li>vue-draggable-plus / vuedraggable：<a href="https://github.com/SortableJS/vue.draggable.next" rel="noopener">github.com/SortableJS/vue.draggable.next</a></li>
-    <li>v-code-diff：<a href="https://github.com/tddworks/v-code-diff" rel="noopener">github.com/tddworks/v-code-diff</a></li>
+    <li><strong>现象</strong>：拖完 UI 回弹或顺序没变；</li>
+    <li><strong>根因</strong>：绑定的数组不是响应式（ref/reactive 之外），或用了 :value 而不是 v-model/:list；</li>
+    <li><strong>复现</strong>：普通变量换 ref 对照；</li>
+    <li><strong>修复</strong>：v-model（单列表）或 :list（跨列表源端）绑响应式数组；</li>
+    <li><strong>规避</strong>：拖拽数组的状态层级先理清——谁拥有这个数组。</li>
   </ul>
+  <h3>7.2 坑 2：整卡可拖，误操作频发</h3>
+  <ul>
+    <li><strong>现象</strong>：想选中卡片里的文字/点按钮，结果整卡被拖走；</li>
+    <li><strong>根因</strong>：未配置 handle，整个列表项都是拖拽触发区；</li>
+    <li><strong>修复</strong>：<code>handle=".drag-handle"</code> 限定手柄 + filter 排除输入元素；</li>
+    <li><strong>规避</strong>：卡片含任何可交互元素时 handle 必配。</li>
+  </ul>
+  <h3>7.3 坑 3：跨列表拖不动</h3>
+  <ul>
+    <li><strong>现象</strong>：A 列拖到 B 列无效；</li>
+    <li><strong>根因</strong>：两侧 group 名称不一致（或一侧没配 group）；</li>
+    <li><strong>复现</strong>：group 分别叫 a/b 对照；</li>
+    <li><strong>修复</strong>：源/目标 group 同名；需要克隆语义加 <code>{ pull: 'clone' }</code>（3.2）；</li>
+    <li><strong>规避</strong>：group 名称当"频道号"管理，集中在常量里定义。</li>
+  </ul>
+  <h3>7.4 坑 4：diff 大 JSON 又卡又全是噪音</h3>
+  <ul>
+    <li><strong>现象</strong>：几 MB 的配置 JSON 对比时页面卡死，且满屏"差异"；</li>
+    <li><strong>根因</strong>：diff 是 O(行数²) 级算法 + 格式差异（缩进/键序）被当内容差异；</li>
+    <li><strong>修复</strong>：先 parse 再统一 stringify 规范化（4.2）；超大对象按业务块拆分对比；</li>
+    <li><strong>规避</strong>：快照存储时就统一格式（后端 stringify 固定缩进），从源头消灭格式噪音。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：vue-draggable 拖拽后数组是怎么同步的？</strong></p>
+  <p class="note"><strong>参考答案</strong>：两层分工——<strong>SortableJS</strong> 负责 DOM 层拖拽交互（拾起、占位、动画）；<strong>封装层</strong>在拖拽结束时读取 DOM 顺序，<strong>按 key 映射回数组并触发 v-model 更新</strong>。所以"拖完自动同步"的本质是封装层替你做了"DOM 顺序 → 数组顺序"的翻译。<br><br>
+  <strong>推论</strong>：数组必须响应式（否则翻译了也没渲染）；key 必须稳定（业务 id，映射靠它——索引 key 在重排时映射错乱）。</p>
+
+  <p><strong>Q2：低代码画布里拖拽和连线（JsPlumb）怎么分工？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>vue-draggable 管"布局"</strong>——组件从面板到画布的摆放与排序，列表语义、实现成本低；<strong>JsPlumb 管"关系"</strong>——端点之间的连线表达逻辑流向，自由度高的图语义、实现成本高。典型流程画布两者组合：面板拖组件入画布（draggable），节点间连执行线（JsPlumb）。<strong>选型口诀</strong>：表达"顺序"用拖拽列表，表达"关系"用连线。</p>
+
+  <p><strong>Q3：版本 diff 的工程要点在哪？</strong></p>
+  <p class="note"><strong>参考答案</strong>：组件只解决"怎么展示"，<strong>工程质量在数据侧</strong>：①<strong>快照契约</strong>——每次变更存新旧 JSON 快照，格式统一（固定缩进、键序），从源头消灭格式噪音；②<strong>规范化</strong>——前端 diff 前 parse+stringify 归一；③<strong>粒度</strong>——大配置按业务块拆分对比，避免单次 O(n²) 卡顿；④<strong>可追溯闭环</strong>——diff 视图 + 操作人 + 时间，构成审计能力。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>v-model/:list 两种绑定的适用场景？clone 语义什么时候用？</li>
+    <li>handle/filter 各解决什么问题？什么时候必配？</li>
+    <li>group 的"频道"模型？pull: 'clone' 改变了什么？</li>
+    <li>diff 行对齐为什么会被格式差异污染？两层对策？</li>
+    <li>拖拽顺序持久化为什么不能依赖数组天然顺序？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>SortableJS 官方文档（group/handle/filter/clone 全配置项）：<a href="https://sortablejs.github.io/Sortable/" rel="noopener">sortablejs.github.io/Sortable</a></li>
+    <li>v-code-diff 仓库与在线示例：<a href="https://github.com/tddworks/v-code-diff" rel="noopener">github.com/tddworks/v-code-diff</a></li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>vue-draggable.next 仓库（Vue3 封装层）：<a href="https://github.com/SortableJS/vue.draggable.next" rel="noopener">github.com/SortableJS/vue.draggable.next</a></li>
+    <li>Myers diff 论文（行对齐算法的源头，理解"最小差异"语义）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章看板 Demo，给两列加 @end 持久化顺序；</li>
+    <li>做一次"格式噪音实验"：同一份 JSON 用不同缩进 diff vs 规范化后 diff，对比结果；</li>
+    <li>给团队配置中心页加版本 diff 视图（后端补快照接口）。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/07_ZTree树组件【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/09_JsPlumb连线【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/04_VueUse组合式工具库【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · vue_draggable与v-code-diff【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
