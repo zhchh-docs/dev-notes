@@ -534,44 +534,80 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>大模型应用：ChatGPT 与 Claude</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：大模型对话应用——代码生成/解释/评审与提示词工程</span>
+      <span class="meta">定位：对话式用法——三类场景 / 提示词四要素 / 验证纪律</span>
     </div>
-    <p class="hero-desc">ChatGPT 与 Claude 是通用大模型对话产品。在工程场景里，它们用于代码生成、代码解释、方案评审与技术问答。本页从应用层讲：怎么把代码任务问出好结果（提示词工程）、两款模型的取舍，以及它们的局限。</p>
+    <p class="hero-desc">把大模型当"随身专家"：解释陌生代码、生成任务初稿、评审 diff——三类场景对应三种对话策略与验证方式。本篇讲透提示词四要素（角色/上下文/约束/输出格式）、系统提示与上下文隔离、多模型路由，以及底线纪律：幻觉必然存在，结论以文档与本地实测为准。配三个可直接抄用的提示词模板与对照实验。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../10_研发流程与AI辅助/05_AI辅助开发_Cursor与Codex【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../10_研发流程与AI辅助/03_代码评审与协作流程【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../10_研发流程与AI辅助/07_LLM应用开发_RAG与FunctionCalling【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心用法要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（三类场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">工作闭环与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：把大模型当"随身专家"——解释代码、生成初稿、评审 diff。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇讲的是"把大模型当随身专家"的对话式用法</strong>——在 ChatGPT / Claude / DeepSeek 这类对话产品里完成三类工程任务：<strong>生成</strong>（按需求写初稿）、<strong>解释</strong>（讲清陌生代码与概念）、<strong>评审</strong>（挑 diff 的毛病）。它区别于《AI 辅助开发》（讲 IDE 内的补全与 Agent 编码）和《LLM 应用开发》（讲 API 与 RAG）：本篇聚焦<strong>人直接与模型对话</strong>这个最高频的日常场景。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>三类用途</strong>：贴代码让它解释、给需求让它生成、贴 diff 让它评审。</li>
+    <li>把模型当搜索引擎，一句"帮我写个表格"换来一份完全没法用的大杂烩——<strong>不是模型不行，是提问没有信息量</strong>；</li>
+    <li>一个会话里混着三个任务，模型带着前文的假设越答越歪；</li>
+    <li>模型说啥信啥，幻觉 API 直接抄进项目——出问题的从来不是"用了 AI"，而是"没验证就用"。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：给快速的第二意见与初稿，缩短"想法到可运行初稿"的距离。</p>
-  <ul>
-    <li><strong>场景</strong>：陌生代码看不懂、写新功能没思路、方案拿不准。</li>
-    <li><strong>边界</strong>：它不替你拍板。</li>
-  </ul>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>想让对话式 AI 真正提效（解释/初稿/评审）</td><td>IDE 内补全与 Agent 编码 → 《AI 辅助开发》</td></tr>
+    <tr><td>面试要讲"你怎么用大模型工作"</td><td>API 调用、RAG、Function Calling → 《LLM 应用开发》</td></tr>
+    <tr><td>想系统掌握提示词四要素与验证纪律</td><td>模型原理/训练 → 超出本库范围</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>用<strong>四要素模板</strong>（角色/上下文/约束/输出格式）写出一次到位的提问；</li>
+    <li>按<strong>三类场景</strong>（解释/生成/评审）选择正确的对话策略与验证方式；</li>
+    <li>理解<strong>系统提示、长上下文、上下文隔离</strong>三个机制并用于日常；</li>
+    <li>守住<strong>验证纪律</strong>：模型结论以文档与本地实测为准，不直接采信。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：任意一款对话式 AI 产品的使用经验（哪怕只聊天过几次）；被陌生代码折磨过的经历。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（上手零门槛，进阶在纪律与习惯）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>轻度使用者</td><td>按顺序读第 2、3 章 → 第 6 章模板抄起来</td></tr>
+    <tr><td>想进阶</td><td>第 4 章进阶（系统提示/长上下文/多模型路由）</td></tr>
+    <tr><td>面试准备</td><td>第 2 章 → 第 8 章重点讲解</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点。<strong>务必动手</strong>：第 6 章的三个提示词模板——本篇的价值全在"下次提问时真的用模板"。</p>
+  <p><strong>本篇不涉及</strong>：模型 API 调用与集成（见《LLM 应用开发》）；编码 Agent 的工作流（见《AI 辅助开发》）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>对话式用法的四个核心模型：<strong>三类用途</strong>定义"让它干什么"，<strong>提示词四要素</strong>解决"怎么问"，<strong>上下文机制</strong>（系统提示/长上下文/隔离）解决"它看到什么"，<strong>幻觉与验证</strong>解决"怎么敢信"。按此顺序读。</p>
+
+  <h3>2.1 三类工程用途：先分清你要它干什么</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 190" role="img" aria-label="大模型工程应用场景示意图">
       <defs>
@@ -595,25 +631,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 大模型的三类工程用途（示意）</p>
   </div>
-  <h3>横向对比：ChatGPT vs Claude</h3>
-  <table>
-    <colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
-    <thead><tr><th>维度</th><th>ChatGPT</th><th>Claude</th></tr></thead>
-    <tbody>
-      <tr><td>长文本</td><td>较强</td><td>长上下文、长文分析口碑好</td></tr>
-      <tr><td>代码</td><td>综合强、工具生态广</td><td>代码与长推理、文档跟随强</td></tr>
-      <tr><td>取舍</td><td>通用首选</td><td>长文档/长篇推理/代码评审</td></tr>
-    </tbody>
-  </table>
-</section>
+  <p>三类用途对应三种不同的对话策略（第 3 章展开）。共同的价值定位：<strong>给快速的第二意见与初稿，缩短"想法到可运行初稿"的距离</strong>；共同的边界：<strong>它不替你拍板</strong>——生成的是初稿要你改，解释的要你对照源码，评审的要你复核。</p>
 
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 提示词工程（Prompting）</h3>
-  <p class="lead"><b>一句话定位</b>：好结果来自好提问——给角色、上下文、约束、输出格式。</p>
-  <ul>
-    <li><strong>对比</strong>："写个表格"不如"用 Vue3+TS 写一个带虚拟滚动的表格组件，列由后端配置，输出完整可运行代码"。</li>
-  </ul>
+  <h3>2.2 提示词四要素：好结果来自好提问</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="好提示词的四个组成部分">
       <defs>
@@ -655,40 +675,80 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 好提示词的四个组成部分（示意）</p>
   </div>
-  <h3>2.2 上下文与系统提示</h3>
-  <p class="lead"><b>一句话定位</b>：贴相关代码、报错、约束，新任务重置上下文避免串味。</p>
+  <p>四要素缺一的效果：<strong>缺角色</strong>——回答深度随机；<strong>缺上下文</strong>——模型只能泛泛而谈或编造；<strong>缺约束</strong>——给你引入新框架的"最优解"，与你的项目格格不入；<strong>缺输出格式</strong>——要代码给一堆文字，要结论给一堆代码。记忆口诀：<strong>"你是谁、看到什么、不能做什么、交什么作业"</strong>。</p>
+
+  <h3>2.3 上下文机制：它只"看见"你给的</h3>
   <ul>
-    <li><strong>做法</strong>：模型基于贴入的上下文作答。</li>
-    <li><strong>系统提示（system prompt）</strong>：在对话开头用一条设定贯穿全程——规定人设、边界约束与输出格式（如"只输出 Python 代码、不要解释"），其优先级高于普通用户消息；产品界面里常体现为"自定义指令/项目说明"，本质相同。</li>
+    <li><strong>贴上下文</strong>：模型基于你贴入的代码/报错/文档作答——<strong>上下文质量决定输出质量</strong>，贴原始报错而非转述（与《AI 辅助开发》3.3 同源）；</li>
+    <li><strong>系统提示（system prompt）</strong>：对话开头的一条贯穿全程设定——规定人设、边界与输出格式（如"只输出 Python 代码、不要解释"），<strong>优先级高于普通消息</strong>；产品里的"自定义指令/项目说明"本质相同；</li>
+    <li><strong>上下文隔离</strong>：会话有记忆，上个任务的假设会污染下个任务——<strong>新任务开新对话</strong>。这是成本最低、效果最猛的习惯；</li>
+    <li><strong>长上下文</strong>：把整段长代码/长文档喂进去做解释与评审——Claude 的长文分析口碑好（对比见 4.2）。</li>
   </ul>
-  <h3>2.3 长上下文</h3>
-  <p class="lead"><b>一句话定位</b>：把长代码/长文档喂进去做解释与评审——Claude 的强项。</p>
-  <ul>
-    <li><strong>用途</strong>：整段长代码的解释与评审。</li>
-  </ul>
-  <h3>2.4 工具型产品对照</h3>
-  <p class="lead"><b>一句话定位</b>：对话产品负责"聊清楚"，Agent 负责"动手改"。</p>
-  <ul>
-    <li><strong>对照</strong>：Claude Code、Codex 把模型包成能跑命令的 Agent（见本系列 02 篇）。</li>
-  </ul>
-  <h3>2.5 局限：幻觉</h3>
-  <p class="lead"><b>一句话定位</b>：模型会一本正经编造 API、参数、库名——结论以文档与本地实测为准。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span>不可直接采信生成的 API 名，必须核验。</li>
-  </ul>
+
+  <h3>2.4 幻觉：它不会说"我不知道"</h3>
+  <p><strong>模型会一本正经地编造 API、参数、库名</strong>——因为它按概率生成"看起来合理"的内容，且不主动承认不知道。两个推论：<strong>①关键前提自己显式交代</strong>（语言版本、框架、约束——它猜错前提时不会提醒你）；<strong>②结论以官方文档与本地实测为准</strong>。验证纪律是本篇的底线，第 7 章坑 1 展开反例。</p>
+
+  <h3>2.5 产品形态对照：对话产品 vs 编码 Agent</h3>
+  <p>对话产品（ChatGPT/Claude 网页版）负责<strong>"聊清楚"</strong>：解释、方案对比、初稿；Agent 产品（Claude Code、Codex）把模型包成<strong>能读仓库、跑命令、动手改</strong>的工具（见《AI 辅助开发》）。分工口诀：<strong>想明白用对话，干起来用 Agent；对话里聊透的方案，正是 Agent 任务书的素材</strong>——两类产品不是竞争关系，是工作流的前后两段。</p>
+
   <h3>2.6 多轮对话与澄清</h3>
-  <p>大模型擅长"边问边澄清"：一次没讲清就追问补约束，多轮把模糊需求收敛成可执行任务。不要指望一句话问出完美答案，把它当会追问的同事。同时注意：它不知道的事不会主动说不知道，关键前提要自己显式交代（语言版本、框架、约束）。</p>
+  <p>大模型擅长"边问边澄清"：一次没讲清就追问补约束，<strong>多轮把模糊需求收敛成可执行任务</strong>。不要指望一句话问出完美答案——把它当一位<strong>会追问、需要交代背景的同事</strong>，而不是许愿机。多轮收敛的节奏：先要方案骨架 → 确认方向 → 再要细节实现；一轮就要成品，得到的多半是要大改的半成品。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次高质量代码问答的流程</h3>
-  <ul>
-    <li>明确目标：要解释、生成还是评审。</li>
-    <li>贴上下文：相关代码/报错/约束。</li>
-    <li>指定输出：要代码还是说明、什么格式。</li>
-    <li>本地验证：跑通再采纳。</li>
-  </ul>
+  <h2><span class="num">3</span>核心用法（三类场景）</h2>
+  <p>三类场景各自的对话策略与验证方式。<strong>共同框架不变：给上下文 → 拿结果 → 本地验证</strong>。</p>
+
+  <h3>3.1 场景一：解释——让陌生代码变得可读</h3>
+  <p><strong>策略</strong>：贴完整函数/模块 + 说明运行环境，要求"先讲数据流，再讲关键设计，最后指出可疑之处"。<strong>模板</strong>：</p>
+<pre class="code" data-lang="text"><code>你是资深后端。下面是订单服务的一段代码（见下），运行环境 Java 17 + Spring Boot。
+请按顺序回答：
+1) 这段代码的数据流：输入从哪来、状态存在哪、输出到哪去
+2) 关键设计意图（为什么这样写）
+3) 你看到的三处可疑点（并发/边界/资源释放）</code></pre>
+  <p><strong>验证方式</strong>：解释类输出的验证是<strong>对照源码与打断点跑一遍</strong>——理解错误比代码错误更隐蔽，"听懂了"不等于"它说对了"。</p>
+
+  <h3>3.2 场景二：生成——初稿机器，成品人工</h3>
+  <p><strong>策略</strong>：四要素齐全 + <strong>需求拆细</strong>（复杂任务拆成两三轮：先骨架后细节）；<strong>约束写全</strong>（技术栈版本、不许引入的东西、必须复用的现有工具函数）。<strong>验证方式</strong>：生成的代码<strong>先读后跑</strong>——理解每一行再合入；跑通但看不懂的代码不要合（等于引入没人维护的黑盒）。</p>
+
+  <h3>3.3 场景三：评审——第二双眼睛</h3>
+  <p><strong>策略</strong>：贴 diff + 改动意图 + 关注点，让它按清单找问题：</p>
+<pre class="code" data-lang="text"><code>下面是一段 diff（见下），改动意图：给列表加服务端分页。
+请按优先级列出问题：正确性 &gt; 边界与异常 &gt; 性能 &gt; 可读性。
+每条给：问题描述 + 为什么是问题 + 建议方向（不要给完整重写）。</code></pre>
+  <p><strong>验证方式</strong>：AI 评审意见<strong>逐条人工复核后</strong>才成为正式意见（与《代码评审》2.4/图 4 同一纪律——AI 是第二双眼睛）。它的价值在"广撒网"，你的价值在"业务判断"。</p>
+  <div class="note"><strong>三场景的共同取舍</strong>：解释省的是"读懂时间"，生成省的是"打字时间"，评审省的是"扫描时间"——三者的共同前提都是<strong>人不退出验收位</strong>。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：已在日常使用三类场景。</p>
+
+  <h3>4.1 系统提示工程：把重复交代变成常驻设定</h3>
+  <p>每次对话都要重复"我是做什么的、代码规范是什么、输出要什么格式"——把这些沉淀进<strong>系统提示/自定义指令</strong>：角色（资深前端，输出带注释 TS 代码）、边界（不引入新依赖、不用 any）、格式（先结论后代码）。<strong>与《AI 辅助开发》的规则文件（.cursorrules）同构</strong>：一个作用于对话产品，一个作用于 IDE Agent，思想相同——<strong>稳定约束常驻化，会话消息只装易变信息</strong>。</p>
+
+  <h3>4.2 多模型路由：不同任务用不同的刀</h3>
+  <p>ChatGPT / Claude / DeepSeek 各有所长（以当前版本与最新官方信息为准）：</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
+    <thead><tr><th>维度</th><th>ChatGPT</th><th>Claude</th></tr></thead>
+    <tbody>
+      <tr><td>长文本</td><td>较强</td><td>长上下文、长文分析口碑好</td></tr>
+      <tr><td>代码</td><td>综合强、工具生态广</td><td>代码与长推理、文档跟随强</td></tr>
+      <tr><td>取舍</td><td>通用首选</td><td>长文档/长篇推理/代码评审</td></tr>
+    </tbody>
+  </table>
+  <p>实践原则：<strong>通用问答用顺手的；长文档分析/长代码评审优先长上下文模型；成本敏感的批量小任务用高性价比模型（如 DeepSeek）</strong>。路由不需要精确，只需要有意识——"什么都用同一个"和"什么都用最贵的"都是浪费。</p>
+
+  <h3>4.3 多轮收敛的对话设计</h3>
+  <p>复杂任务的正确节奏：<strong>①先要方案</strong>（"你打算怎么实现，涉及哪些部分"）→ ②人审方案 → <strong>③再要实现</strong> → ④跑不通贴报错让它修（而不是换个问法重来——会话里已有有效上下文）。对比反面：一句话要成品，不满意就整个重问——每轮都在烧 token 重建上下文。<strong>多轮的价值在于每一轮只收敛一件事</strong>。</p>
+
+  <h3>4.4 数据安全边界</h3>
+  <p>对话式产品里贴什么要过脑子：<strong>公司代码、客户数据、密钥凭证</strong>——先确认组织的 AI 使用规范与产品隐私条款（数据是否用于训练、是否有企业版隔离）。通用底线：<strong>密钥与凭证永不入对话</strong>；核心敏感代码脱敏或用企业协议产品。这不是技术问题，是职业责任问题。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>工作闭环与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="高质量代码问答流程图">
       <defs>
@@ -726,100 +786,155 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="745" y="88" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">采纳</text>
       <text x="745" y="106" text-anchor="middle" font-size="10.5" fill="#4f6348">合入</text>
 
-      <!-- 反馈循环 -->
       <path d="M 605 120 Q 605 160 435 160 Q 265 160 265 120" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr2)"/>
       <text x="435" y="178" text-anchor="middle" font-size="11.5" fill="#b91c1c">不对？追问/补上下文/换个问法，多轮收敛——别指望一次问出完美答案</text>
     </svg>
     <p class="diagram-caption">图 3 用大模型解决问题的闭环（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心用法要点</h2>
-  <h3>4.1 提示词模板</h3>
-<pre class="code" data-lang="text"><code>你是资深前端。下面这段代码（见下）在 XX 场景报错 YY。
-请：1) 定位原因；2) 给最小修复；3) 说明为什么。
-约束：不改现有 API，Vue3+TS。</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：在真实开发中用 ChatGPT/Claude/DeepSeek 做代码解释、生成与评审。</p>
-  <ul>
-    <li><strong>场景</strong>：陌生模块理解、需求初稿、diff 初评、长文档分析。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：本人一线开发者，把大模型作为辅助工具。</p>
-  <ul>
-    <li><strong>分工</strong>：人把控正确性与验收，模型出初稿与解释。</li>
-  </ul>
-
-  <h3>5.3 技术栈/工具</h3>
-  <ul>
-    <li><strong>模型</strong>：ChatGPT、Claude（长上下文）、DeepSeek。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键做法）</h3>
-  <p class="lead"><b>一句话定位</b>：解释/生成/评审三类用法，长文档用长上下文模型。</p>
-  <ul>
-    <li><strong>解释</strong>：贴陌生模块让它讲数据流。</li>
-    <li><strong>生成</strong>：描述需求拿初稿再改。</li>
-    <li><strong>评审</strong>：贴 diff 挑毛病，人工复核。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <ul>
-    <li><span class="tag-point">要点</span>提示词拆细需求、给足上下文与验收标准。</li>
-  </ul>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>编造参数</strong>：会编造不存在的参数——必须验证。</li>
-    <li><span class="tag-point">要点</span><strong>拆细需求</strong>：越复杂越要拆细。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>提效</strong>：陌生模块理解与初稿编写提速（主观估算）。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与团队约定 AI 产出须人工复核后提交。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>长文档选长上下文模型</strong>。</li>
-    <li><span class="tag-point">要点</span><strong>结论必须回源码验证</strong>。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「我把 ChatGPT/Claude/DeepSeek 用于代码解释、生成初稿与 diff 初评，长文档走长上下文模型，同时坚持结论回源码验证。」</p>
+  <p><strong>读图要点</strong>：①"本地验证"是红色节点——它是闭环里<strong>唯一不可省略的人工步骤</strong>，省掉它，前面省下的时间会在生产事故里加倍还回来；②红色回路是多轮收敛：验证不过时<strong>在原会话里追问或补上下文</strong>（保留有效上下文），只有任务本身错了才开新会话；③"采纳"前的静默前提：生成类要读懂、解释类要对源码、评审类要逐条复核。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 不验证模型给的代码</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：本地跑通、人审后再用。</p>
-  <h3>6.2 提问太笼统</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：给上下文、约束、输出格式。</p>
-  <h3>6.3 跨任务不重置上下文</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：新任务开新对话。</p>
-  <h3>6.4 把模型结论当权威</h3>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：以文档与实测为准。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>本篇的"Demo"是三份提示词模板。同一块真实代码，用差提问和模板各问一次，对照输出质量。</p>
+
+  <h3>6.1 模板一：代码解释（场景一）</h3>
+<pre class="code" data-lang="text"><code>你是资深后端（Java 17 + Spring Boot）。
+下面这段代码负责"订单超时自动取消"（见贴入代码）。
+请按顺序回答：
+1) 数据流：触发时机、状态如何流转、落库在哪
+2) 三个可疑点：并发/边界/资源释放，各附代码行号
+3) 如果订单量涨 10 倍，这段代码会先在哪里出问题</code></pre>
+
+  <h3>6.2 模板二：生成初稿（场景二）</h3>
+<pre class="code" data-lang="text"><code>你是资深前端（Vue3 + TS + Element Plus，不要引入新依赖）。
+任务：写一个"订单导出"按钮组件。
+约束：调用现有 api/exportOrders(params)，导出中禁用按钮并显示进度文案；
+导出失败 toast 提示；文件名含时间戳。
+输出：完整可运行的 SFC 单文件代码，关键逻辑加注释。</code></pre>
+
+  <h3>6.3 模板三：diff 评审（场景三）</h3>
+<pre class="code" data-lang="text"><code>下面是一段 diff，意图：列表加服务端分页（改动背景见任务描述）。
+请按优先级列问题：正确性 &gt; 边界异常 &gt; 性能 &gt; 可读性。
+每条格式：【严重度】位置 + 问题 + 为什么 + 建议方向。
+不确定的地方明确说"不确定"，不要猜。</code></pre>
+
+  <h3>6.4 对照实验：同一问题，两种问法</h3>
+  <pre class="code" data-lang="text"><code>差提问："帮我写个订单导出"
+典型输出：通用代码，可能用原生 fetch、无进度态、文件名随意、
+        引入你项目没有的库 —— 几乎每行都要改
+
+模板二输出：贴合约束（Element Plus、现有 api 函数、时间戳文件名），
+        进度态/失败提示齐全 —— 改动集中在业务细节
+结论：模板四要素把"猜"变成了"按规格交付"，返工量从"重写"降到"微调"。</code></pre>
+
+  <h3>6.5 把模板变成团队资产</h3>
+  <ol>
+    <li>三个模板按团队技术栈改造成固定版本，放进团队知识库（衔接《技术文档》篇）；</li>
+    <li>沉淀个人的"高频提问库"：每次手写超过三行的提问，问自己要不要存成模板；</li>
+    <li>结合 4.1 的系统提示，把"你是谁 + 代码规范"挪进自定义指令，模板只需带上下文与任务。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"提问 → 会话 → 信任"三阶段分组，每条五要素。</p>
+
+  <h3>7.1 提问阶段</h3>
+  <p><strong>坑 1：提问太笼统</strong></p>
   <ul>
-    <li>ChatGPT / OpenAI：<a href="https://chat.openai.com/" rel="noopener">chat.openai.com</a></li>
-    <li>Claude / Anthropic：<a href="https://claude.ai/" rel="noopener">claude.ai</a></li>
+    <li><strong>现象</strong>："帮我写个表格/优化一下这段代码"——输出泛泛、要大改，然后抱怨"AI 不行"；</li>
+    <li><strong>根因</strong>：模型没有你的项目上下文，笼统提问 = 让它猜规格；</li>
+    <li><strong>复现</strong>：把同一问题用四要素模板重问，对比输出；</li>
+    <li><strong>修复</strong>：按 2.2 四要素补齐——角色、上下文、约束、输出格式；</li>
+    <li><strong>规避</strong>：6.5 的模板库，高频场景不手写提问。</li>
   </ul>
+
+  <h3>7.2 会话阶段</h3>
+  <p><strong>坑 2：跨任务不重置上下文</strong></p>
+  <ul>
+    <li><strong>现象</strong>：一个会话从"改按钮样式"聊到"排查线上 bug"，模型方案总带着前面的残留假设，越聊越歪；</li>
+    <li><strong>根因</strong>：会话记忆把旧任务的结论与错误尝试都带进了新任务；</li>
+    <li><strong>复现</strong>：同会话连问三个不相关问题；</li>
+    <li><strong>修复</strong>：新任务开新对话，重新给最小上下文；</li>
+    <li><strong>规避</strong>：任务切换 = 会话切换（与《AI 辅助开发》坑 4 同源同解）。</li>
+  </ul>
+  <p><strong>坑 3：一轮就要成品，不满意整个重问</strong></p>
+  <ul>
+    <li><strong>现象</strong>：复杂任务一句话要完整实现，不满意就换措辞从头再来，反复循环；</li>
+    <li><strong>根因</strong>：没有多轮收敛设计——每轮都烧 token 重建上下文；</li>
+    <li><strong>修复</strong>：按 4.3 节奏——先方案后人审再实现，报错在原会话续修；</li>
+    <li><strong>规避</strong>：复杂任务默认拆两轮起。</li>
+  </ul>
+
+  <h3>7.3 信任阶段</h3>
+  <p><strong>坑 4：不验证模型给的代码</strong></p>
+  <ul>
+    <li><strong>现象</strong>：生成的代码"看起来对"直接合入——幻觉 API、没考虑的分支在生产暴露；</li>
+    <li><strong>根因</strong>："AI 写的"自带虚假信任感；</li>
+    <li><strong>修复</strong>：生成类先读后跑（看懂每一行）、解释类对照源码、评审类逐条复核；</li>
+    <li><strong>规避</strong>：验证是闭环里唯一不可省的人工步骤（第 5 章红色节点）。</li>
+  </ul>
+  <p><strong>坑 5：把模型结论当权威</strong></p>
+  <ul>
+    <li><strong>现象</strong>：模型说的版本号/参数/行为与文档不符，照抄出事故；</li>
+    <li><strong>根因</strong>：模型不主动说"我不知道"（2.4），幻觉与训练截止并存；</li>
+    <li><strong>修复/规避</strong>：版本、参数、行为<strong>以官方文档与本地实测为准</strong>；关键前提（版本/约束）主动显式交代，不给它猜的机会。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：你日常怎么用大模型？边界在哪？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>三类用法</strong>——解释（贴陌生模块讲数据流与可疑点）、生成（四要素模板拿初稿再人工改造）、评审（贴 diff 按优先级找问题）；长文档分析走长上下文模型。<strong>边界三条</strong>：①它出初稿与第二意见，<strong>拍板的是我</strong>——核心逻辑、安全相关代码不外包；②一切结论<strong>回文档与源码验证</strong>，幻觉是概率行为的必然产物；③数据安全——密钥永不入对话，敏感代码按公司规范脱敏。<br><br>
+  <strong>加分点</strong>：能说出"对话产品聊清楚、Agent 干起来"的分工，以及两类工具在个人工作流里的衔接。</p>
+
+  <p><strong>Q2：什么是好的提示词？为什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>四要素</strong>——角色（定调回答的专业度与风格）、上下文（贴代码/报错/文档，模型只"看见"你给的）、约束（技术栈版本、不能做什么，防止跑偏）、输出格式（代码还是说明、什么结构）。原理：<strong>语言模型按上下文概率生成</strong>，四要素把"猜你的意图"变成"按你的规格执行"——提问的信息量直接决定输出的可用度。<br><br>
+  <strong>举例</strong>："帮我写个表格"（猜，返工重写）vs"Vue3+TS、虚拟滚动、列后端配置、输出可运行代码"（按规格交付，微调即用）。</p>
+
+  <p><strong>Q3：模型幻觉是什么？工程上怎么应对？</strong></p>
+  <p class="note"><strong>参考答案</strong>：幻觉 = 模型<strong>以高置信度输出不真实内容</strong>（编造 API、参数、引用）。根因是概率生成机制——"看起来合理"不等于"真实存在"，且模型缺乏"我不知道"的自我认知。<strong>工程对策三层</strong>：①提问时显式交代关键前提（版本/约束），减少猜错；②验证纪律——结论回官方文档、代码本地实测，幻觉在编译/运行时大量暴露；③流程兜底——AI 产出与人工代码过同样的评审门禁（衔接《代码评审》篇）。<br><br>
+  <strong>追问：能消灭幻觉吗？</strong>——不能，只能压低概率 + 兜住后果；RAG 等技术是在"供给真实上下文"层面抑制（见《LLM 应用开发》），验证纪律是在"采纳"层面兜底。</p>
+
+  <p><strong>Q4：ChatGPT 和 Claude 怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：按任务路由而非站队——<strong>通用问答</strong>用顺手的即可（差异在日常任务上不显著）；<strong>长文档分析、长代码评审</strong>优先长上下文见长的 Claude；<strong>工具生态/插件</strong>场景 ChatGPT 生态更广；<strong>成本敏感的批量小任务</strong>用高性价比模型（如 DeepSeek）。两个前提：模型迭代快，结论有时效性（以最新版本实测为准）；团队里"统一一款 + 按需加一款"比人人各自为战好协作。<br><br>
+  <strong>这题真正考的</strong>：你是否把 AI 当工具箱做<strong>有意识的路由</strong>，而不是品牌信仰。</p>
+
+  <p><strong>Q5：自测 5 问</strong></p>
+  <ol>
+    <li>三类工程用途分别是什么？各自的验证方式有何不同？</li>
+    <li>提示词四要素是什么？缺"约束"会发生什么？</li>
+    <li>系统提示和普通消息的区别？它解决什么重复劳动？</li>
+    <li>为什么说"本地验证是闭环里唯一不可省的人工步骤"？</li>
+    <li>对话产品和编码 Agent 怎么分工？衔接点在哪？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Anthropic 提示词工程官方文档（四要素的官方版与交互式教程）：<a href="https://docs.anthropic.com/" rel="noopener">docs.anthropic.com</a></li>
+    <li>OpenAI Prompt Engineering Guide：<a href="https://platform.openai.com/docs" rel="noopener">platform.openai.com/docs</a></li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>Anthropic《Building effective agents》——理解对话与 Agent 的分工边界</li>
+    <li>DeepSeek 开放平台文档（高性价比模型的路由备选）：<a href="https://platform.deepseek.com/" rel="noopener">platform.deepseek.com</a></li>
+  </ul>
+  <h3>官方产品</h3>
+  <ul>
+    <li>ChatGPT：<a href="https://chat.openai.com/" rel="noopener">chat.openai.com</a></li>
+    <li>Claude：<a href="https://claude.ai/" rel="noopener">claude.ai</a></li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>用第 6 章三个模板处理你手头真实任务，与旧提问方式对比返工量；</li>
+    <li>做一次 6.4 的对照实验（差提问 vs 模板），把结果分享给团队；</li>
+    <li>把团队高频提问沉淀为提示词模板库 + 自定义指令（系统提示），一个月后复盘采纳率变化。</li>
+  </ol>
 </section>
 
 </main>

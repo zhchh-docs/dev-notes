@@ -484,347 +484,422 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>需求分析与技术选型方法论</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：项目设计阶段决策框架</span>
+      <span class="meta">定位：需求四层次 / 选型五维度 / ADR 决策记录</span>
     </div>
-    <p class="hero-desc">本文系统讲解 需求分析与技术选型方法论 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">写第一行代码之前有两类决策决定成败：需求分析——把模糊诉求变成带验收标准的需求清单（四层次 + 三问 + 书面确认）；技术选型——把"用什么"变成可辩护的决策（五维度加权评分 + Spike 实验 + ADR 存档）。本篇以"给订单系统加导出"为贯穿案例，产出澄清记录、需求清单、对比表与 ADR 四份可直接套用的模板，并按阶段给出八个典型坑。</p>
   </div>
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../10_研发流程与AI辅助/00_研发流程与AI辅助模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../10_研发流程与AI辅助/02_Scrum敏捷开发【基础】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">实操流程（三阶段）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">决策流程图</a></li>
+    <li><a href="#sec6">最小可交付产物</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>需求分析与技术选型方法论</strong> 是现代开发中广泛使用的技术方案之一，用于解决 技术选型方法论 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 需求分析与技术选型方法论 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇讲的是"动手写第一行代码之前"的两类决策</strong>：①需求分析——把"老板/客户想要个导出功能"这类模糊诉求，变成<strong>可验收的需求清单</strong>；②技术选型——把"用什么技术做"变成<strong>可辩护的决策</strong>（有依据、有记录、可复盘）。这两件事的质量决定了后面所有工时是花在"做对的事"还是"返工"上。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
+    <li>拿到需求直接开写，做完才发现理解的和要的不是一回事——<strong>最大的浪费是做错东西</strong>；</li>
+    <li>选型全凭"听说很火"或"我熟悉这个"，三个月后才发现生态撑不住、团队接不住、迁移像扒皮；</li>
+    <li>决策没有记录：半年后"当时为什么选 X？"——没人记得，新方案来了又吵一遍。</li>
   </ul>
-  
-  <p>需求分析与技术选型方法论 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">需求分析与技术选型方法论 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">需求分析与技术选型方法论 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
-  <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>需求分析与技术选型方法论</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要独立负责一个模块/小项目的需求澄清与技术方案</td><td>已经定型的大团队研发流程 → 《Scrum 敏捷开发》</td></tr>
+    <tr><td>面试被问"你怎么做需求分析/技术选型"</td><td>具体技术栈的深度原理 → 对应技术模块各篇</td></tr>
+    <tr><td>想给团队建立 ADR / 评审等决策机制</td><td>纯项目管理工具用法 → 官方文档</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>用<strong>需求四层次</strong>拆解一条模糊诉求，产出带<strong>验收标准</strong>的需求清单；</li>
+    <li>用<strong>五维度 + 加权评分矩阵</strong>完成一次选型，并写出一页能存档的 <strong>ADR</strong>；</li>
+    <li>对非功能需求（性能/安全/可用性）<strong>给出可量化的指标</strong>而不是"要快、要安全"；</li>
+    <li>识别需求与选型两个阶段的六类典型坑，并说出对应的规避动作。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：无硬性技术前置；但建议有 1~2 个真实项目的经历（参与过需求评审或踩过选型的坑），例子才能对上号。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（方法论本身不难，难在每次都坚持执行）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>即将接需求</td><td>按顺序读第 2、3 章 → 照第 6 章模板产出文档</td></tr>
+    <tr><td>要定技术方案</td><td>第 2.3~2.5 节 → 第 5 章流程图 → 第 6 章选型表与 ADR</td></tr>
+    <tr><td>面试准备</td><td>第 2、7 章 → 第 8 章重点讲解</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点（非功能需求量化、跨团队谈判、退出成本）。<strong>务必动手</strong>：第 6 章的产物模板——本篇的价值不在"读过"，而在你下次接需求时真的照着产出三份文档。</p>
+  <p><strong>本篇不涉及</strong>：需求管理工具的用法（Jira/禅道以官方文档为准）；详细的项目排期技术（属 02 Scrum 篇）。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 需求分析与技术选型方法论 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>需求分析与技术选型方法论 的架构通常分为几层：</p>
-  <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
-  </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>本章按认知顺序讲五个核心模型。<strong>2.1~2.2 是需求分析</strong>，<strong>2.3~2.4 是技术选型</strong>，2.5、2.6 是两个进阶视角。贯穿全篇的示例是一条真实感十足的需求：<strong>"给订单系统加个导出功能"</strong>。</p>
+
+  <h3>2.1 需求的四个层次：先分清你在处理哪一层</h3>
+  <table>
+    <tr><th>层次</th><th>回答的问题</th><th>"导出功能"示例</th></tr>
+    <tr><td><strong>业务需求</strong></td><td>为什么做？达成什么业务目标？</td><td>财务月结要人工核对订单，导出能把对账时间从 2 天缩到 2 小时</td></tr>
+    <tr><td><strong>用户需求</strong></td><td>谁在什么场景下用它解决什么问题？</td><td>财务每月 1 号导出上月全部订单明细，用 Excel 透视核对</td></tr>
+    <tr><td><strong>功能需求</strong></td><td>系统要做什么？</td><td>支持按时间范围+状态筛选导出，生成 xlsx，保留筛选条件</td></tr>
+    <tr><td><strong>非功能需求</strong></td><td>做得要有多好？</td><td>10 万行导出 ≤ 30 秒；失败可重试；数据字段脱敏合规</td></tr>
+  </table>
+  <p><strong>为什么要分层</strong>：沟通里的绝大多数扯皮，是因为两个人在<strong>不同层次</strong>对话——需求方说业务目标（"月底对账太累了"），你听到了功能（"加个导出按钮"），中间的<strong>用户场景</strong>没人确认。四层拆解就是强制把对话拉到同一层。</p>
+
+  <h3>2.2 需求三问：验收标准是分水岭</h3>
+  <p>任何一条需求过三问：<strong>①为什么做</strong>（对应哪个业务目标/痛点，做不成会怎样）；<strong>②为谁做</strong>（具体用户与场景，出现频率）；<strong>③做成什么样算完成</strong>（验收标准）。</p>
+  <p class="key-sentence"><strong>验收标准是需求的分水岭</strong>：写得出"什么样算完成"的才是需求，写不出的只是愿望。示例：❌"导出要快" → ✅"10 万行订单导出耗时 ≤ 30 秒（P95），超时有进度提示"。<strong>验收标准同时是开发的自测清单和测试用例的来源</strong>——它写不出来，后面所有人都只能猜。</p>
+
+  <h3>2.3 选型五维度：评估一个候选技术到底看什么</h3>
+  <table>
+    <tr><th>维度</th><th>关键问题</th><th>常见误判</th></tr>
+    <tr><td><strong>技术适配</strong></td><td>解决我们这个问题合适吗？（不是"它强不强"）</td><td>拿锤子找钉子：因为想用某技术而找场景</td></tr>
+    <tr><td><strong>团队能力</strong></td><td>团队现在/半年内能接住吗？招人容易吗？</td><td>高估学习能力：demo 会跑 ≠ 生产能维护</td></tr>
+    <tr><td><strong>生态成熟度</strong></td><td>文档、社区、周边、长期维护方靠谱吗？</td><td>只看 GitHub star，不看 issue 响应与发版节奏</td></tr>
+    <tr><td><strong>总成本</strong></td><td>学习 + 开发 + 运行 + 迁移 + 商业授权</td><td>只算开发工时，漏了运维与 license 成本</td></tr>
+    <tr><td><strong>退出成本</strong></td><td>一年后要换掉它，代价多大？</td><td>默认"不会换的"——恰恰最需要评估这条</td></tr>
+  </table>
+  <p class="key-sentence"><strong>选型建议</strong>：新项目优先成熟方案，不为"轻量/新潮"牺牲可维护性；老项目改造先算迁移成本与团队熟悉度。没有银弹——每个方案都有适用场景和代价，<strong>选型是把取舍讲清楚，而不是找到完美答案</strong>。</p>
+
+  <h3>2.4 决策的两个工具：评分矩阵与 ADR</h3>
+  <p><strong>加权评分矩阵</strong>：给五个维度按项目情况分配权重（如团队适配 30%、生态 25%……），候选方案逐项打分（1~5），加权求和。它的价值不在分数本身，而在<strong>打分过程逼你把模糊感觉拆成具体依据</strong>，也把讨论从"我喜欢 A"变成" A 在退出成本上为什么得 2 分"。</p>
+  <p><strong>ADR（Architecture Decision Record，架构决策记录）</strong>：一页纸存档一个决策——<strong>背景（为什么现在要决策）/ 候选方案 / 决策结果 / 理由与取舍 / 后果（接受什么代价）</strong>。它解决的是"半年后没人记得为什么"，同时让后来者明白当时的约束（约束变了，决策可以重开——ADR 不是判决书，是会议纪要）。</p>
+
+  <h3>2.5 Spike：用最小实验代替争论【进阶】</h3>
+  <p>两个候选吵不出结果时，别开会了——各花半天到两天做一个 <strong>Spike（探针实验）</strong>：用候选方案实现最关键的那 10%（通常是性能瓶颈或集成难点），拿数据说话。Spike 代码是<strong>一次性实验品</strong>，写的时候就要接受扔掉；产出物是结论和数据，不是代码。</p>
+
+  <h3>2.6 需求变更与技术债【进阶】</h3>
+  <p>需求一定会变——把"拒绝变更"当目标注定失败。工程做法是给变更<strong>定价</strong>：任何变更先回答"改哪里、影响多少工时、牺牲什么"（范围/时间/资源三角），再由需求方决策。选型同理：评估时就要记录"这个选择欠了什么债"（如选了某轻量框架，将来并发上来要重写网关），<strong>债可以欠，但要记账</strong>。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>需求分析与技术选型方法论 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>实操流程（三阶段）</h2>
+  <p>从接到模糊诉求到开工写码，完整走三阶段。<strong>每阶段有明确产物</strong>，产物是流程的锚——没有产物的流程会议都是闲聊。</p>
+
+  <h3>3.1 阶段一：需求澄清（产物：需求清单表）</h3>
+  <ol>
+    <li><strong>收集</strong>：拿到原始诉求，别急着评判，先记录；</li>
+    <li><strong>澄清</strong>：带着问题清单找需求方——8 个高频问题：
+      <ul>
+        <li>这个功能给谁用？多久用一次？（判断投入级别）</li>
+        <li>现在没有它时大家怎么做的？（现状即底线方案）</li>
+        <li>什么场景下会用到它的哪些字段/能力？（拉细节）</li>
+        <li>做到什么程度算完成？（逼验收标准）</li>
+        <li>不做的后果是什么？（验证优先级）</li>
+        <li>有没有截止时间/合规硬约束？</li>
+        <li>数据量级多大？（非功能需求的输入）</li>
+        <li>这事儿谁说了算？（确认验收人）</li>
+      </ul>
+    </li>
+    <li><strong>拆解</strong>：按 2.1 四层次整理成需求清单表（编号/层次/描述/优先级/验收标准/验收人）；</li>
+    <li><strong>确认</strong>：清单发需求方书面确认——<strong>书面确认是需求阶段的唯一防线</strong>，口头共识约等于没有共识。</li>
+  </ol>
+
+  <h3>3.2 阶段二：方案与选型（产物：对比表 + ADR）</h3>
+  <ol>
+    <li><strong>列候选</strong>：2~4 个候选（通常含"自己造"与"用现成"两个端点）；</li>
+    <li><strong>定权重</strong>：按 2.3 五维度，结合项目实际分权重（内部工具重团队能力，对外产品重生态与成本）；</li>
+    <li><strong>打分</strong>：逐项给依据打分，有分歧的项做 Spike（2.5）；</li>
+    <li><strong>写 ADR</strong>：按 2.4 模板落一页纸，团队评审；</li>
+    <li><strong>评审</strong>：拉上会受影响的人（后端被前端选型影响？叫上）——<strong>评审的意义是买共识，不只是挑错</strong>。</li>
+  </ol>
+
+  <h3>3.3 阶段三：落地对齐（产物：任务拆解）</h3>
+  <ol>
+    <li><strong>拆任务</strong>：需求清单 → 工作项，每个工作项挂对应验收标准（颗粒度：1~3 天可完成可验收）；</li>
+    <li><strong>排里程碑</strong>：先做风险最大的部分（技术不确定性早暴露），不要把 Spike 类风险留到末期；</li>
+    <li><strong>定变更流程</strong>：约定"新增/修改需求走清单变更 + 重新估时"，堵住"顺手加个小功能"；</li>
+    <li><strong>过程同步</strong>：固定节奏向需求方同步进展与风险（哪怕只是周报），<strong>坏消息要早说</strong>。</li>
+  </ol>
+  <div class="note"><strong>三阶段的取舍</strong>：小需求（半天能做完）三阶段合并成一次对话 + 一条带验收标准的任务；中大需求严格执行。流程的尺度跟着<strong>返工代价</strong>走——返工越贵，前期越要慢。</div>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：完整走过一次第 3 章流程。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
+  <h3>4.1 非功能需求的量化</h3>
+  <p>非功能需求是"做得有多好"，模糊表述毫无约束力，必须量化。常用指标参考：</p>
+  <table>
+    <tr><th>类别</th><th>模糊说法</th><th>量化表述示例</th></tr>
+    <tr><td>性能</td><td>"要快"</td><td>列表页 P95 ≤ 500ms；导出 10 万行 ≤ 30s</td></tr>
+    <tr><td>容量</td><td>"能扛住并发"</td><td>峰值 500 QPS 下错误率 &lt; 0.1%</td></tr>
+    <tr><td>可用性</td><td>"要稳定"</td><td>月度可用性 99.9%（月停机 ≤ 43 分钟）</td></tr>
+    <tr><td>安全</td><td>"要安全"</td><td>导出数据过脱敏规则；操作留审计日志</td></tr>
+    <tr><td>兼容</td><td>"支持主流浏览器"</td><td>Chrome/Edge 最近两个大版本 + 移动端核心流程可用</td></tr>
   </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <p>量化数字从哪来：<strong>现状测量 + 需求方业务目标 + 行业常识</strong>三者取交集，写进需求清单时就标注依据。测不出依据的指标，宁可不写——假指标比没指标更糟（团队会真的为它优化）。</p>
+
+  <h3>4.2 跨团队需求谈判：范围/时间/资源三角</h3>
+  <p>需求方要加范围时，用三角形谈判：<strong>加范围必须至少动三角之一</strong>——延期、加人、或砍掉别的范围。"都要"的结果是全部做一半。谈判姿态：带着数据（影响面评估）而不是情绪；给出选项（"可以加，A 方案延期一周，B 方案下迭代"）而不是硬顶。</p>
+
+  <h3>4.3 选型的退出成本</h3>
+  <p>评估候选时多问一句：<strong>"如果一年后要换掉它，要付什么代价？"</strong>——数据能导出吗（格式锁定）、代码深度耦合吗（接口隔离了吗）、团队能维护旧系统到迁移完成吗。工程上的通用保险：<strong>用适配层隔离核心依赖</strong>（业务代码只依赖自己的接口，不直接依赖三方 SDK 的类型与调用方式），退出成本立刻从"重写"降为"换实现"。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>决策流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="需求分析与选型决策流程图">
+      <defs>
+        <marker id="arrf" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">从模糊诉求到开工：需求漏斗 + 选型闭环</text>
+      <rect x="30" y="55" width="120" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="90" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">原始诉求</text>
+      <text x="90" y="95" text-anchor="middle" font-size="11" fill="#4f6348">模糊、带立场</text>
+      <line x1="150" y1="80" x2="185" y2="80" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="189" y="55" width="130" height="50" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="254" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">需求澄清</text>
+      <text x="254" y="95" text-anchor="middle" font-size="11" fill="#115e59">三问 + 8 问清单</text>
+      <line x1="319" y1="80" x2="354" y2="80" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="358" y="55" width="130" height="50" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="423" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">需求清单</text>
+      <text x="423" y="95" text-anchor="middle" font-size="11" fill="#115e59">四层次+验收标准</text>
+      <line x1="488" y1="80" x2="523" y2="80" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="527" y="55" width="110" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="582" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">书面确认</text>
+      <text x="582" y="95" text-anchor="middle" font-size="11" fill="#92400e">需求方签字</text>
+      <line x1="637" y1="80" x2="672" y2="80" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="676" y="55" width="100" height="50" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="726" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">列候选</text>
+      <text x="726" y="95" text-anchor="middle" font-size="11" fill="#047857">2~4 个</text>
+      <line x1="726" y1="105" x2="726" y2="140" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="660" y="144" width="130" height="50" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="725" y="167" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">加权评分</text>
+      <text x="725" y="184" text-anchor="middle" font-size="11" fill="#047857">五维度×权重</text>
+      <line x1="660" y1="169" x2="620" y2="169" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="480" y="144" width="136" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="548" y="167" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">有分歧？</text>
+      <text x="548" y="184" text-anchor="middle" font-size="11" fill="#92400e">→ Spike 半天~2天</text>
+      <line x1="480" y1="169" x2="440" y2="169" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="300" y="144" width="136" height="50" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="368" y="167" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">写 ADR + 评审</text>
+      <text x="368" y="184" text-anchor="middle" font-size="11" fill="#047857">一页纸存档</text>
+      <line x1="300" y1="169" x2="260" y2="169" stroke="#7a8a70" marker-end="url(#arrf)"/>
+      <rect x="130" y="144" width="126" height="50" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2.5"/>
+      <text x="193" y="167" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">拆任务开工</text>
+      <text x="193" y="184" text-anchor="middle" font-size="11" fill="#047857">验收标准进任务单</text>
+      <text x="400" y="245" text-anchor="middle" font-size="12.5" fill="#7a8a70">约束变化（数据量级/团队/合规）→ 重开 ADR，而不是靠记忆重吵一遍</text>
+      <text x="400" y="270" text-anchor="middle" font-size="12.5" fill="#b45309">需求变更 → 定价（范围/时间/资源三角）→ 清单变更 → 重新确认</text>
+    </svg>
+    <p class="diagram-caption">图 1 需求漏斗与选型闭环（含变更回路）</p>
   </div>
+  <p><strong>读图要点</strong>：①"书面确认"是漏斗的窄口——过不了口的诉求不许进排期；②Spike 只在有分歧且分歧影响决策时做，不追求完美实验；③两条回路（约束变化重开 ADR、需求变更定价）是常态而非异常——<strong>流程的价值是让变更可控，不是消灭变更</strong>。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
-  <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
-  </ul>
-</section>
+  <h2><span class="num">6</span>最小可交付产物</h2>
+  <p>决策型工作流的"Demo"是三份文档。以真实任务<strong>"给订单系统加 Excel 导出"</strong>为例，30~60 分钟产出：</p>
 
-<section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
-  <ul>
-    <li>需求分析与技术选型 官方文档：<a href="https://www.agilealliance.org/" rel="noopener">https://www.agilealliance.org/</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/joelgrus/data-science-from-scratch" rel="noopener">https://github.com/joelgrus/data-science-from-scratch</a></li>
-    <li>官方示例项目：<a href="https://github.com/donnemartin/system-design-primer" rel="noopener">https://github.com/donnemartin/system-design-primer</a></li>
-  </ul>
-  <h3>学习建议</h3>
+  <h3>6.1 产物一：需求澄清记录（节选）</h3>
+<pre class="code" data-lang="text"><code>Q: 这个功能给谁用？多久用一次？
+A: 财务 2 人，每月 1 号月结时用一次（低频、数据量大）。
+Q: 现在没有它怎么做的？
+A: 运维跑 SQL 导 CSV，财务用 Excel 再加工（现状即底线方案）。
+Q: 做到什么程度算完成？
+A: 按月份+订单状态筛选导出 xlsx；10 万行 ≤ 30 秒；金额字段脱敏规则生效。
+Q: 这事儿谁说了算？
+A: 财务主管张经理（验收人）。</code></pre>
+
+  <h3>6.2 产物二：需求清单表（节选）</h3>
+  <table>
+    <tr><th>#</th><th>层次</th><th>描述</th><th>验收标准</th><th>优先级</th></tr>
+    <tr><td>1</td><td>功能</td><td>按月份+状态筛选导出 xlsx</td><td>筛选结果与页面列表一致</td><td>P0</td></tr>
+    <tr><td>2</td><td>非功能</td><td>导出性能</td><td>10 万行 ≤ 30s（P95），超时有进度提示</td><td>P0</td></tr>
+    <tr><td>3</td><td>非功能</td><td>数据安全</td><td>客户手机号/银行卡按脱敏规则输出，操作留审计日志</td><td>P0</td></tr>
+    <tr><td>4</td><td>用户</td><td>失败可重试</td><td>导出失败保留任务记录，可一键重试</td><td>P1</td></tr>
+  </table>
+
+  <h3>6.3 产物三：选型对比表 + ADR</h3>
+  <table>
+    <tr><th>候选</th><th>优势</th><th>劣势</th><th>退出成本</th><th>评分（权重后）</th></tr>
+    <tr><td>前端导出（SheetJS）</td><td>零后端改动，快</td><td>10 万行内存爆，数据全量下发有安全面</td><td>低</td><td>2.8</td></tr>
+    <tr><td><strong>后端流式导出（现有 Java 服务 + EasyExcel）</strong></td><td>分页流式写、可控脱敏、复用现有权限</td><td>后端开发 3 天</td><td>低（标准 xlsx）</td><td><strong>4.4</strong></td></tr>
+    <tr><td>独立导出服务 + 消息队列</td><td>可扩展到任意大数据量</td><td>新增运维面，当前量级过度设计</td><td>中</td><td>3.1</td></tr>
+  </table>
+<pre class="code" data-lang="text"><code># ADR-014：订单导出采用后端流式生成
+日期：2026-10-15　状态：已采纳
+## 背景
+财务月结需要导出订单明细（月度峰值约 10 万行），现状靠运维手工导 SQL，
+耗时且无脱敏审计。
+## 候选
+前端 SheetJS 导出 / 后端流式导出 / 独立导出服务
+## 决策
+后端流式导出（EasyExcel，分页游标写盘）。
+## 理由
+10 万行量级排除前端方案；独立服务对当前频次（每月一次）过度设计。
+## 后果（接受的代价）
+- 数据量增长到百万级时需引入异步导出+对象存储（记为技术债 ADR-014-DEBT）
+- 后端投入约 3 人日，本期不做前端实时导出体验
+## 复审条件
+月导出量级超过 50 万行，或导出频次从月级变为日级时重开本决策。</code></pre>
+
+  <h3>6.4 产物价值与对照</h3>
+  <p>三份产物合计一小时，换来的是：<strong>开发自测有清单</strong>（验收标准列）、<strong>测试有用例来源</strong>、<strong>半年后有人问起为什么没上独立导出服务时有处可查</strong>。对照经验：没有这三份产物的同规模需求，平均返工 1~2 轮——<strong>文档不是负担，是把返工提前消化掉</strong>。</p>
+
+  <h3>6.5 扩展方向</h3>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>把 ADR 模板放进团队仓库 <code>docs/adr/</code> 目录，编号递增，评审会直接对着 ADR 开；</li>
+    <li>给需求清单表加"验收人确认"列并要求签名（邮件回复确认也算）；</li>
+    <li>下一个真实需求完整走一遍三阶段，事后复盘产物哪一栏没起到作用、砍掉或改进它。</li>
   </ol>
 </section>
 
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"需求阶段 → 选型阶段 → 落地阶段"分组，每条五要素。</p>
 
+  <h3>7.1 需求阶段</h3>
+  <p><strong>坑 1：把方案当需求</strong></p>
+  <ul>
+    <li><strong>现象</strong>：需求方直接说"给我加个按钮，点了发邮件"——方案已被指定；</li>
+    <li><strong>根因</strong>：需求方用自己的专业直觉代你做了方案设计；</li>
+    <li><strong>复现</strong>：照做后发现真实诉求是"异常时能及时知道"，轮询看板比邮件更合适；</li>
+    <li><strong>修复</strong>：退回 2.1 四层次追问业务目标与用户场景，把"方案"翻译回"问题"再重新求解；</li>
+    <li><strong>规避</strong>：评审时每个功能项都标注对应的业务目标，对不上目标的功能就是可疑项。</li>
+  </ul>
+  <p><strong>坑 2：没有验收标准就开工</strong></p>
+  <ul>
+    <li><strong>现象</strong>：做完了，需求方说"不是这个意思"，来回返工；</li>
+    <li><strong>根因</strong>：2.2 的分水岭没跨过去——愿望进了排期；</li>
+    <li><strong>修复</strong>：补齐验收标准并请需求方书面确认后才继续投入；</li>
+    <li><strong>规避</strong>：任务单没有验收标准字段不允许进入"进行中"。</li>
+  </ul>
+  <p><strong>坑 3：非功能需求缺席</strong></p>
+  <ul>
+    <li><strong>现象</strong>：功能全对，上线第一天 10 万行导出把服务打挂；</li>
+    <li><strong>根因</strong>：清单里只有功能需求，数据量级从没人问过（澄清 8 问里的第 7 问被跳过）；</li>
+    <li><strong>修复</strong>：按 4.1 量化补齐性能/安全/容量指标，按 2.5 做 Spike 验证；</li>
+    <li><strong>规避</strong>：需求清单表固定包含"非功能"分区，哪怕填"无特殊要求"也要显式写。</li>
+  </ul>
+
+  <h3>7.2 选型阶段</h3>
+  <p><strong>坑 4：追新——用未成熟技术赌生产</strong></p>
+  <ul>
+    <li><strong>现象</strong>：选了发布半年的新框架，半年后核心插件停止维护，被迫迁移；</li>
+    <li><strong>根因</strong>：把"技术适配"维度和"尝鲜欲望"混为一谈，生态成熟度打分虚高；</li>
+    <li><strong>修复</strong>：按 2.3 重打分（重点核 issue 响应速度、发版节奏、背后维护方）；</li>
+    <li><strong>规避</strong>：生产项目给"新技术"设准入门槛（如发版 &gt; 1 年、有生产案例），想试先用 Spike 或个人项目试。</li>
+  </ul>
+  <p><strong>坑 5：只看 Demo 就拍板</strong></p>
+  <ul>
+    <li><strong>现象</strong>：官方 demo 华丽，接入后发现在我们的数据量级/网络环境下表现完全不同；</li>
+    <li><strong>根因</strong>：demo 是理想环境的最优展示，你的约束（数据、网络、合规）它一个都没体现；</li>
+    <li><strong>修复</strong>：用 2.5 Spike 在自己的约束下重测关键路径；</li>
+    <li><strong>规避</strong>：评分表里"技术适配"一栏必须引用自测数据，不许填"官方宣称"。</li>
+  </ul>
+  <p><strong>坑 6：忽略退出成本</strong></p>
+  <ul>
+    <li><strong>现象</strong>：深度绑定了某云厂商特有服务，一年后成本或合规原因必须迁出，评估下来等于重写；</li>
+    <li><strong>根因</strong>：五维度里"退出成本"默认没打分（2.3 表中最常被漏的一列）；</li>
+    <li><strong>修复</strong>：补评估并用 4.3 的适配层隔离核心依赖；</li>
+    <li><strong>规避</strong>：ADR 模板里"后果"栏强制回答"换掉它的代价是什么"。</li>
+  </ul>
+
+  <h3>7.3 落地阶段</h3>
+  <p><strong>坑 7：变更无流程，"顺手加个需求"</strong></p>
+  <ul>
+    <li><strong>现象</strong>：开发中途"就加个小功能"，三次之后排期全乱、质量失控；</li>
+    <li><strong>根因</strong>：没有变更定价机制，"小"的成本从未被摆上桌面；</li>
+    <li><strong>修复</strong>：按 2.6 给变更定价（影响面/工时/三角取舍），需求方决策后再动；</li>
+    <li><strong>规避</strong>：固定话术——"可以，我先评估影响面，今天下班前给你三个选项"。</li>
+  </ul>
+  <p><strong>坑 8：决策无记录</strong></p>
+  <ul>
+    <li><strong>现象</strong>："当时为什么选 A？"——全员失忆，新一轮争论从头再来；</li>
+    <li><strong>根因</strong>：决策只发生在会议里，没有落纸；</li>
+    <li><strong>修复/规避</strong>：ADR 机制（2.4）——决策从"记忆"变成"文档"，争议从"吵架"变成"复审条件是否触发"。</li>
+  </ul>
+
+  <h3>7.4 通用排查思路</h3>
+  <ul>
+    <li><strong>扯皮 → 先查层次</strong>：双方是不是在四层次的不同层说话（2.1）；</li>
+    <li><strong>返工 → 先查验收标准</strong>：写了吗？需求方确认了吗？；</li>
+    <li><strong>选型翻车 → 先查评分依据</strong>：有没有 Spike 数据，退出成本打分了吗。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：拿到一个模糊需求，你的完整分析过程是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四层次拆解 + 三问过滤 + 产物确认。<strong>①分层</strong>：把诉求拆成业务/用户/功能/非功能四层，找出缺哪层；<strong>②三问</strong>：为什么做（对齐业务目标）、为谁做（场景与频率，定投入级别）、做成什么样算完成（逼出验收标准）；<strong>③产物</strong>：整理成需求清单表（含优先级与验收人），请需求方书面确认。<br><br>
+  <strong>举例</strong>："加个导出功能" → 追问后可能是"财务月结对账耗时 2 天，要缩到 2 小时"——答案可能根本不是导出，而是对账报表。<strong>面试官想听到的关键词</strong>：分层、验收标准、书面确认。</p>
+
+  <p><strong>Q2：技术选型你会怎么评估？说一个你做过的选型。</strong></p>
+  <p class="note"><strong>参考答案</strong>：框架是<strong>五维度加权评分 + Spike + ADR</strong>：技术适配（解决我们的问题吗）、团队能力（接得住吗）、生态成熟度（文档/社区/维护方）、总成本（学习+开发+运行+迁移）、退出成本（一年后换掉它代价多大）。分歧大的维度用最小实验（Spike）拿数据，结论落 ADR 存档（背景/候选/决策/理由/后果/复审条件）。<br><br>
+  <strong>讲案例的加分结构</strong>：当时的约束 → 候选与取舍 → 选了什么、放弃了什么代价 → 后来复审条件是否被触发。能说出"放弃了什么"和"接受什么后果"的候选人极少——<strong>这正是成熟决策与拍脑袋的分界</strong>。</p>
+
+  <p><strong>Q3：需求频繁变更怎么办？</strong></p>
+  <p class="note"><strong>参考答案</strong>：先摆态度——变更不是敌人，<strong>失控的变更才是</strong>。机制三件套：<strong>①定价</strong>：每个变更评估影响面与工时，用范围/时间/资源三角让需求方做取舍；<strong>②流程</strong>：变更进需求清单、重新确认验收标准，不走口头；<strong>③缓冲</strong>：排期时预留 15~20% 缓冲吸收小变更，大变更走迭代规划。另外要区分两类变更：需求真变了（值得做）vs 前期没分析清楚（该复盘的是分析质量，不是抱怨变更）。</p>
+
+  <p><strong>Q4：非功能需求怎么处理？给个例子。</strong></p>
+  <p class="note"><strong>参考答案</strong>：核心是<strong>量化</strong>。"要快"没有约束力，"P95 ≤ 500ms"才有。做法：从<strong>现状测量、业务目标、行业常识</strong>三个来源取数，标注依据写进清单；性能类指标在开发早期用 Spike 或压测验证，不要留到上线。例子：导出功能"10 万行 ≤ 30s（P95）"——它直接影响了选型（排除前端方案）和实现方式（流式写盘），<strong>这就是非功能需求驱动技术决策</strong>。</p>
+
+  <p><strong>Q5：自测 5 问</strong></p>
+  <ol>
+    <li>需求四层次是什么？"导出功能"的各层表述分别长什么样？</li>
+    <li>验收标准为什么是需求的分水岭？谁负责确认它？</li>
+    <li>选型五维度中哪两个最常被漏掉？各用一句话解释。</li>
+    <li>ADR 的六个栏目是什么？"后果"栏为什么必须写？</li>
+    <li>Spike 的产出物是什么？为什么说它的代码是"一次性实验品"？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Marty Cagan《Inspired（启发）》——产品发现与需求验证的经典框架</li>
+    <li>Agile Alliance 需求相关词条（用户故事、验收标准的社区实践集）：<a href="https://www.agilealliance.org/" rel="noopener">agilealliance.org</a></li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>ADR 官方实践与模板库：<a href="https://adr.github.io/" rel="noopener">adr.github.io</a>（Nygard 与 MADR 两种模板）</li>
+    <li>《System Design Primer》的权衡分析章节（选型思维的工程化版本）：<a href="https://github.com/donnemartin/system-design-primer" rel="noopener">github.com/donnemartin/system-design-primer</a></li>
+    <li>《人月神话》——为什么"加人不能加进度"：跨团队谈判与排期的底层逻辑</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>拿你手头最近的一条真实需求，按第 3 章三阶段产出三份产物（6.1~6.3 的格式）；</li>
+    <li>给团队仓库建立 <code>docs/adr/</code> 目录，把你最近一次技术决策补写成 ADR；</li>
+    <li>复盘一次失败的需求或选型：用四层次/五维度回放，指出当初漏掉的是哪一层的哪个维度。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../10_研发流程与AI辅助/00_研发流程与AI辅助模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../10_研发流程与AI辅助/02_Scrum敏捷开发【基础】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考
