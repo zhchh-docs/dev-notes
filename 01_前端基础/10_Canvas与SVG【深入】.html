@@ -540,31 +540,151 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../01_前端基础/06_TypeScript【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/09_前端安全_XSS与CSRF【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/04_浏览器原理与渲染机制【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/01_Vue框架【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p><strong>Canvas</strong> 是 HTML5 提供的一块位图绘图画布：你拿到 <code>&lt;canvas&gt;</code> 元素的 2D/3D 上下文，用命令式 API（<code>fillRect/drawImage/beginPath</code>）逐帧往像素缓冲区画。画完就是一张位图，不再保留"这是个圆"的对象信息。<strong>SVG</strong>（Scalable Vector Graphics，可缩放矢量图）是用 XML 描述的矢量图形：<code>&lt;circle&gt;</code>、<code>&lt;path&gt;</code> 都是真实 DOM 节点，浏览器按数学公式实时绘制，放大不失真。</p>
-  <h3>解决什么问题</h3>
-  <p>Web 要画图形，有三条路：切图（不可缩放、不动态）、CSS（只适合 UI 元素）、Canvas/SVG（真正的可编程绘图）。Canvas 解决"高帧率、海量元素、像素级控制"（视频帧、游戏、万点 3D、实时热力图）；SVG 解决"少量矢量图形、要交互、要缩放不失真"（图标、流程图、可点击的图形元素）。选型错了，要么卡顿（SVG 画万点），要么难做交互（Canvas 上点击命中要自己算坐标）。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Canvas 是一块位图绘图画布</strong>：拿 2D/3D 上下文，用命令式 API（fillRect/drawImage/beginPath）逐帧往像素缓冲区画——画完即位图，不保留对象信息。<strong>SVG 是 XML 描述的矢量图形</strong>：circle/path 都是真实 DOM 节点，浏览器按数学公式实时绘制、放大不失真。Web 画图形三条路里，切图不可缩放、CSS 只适合 UI 元素——<strong>真正可编程绘图只有这两条</strong>：Canvas 管"高帧率/海量元素/像素级控制"，SVG 管"少量矢量/要交互/缩放不失真"。选型错了要么卡顿（SVG 画万点），要么交互难做（Canvas 命中要自己算坐标）。</p>
+
+  <h3>1.2 选型决策：最硬的分界线是元素数量</h3>
+  <ul>
+    <li><strong>元素数量</strong>：几十个 → SVG（省事能交互）；上万个 → Canvas（DOM 撑不住）；</li>
+    <li><strong>帧率</strong>：视频流/实时刷新 → Canvas；静态或低频 → SVG；</li>
+    <li><strong>交互与可访问性</strong>：点击命中/CSS 改样式/读屏 → SVG（它就是 DOM）；</li>
+    <li><strong>工程现实</strong>：图表类（ECharts）默认 Canvas、关系图（G6 默认 Canvas 也支持 SVG）——<strong>库已替你选好，本篇是让你理解为什么</strong>。</li>
+  </ul>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 <strong>立即模式 vs 保留模式</strong>（位图 vs 矢量 DOM）的本质差异；</li>
+    <li>落地 <strong>DPR 高清适配</strong>（Canvas 发虚的根解）；</li>
+    <li>掌握 <strong>save/restore 状态栈</strong>与逐帧绘制流程；</li>
+    <li>理解 <strong>viewBox 等比映射</strong>（本系列示意图的原理）；</li>
+    <li>避开六条高频坑（发虚/状态污染/万点卡顿/命中自算/变形/beginPath）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：04 篇渲染流水线（合成线程与图层）。<strong>难度</strong>：★★★☆☆。<strong>务必动手</strong>：第 6 章 Demo。<strong>本篇不涉及</strong>：ECharts/G6/Three.js 用法（03 模块专讲）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>立即模式</strong>（Canvas 的本质）→ <strong>坐标系与变换</strong>→ <strong>DPR</strong>→ <strong>状态栈</strong>→ <strong>保留模式与 viewBox</strong>（SVG 的本质）→ <strong>事件与上层库</strong>。</p>
+
+  <h3>2.1 Canvas 立即模式：画完即忘</h3>
+  <p>调用一次 fillRect，像素立刻画上去，之后不再记得"那个矩形"。<strong>动起来的代价</strong>：每帧<strong>清空整个画布、重画全部内容</strong>。<span class="tag-point">要点</span>：Canvas 性能取决于"每帧画了多少东西"——想流畅就要控制每帧绘制指令数（对比 SVG 保留模式：操作对象语义，浏览器负责栅格化）。</p>
+
+  <h3>2.2 坐标系与变换：改的是坐标系不是图形</h3>
+  <p>默认坐标原点在左上角、x 向右 y 向下。translate/rotate/scale 改的是<strong>后续所有绘制依托的坐标系</strong>——画旋转物体：先 translate 到物体中心、再 rotate、画完逆变换回去。变换叠加在当前矩阵上，<strong>配合 save/restore 隔离每段绘制</strong>。</p>
+
+  <h3>2.3 DPR：Canvas 发虚的唯一根因</h3>
+  <p>物理像素与 CSS 像素的比值是 <code>window.devicePixelRatio</code>（Retina 屏 2 或 3）。<strong>发虚根因</strong>：绘制缓冲按 CSS 尺寸建，高分屏上被放大显示而模糊。<span class="tag-point">根解法</span>：canvas 实际宽高 = <strong>css尺寸 × dpr</strong>，再 <code>ctx.scale(dpr, dpr)</code>——绘制仍按 CSS 坐标写，输出却是物理像素。</p>
+
+  <h3>2.4 状态栈：全局状态的隔离</h3>
+  <p>填充色/线宽/变换矩阵都是<strong>全局状态</strong>：save() 压栈、restore() 弹出恢复。多层变换、不同样式绘制，每段前后成对 save/restore。<span class="tag-pit">坑</span>："上一段设的红色污染后面所有图形"是 Canvas 颜色错乱头号原因——忘了 save/restore 而已。</p>
+
+  <h3>2.5 SVG 保留模式与 viewBox</h3>
+  <p><strong>节点即 DOM</strong>：每个 circle/path 参与事件冒泡、被 CSS 命中、可 getBBox 量尺寸；天然支持无障碍（title）与文本选择；代价是每节点 DOM 开销——海量节点必卡。<strong>viewBox</strong>：CSS 尺寸是视口，viewBox 是内部坐标系，浏览器等比映射（<code>preserveAspectRatio="xMidYMid meet"</code> 居中等比）——<strong>本系列所有示意图在不同宽度下等比不变形的原理</strong>。</p>
+
+  <h3>2.6 SVG 事件与上层库</h3>
+  <p>SVG 节点直接 addEventListener，<strong>命中测试浏览器按矢量形状自动完成</strong>。命中细节：默认 <code>pointer-events:visiblePainted</code> 下 fill="none" 的区域不算命中；<strong>fill="transparent"（非 none）仍命中</strong>——连线交互的常见困惑点。上层库（ECharts/G6/Three.js）在 Canvas/WebGL 上封装了"场景图"——理解 Canvas/SVG 才懂库为何"万点用 Canvas、少量节点可切 SVG 渲染"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Canvas 基础绘制 + DPR 适配</h3>
+<pre class="code" data-lang="js"><code>const canvas = document.querySelector('#c');
+const dpr = window.devicePixelRatio || 1;
+const cssW = 800, cssH = 400;
+canvas.width = cssW * dpr;          // 缓冲按物理像素建
+canvas.height = cssH * dpr;
+canvas.style.width = cssW + 'px';   // 显示按 CSS 尺寸
+canvas.style.height = cssH + 'px';
+const ctx = canvas.getContext('2d');
+ctx.scale(dpr, dpr);                // 之后按 CSS 坐标画即可
+
+ctx.clearRect(0, 0, cssW, cssH);    // 清屏
+ctx.fillStyle = '#2d6a3f';
+ctx.fillRect(10, 10, 120, 60);     // 画块
+ctx.beginPath();                    // 路径：必须 beginPath 开新路径
+ctx.arc(400, 200, 50, 0, Math.PI * 2);
+ctx.fill();</code></pre>
+
+  <h3>3.2 场景二：Canvas 绘制视频帧（cover 缩放）</h3>
+<pre class="code" data-lang="js"><code>// 把 video 当前帧画到 canvas（WebRTC 播放器的做法）
+function drawFrame(video, ctx, canvas) {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const scale = Math.max(canvas.width / vw, canvas.height / vh);
+  const dw = vw * scale, dh = vh * scale;
+  ctx.drawImage(video, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
+}</code></pre>
+
+  <h3>3.3 场景三：SVG 基础——元素即 DOM</h3>
+<pre class="code" data-lang="xml"><code>&lt;svg viewBox="0 0 200 100" width="100%"&gt;
+  &lt;circle cx="50" cy="50" r="30" fill="#2d6a3f"/&gt;
+  &lt;rect x="100" y="20" width="80" height="60" rx="6" fill="#4f8a63"/&gt;
+  &lt;text x="50" y="95" text-anchor="middle" font-size="12"&gt;标签&lt;/text&gt;
+&lt;/svg&gt;</code></pre>
+
+  <h3>3.4 场景四：同一红点两种实现——交互成本对比</h3>
+<pre class="code" data-lang="js"><code>// SVG：声明一个可点选的圆点（它就是 DOM，事件自动绑）
+document.querySelector('#p').addEventListener('click', onPointClick);
+
+// Canvas：同样的红点要自己算命中（鼠标坐标落在半径内才算点中）
+canvas.addEventListener('click', (e) =&gt; {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left), y = (e.clientY - rect.top);
+  if (Math.hypot(x - 100, y - 100) &lt;= 8) onPointClick();   // 手写命中测试
+});
+// 结论：少量可交互图形 SVG 省事；海量图形 Canvas 要自维护"元素列表"做命中。</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：逐帧流程与 DPR 适配已跑通。</p>
+
+  <h3>4.1 离屏缓存与分层渲染</h3>
+  <p>静态背景（网格/底图）预渲染到一个 <strong>offscreen canvas</strong>，每帧只 drawImage 贴图 + 重绘动态层——把"每帧指令数"压到最低（第 6 章 diff 高亮的分层方案）。<strong>OffscreenCanvas</strong> 进一步把离屏渲染挪到 Worker 线程，主线程零占用。</p>
+
+  <h3>4.2 双缓冲与脏区域</h3>
+  <p>高频可视化两个降耗手段：<strong>双缓冲</strong>——在离屏画完再一次性上屏，避免闪烁；<strong>脏区域</strong>——只 clearRect + 重绘变化的矩形区域，不全屏重画。ECharts 等库内部都做了这两件事（"库替你选好"的深层原因）。</p>
+
+  <h3>4.3 isPointInPath 与命中加速</h3>
+  <p>Canvas 命中测试除手写几何碰撞（rect 包含/圆距离），复杂 path 可用 <code>ctx.isPointInPath(path, x, y)</code> 让引擎代算。海量元素时先<strong>包围盒粗筛</strong>再做精确碰撞——空间换时间的经典分层。</p>
+
+  <h3>4.4 SVG 交互增强</h3>
+  <ul>
+    <li><strong>pointer-events 精细控制</strong>：<code>stroke</code> 只命中描边（连线场景）、<code>bounding-box</code> 按包围盒命中；</li>
+    <li><strong>CSS 能力</strong>：transition/animation 直接作用于 SVG 属性，hover 高亮零 JS；</li>
+    <li><strong>无障碍</strong>：给关键图形配 title/desc，读屏器可读——Canvas 做不到（位图无语义）。</li>
+  </ul>
+
+  <h3>4.5 WebGL 与 Canvas 2D 的边界</h3>
+  <p>2D 上下文 CPU 绘制，万点已是舒适区上限；<strong>WebGL 走 GPU</strong>，十万级点/粒子才需要（Three.js 底座）。判断依据与 Canvas/SVG 同构：数量级再上一层、且不依赖 DOM 语义。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Canvas 位图与 SVG 矢量渲染模型对比示意图">
       <defs>
@@ -592,7 +712,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Canvas 与 SVG 的渲染模型对比（示意）</p>
   </div>
-  <h3>横向对比：选型决策</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="Canvas与SVG选型决策流程图">
       <defs>
@@ -602,23 +721,19 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">什么时候选 Canvas，什么时候选 SVG？（示意）</text>
 
-      <!-- 起点 -->
       <rect x="300" y="45" width="200" height="40" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
       <text x="400" y="70" text-anchor="middle" font-size="12" font-weight="600" fill="#354835">要画图形，选哪个？</text>
 
-      <!-- 分支1：元素数量 -->
       <line x1="400" y1="85" x2="400" y2="105" stroke="#7a8a70" marker-end="url(#arr)"/>
       <rect x="250" y="110" width="300" height="35" rx="6" fill="#fefce8" stroke="#d97706"/>
       <text x="400" y="132" text-anchor="middle" font-size="12" fill="#b45309">图形元素数量？</text>
 
-      <!-- 分支：>1000个 -->
       <line x1="320" y1="145" x2="200" y2="175" stroke="#7a8a70" marker-end="url(#arr)"/>
       <text x="240" y="160" font-size="11" fill="#7a8a70">上万个</text>
 
       <rect x="60" y="178" width="180" height="35" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="150" y="200" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">选 Canvas</text>
 
-      <!-- 分支：<100个 -->
       <line x1="480" y1="145" x2="600" y2="175" stroke="#7a8a70" marker-end="url(#arr)"/>
       <text x="560" y="160" font-size="11" fill="#7a8a70">几十个</text>
 
@@ -627,76 +742,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Canvas vs SVG 选型决策（示意）</p>
   </div>
-  <ul>
-    <li><strong>元素数量</strong>：几十个图形 → SVG（省事、能交互）；上万个点/帧 → Canvas（DOM 节点撑不住）。这是最硬的分界线。</li>
-    <li><strong>是否需要逐帧高帧率</strong>：视频流、动画、实时刷新 → Canvas（重绘成本可控）；静态或低频图形 → SVG。</li>
-    <li><strong>交互与可访问性</strong>：要点击命中、要 CSS 改样式、要屏幕阅读器读图形 → SVG（它就是 DOM）；Canvas 的命中要手写坐标换算。</li>
-    <li><strong>工程现实</strong>：图表类（ECharts/Chart）默认 Canvas，关系图（G6 默认 Canvas，也支持 SVG 渲染）——库已经替你选好，本页是让你理解为什么。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 Canvas 的位图绘制模型（Immediate Mode）</h3>
-  <p class="lead"><b>一句话定位</b>：Canvas 是立即模式——画完即忘，想动起来就得每帧清空重画全部内容。</p>
-  <ul>
-    <li><strong>立即模式</strong>：调用一次 <code>fillRect</code>，像素立刻画上去，之后不再记得"那个矩形"。</li>
-    <li><strong>动起来的代价</strong>：每一帧都要<strong>清空整个画布、重新画全部内容</strong>——与 SVG 的保留模式根本不同。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>Canvas 性能取决于"每帧画了多少东西"，想流畅就要控制每帧的绘制指令数。</p>
-  <h3>2.2 坐标系与变换（Coordinate System &amp; Transform）</h3>
-  <p class="lead"><b>一句话定位</b>：translate/rotate/scale 改的不是某个图形，而是后续所有绘制所依托的坐标系。</p>
-  <ul>
-    <li><strong>默认坐标</strong>：原点在左上角，x 向右、y 向下。</li>
-    <li><strong>变换坐标系</strong>：画旋转物体，先 <code>translate(x,y)</code> 把原点移到物体中心，再 <code>rotate(角)</code> 画，最后逆变换回去。</li>
-    <li><strong>叠加与隔离</strong>：变换叠加在当前矩阵上，配合 save/restore 隔离每段绘制。</li>
-  </ul>
-  <h3>2.3 devicePixelRatio 与高清屏（DPR）</h3>
-  <p class="lead"><b>一句话定位</b>：Canvas 发虚，几乎都是绘制缓冲没按 DPR 放大。</p>
-  <ul>
-    <li><strong>DPR 是什么</strong>：物理像素与 CSS 像素的比值即 <code>window.devicePixelRatio</code>，Retina 屏为 2 或 3。</li>
-    <li><strong>发虚根因</strong>：绘制缓冲按 CSS 尺寸建，在高分屏上被放大显示而模糊。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">根解法</span>canvas 实际宽高属性设为 <code>css尺寸 × dpr</code>，再 <code>ctx.scale(dpr, dpr)</code>，绘制仍按 CSS 坐标写。</p>
-  <h3>2.4 绘制状态栈（save / restore）</h3>
-  <p class="lead"><b>一句话定位</b>：填充色、线宽、变换矩阵都是全局状态，不 save/restore 就会跨图形污染。</p>
-  <ul>
-    <li><strong>状态栈</strong>：2D 上下文维护一个栈；<code>save()</code> 压当前状态，<code>restore()</code> 弹出恢复。</li>
-    <li><strong>用法</strong>：多层变换、不同样式的绘制，每段前后成对 save/restore。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>"上一段设的红色"污染后面所有图形，是 Canvas 颜色错乱的头号原因——忘了 save/restore 而已。</p>
-  <h3>2.5 SVG 的矢量 DOM 模型（Retained Mode）</h3>
-  <p class="lead"><b>一句话定位</b>：SVG 图形是真实 DOM 节点，你操作对象语义，浏览器负责栅格化。</p>
-  <ul>
-    <li><strong>节点即 DOM</strong>：每个 <code>&lt;circle&gt;</code>/<code>&lt;path&gt;</code> 参与事件冒泡、能被 CSS 选择器命中、能 <code>getBBox()</code> 量尺寸。</li>
-    <li><strong>天然优势</strong>：支持无障碍（带 <code>&lt;title&gt;</code>）和文本选择。</li>
-    <li><strong>代价</strong>：每个节点都有 DOM 开销——海量节点时会卡。</li>
-  </ul>
-  <h3>2.6 viewport 与 viewBox（视口与视图框）</h3>
-  <p class="lead"><b>一句话定位</b>：CSS 尺寸是视口，viewBox 是内部坐标系，浏览器负责把后者等比映射进前者。</p>
-  <ul>
-    <li><strong>viewBox 的含义</strong>：<code>viewBox="0 0 800 600"</code> = 内容画在 800×600 的坐标系里，浏览器自动缩放进视口。</li>
-    <li><strong>对齐控制</strong>：配合 <code>preserveAspectRatio</code> 控制缩放对齐方式。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>这正是本系列所有示意图在不同宽度下等比不变形的原理。</p>
-  <h3>2.7 SVG 事件与交互</h3>
-  <p class="lead"><b>一句话定位</b>：SVG 节点和 HTML 节点一样绑事件，命中测试由浏览器按矢量形状自动完成。</p>
-  <ul>
-    <li><strong>绑定</strong>：节点可直接 <code>addEventListener('click')</code>，无需自己算坐标。</li>
-    <li><strong>命中细节</strong>：默认 <code>pointer-events:visiblePainted</code> 下，<code>fill="none"</code>（或 stroke="none"）的区域不算命中；注意 <code>fill="transparent"</code>（非 none）仍会命中。可设 <code>pointer-events:stroke</code> 改命中规则。</li>
-  </ul>
-  <p>这就是流程图、节点连线用 SVG 写交互省事的原因。</p>
-  <h3>2.8 与上层库的关系</h3>
-  <p class="lead"><b>一句话定位</b>：ECharts/G6/Three.js 都在 Canvas/WebGL 上封装了一层"场景图"，你声明数据，库决定每帧画什么。</p>
-  <ul>
-    <li><strong>场景图封装</strong>：库在内部做脏重绘、决定渲染策略。</li>
-    <li><strong>选型呼应</strong>：理解 Canvas/SVG，才懂这些库为何"万点用 Canvas、少量节点可切 SVG 渲染模式"。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Canvas 每帧在做什么</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Canvas 每帧重绘流程与高清屏适配示意图">
       <defs>
@@ -726,97 +771,17 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="192" text-anchor="middle" font-size="12" fill="#4f6348">绘制仍按 CSS 坐标写，输出却是物理像素 → 高分屏不再发虚</text>
       <text x="400" y="228" text-anchor="middle" font-size="13" fill="#4f6348">性能关键：每帧画的东西越少越流畅；能离屏预渲染的静态层，缓存到一个 offscreen canvas。</text>
     </svg>
-    <p class="diagram-caption">图 2 Canvas 逐帧绘制与 DPR 适配（示意）</p>
+    <p class="diagram-caption">图 3 Canvas 逐帧绘制与 DPR 适配（示意）</p>
   </div>
-  <ol>
-    <li><strong>清空</strong>：立即模式下上一帧内容还在，必须先 <code>clearRect</code> 清掉。</li>
-    <li><strong>save/变换</strong>：把坐标系移到该画的位置、设好颜色线宽。</li>
-    <li><strong>绘制</strong>：逐个画元素；性能敏感场景用离屏 canvas 缓存静态背景，每帧只 blit（贴图）动态层。需要进一步卸载主线程时可用 <code>OffscreenCanvas</code>，把离屏渲染挪到 Worker 里跑。</li>
-    <li><strong>restore</strong>：还原状态，避免污染下一帧。</li>
-  </ol>
-  <h3>3.2 SVG 的坐标映射</h3>
-  <p>SVG 视口（CSS 尺寸）与 viewBox（内部坐标系）之间是一层仿射映射：<code>preserveAspectRatio="xMidYMid meet"</code> 表示"等比缩放并居中"。本系列示意图用 <code>viewBox="0 0 800 H"</code>，外层 CSS <code>width:100%</code>，于是容器多宽、SVG 内部 800 坐标就等比缩放到多宽——文字和图形永远成比例、不变形。这就是"矢量可缩放"在工程上的落地方式。</p>
+  <p><strong>逐帧四步</strong>：①清空（立即模式上一帧还在，必须 clearRect）→ ②save+变换 → ③绘制（性能敏感场景静态层用离屏 canvas 缓存、每帧只 blit 动态层；更重时 OffscreenCanvas 挪 Worker）→ ④restore 还原。<strong>SVG 坐标映射</strong>：视口与 viewBox 之间一层仿射映射，xMidYMid meet 即"等比缩放居中"——容器多宽，内部 800 坐标就等比缩到多宽，文字图形永远成比例。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Canvas 基础绘制与 DPR 适配</h3>
-<pre class="code" data-lang="js"><code>const canvas = document.querySelector('#c');
-const dpr = window.devicePixelRatio || 1;
-const cssW = 800, cssH = 400;
-canvas.width = cssW * dpr;          // 缓冲按物理像素建
-canvas.height = cssH * dpr;
-canvas.style.width = cssW + 'px';   // 显示按 CSS 尺寸
-canvas.style.height = cssH + 'px';
-const ctx = canvas.getContext('2d');
-ctx.scale(dpr, dpr);                // 之后按 CSS 坐标画即可
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：两处真实实战——WebRTC 播放器视频帧叠加、低代码平台版本 diff 高亮。</p>
 
-ctx.clearRect(0, 0, cssW, cssH);    // 清屏
-ctx.fillStyle = '#2d6a3f';
-ctx.fillRect(10, 10, 120, 60);     // 画块
-ctx.beginPath();                    // 路径：必须 beginPath 开新路径
-ctx.arc(400, 200, 50, 0, Math.PI * 2);
-ctx.fill();</code></pre>
-  <h3>4.2 用 Canvas 绘制视频帧</h3>
-<pre class="code" data-lang="js"><code>// 把 video 当前帧画到 canvas（WebRTC 播放器的做法）
-function drawFrame(video, ctx, canvas) {
-  // 保持宽比：视频帧按 cover 方式裁进画布
-  const vw = video.videoWidth, vh = video.videoHeight;
-  const scale = Math.max(canvas.width / vw, canvas.height / vh);
-  const dw = vw * scale, dh = vh * scale;
-  ctx.drawImage(video, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
-}</code></pre>
-  <h3>4.3 SVG 基础：元素即 DOM</h3>
-<pre class="code" data-lang="xml"><code>&lt;svg viewBox="0 0 200 100" width="100%"&gt;
-  &lt;circle cx="50" cy="50" r="30" fill="#2d6a3f"/&gt;
-  &lt;rect x="100" y="20" width="80" height="60" rx="6" fill="#4f8a63"/&gt;
-  &lt;text x="50" y="95" text-anchor="middle" font-size="12"&gt;标签&lt;/text&gt;
-&lt;/svg&gt;</code></pre>
-  <h3>4.4 同一图形两种实现对比</h3>
-<pre class="code" data-lang="js"><code>// SVG：声明一个可点选的圆点（它就是 DOM，事件自动绑）
-// &lt;circle id="p" cx="100" cy="100" r="8" fill="red"/&gt;
-document.querySelector('#p').addEventListener('click', onPointClick);
-
-// Canvas：同样的红点要自己算命中（鼠标坐标落在半径内才算点中）
-canvas.addEventListener('click', (e) =&gt; {
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left), y = (e.clientY - rect.top);
-  if (Math.hypot(x - 100, y - 100) &lt;= 8) onPointClick();   // 手写命中测试
-});
-// 结论：少量可交互图形 SVG 省事；海量图形 Canvas 要自己维护一个"元素列表"做命中。</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：两处 Canvas 实战——WebRTC 播放器把视频帧画到 Canvas 做叠加，低代码平台用 diff + Canvas 高亮版本对比。</p>
-  <ul>
-    <li><strong>场景一</strong>：WebRTC 无插件播放器（Vue2+Janus+Canvas，2020-2022）去 ActiveX 化，多路同屏需在视频上叠水印/时间戳。</li>
-    <li><strong>场景二</strong>：低代码开发平台（Vue3+G6+ElementUI，2022-）流程/配置的版本对比，并排高亮新增/删除/修改节点。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责 Canvas 视频渲染管线与版本对比差异高亮。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算）；我负责画布渲染层，与后端对版本快照数据结构。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>播放器</strong>：Vue2 + Janus + WebRTC + Canvas + rAF。</li>
-    <li><strong>低代码平台</strong>：Vue3 + G6（图可视化）+ ElementUI + diff 算法。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>视频帧上屏</strong>：流接隐藏 <code>&lt;video&gt;</code> 解码，rAF 把当前帧 drawImage 到可见 Canvas 并叠水印。</li>
-    <li><strong>DPR 适配</strong>：Canvas 尺寸 = 容器 CSS 尺寸 × DPR，高清屏不糊。</li>
-    <li><strong>差异分层</strong>：静态底图缓存到 offscreen canvas，差异高亮作为 overlay 单独重绘。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>function startRenderLoop(video, canvas, ctx) {
+  <h3>6.1 场景一：WebRTC 视频上 Canvas（rAF 渲染循环）</h3>
+<pre class="code" data-lang="js"><code>function startRenderLoop(video, canvas, ctx) {
   function tick() {
     if (video.readyState &gt;= 2) {          // 已有可画的帧
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -826,7 +791,10 @@ canvas.addEventListener('click', (e) =&gt; {
   }
   requestAnimationFrame(tick);
 }</code></pre>
-  <pre class="code" data-lang="js"><code>// diff：按 id 对齐两版节点
+  <p><strong>设计</strong>：流接隐藏 video 解码，rAF 把当前帧 drawImage 到可见 Canvas 叠水印；Canvas 尺寸 = 容器 CSS × DPR（高清不糊）。</p>
+
+  <h3>6.2 场景二：版本 diff 高亮（分层 + offscreen）</h3>
+<pre class="code" data-lang="js"><code>// diff：按 id 对齐两版节点
 function diffNodes(oldNodes, newNodes) {
   const oldMap = new Map(oldNodes.map(n =&gt; [n.id, n]));
   const result = { added: [], removed: [], changed: [] };
@@ -839,113 +807,108 @@ function diffNodes(oldNodes, newNodes) {
   result.removed.push(...oldMap.values());
   return result;
 }
-// 高亮层绘制：新增=绿，删除=红，修改=黄
+// 高亮层：新增=绿，删除=红，修改=黄
 function paintDiffOverlay(ctx, diff) {
   diff.added.forEach(n =&gt; paintBox(ctx, n, '#047857'));
   diff.removed.forEach(n =&gt; paintBox(ctx, n, '#b91c1c'));
   diff.changed.forEach(({ now }) =&gt; paintBox(ctx, now, '#d97706'));
 }</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.3 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>不处理 DPR 发虚</strong>：4K 大屏视频发虚；补 <code>canvas.width = cssW × dpr</code> 后清晰。</li>
-    <li><strong>未按 cover 缩放</strong>：drawImage 用原始尺寸致拉伸变形，按宽高比算 cover 后正常。</li>
-    <li><strong>readyState 判断缺失</strong>：视频未到就 drawImage 抛错黑屏，加 <code>readyState&gt;=2</code> 判断后稳定。</li>
-    <li><strong>JSON 比较假阳性</strong>：<code>JSON.stringify</code> 比 data 因字段顺序不稳误报"修改"，改逐字段/排序后比。</li>
-    <li><strong>高亮层没清</strong>：切版本旧高亮残留，每次重绘前 <code>clearRect</code> 高亮层。</li>
-    <li><strong>上千节点掉帧</strong>：静态底图缓存到 offscreen canvas、差异层单独叠加，帧率恢复。</li>
+    <li><strong>不处理 DPR 发虚</strong>：4K 大屏视频发虚——补 <code>canvas.width = cssW × dpr</code> 后清晰；</li>
+    <li><strong>未按 cover 缩放</strong>：drawImage 用原始尺寸拉伸变形——按宽高比算 cover；</li>
+    <li><strong>readyState 判断缺失</strong>：视频未到就 drawImage 抛错黑屏——加 <code>readyState&gt;=2</code>；</li>
+    <li><strong>JSON 比较假阳性</strong>：stringify 因字段顺序不稳误报"修改"——逐字段/排序后比；</li>
+    <li><strong>高亮层没清</strong>：切版本旧高亮残留——每次重绘前 clearRect 高亮层；</li>
+    <li><strong>上千节点掉帧</strong>：静态底图缓存 offscreen、差异层单独叠加——帧率恢复。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>多路同屏视频 CPU 占用可控，遮罩/水印叠加比原生 video 方案更灵活（估算）。</li>
-    <li>版本对比一眼可见改动范围，上千节点重绘经 offscreen 缓存后帧率恢复。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端定版本快照节点数据结构（id + data），diff 才能按 id 对齐。</li>
-    <li><strong>联调协商</strong>：diff 假阳性问题，与产品确认"哪些字段算真改动"，收敛比较口径。</li>
-    <li><strong>排期</strong>：先做播放器 Canvas 上屏，再做低代码平台版本对比。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>DPR 是 Canvas 清晰的前提</strong>：任何 Canvas 上屏都要按 DPR 放大画布再 CSS 缩回。</li>
-    <li><strong>分层 + offscreen 缓存</strong>：高频可视化把静态层缓存、动态层叠加，是性能关键。</li>
-    <li><strong>对象比较要稳定</strong>：别用 JSON.stringify 直接判等，字段顺序会制造假阳性。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用"隐藏 video 解码 + rAF drawImage + DPR 适配"做 WebRTC 视频上 Canvas，并用 offscreen 分层缓存把上千节点的版本 diff 高亮做到不卡。</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 Canvas 在高分屏发虚</h3>
-  <p class="lead"><b>一句话定位</b>：缓冲按 CSS 尺寸建、被 DPR&gt;1 的屏拉伸，所以发虚。</p>
-  <ul>
-    <li><strong>现象</strong>：画出来的图形边缘模糊。</li>
-    <li><strong>正解</strong>：缓冲按 css尺寸×dpr 建、再 <code>ctx.scale(dpr,dpr)</code>。</li>
-  </ul>
-  <h3>6.2 状态污染：颜色/变换错乱</h3>
-  <p class="lead"><b>一句话定位</b>：2D 上下文样式/变换是全局状态，不 save/restore 就泄漏。</p>
-  <ul>
-    <li><strong>现象</strong>：这一段设了红色，后面所有图形都变红。</li>
-    <li><strong>正解</strong>：每段独立绘制前后成对 save/restore。</li>
-  </ul>
-  <h3>6.3 SVG 画万点卡顿</h3>
-  <p class="lead"><b>一句话定位</b>：每个 SVG 节点都是 DOM，万点时浏览器布局/合成扛不住。</p>
-  <ul>
-    <li><strong>现象</strong>：生成几千个 SVG 节点后页面卡顿、滚动掉帧。</li>
-    <li><strong>正解</strong>：海量数据切 Canvas/WebGL；SVG 只保留给少量节点场景。</li>
-  </ul>
-  <h3>6.4 Canvas 点击命中要自己算</h3>
-  <p class="lead"><b>一句话定位</b>：位图不做命中测试，点击检测得自己写碰撞。</p>
-  <ul>
-    <li><strong>现象</strong>：Canvas 上点击元素没反应。</li>
-    <li><strong>正解</strong>：维护元素几何列表，鼠标坐标换算到画布坐标后做碰撞检测（rect 包含、圆距离、path 用 isPointInPath）。</li>
-  </ul>
-  <h3>6.5 viewBox 与 CSS 尺寸不一致导致变形</h3>
-  <p class="lead"><b>一句话定位</b>：未设 preserveAspectRatio 或 CSS 比例与 viewBox 不一致就变形。</p>
-  <ul>
-    <li><strong>现象</strong>：SVG 被拉伸变形。</li>
-    <li><strong>正解</strong>：容器用 <code>width:100%+height:auto</code>，让浏览器按 viewBox 比例等比缩放。</li>
-  </ul>
-  <h3>6.6 beginPath 漏调导致连线</h3>
-  <p class="lead"><b>一句话定位</b>：路径是累加的，不开新路径之前的子路径会一起重绘。</p>
-  <ul>
-    <li><strong>现象</strong>：每次画圆都和上一个形状连上线。</li>
-    <li><strong>正解</strong>：每个独立形状前 <code>beginPath()</code>。</li>
-  </ul>
+  <h3>6.4 复盘与可复用经验</h3>
+  <ol>
+    <li><strong>DPR 是 Canvas 清晰的前提</strong>：任何 Canvas 上屏都按 DPR 放大画布再 CSS 缩回；</li>
+    <li><strong>分层 + offscreen 缓存</strong>：高频可视化把静态层缓存、动态层叠加，是性能关键；</li>
+    <li><strong>对象比较要稳定</strong>：别用 JSON.stringify 直接判等。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 Canvas 高分屏发虚</h3>
+  <p><strong>根因</strong>：缓冲按 CSS 尺寸建、被 DPR&gt;1 的屏拉伸。<strong>正解</strong>：缓冲按 css尺寸×dpr 建、再 <code>ctx.scale(dpr,dpr)</code>（2.3）。</p>
+
+  <h3>7.2 状态污染：颜色/变换错乱</h3>
+  <p><strong>现象</strong>：这段设了红色，后面全变红。<strong>根因</strong>：样式/变换是全局状态。<strong>正解</strong>：每段绘制前后成对 save/restore。</p>
+
+  <h3>7.3 SVG 画万点卡顿</h3>
+  <p><strong>现象</strong>：几千个 SVG 节点页面卡、滚动掉帧。<strong>根因</strong>：每节点都是 DOM。<strong>正解</strong>：海量数据切 Canvas/WebGL；SVG 只留少量节点场景。</p>
+
+  <h3>7.4 Canvas 点击命中没反应</h3>
+  <p><strong>根因</strong>：位图不做命中测试。<strong>正解</strong>：维护元素几何列表，坐标换算后碰撞检测（rect 包含/圆距离/path 用 isPointInPath，4.3）。</p>
+
+  <h3>7.5 viewBox 与 CSS 尺寸不一致导致变形</h3>
+  <p><strong>现象</strong>：SVG 被拉伸。<strong>正解</strong>：容器 <code>width:100% + height:auto</code>，让浏览器按 viewBox 比例等比缩放。</p>
+
+  <h3>7.6 beginPath 漏调导致连线</h3>
+  <p><strong>现象</strong>：每次画圆都和上个形状连上线。<strong>根因</strong>：路径是累加的。<strong>正解</strong>：每个独立形状前 <code>beginPath()</code>。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Canvas 和 SVG 的本质区别？怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>Canvas 立即模式</strong>——命令式 API 逐帧画进像素缓冲，画完即位图不保留对象；性能取决于每帧指令数，海量元素流畅但命中要自己算。<strong>SVG 保留模式</strong>——矢量图形是真实 DOM，事件/CSS/无障碍天然可用、放大不失真，但节点多必卡。<strong>选型最硬的分界线是元素数量</strong>：几十个选 SVG，上万选 Canvas；再叠加帧率（视频/实时→Canvas）与交互需求（点击/CSS→SVG）。工程上 ECharts/G6 默认 Canvas 就是这条逻辑。</p>
+
+  <p><strong>Q2：Canvas 在 Retina 屏发虚的原因与解法？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>根因</strong>——绘制缓冲按 CSS 尺寸建立，DPR&gt;1 的屏把缓冲拉伸到物理像素显示，一 CSS 像素对应多物理像素就模糊。<strong>解法三件套</strong>：<code>canvas.width = cssW × dpr</code>（缓冲按物理像素建）、<code>canvas.style.width = cssW + 'px'</code>（显示按 CSS 尺寸）、<code>ctx.scale(dpr, dpr)</code>（绘制代码仍按 CSS 坐标写）。<strong>记忆点</strong>：缓冲放大、显示缩回、坐标不变。</p>
+
+  <p><strong>Q3：Canvas 上怎么实现图形点击？SVG 呢？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>SVG</strong>——图形就是 DOM，直接 addEventListener，浏览器按矢量形状做命中（注意 fill="none" 不命中、transparent 仍命中，可用 pointer-events 调规则）。<strong>Canvas</strong>——位图无对象信息，要维护"元素几何列表"：click 事件坐标换算到画布坐标系（减去 getBoundingClientRect），再碰撞检测——rect 包含判断、圆用距离（Math.hypot）、复杂 path 用 <code>isPointInPath</code>；海量元素先包围盒粗筛再精确判定。<strong>这正是"少量交互选 SVG、海量渲染选 Canvas"在交互维度的体现</strong>。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>立即模式与保留模式的区别？各自性能瓶颈？</li>
+    <li>DPR 适配三件套？为什么绘制坐标不用改？</li>
+    <li>save/restore 防的是什么？</li>
+    <li>viewBox 与视口的关系？preserveAspectRatio 干什么？</li>
+    <li>分层 + offscreen 缓存解决什么问题？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>MDN Canvas API 教程与参考：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Canvas_API" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/Canvas_API</a></li>
-    <li>MDN SVG 指南：<a href="https://developer.mozilla.org/zh-CN/docs/Web/SVG" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/SVG</a></li>
+    <li>MDN Canvas API 教程与参考：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Canvas_API" rel="noopener">MDN · Canvas API</a></li>
+    <li>MDN SVG 指南：<a href="https://developer.mozilla.org/zh-CN/docs/Web/SVG" rel="noopener">MDN · SVG</a></li>
     <li>SVG 规范（W3C）：<a href="https://www.w3.org/Graphics/SVG/" rel="noopener">www.w3.org/Graphics/SVG</a></li>
   </ul>
   <h3>书籍</h3>
   <ul>
-    <li>《HTML5 Canvas 权威指南》（David Flanagan，O'Reilly）——Canvas 2D API 的系统参考书。</li>
-    <li>《SVG 动画》（Sarah Drasner）——SVG 矢量图形与动画的实战书。</li>
+    <li>《HTML5 Canvas 权威指南》（David Flanagan）——Canvas 2D API 系统参考。</li>
+    <li>《SVG 动画》（Sarah Drasner）——SVG 矢量图形与动画实战。</li>
   </ul>
-  <h3>实战文章</h3>
+  <h3>实战 / 文章</h3>
   <ul>
-    <li>MDN 高性能 Canvas 动画与 DPR 适配专题：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Canvas_API/Tutorial" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/Canvas_API/Tutorial</a></li>
-    <li>web.dev 渲染性能（Canvas 与合成层相关）：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
+    <li>MDN Canvas Tutorial（高性能动画与 DPR 专题）</li>
+    <li>web.dev 渲染性能（Canvas 与合成层）：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章两个场景，完成 DPR 与 cover 缩放验证；</li>
+    <li>故意去掉 save/restore 复现状态污染，再修复；</li>
+    <li>给 Canvas 版红点加 isPointInPath 命中，与 SVG 版对比代码量。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../01_前端基础/06_TypeScript【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/09_前端安全_XSS与CSRF【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/04_浏览器原理与渲染机制【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/01_Vue框架【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Canvas与SVG【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
