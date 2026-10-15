@@ -542,39 +542,168 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../03_数据可视化/05_GoJS【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../03_数据可视化/09_可视化性能优化与大数据渲染【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/07_GIS地图可视化【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：Three.js 是 WebGL 的高级封装——用场景/相机/网格/渲染器的对象模型组织 3D。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Three.js 是 WebGL 的高级封装</strong>——用"场景/相机/网格/渲染器"的对象模型组织 3D：Scene 是物体树容器、Camera 决定从哪看与投影方式、<strong>Mesh = 几何体（形状）+ 材质（外观）</strong>、Renderer 每帧把场景从相机视角光栅化到 Canvas。它把原生 WebGL 的门槛（手写 shader/顶点缓冲/矩阵栈/渲染循环）封装掉，业务只管摆物体、打光、动相机。</p>
+
+  <h3>1.2 横向对比：Three.js vs Babylon.js / 原生 WebGL / Cesium</h3>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>维度</th><th>Three.js</th><th>Babylon.js</th><th>原生 WebGL / Cesium</th></tr></thead>
+    <tbody>
+      <tr><td>定位</td><td>通用 3D 渲染库，轻量灵活</td><td>游戏/交互引擎，功能全（物理/动画/编辑器）</td><td>WebGL 是底层；Cesium 专做地球级地理 3D</td></tr>
+      <tr><td>上手</td><td>API 简洁，生态大，示例多</td><td>更重，面向完整游戏</td><td>原生极难；Cesium 限地理场景</td></tr>
+      <tr><td>体积</td><td>适中，按需引入</td><td>较大</td><td>原生无依赖但全手写</td></tr>
+      <tr><td>取舍</td><td><strong>大屏 3D 可视化首选</strong></td><td>做复杂交互游戏才上</td><td>地球/地理空间分析用 Cesium</td></tr>
+    </tbody>
+  </table>
+  <p><strong>选型口诀</strong>：大屏 3D 态势用 Three.js，地球级地理才上 Cesium，完整游戏循环+物理才上 Babylon。</p>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立<strong>场景图</strong>心智（Object3D 树，父动子随）；</li>
+    <li>分清 Mesh = Geometry + Material 的解耦设计；</li>
+    <li>理解 <strong>draw call</strong> 与万点优化的第一原则（InstancedMesh）；</li>
+    <li>掌握 16.6ms 帧预算的分配与降级策略；</li>
+    <li>避开六条高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇 WebGL 抽象层级。<strong>难度</strong>：★★★★☆。<strong>本篇不涉及</strong>：shader 手写（WebGL fundamentals 补）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>七个核心模型：<strong>场景图</strong>（总纲）→ <strong>相机</strong>→ <strong>几何体与缓冲</strong>→ <strong>材质</strong>→ <strong>光照</strong>→ <strong>Mesh 与 draw call</strong>→ <strong>渲染循环/剔除/LOD</strong>。</p>
+
+  <h3>2.1 场景图：Object3D 树，父动子随</h3>
+  <p>Mesh、Light、Group、Camera 都是 <code>Object3D</code>，各有 position/rotation/scale，<strong>变换按父子层级累乘</strong>；Group 把一组物体当整体移动。<span class="tag-key">心智模型</span>：父节点动子节点跟着动——组织层级 3D 物体（如一个变电站含多台设备）的基础。</p>
+
+  <h3>2.2 相机：透视 vs 正交</h3>
+  <p>PerspectiveCamera 近大远小符合人眼；OrthographicCamera 无透视、工程图纸感，用于需精确对齐的 2.5D 面板。<span class="tag-pit">坑</span>必设 <code>aspect</code>（否则画面拉伸）与 near/far 裁剪面——裁剪面外的物体被剔除（"模型消失"的经典原因）。</p>
+
+  <h3>2.3 几何体：顶点数据，万点写进一个 BufferGeometry</h3>
+  <p>内置基本体（Box/Sphere/Plane）；点云用 <code>BufferGeometry</code> 自定义顶点——万级坐标写进 position 属性（Float32Array）。</p>
+
+  <h3>2.4 材质：与几何体解耦，按真实度与开销取舍</h3>
   <ul>
-    <li><strong>场景 Scene</strong>：物体的树形容器。</li>
-    <li><strong>相机 Camera</strong>：决定从哪看、用什么投影（透视/正交）。</li>
-    <li><strong>网格 Mesh = 几何体 Geometry + 材质 Material</strong>：前者定形状，后者定外观。</li>
-    <li><strong>渲染器 Renderer</strong>：每帧把场景从相机视角光栅化到 Canvas。</li>
+    <li>MeshBasicMaterial：不受光、纯色，最省；</li>
+    <li>MeshLambertMaterial：漫反射，便宜；MeshStandardMaterial：<strong>PBR 最真实但贵</strong>；</li>
+    <li>PointsMaterial：点云专用；</li>
+    <li><strong>取舍</strong>：大屏静态展示用 Lambert/Basic 省开销。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：把实时 3D 引擎骨架做好，业务只管摆物体、打光、动相机。</p>
-  <ul>
-    <li><strong>原生 WebGL 门槛高</strong>：要手写顶点/片元 shader、管顶点缓冲矩阵、自己实现矩阵栈与渲染循环。</li>
-    <li><strong>项目落地</strong>：大屏用它做 3D 站点布局、点云态势可视化。</li>
-  </ul>
+
+  <h3>2.5 光照与 Mesh/draw call</h3>
+  <p>大屏常"环境光+一盏平行光"，或干脆不打光（Basic 材质）。<span class="tag-point">性能核心</span>：<strong>draw call</strong>——每画一组同材质同几何体的物体 GPU 一次绘制调用，几千个独立 Mesh 把 GPU 调度打满；<code>InstancedMesh</code> 一次 draw call 画多个实例——<strong>万点稳定渲染的关键</strong>。</p>
+
+  <h3>2.6 渲染循环、视锥剔除与 LOD</h3>
+  <p>3D 是逐帧重绘：rAF 里每帧 <code>renderer.render(scene, camera)</code>；<strong>60fps = 每帧预算约 16.6ms</strong>（JS 更新+矩阵计算+GPU 绘制三段都要算进预算）。<strong>视锥剔除</strong>默认开启（看不见的不提交）；<strong>LOD</strong> 远处低模近处高模；配合空间划分（八叉树）快速剔除整块不可见区域——万点大场景必备。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最小 3D 场景</h3>
+<pre class="code" data-lang="js"><code>import * as THREE from 'three';
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
+camera.position.z = 10;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+// 一个方块 = 几何体 + 材质
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshStandardMaterial({ color: '#3d7a4f' })
+);
+scene.add(cube);
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+// 渲染循环
+(function animate() {
+  requestAnimationFrame(animate);
+  cube.rotation.x += 0.01; cube.rotation.y += 0.01;
+  renderer.render(scene, camera);
+})();</code></pre>
+
+  <h3>3.2 场景二：逐点 Mesh vs InstancedMesh</h3>
+<pre class="code" data-lang="js"><code>// 写法 A（卡）：每个点一个独立 Mesh → 上万 draw call
+// for (let i = 0; i &lt; 10000; i++) {
+//   const m = new THREE.Mesh(geo, mat);
+//   m.position.set(x[i], y[i], z[i]);
+//   scene.add(m);
+// }
+
+// 写法 B（稳）：InstancedMesh，一次 draw call 画 1 万实例
+const inst = new THREE.InstancedMesh(geo, mat, 10000);
+const dummy = new THREE.Object3D();
+for (let i = 0; i &lt; 10000; i++) {
+  dummy.position.set(x[i], y[i], z[i]);
+  dummy.updateMatrix();
+  inst.setMatrixAt(i, dummy.matrix);    // 每个实例的变换塞进同一缓冲
+}
+inst.instanceMatrix.needsUpdate = true;
+scene.add(inst);</code></pre>
+  <p><span class="tag-key">取舍</span>：大量"同形状、同材质"物体（万点、重复设备模型）用 InstancedMesh；少数不同物体才用独立 Mesh——<strong>3D 性能优化第一原则</strong>。</p>
+
+  <h3>3.3 场景三：点云 BufferGeometry</h3>
+<pre class="code" data-lang="js"><code>const positions = new Float32Array(N * 3);   // 万级坐标
+// ... 填充 positions ...
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+const points = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.05, color: '#4f8a63' }));
+scene.add(points);
+// 高频刷新只更新 position 缓冲
+geo.attributes.position.needsUpdate = true;</code></pre>
+
+  <h3>3.4 场景四：自适应窗口（大屏多分辨率必加）</h3>
+<pre class="code" data-lang="js"><code>window.addEventListener('resize', () =&gt; {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：场景图与 draw call 概念已清楚。</p>
+
+  <h3>4.1 一帧管线与成本分布</h3>
+  <p>每帧五步：<strong>更新场景图（JS 改变换/数据）→ 矩阵变换（世界→视图→裁剪）→ 剔除与排序（视锥剔除/透明排序）→ 提交 GPU（按材质分批 draw）→ 光栅化</strong>。成本分布：<strong>draw call 调度 &gt; 顶点上传 &gt; 片段着色</strong>——省开销先从减 draw call 入手，动画/交互期最贵的是无谓的整场景重建。</p>
+
+  <h3>4.2 缓冲脏位更新与 addUpdateRange</h3>
+  <p>高频刷新<strong>绝不重建几何体</strong>：复用 BufferGeometry、只更新属性缓冲并置 <code>needsUpdate=true</code>；只改一段时用 <code>attribute.addUpdateRange(start, count)</code>（r159 起替代旧的 updateRange）——避免全量顶点重新上传。</p>
+
+  <h3>4.3 拾取与交互</h3>
+  <p>点击选中 3D 物体用 <code>Raycaster</code>：从相机与鼠标坐标生成射线，与场景求交返回命中列表（按距离排序）；InstancedMesh 命中返回 instanceId——万点态势"点选单点看详情"的实现基础。<strong>节流</strong>：mousemove 拾取配合 rAF。</p>
+
+  <h3>4.4 材质降级与弱机适配</h3>
+  <p>低配大屏 GPU 三档降级：①静态层 Lambert/Basic 替代 PBR；②抗锯齿按机器取舍（MSAA 开销大）；③远端点配 LOD 低模。<strong>按现场主机 GPU 档位分材质策略</strong>是电力大屏落地经验——开发机流畅≠现场流畅。</p>
+
+  <h3>4.5 渲染循环纪律</h3>
+  <p><strong>渲染循环里不做重活</strong>：数据准备/布局计算放循环外或 Worker，animate 回调只做必要的变换更新与 render；相机控制用 OrbitControls（惯性/阻尼自带），不手写欧拉角旋转。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Three.js 渲染链路位置示意图">
       <defs>
@@ -604,77 +733,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Three.js 在 3D 渲染链路中的位置（示意）</p>
   </div>
-  <h3>横向对比：Three.js vs 原生 WebGL / Babylon.js / Cesium</h3>
-  <table>
-    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
-    <thead><tr><th>维度</th><th>Three.js</th><th>Babylon.js</th><th>原生 WebGL / Cesium</th></tr></thead>
-    <tbody>
-      <tr><td>定位</td><td>通用 3D 渲染库，轻量灵活</td><td>游戏/交互引擎，功能全（物理/动画/编辑器）</td><td>WebGL 是底层；Cesium 专做地球级地理 3D</td></tr>
-      <tr><td>上手</td><td>API 简洁，生态大，示例多</td><td>更重，面向完整游戏</td><td>原生极难；Cesium 限地理场景</td></tr>
-      <tr><td>体积</td><td>适中，按需引入</td><td>较大</td><td>原生无依赖但全手写</td></tr>
-      <tr><td>取舍</td><td>大屏 3D 可视化首选</td><td>做复杂交互游戏才上</td><td>需地球/地理空间分析用 Cesium</td></tr>
-    </tbody>
-  </table>
-  <p class="lead"><b>一句话定位</b>：大屏 3D 态势用 Three.js，地球级地理才上 Cesium。</p>
-  <ul>
-    <li><strong>选 Three.js</strong>：足够轻、API 直观、生态示例丰富。</li>
-    <li><strong>Cesium</strong>：仅明确要"地球级地理可视化"时考虑。</li>
-    <li><strong>Babylon</strong>：要"完整游戏循环 + 物理"才上。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 场景图（Scene Graph）</h3>
-  <p class="lead"><b>一句话定位</b>：场景是 Object3D 节点树，父节点动则子节点跟着动。</p>
-  <ul>
-    <li><strong>节点</strong>：Mesh、Light、Group、Camera 都是 <code>Object3D</code>，各有 <code>position/rotation/scale</code>，变换按父子层级累乘。</li>
-    <li><strong>Group</strong>：把一组物体当整体移动/旋转。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-key">心智模型</span>父节点动子节点跟着动——这是组织层级 3D 物体（如一个变电站含多台设备）的基础。</p>
-  <h3>2.2 相机（Camera）</h3>
-  <p class="lead"><b>一句话定位</b>：透视相机用于常规 3D，正交相机用于精确对齐的 2.5D 面板。</p>
-  <ul>
-    <li><code>PerspectiveCamera</code>：近大远小，符合人眼。</li>
-    <li><code>OrthographicCamera</code>：无透视、工程图纸感，用于需精确对齐的面板。</li>
-    <li><span class="tag-pit">坑</span>必设 <code>aspect</code>（否则画面拉伸）与 <code>near/far</code> 裁剪面，落在裁剪面外的物体会被剔除。</li>
-  </ul>
-  <h3>2.3 几何体（Geometry）与缓冲</h3>
-  <p class="lead"><b>一句话定位</b>：几何体是顶点数据，万点就写进一个 BufferGeometry。</p>
-  <ul>
-    <li><strong>内置基本体</strong>：<code>BoxGeometry/SphereGeometry/PlaneGeometry</code>。</li>
-    <li><strong>点云</strong>：<code>BufferGeometry</code> 自定义一组顶点，万级坐标写进 position 属性。</li>
-    <li><strong>性能</strong>：BufferGeometry（按属性缓冲）优于旧 Geometry。</li>
-  </ul>
-  <h3>2.4 材质与着色（Material）</h3>
-  <p class="lead"><b>一句话定位</b>：材质与几何体解耦，按真实度与开销取舍。</p>
-  <ul>
-    <li><code>MeshBasicMaterial</code>：不受光照、纯色，最省。</li>
-    <li><code>MeshLambertMaterial</code>：漫反射，便宜；<code>MeshStandardMaterial</code>：PBR 最真实但贵。</li>
-    <li><code>PointsMaterial</code>：点云专用。</li>
-    <li><strong>取舍</strong>：大屏静态展示用 Lambert/Basic 省开销。</li>
-  </ul>
-  <h3>2.5 光照（Light）</h3>
-  <p class="lead"><b>一句话定位</b>：大屏常"环境光 + 一盏平行光"，或干脆不打光。</p>
-  <ul>
-    <li><code>AmbientLight</code>：环境光整体提亮；<code>DirectionalLight</code>：平行光像太阳。</li>
-    <li><code>PointLight</code>：点光源；<code>SpotLight</code>：聚光。</li>
-  </ul>
-  <h3>2.6 网格（Mesh）与 draw call</h3>
-  <p class="lead"><b>一句话定位</b>：性能核心是 draw call，万级相同物体用 InstancedMesh 合并。</p>
-  <ul>
-    <li><strong>draw call</strong>：每画一组同材质同几何体的物体，GPU 一次绘制调用；几千个独立 Mesh 会把 GPU 调度打满。</li>
-    <li><span class="tag-point">要点</span><code>InstancedMesh</code>：一次 draw call 画多个实例——万点稳定渲染的关键。</li>
-  </ul>
-  <h3>2.7 渲染循环与帧（Render Loop）</h3>
-  <p>3D 是逐帧重绘：<code>requestAnimationFrame</code> 里每帧调 <code>renderer.render(scene, camera)</code>。动画/旋转在每帧回调里更新物体变换。帧率 60fps 意味着每帧预算约 16.6ms——包含 JS 更新、矩阵计算、GPU 绘制三部分。</p>
-  <h3>2.8 视锥剔除与 LOD（Culling &amp; LOD）</h3>
-  <p><strong>视锥剔除（Frustum Culling）</strong>：相机看不到的物体自动不提交绘制，Three.js 默认开启。<strong>LOD（Level of Detail）</strong>：远处物体用低模、近处用高模，省顶点。配合空间划分（八叉树/四叉树）可快速剔除整块不可见区域——万点大场景的必备。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 渲染管线：从场景图到像素</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Three.js 一帧渲染管线示意图">
       <defs>
@@ -692,7 +750,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="265" y="96" text-anchor="middle" font-size="11" fill="#4f6348">世界→视图→裁剪</text>
       <line x1="330" y1="83" x2="366" y2="83" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <rect x="370" y="55" width="130" height="56" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="435" y="78" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">剔除 & 排序</text>
+      <text x="435" y="78" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">剔除 &amp; 排序</text>
       <text x="435" y="96" text-anchor="middle" font-size="11" fill="#4f6348">视锥剔除/透明排序</text>
       <line x1="500" y1="83" x2="536" y2="83" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <rect x="540" y="55" width="130" height="56" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
@@ -708,13 +766,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Three.js 一帧渲染管线（示意）</p>
   </div>
-  <ol>
-    <li><strong>更新</strong>：JS 每帧改物体位置/颜色（如点云数据刷新）。</li>
-    <li><strong>矩阵变换</strong>：把世界坐标经视图矩阵、投影矩阵变换到裁剪空间。</li>
-    <li><strong>剔除与排序</strong>：视锥外物体跳过；透明物体按深度排序。</li>
-    <li><strong>提交与光栅化</strong>：按材质分批 draw call，GPU 光栅化出像素。</li>
-  </ol>
-  <h3>3.2 万点性能：InstancedMesh 与空间剔除</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="万级数据点渲染优化示意图">
       <defs>
@@ -739,98 +790,21 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 万级数据点渲染优化（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 总纲——业务搭场景图，引擎每帧跑"相机→投影→光栅化"；②图 2 定位 16.6ms 预算三段——瓶颈排序决定优化顺序；③图 3 万点四板斧对照——每条朴素做法对应一条优化做法。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 最小 3D 场景</h3>
-<pre class="code" data-lang="js"><code>import * as THREE from 'three';
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
-camera.position.z = 10;
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-document.body.appendChild(renderer.domElement);
-// 一个方块 = 几何体 + 材质
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshStandardMaterial({ color: '#3d7a4f' })
-);
-scene.add(cube);
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-// 渲染循环
-(function animate() {
-  requestAnimationFrame(animate);
-  cube.rotation.x += 0.01; cube.rotation.y += 0.01;
-  renderer.render(scene, camera);
-})();</code></pre>
-  <h3>4.2 写法对比：逐点 Mesh vs InstancedMesh</h3>
-<pre class="code" data-lang="js"><code>// 写法 A（卡）：每个点一个独立 Mesh → 上万 draw call
-// for (let i = 0; i < 10000; i++) {
-//   const m = new THREE.Mesh(geo, mat);
-//   m.position.set(x[i], y[i], z[i]);
-//   scene.add(m);
-// }
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——电力大屏 3D 站点布局叠加万级实时监测点（温度/负荷越限），旋转视角交互 + 高频刷新，低配大屏主机。</p>
 
-// 写法 B（稳）：InstancedMesh，一次 draw call 画 1 万实例
-const inst = new THREE.InstancedMesh(geo, mat, 10000);
-const dummy = new THREE.Object3D();
-for (let i = 0; i < 10000; i++) {
-  dummy.position.set(x[i], y[i], z[i]);
-  dummy.updateMatrix();
-  inst.setMatrixAt(i, dummy.matrix);    // 每个实例的变换塞进同一缓冲
-}
-inst.instanceMatrix.needsUpdate = true;
-scene.add(inst);</code></pre>
-  <div class="note"><strong>取舍</strong>：大量"同形状、同材质"物体（万点、重复设备模型）用 <code>InstancedMesh</code>；少数不同物体才用独立 Mesh。这是 3D 性能优化的第一原则。</div>
-  <h3>4.3 点云：BufferGeometry 自定义顶点</h3>
-<pre class="code" data-lang="js"><code>const positions = new Float32Array(N * 3);   // 万级坐标
-// ... 填充 positions ...
-const geo = new THREE.BufferGeometry();
-geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-const points = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.05, color: '#4f8a63' }));
-scene.add(points);
-// 高频刷新只更新 position 缓冲的一段
-geo.attributes.position.needsUpdate = true;</code></pre>
-  <h3>4.4 自适应窗口</h3>
-<pre class="code" data-lang="js"><code>window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);   // 大屏多分辨率必加
-});</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：电力大屏在 3D 站点布局上叠加万级实时监测点，旋转视角不能掉帧。</p>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>场景</strong>：3D 厂区/站点布局上叠加万级监测点（温度、负荷越限），需旋转视角交互且高频刷新。</li>
-    <li><strong>量级</strong>：监测点上万、运行在低配大屏主机上。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：3D 可视化渲染层前端，负责性能预算与渲染循环。</p>
-  <ul>
-    <li><strong>分工</strong>：负责场景图、相机、材质光照与渲染循环调优；后端提供点位坐标与遥测值。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>前端</strong>：Three.js（WebGL），与 ECharts 2D 面板同屏叠加。</li>
-    <li><strong>部署</strong>：大屏主机，GPU 配置偏弱，需做降级。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：用 InstancedMesh 压 draw call、BufferGeometry 缓冲只更新脏位、视锥剔除+LOD。</p>
-  <ul>
-    <li><strong>实例化</strong>：万点从逐点 Mesh 改 <code>InstancedMesh</code>，一次 draw call 画全部。</li>
-    <li><strong>缓冲</strong>：高频刷新只更新脏位并置 <code>position.needsUpdate=true</code>，不重建几何体；只改一段时用 <code>attribute.addUpdateRange(start,count)</code>（r159 起弃用旧的 <code>updateRange</code>）。</li>
+    <li><strong>实例化</strong>：万点从逐点 Mesh 改 InstancedMesh，一次 draw call 画全部；</li>
+    <li><strong>缓冲</strong>：高频刷新只更新脏位并置 position.needsUpdate=true，不重建几何体；只改一段用 addUpdateRange；</li>
     <li><strong>降级</strong>：静态层 Lambert/Basic 省 PBR，远端点配 LOD。</li>
   </ul>
 
-  <h3>5.5 关键实现要点</h3>
+  <h3>6.2 关键实现</h3>
 <pre class="code" data-lang="js"><code>const inst = new THREE.InstancedMesh(
   new THREE.SphereGeometry(0.05, 8, 8),
   new THREE.MeshLambertMaterial({ color: 0x4f8a63 }),
@@ -851,94 +825,84 @@ scene.add(inst);
   renderer.render(scene, camera);
 })();</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.3 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>draw call 上万</strong>：逐点独立 Mesh 是 GPU 调度瓶颈——换 InstancedMesh 后 draw call 骤降。</li>
-    <li><span class="tag-pit">坑</span><strong>每帧重建 BufferGeometry</strong>：高频刷新顶点反复上传——改只更新 <code>position.needsUpdate</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>低配 GPU 扛不住 PBR</strong>：大屏 GPU 弱，静态层改 Lambert/Basic，仅特写保留 PBR。</li>
-    <li><span class="tag-point">要点</span><strong>前后对比</strong>：从个位数 fps 提到接近 60fps（估算）。</li>
+    <li><span class="tag-pit">坑</span><strong>draw call 上万</strong>：逐点独立 Mesh 是 GPU 调度瓶颈——换 InstancedMesh 后 draw call 骤降；</li>
+    <li><span class="tag-pit">坑</span><strong>每帧重建 BufferGeometry</strong>：高频刷新顶点反复上传——改只更新 position.needsUpdate；</li>
+    <li><span class="tag-pit">坑</span><strong>低配 GPU 扛不住 PBR</strong>：大屏 GPU 弱——静态层改 Lambert/Basic，仅特写保留 PBR；</li>
+    <li><span class="tag-point">要点</span><strong>前后对比</strong>：draw call 从万级压到个位数，帧率约从个位数 fps 提到接近 60fps（估算）。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>帧率</strong>：旋转视角稳定在可交互范围，约从个位数 fps 提到接近 60fps（估算）。</li>
-    <li><strong>draw call</strong>：从万级压到个位数。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端约定点位坐标与遥测值数组格式。</li>
-    <li><strong>联调协商</strong>：按现场主机 GPU 档位分材质降级策略，低配机关抗锯齿。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>先压 draw call</strong>：万级同类对象首选 InstancedMesh/Points，别逐对象建 Mesh。</li>
-    <li><span class="tag-point">要点</span><strong>缓冲只更新脏位</strong>：高频数据刷新绝不重建几何体。</li>
-    <li><span class="tag-point">要点</span><strong>按 GPU 降级</strong>：大屏弱机静态层用低成本材质。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「万级监测点 3D 渲染，实践中常采用 InstancedMesh 把 draw call 从万级压到个位数、BufferGeometry 只更新脏位、视锥剔除+LOD，帧率从个位数拉到接近 60。」</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 逐点独立 Mesh 打爆 draw call</h3>
-  <ul>
-    <li><strong>现象</strong>：物体过千就转不动、帧率暴跌。</li>
-    <li><strong>原因</strong>：每个独立 Mesh 一次 draw call，GPU 调度开销随物体数线性增长。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：大量同形物体用 <code>InstancedMesh</code>，点云用 <code>BufferGeometry+Points</code>。面试常考"draw call 是什么、怎么降"。</p>
-  <h3>6.2 高频重建几何体</h3>
-  <ul>
-    <li><strong>现象</strong>：数据一刷新就卡顿、内存上涨。</li>
-    <li><strong>原因</strong>：每次都 new BufferGeometry 重建，GPU 反复重新上传顶点缓冲。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：复用几何体，只更新属性缓冲并设 <code>needsUpdate = true</code>。</p>
-  <h3>6.3 相机 aspect 不随窗口更新</h3>
-  <ul>
-    <li><strong>现象</strong>：窗口拉大后画面拉伸变形。</li>
-    <li><strong>原因</strong>：aspect 固定为初始宽高比。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：resize 时更新 <code>camera.aspect</code> 并 <code>updateProjectionMatrix()</code>，再 <code>renderer.setSize</code>。</p>
-  <h3>6.4 过度使用 PBR 与抗锯齿</h3>
-  <ul>
-    <li><strong>现象</strong>：低端大屏 GPU 上帧率低。</li>
-    <li><strong>原因</strong>：<code>MeshStandardMaterial</code> 逐像素 PBR 计算 + MSAA 抗锯齿开销大。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：静态/远层用 Lambert/Basic，抗锯齿按机器能力取舍，特写才用 PBR。</p>
-  <h3>6.5 不利用视锥剔除与 LOD</h3>
-  <ul>
-    <li><strong>现象</strong>：大场景里很多看不见的物体也在耗算力。</li>
-    <li><strong>原因</strong>：未做剔除/LOD，所有物体每帧都参与计算与提交。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：保证视锥剔除开启（默认），大场景加空间划分，远处用 LOD 低模。</p>
-  <h3>6.6 渲染循环里做重活</h3>
-  <ul>
-    <li><strong>现象</strong>：动画卡顿、帧率不稳。</li>
-    <li><strong>原因</strong>：在 animate 回调里做数据处理/布局计算，挤占 16.6ms 预算。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：数据准备在循环外/Worker，渲染循环只做必要的变换更新与 render。</p>
+  <h3>6.4 协作与复盘</h3>
+  <ol>
+    <li><strong>契约先行</strong>：与后端约定点位坐标与遥测值数组格式；</li>
+    <li><strong>联调协商</strong>：按现场主机 GPU 档位分材质降级策略，低配机关抗锯齿——开发机流畅≠现场流畅；</li>
+    <li><strong>可复用经验</strong>：先压 draw call；缓冲只更新脏位；按 GPU 降级。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 逐点独立 Mesh 打爆 draw call</h3>
+  <p><strong>现象</strong>：物体过千就转不动、帧率暴跌。<strong>正解</strong>：大量同形物体用 InstancedMesh，点云用 BufferGeometry+Points（面试常考"draw call 是什么、怎么降"）。</p>
+
+  <h3>7.2 高频重建几何体</h3>
+  <p><strong>现象</strong>：数据一刷新就卡、内存上涨。<strong>原因</strong>：每次 new BufferGeometry，GPU 反复重新上传顶点缓冲。<strong>正解</strong>：复用几何体，只更新属性缓冲并设 needsUpdate=true。</p>
+
+  <h3>7.3 相机 aspect 不随窗口更新</h3>
+  <p><strong>现象</strong>：窗口拉大后画面拉伸变形。<strong>正解</strong>：resize 时更新 camera.aspect 并 updateProjectionMatrix()，再 renderer.setSize。</p>
+
+  <h3>7.4 过度使用 PBR 与抗锯齿</h3>
+  <p><strong>现象</strong>：低端大屏 GPU 帧率低。<strong>正解</strong>：静态/远层用 Lambert/Basic，抗锯齿按机器能力取舍，特写才用 PBR。</p>
+
+  <h3>7.5 不利用视锥剔除与 LOD</h3>
+  <p><strong>现象</strong>：大场景里看不见的物体也耗算力。<strong>正解</strong>：视锥剔除保持开启（默认），大场景加空间划分，远处 LOD 低模。</p>
+
+  <h3>7.6 渲染循环里做重活</h3>
+  <p><strong>现象</strong>：动画卡顿、帧率不稳。<strong>原因</strong>：animate 回调里做数据处理/布局计算，挤占 16.6ms。<strong>正解</strong>：数据准备在循环外/Worker，渲染循环只做变换更新与 render。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Three.js 的核心对象模型是什么？Mesh 为什么拆成 Geometry 和 Material？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四件套——<strong>Scene</strong>（Object3D 树容器，父动子随）、<strong>Camera</strong>（透视/正交，定投影与裁剪面）、<strong>Mesh = Geometry + Material</strong>、<strong>Renderer</strong>（每帧光栅化）。<strong>拆分的原因是解耦</strong>：同一几何体可换材质（同批设备换降级材质）、同一材质可换几何体（InstancedMesh 万实例共用一份 geometry+material）——这种解耦正是 InstancedMesh 优化能成立的结构基础。对比原生 WebGL：Three.js 把 shader/顶点缓冲/矩阵栈/渲染循环都封装了，业务只描述场景。</p>
+
+  <p><strong>Q2：draw call 是什么？为什么它是 3D 性能第一指标？怎么降？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>draw call</strong> = CPU 告诉 GPU"用这套状态画这批顶点"的一次绘制调用；每次调用有固定的 CPU-GPU 通信与状态切换开销——<strong>几千个独立 Mesh 就是几千次调用，GPU 调度被打满，帧率暴跌</strong>（顶点数反而不是首要瓶颈）。<strong>降法按优先级</strong>：①InstancedMesh 把同形同质物体合成一次调用（万点 → 个位数 draw call）；②点云用 BufferGeometry+Points；③视锥剔除+空间划分不提交不可见物体；④LOD 远处低模。实战：电力大屏万级监测点从逐点 Mesh 改 InstancedMesh，draw call 万级→个位数，帧率个位数→接近 60fps（估算）。</p>
+
+  <p><strong>Q3：高频刷新的 3D 点云怎么避免卡顿？16.6ms 预算怎么分配？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>帧预算</strong>：60fps 每帧 16.6ms = JS 更新 + 矩阵/剔除 + GPU 绘制三段。<strong>三条纪律</strong>：①缓冲只更新脏位——复用 BufferGeometry、needsUpdate=true、局部变更用 addUpdateRange，<strong>绝不每帧 new 几何体</strong>（顶点反复上传是隐形杀手）；②渲染循环不做重活——数据处理放循环外/Worker，animate 只做变换更新与 render；③材质降级——弱 GPU 用 Lambert/Basic、关 MSAA、远端 LOD。<strong>铁律</strong>：数据一刷新就 new BufferGeometry 是最常见事故。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四件套各管什么？Mesh 拆分为什么是 InstancedMesh 的前提？</li>
+    <li>draw call 的开销本质？降法优先级？</li>
+    <li>Perspective 与 Orthographic 相机的取舍？aspect 坑？</li>
+    <li>材质四档的取舍？弱机降级策略？</li>
+    <li>16.6ms 预算三段？渲染循环纪律？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Three.js 官方文档（API 与示例集）：<a href="https://threejs.org/docs/" rel="noopener">threejs.org/docs</a></li>
     <li>Three.js GitHub 仓库与示例：<a href="https://github.com/mrdoob/three.js" rel="noopener">github.com/mrdoob/three.js</a></li>
   </ul>
-  <h3>书籍与课程</h3>
+  <h3>原理延伸</h3>
   <ul>
-    <li>《Three.js 开发指南》——从场景图到材质光照的系统入门。</li>
-    <li>WebGL fundamentals（理解底层管线的免费教程）：<a href="https://webglfundamentals.org/" rel="noopener">webglfundamentals.org</a></li>
+    <li>《Three.js 开发指南》（场景图到材质光照系统入门）；WebGL fundamentals：<a href="https://webglfundamentals.org/" rel="noopener">webglfundamentals.org</a></li>
   </ul>
-  <h3>选型要点</h3>
-  <ul>
-    <li>大屏 3D 态势：Three.js；地球级地理：Cesium；完整游戏/物理：Babylon.js。</li>
-    <li>性能第一原则：减 draw call（InstancedMesh）、复用缓冲、剔除与 LOD。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通 3.1 最小场景，故意不更新 aspect 复现拉伸；</li>
+    <li>生成 10000 个球：分别逐点 Mesh 与 InstancedMesh，用 renderer.info 看 draw call 数对比；</li>
+    <li>给 InstancedMesh 加 Raycaster 点选（instanceId 命中），配合 OrbitControls 旋转。</li>
+  </ol>
 </section>
 
 </main>
@@ -946,7 +910,7 @@ scene.add(inst);
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../03_数据可视化/05_GoJS【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../03_数据可视化/09_可视化性能优化与大数据渲染【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/07_GIS地图可视化【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Three.js 3D可视化【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
