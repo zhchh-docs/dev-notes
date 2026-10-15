@@ -534,76 +534,93 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Axios HTTP 客户端</h1>
     <div class="meta-row">
       <span class="badge deep">深入</span>
-      <span class="meta">定位：Promise 化的 HTTP 客户端——拦截器链 + 适配器 + 取消请求</span>
+      <span class="meta">定位：拦截器收口横切 / 取消与竞态 / 生产级请求模块</span>
     </div>
-    <p class="hero-desc">Axios 是基于 Promise 的 HTTP 客户端，同时跑在浏览器（XHR/fetch）与 Node（http）。它的工程价值在拦截器链：请求发出前统一注入鉴权头、响应回来后统一处理错误与 loading，业务接口只写业务。业务系统 用 OpenAPI 自动生成类型化 API 客户端，底层就建立在 Axios 实例与拦截器之上。本页讲透拦截器执行链、取消请求、适配器与并发，并给出自动客户端 + 拦截器的真实落地。</p>
+    <p class="hero-desc">Axios 的工程价值不在"能发请求"，而在拦截器把鉴权、错误分流、loading、取消这些横切逻辑收敛成一处。本篇按"拦截器/实例/错误模型 → 分场景用法 → 请求链路全景 → 生产级请求模块 Demo"展开，重点讲透拦截器执行顺序（请求逆序/响应顺序）、AbortController 取消与竞态防护、解包丢响应头、loading 计数器与 401 单飞六个工程细节。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../04_实时通信/02_WebSocket通用实时通信【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/02_Day.js时间处理【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/06_vxe_table表格【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/04_VueUse组合式工具库【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">请求链路全景图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：基于 Promise 的 HTTP 客户端，把"发请求"规整封装。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Axios 是基于 Promise 的 HTTP 客户端</strong>：浏览器端基于 XMLHttpRequest（可切 fetch 适配器），Node 端基于原生 http。它的核心价值不是"能发请求"（fetch 也能），而是<strong>拦截器机制把鉴权、错误分流、loading、请求取消这些横切逻辑收敛成一处</strong>——业务代码只描述"调哪个接口、传什么参"。</p>
+
+  <h3>1.2 痛点：裸 fetch/XHR 差在哪</h3>
   <ul>
-    <li><strong>底层</strong>：浏览器端基于 XMLHttpRequest（可切 fetch），Node 端基于原生 http。</li>
-    <li><strong>能力</strong>：拦截器、请求取消、自动 JSON 转换、超时、并发。</li>
+    <li>每个请求手写鉴权头、<code>res.ok</code> 判断、错误提示、loading 开关——重复且必漏；</li>
+    <li>fetch <strong>非 2xx 不 reject</strong>（404/500 也会走 then），每个调用点都要自己判；</li>
+    <li>没有统一的超时与取消入口，竞态问题（旧请求覆盖新数据）全靠各组件自觉。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：用拦截器把鉴权/错误/loading 等横切逻辑收敛成一处。</p>
-  <ul>
-    <li><strong>裸 fetch/XHR 痛点</strong>：每个请求手写鉴权头、错误判断、loading 开关、超时，重复且易漏。</li>
-    <li><strong>分工</strong>：请求拦截器统一改 config，响应拦截器统一处理数据与错误；业务只描述"调哪个接口、传什么参"。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 240" role="img" aria-label="Axios 在请求链路中的位置示意图">
-      <defs>
-        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Axios 请求链路中的拦截器位置（示意）</text>
-      <rect x="30" y="55" width="130" height="52" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="95" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">业务调用</text>
-      <text x="95" y="95" text-anchor="middle" font-size="11" fill="#4f6348">api.xxx(params)</text>
-      <line x1="160" y1="81" x2="198" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <rect x="202" y="55" width="150" height="52" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-      <text x="277" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#4f8a63">请求拦截器</text>
-      <text x="277" y="95" text-anchor="middle" font-size="11" fill="#4f6348">注入 token / 改 header</text>
-      <line x1="352" y1="81" x2="390" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <rect x="394" y="55" width="130" height="52" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="459" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">适配器发请求</text>
-      <text x="459" y="95" text-anchor="middle" font-size="11" fill="#4f6348">XHR / http</text>
-      <line x1="524" y1="81" x2="562" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <rect x="566" y="55" width="150" height="52" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="641" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">响应拦截器</text>
-      <text x="641" y="95" text-anchor="middle" font-size="11" fill="#4f6348">解包数据 / 统一错误</text>
-      <line x1="716" y1="81" x2="744" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
-      <text x="400" y="150" text-anchor="middle" font-size="13" fill="#4f6348">业务调用 → 请求拦截器（改 config）→ 适配器 → 响应拦截器（处理 data/error）→ 业务拿到结果。</text>
-      <text x="400" y="172" text-anchor="middle" font-size="13" fill="#4f6348">横切逻辑（鉴权/错误/loading）全在拦截器，业务接口保持纯净。</text>
-      <text x="400" y="206" text-anchor="middle" font-size="12.5" fill="#7a8a70">项目定位：业务系统 自动生成 API 客户端底层，数据编排平台/业务系统 全项目统一走 Axios 实例。</text>
-    </svg>
-    <p class="diagram-caption">图 1 Axios 拦截器在请求链路中的位置（示意）</p>
-  </div>
-  <h3>横向对比：Axios vs fetch vs jQuery.ajax</h3>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要为团队封装统一的请求层（拦截器/错误分流/取消）</td><td>HTTP 协议基础 → 01 模块 HTTP 篇</td></tr>
+    <tr><td>面试（拦截器顺序/取消原理/401 处理是高频题）</td><td>实时推送（别用 HTTP 轮询硬扛）→ 04 实时通信</td></tr>
+    <tr><td>排查"请求竞态/loading 闪烁/丢响应头"类 bug</td><td>后端接口设计 → 07 后端模块</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>用 <code>axios.create</code> 建统一实例，写出<strong>鉴权注入 + 错误分流</strong>的拦截器对；</li>
+    <li>说出<strong>拦截器执行顺序</strong>（请求逆序/响应顺序）并预测多拦截器叠加效果；</li>
+    <li>用 <strong>AbortController</strong> 处理取消与竞态，识别 <code>ERR_CANCELED</code> 静默处理；</li>
+    <li>落地四个工程细节：解包不丢 headers、loading 计数器、401 单飞、params/data 区分。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：Promise、HTTP 状态码与请求结构（01 模块）；做过带登录的项目更好。</p>
+  <p><strong>难度等级</strong>：★★★☆☆（API 简单，工程细节与并发场景有深度）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>第一次封装请求层</td><td>按顺序读第 2、3 章 → 照抄第 6 章 Demo</td></tr>
+    <tr><td>排查线上请求 bug</td><td>直接查第 7 章坑清单（按现象定位）</td></tr>
+    <tr><td>面试准备</td><td>第 2.1/2.4 节 → 第 8 章重点讲解</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点（适配器、transform、OpenAPI 架构）。<strong>务必动手</strong>：第 6 章 Demo——一个可直接用于生产的请求模块。</p>
+  <p><strong>本篇不涉及</strong>：WebSocket/SSE（04 模块）；GraphQL 客户端。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>Axios 的五个核心模型按依赖顺序：<strong>拦截器</strong>（价值核心）→ <strong>实例与配置</strong>（组织方式）→ <strong>适配器与数据转换</strong>（底层抽象）→ <strong>错误模型</strong>（分流依据）→ <strong>与 fetch 的认知差</strong>。</p>
+
+  <h3>2.1 拦截器（Interceptors）：横切逻辑的收口处</h3>
+  <p>拦截器是注册在实例上的<strong>中间件</strong>：<strong>请求拦截器</strong> <code>interceptors.request.use(fn)</code> 在发请求前改 config（注入 token、加时间戳、开 loading）；<strong>响应拦截器</strong> <code>interceptors.response.use(onFulfilled, onRejected)</code> 在结果到达业务前处理（解包 data、统一错误分流）。<br><br>
+  <strong>执行顺序（面试高频）</strong>：请求拦截器按注册<strong>逆序</strong>执行（后注册先跑——像洋葱从外到内），响应拦截器按注册<strong>顺序</strong>执行。多个拦截器叠加时，先画链路再推理，不要靠感觉（图 2 见 4.1）。</p>
+
+  <h3>2.2 实例与配置：create 而不是用全局 axios</h3>
+  <p><code>axios.create({ baseURL, timeout, headers })</code> 创建独立实例——<strong>各实例的拦截器、默认配置互不干扰</strong>。配置优先级：<strong>实例默认 &lt; 请求级 config</strong>。多后端/多环境建多实例（管理端一个、上传服务一个）。<strong>跨域凭证</strong>：<code>withCredentials: true</code> 才会跨域携带 Cookie，并配合 <code>xsrfCookieName</code>/<code>xsrfHeaderName</code> 自动注入 CSRF 头。</p>
+
+  <h3>2.3 适配器与数据转换：平台无关的抽象</h3>
+  <p><strong>适配器（Adapter）</strong>是"真正发请求"的一层：默认浏览器用 XHR、Node 用 http，可自定义——这也是 mock 与单测的注入点（mock 适配器不真发网络）。<strong>数据转换（Transform）</strong>：<code>transformRequest</code>/<code>transformResponse</code> 默认把对象序列化为 JSON、把响应解析回对象；FormData 或特殊编码在这里覆盖。</p>
+
+  <h3>2.4 错误模型：三分法定位问题</h3>
+  <p>非 2xx 响应 reject 进 error，按三段定位：<code>error.response</code>（后端有响应——看 status/data 分流 401/403/5xx）、<code>error.request</code>（发出去了但没响应——网络问题/超时）、<code>error.message</code>（通用信息）。三个特判：<strong>取消</strong>错误 <code>error.code === 'ERR_CANCELED'</code>（不提示）；<strong>超时</strong>错误码 <code>ECONNABORTED</code>（与 4xx/5xx 区分，可重试）；<code>validateStatus</code> 可自定义哪些状态码算成功。</p>
+
+  <h3>2.5 与 fetch 的认知差：谁reject、谁管取消</h3>
   <table>
     <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
     <thead><tr><th>维度</th><th>Axios</th><th>fetch</th><th>jQuery.ajax</th></tr></thead>
@@ -614,59 +631,69 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>适用</td><td>工程化项目首选（拦截器生态）</td><td>轻量、现代但要自封装</td><td>老项目遗留</td></tr>
     </tbody>
   </table>
-  <p class="lead"><b>一句话定位</b>：工程化项目用 Axios，拦截器链天然匹配统一鉴权/错误/loading。</p>
-  <ul>
-    <li><strong>fetch</strong>：更轻，但非 2xx 不 reject、无拦截器，要自己包一层。</li>
-    <li><strong>jQuery.ajax</strong>：仅老项目遗留。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 请求/响应拦截器（Interceptors）</h3>
-  <p class="lead"><b>一句话定位</b>：拦截器是注册在实例上的中间件，横切逻辑全挂这里。</p>
-  <ul>
-    <li><strong>请求拦截器</strong>：<code>interceptors.request.use(fn)</code> 发请求前改 config。</li>
-    <li><strong>响应拦截器</strong>：<code>interceptors.response.use(onFulfilled, onRejected)</code> 响应到达业务前处理。</li>
-    <li><span class="tag-pit">坑</span>执行顺序：请求拦截器按注册<strong>逆序</strong>（后注册先跑），响应拦截器按注册<strong>顺序</strong>。</li>
-  </ul>
-  <h3>2.2 实例与配置（Instance &amp; Config）</h3>
-  <p class="lead"><b>一句话定位</b>：create 一个统一实例承载 baseURL/超时/拦截器。</p>
-  <ul>
-    <li><strong>写法</strong>：<code>axios.create({ baseURL, timeout, headers })</code>，各实例拦截器独立。</li>
-    <li><strong>优先级</strong>：实例默认 &lt; 请求级 config。</li>
-    <li><strong>跨域凭证</strong>：<code>withCredentials: true</code> 才会跨域携带 Cookie，并配合 <code>xsrfCookieName</code>/<code>xsrfHeaderName</code> 自动注入 CSRF 头。</li>
-  </ul>
-  <h3>2.3 请求方法与语义化（HTTP Methods）</h3>
-  <p class="lead"><b>一句话定位</b>：params 拼 query，data 放 body，两者不混用。</p>
-  <ul>
-    <li><strong>语义方法</strong>：<code>axios.get/post/put/delete/patch</code>，RESTful 项目更清晰。</li>
-    <li><strong>通用写法</strong>：<code>axios({ method, url, data, params })</code>。</li>
-    <li><strong>进度</strong>：<code>onUploadProgress</code>/<code>onDownloadProgress</code> 回调里读 <code>loaded/total</code> 做上传/下载进度条。</li>
-  </ul>
-  <h3>2.4 取消请求（Cancellation）</h3>
-  <p class="lead"><b>一句话定位</b>：离开页面/重复请求时取消未完成请求，避免回调污染。</p>
-  <ul>
-    <li><strong>旧版</strong>：<code>CancelToken.source()</code>；<strong>新版</strong>：推荐 <code>AbortController</code>。</li>
-    <li><strong>结果</strong>：取消后 promise 进入 reject（标记为 cancel）。</li>
-  </ul>
-  <h3>2.5 适配器（Adapter）</h3>
-  <p class="lead"><b>一句话定位</b>：适配器是"真正发请求"的一层，也是 mock/测试的注入点。</p>
-  <ul>
-    <li><strong>默认</strong>：浏览器 xhr 适配器，Node http 适配器。</li>
-    <li><strong>可自定义</strong>：理解适配器就理解了"Axios 是平台无关的请求抽象"。</li>
-  </ul>
-  <h3>2.6 数据转换（Transform）</h3>
-  <p><code>transformRequest</code>/<code>transformResponse</code> 在发送前/接收后自动转换 body：默认把 JS 对象序列化成 JSON、把响应 JSON 解析回对象。需要 FormData 或特殊编码时，在这里或请求级覆盖。</p>
-  <h3>2.7 错误处理（Error Handling）</h3>
-  <p>非 2xx 的响应会 reject 进 error：<code>error.response</code> 是后端返回（有 status/data），<code>error.request</code> 是发出没收到响应（网络错），<code>error.message</code> 是通用信息。响应拦截器据此分流：401 跳登录、5xx 提示、网络错重试。可用 <code>validateStatus</code> 自定义哪些状态码算成功（默认仅 2xx），超时错误码为 <code>ECONNABORTED</code>，便于和 4xx/5xx 区分。</p>
-  <h3>2.8 并发（Concurrency）</h3>
-  <p><code>axios.all(promises)</code> / <code>axios.spread</code> 配合 Promise 并发多请求（现代写法直接 <code>Promise.all</code>）。典型：页面初始化并发拉多个字典/配置接口。</p>
+  <p><strong>关键认知差</strong>：Axios 非 2xx 走 reject（错误自动分流）；fetch 非 2xx 仍走 then，要自己判 <code>res.ok</code>。fetch + 自封装最终会"发明"出一个 Axios——<strong>选择不是功能差异，是"用现成的还是自己造"。</strong></p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 拦截器执行链</h3>
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：建实例 + 鉴权注入</h3>
+<pre class="code" data-lang="js"><code>// ❌ 全局 axios：配置散落各处
+// axios.get('/api/user', { headers: {...} })
+
+// ✅ create 实例：集中配置 + 独立拦截器
+const http = axios.create({
+  baseURL: '/api',
+  timeout: 10000,
+  headers: { 'Content-Type': 'application/json' }
+});
+
+http.interceptors.request.use((config) =&gt; {
+  const token = store.getState().token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;  // 统一注入鉴权
+  return config;
+});</code></pre>
+  <p><strong>方法语义</strong>：<code>http.get/post/put/patch/delete</code>；<strong>params 拼 query、data 放 body，两者不混用</strong>（GET 用 params——坑 2）。</p>
+
+  <h3>3.2 场景二：统一错误分流</h3>
+<pre class="code" data-lang="js"><code>http.interceptors.response.use(
+  (res) =&gt; res.data,                       // 解包：业务直接拿 data
+  (error) =&gt; {
+    if (error.code === 'ERR_CANCELED') return Promise.reject(error);  // 取消不提示
+    if (error.response?.status === 401) {
+      auth.toLoginOnce();                  // 401 单飞：并发 401 只跳一次（见 4.2）
+    } else {
+      toast.error(error.response?.data?.message || '请求失败');
+    }
+    return Promise.reject(error);          // 继续抛给业务层决策
+  }
+);</code></pre>
+  <p><strong>分流原则</strong>：拦截器负责"全局一致的动作"（跳登录、统一提示），<strong>继续 reject</strong>——业务层还可能需要针对单个接口做特殊处理（如表单校验错误就地展示）。</p>
+
+  <h3>3.3 场景三：取消请求与进度</h3>
+<pre class="code" data-lang="js"><code>// 取消：搜索换词 / 路由切换（旧版 CancelToken 已被 AbortController 取代）
+const controller = new AbortController();
+http.get('/search', { params: { q }, signal: controller.signal });
+controller.abort();                          // 取消 → reject（code=ERR_CANCELED）
+
+// 进度：上传/下载进度条
+http.post('/upload', formData, {
+  onUploadProgress: e =&gt; setProgress(Math.round(e.loaded / e.total * 100)),
+});</code></pre>
+  <p><strong>取消的两个必用场景</strong>：①路由切换时取消未完成请求（组件卸载后回调不再污染状态）；②搜索防抖后取消上一次请求（防竞态，旧结果覆盖新结果）。</p>
+
+  <h3>3.4 场景四：并发</h3>
+<pre class="code" data-lang="js"><code>// 页面初始化并发拉字典（现代写法直接 Promise.all）
+const [province, dept] = await Promise.all([
+  http.get('/dict/province'), http.get('/dict/dept'),
+]);</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：已按第 6 章封装过请求模块。</p>
+
+  <h3>4.1 拦截器执行顺序原理</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Axios 拦截器执行链顺序示意图">
       <defs>
@@ -699,197 +726,240 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 拦截器执行链顺序（示意）</p>
   </div>
-  <h3>3.2 取消请求机制</h3>
-  <div class="diagram">
-    <svg viewBox="0 0 800 210" role="img" aria-label="Axios 取消请求机制示意图">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">取消请求的流程（示意）</text>
-      <rect x="60" y="60" width="180" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="150" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">AbortController</text>
-      <text x="150" y="99" text-anchor="middle" font-size="11" fill="#4f6348">signal 传给 config</text>
-      <line x1="240" y1="85" x2="300" y2="85" stroke="#7a8a70" marker-end="url(#arr3)"/>
-      <rect x="304" y="60" width="180" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="394" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">请求发出未返回</text>
-      <text x="394" y="99" text-anchor="middle" font-size="11" fill="#4f6348">组件卸载/重复触发</text>
-      <line x1="484" y1="85" x2="544" y2="85" stroke="#7a8a70" marker-end="url(#arr3)"/>
-      <rect x="548" y="60" width="190" height="50" rx="8" fill="#fef2f2" stroke="#dc2626"/>
-      <text x="643" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b91c1c">abort() → reject</text>
-      <text x="643" y="99" text-anchor="middle" font-size="11" fill="#4f6348">回调不再污染状态</text>
-      <text x="400" y="150" text-anchor="middle" font-size="13" fill="#4f6348">适用：路由切换取消未完成请求、搜索防抖前取消上次请求，避免竞态与内存泄漏。</text>
-      <text x="400" y="178" text-anchor="middle" font-size="12.5" fill="#7a8a70">判断 error 是否为取消：error.code === 'ERR_CANCELED'。</text>
-    </svg>
-    <p class="diagram-caption">图 3 取消请求机制（示意）</p>
-  </div>
-</section>
+  <p><strong>原理</strong>：Axios 内部把请求拦截器 <code>unshift</code>、响应拦截器 <code>push</code> 进同一条 Promise 链——所以请求方向逆序、响应方向顺序。<strong>工程含义</strong>：后注册的请求拦截器"包"在更外层，它的修改先生效；把鉴权注入放在最后注册，可确保其他拦截器都见过 token。</p>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 全局 axios vs create 实例</h3>
-<pre class="code" data-lang="js"><code>// 写法 A：直接用全局 axios（配置散落在各处）
-// axios.get('/api/user', { headers: {...} })
+  <h3>4.2 401 单飞与无感刷新</h3>
+  <p>并发多个 401 都触发跳登录（或刷新 token）会重复执行——用<strong>单飞（single-flight）</strong>：全局标志位保证刷新流程只有一个在跑，其余请求挂起等待结果后重放。最小版：跳登录前判 <code>if (redirecting) return;</code>；完整版：刷新 token 的 Promise 存全局，401 请求 await 它后用新 token 重发。</p>
 
-// 写法 B（推荐）：create 实例，集中配置 + 独立拦截器
-const http = axios.create({
-  baseURL: '/api',
-  timeout: 10000,
-  headers: { 'Content-Type': 'application/json' }
-});</code></pre>
-  <div class="note"><strong>取舍</strong>：工程项目一律用 <code>create</code> 实例，把 baseURL/超时/拦截器集中管理，多套环境/多后端可建多实例。</div>
-  <h3>4.2 拦截器：鉴权注入 + 统一错误</h3>
-<pre class="code" data-lang="js"><code>http.interceptors.request.use((config) => {
-  const token = store.getState().token;
-  if (token) config.headers.Authorization = `Bearer ${token}`;  // 统一注入鉴权
-  return config;
-});
-http.interceptors.response.use(
-  (res) => res.data,                       // 解包：业务直接拿 data
-  (error) => {
-    if (error.response?.status === 401) toLogin();   // 统一处理 401
-    return Promise.reject(error);
-  }
-);</code></pre>
-  <h3>4.3 取消请求</h3>
-<pre class="code" data-lang="js"><code>const controller = new AbortController();
-http.get('/search', { params: { q }, signal: controller.signal });
-// 需要取消时（如输入框换词）
-controller.abort();</code></pre>
-  <h3>4.4 并发</h3>
-<pre class="code" data-lang="js"><code>Promise.all([http.get('/dict/province'), http.get('/dict/dept')])
-  .then(([province, dept]) => init(province, dept));</code></pre>
+  <h3>4.3 解包与响应头的取舍</h3>
+  <p>响应拦截器 <code>return res.data</code> 解包后，<code>res.headers</code> 就丢了——而<strong>分页总数（X-Total-Count）、下载文件名（Content-Disposition）都在 header 里</strong>。工程对策：拦截器里先把需要的 header 挑出来挂到 data 上（<code>res.data.__headers = {...}</code>），或对下载类接口走独立实例不解包。<strong>这是"全局解包"方案最常被忽视的代价</strong>。</p>
+
+  <h3>4.4 OpenAPI 生成客户端：请求层的终态</h3>
+  <p>接口数量多的项目，手写 API 函数是重复劳动。架构：<strong>后端维护 Swagger/OpenAPI 契约 → 工具生成 TS 客户端（方法名/参数/返回类型全类型安全）→ 生成代码的底层注入团队的共享 Axios 实例</strong>。收益：拦截器层收口一次、全应用生效；接口变更由契约驱动重新生成，联调以契约为准。这是"封装请求层"的规模化答案。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 后端接口由 Swagger/OpenAPI 描述，前端要类型安全且横切逻辑统一。</p>
-  <ul>
-    <li><strong>场景</strong>：需求管理平台（Vue3+TS+Vite+Monorepo+SpringBoot），接口数量多，不能逐接口手写样板。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：前端基础设施层，负责 API 客户端与拦截器封装。</p>
-  <ul>
-    <li><strong>分工</strong>：在公共包（shared）里维护共享 Axios 实例与拦截器，多应用复用。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>前端</strong>：Vue3 + TS + Vite + pnpm workspace/Turborepo 单仓多应用。</li>
-    <li><strong>契约</strong>：Swagger/OpenAPI 自动生成 TS 接口客户端。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：一个共享 Axios 实例 + 请求/响应拦截器，自动生成客户端复用它。</p>
-  <ul>
-    <li><strong>类型安全</strong>：OpenAPI 生成方法名/参数/返回类型，底层共享 Axios 实例。</li>
-    <li><strong>横切统一</strong>：JWT 注入、错误分流、loading 计数、取消请求都收进拦截器。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-<pre class="code" data-lang="js"><code>// 共享 Axios 实例（自动生成客户端基于它）
-const http = axios.create({ baseURL: '/rmp-api', timeout: 15000 });
-http.interceptors.request.use((c) =&gt; {
-  c.headers.Authorization = `Bearer ${auth.getToken()}`;
-  return c;
-});
-http.interceptors.response.use(
-  (r) =&gt; r.data,
-  (e) =&gt; {
-    if (e.code === 'ERR_CANCELED') return Promise.reject(e);  // 取消不提示
-    if (e.response?.status === 401) auth.toLogin();
-    else toast.error(e.response?.data?.message || '请求失败');
-    return Promise.reject(e);
-  }
-);</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>解包后丢 headers</strong>：<code>res.data</code> 解包后拿不到 <code>res.headers</code>——下载文件名等在拦截器里先挑出。</li>
-    <li><span class="tag-pit">坑</span><strong>loading 用布尔提前关</strong>：并发请求一个完成就关——改计数器。</li>
-    <li><span class="tag-pit">坑</span><strong>未取消请求竞态</strong>：组件卸载未取消，旧请求覆盖新结果——AbortController 成对清理。</li>
-    <li><span class="tag-pit">坑</span><strong>401 多请求跳登录</strong>：并发多个 401 都跳登录页——加"单飞"去重。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>复用</strong>：多应用共享同一拦截器层，新增接口零样板。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：后端 Swagger 先行，前端据此生成客户端，联调以契约为准。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>拦截器收口横切</strong>：鉴权/错误/loading/取消集中一处。</li>
-    <li><span class="tag-point">要点</span><strong>计数器做 loading</strong>：并发场景别用布尔。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「业务系统 用 OpenAPI 自动生成类型安全客户端，底层一个共享 Axios 实例，请求/响应拦截器收口 JWT、错误分流、loading 计数与取消请求。」</p>
+  <h2><span class="num">5</span>请求链路全景图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="Axios 在请求链路中的位置示意图">
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Axios 请求链路中的拦截器位置（示意）</text>
+      <rect x="30" y="55" width="130" height="52" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="95" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">业务调用</text>
+      <text x="95" y="95" text-anchor="middle" font-size="11" fill="#4f6348">api.xxx(params)</text>
+      <line x1="160" y1="81" x2="198" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="202" y="55" width="150" height="52" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="277" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#4f8a63">请求拦截器</text>
+      <text x="277" y="95" text-anchor="middle" font-size="11" fill="#4f6348">注入 token / 改 header</text>
+      <line x1="352" y1="81" x2="390" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="394" y="55" width="130" height="52" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="459" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">适配器发请求</text>
+      <text x="459" y="95" text-anchor="middle" font-size="11" fill="#4f6348">XHR / http</text>
+      <line x1="524" y1="81" x2="562" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="566" y="55" width="150" height="52" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="641" y="77" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">响应拦截器</text>
+      <text x="641" y="95" text-anchor="middle" font-size="11" fill="#4f6348">解包数据 / 统一错误</text>
+      <line x1="716" y1="81" x2="744" y2="81" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <text x="400" y="150" text-anchor="middle" font-size="13" fill="#4f6348">业务调用 → 请求拦截器（改 config）→ 适配器 → 响应拦截器（处理 data/error）→ 业务拿到结果。</text>
+      <text x="400" y="172" text-anchor="middle" font-size="13" fill="#4f6348">横切逻辑（鉴权/错误/loading）全在拦截器，业务接口保持纯净。</text>
+      <text x="400" y="206" text-anchor="middle" font-size="12.5" fill="#7a8a70">loading 计数器在请求拦截器 +1、响应拦截器 -1，归零才关闭全局 loading。</text>
+    </svg>
+    <p class="diagram-caption">图 1 Axios 拦截器在请求链路中的位置（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①业务调用的参数里没有任何鉴权/错误处理代码——它们全部住在拦截器里；②loading 计数器横跨请求/响应两侧（进 +1 出 -1），并发安全；③取消（AbortController）发生在适配器层——请求可以随时中止，响应拦截器收到的是 ERR_CANCELED。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 请求/响应拦截器执行顺序记反</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个可直接用于生产的<strong>请求模块完整封装</strong>：实例 + 鉴权 + 错误分流 + loading 计数器 + 取消。基于 Vue 组合式 API（React 版同理）。</p>
+
+  <h3>6.1 请求模块 <code>src/utils/request.js</code></h3>
+<pre class="code" data-lang="js"><code>import axios from 'axios'
+import auth from './auth'
+import toast from './toast'
+
+// 全局 loading 计数器（并发安全）
+let pendingCount = 0
+const loading = {
+  show() { if (++pendingCount === 1) toast.showLoading() },
+  hide() { if (--pendingCount === 0) toast.hideLoading() },
+}
+
+const http = axios.create({ baseURL: '/api', timeout: 15000 })
+
+http.interceptors.request.use((c) =&gt; {
+  c.headers.Authorization = `Bearer ${auth.getToken()}`   // 鉴权注入
+  loading.show()
+  return c
+})
+
+http.interceptors.response.use(
+  (res) =&gt; { loading.hide(); return res.data },            // 解包
+  (error) =&gt; {
+    loading.hide()
+    if (error.code === 'ERR_CANCELED') return Promise.reject(error)  // 取消静默
+    if (error.response?.status === 401) {
+      if (!auth.redirecting) auth.toLogin()                // 401 单飞
+    } else if (error.code === 'ECONNABORTED') {
+      toast.error('请求超时，请重试')                        // 超时可识别
+    } else {
+      toast.error(error.response?.data?.message || '请求失败')
+    }
+    return Promise.reject(error)
+  }
+)
+
+export default http</code></pre>
+
+  <h3>6.2 业务组件：搜索 + 竞态处理</h3>
+<pre class="code" data-lang="js"><code>import { onUnmounted, ref } from 'vue'
+import http from '@/utils/request'
+import { debounce } from 'lodash-es'          // 衔接《Lodash》篇
+
+const keyword = ref('')
+const results = ref([])
+let controller = null                          // 当前请求的控制器
+
+const doSearch = debounce(async (q) =&gt; {
+  controller?.abort()                          // 取消上一次未完成请求
+  controller = new AbortController()
+  try {
+    results.value = await http.get('/search', {
+      params: { q },                           // query 用 params
+      signal: controller.signal,
+    })
+  } catch (e) {
+    if (e.code !== 'ERR_CANCELED') { /* 已在拦截器统一提示 */ }
+  }
+}, 300)
+
+onUnmounted(() =&gt; controller?.abort())         // 组件卸载兜底取消</code></pre>
+
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li><strong>考点</strong>：请求拦截器逆序执行、响应拦截器顺序执行。</li>
+    <li><strong>loading 计数器</strong>：进 +1 出 -1，归零才关——并发请求时布尔开关必然提前关闭（坑 6）；</li>
+    <li><strong>取消静默</strong>：ERR_CANCELED 直接透传 reject，不弹错误提示——取消是预期行为不是异常；</li>
+    <li><strong>竞态闭环</strong>：防抖 + abort 上一次 + 卸载兜底，三层防护覆盖"快速输入"与"快速切页"两个竞态入口；</li>
+    <li><strong>401 单飞</strong>：auth.redirecting 标志位防止并发 401 重复跳转。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：注册多个拦截器时按此预测实际效果。</p>
-  <h3>6.2 params 与 data 混用</h3>
-  <ul>
-    <li><strong>现象</strong>：GET 请求参数拼错地方。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：<code>params</code> 进 query，<code>data</code> 进 body；GET 用 params。</p>
-  <h3>6.3 响应拦截器解包后丢 headers</h3>
-  <ul>
-    <li><strong>现象</strong>：拿不到响应头（如分页总数/下载文件名）。</li>
-    <li><strong>原因</strong>：<code>return res.data</code> 后 headers 已丢弃。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：需要的 header 在拦截器里先取出再解包。</p>
-  <h3>6.4 非 2xx 不 reject 的认知差</h3>
-  <ul>
-    <li><strong>误区</strong>：以为 fetch 与 Axios 一样非 2xx 就 reject。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：Axios 非 2xx 走 reject 到 onRejected；fetch 则需自己判 <code>res.ok</code>。</p>
-  <h3>6.5 忘记取消请求导致竞态</h3>
-  <ul>
-    <li><strong>现象</strong>：快速切换页面，旧请求后返回覆盖新数据。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：路由切换/搜索换词时 abort 上次请求。</p>
-  <h3>6.6 loading 用布尔导致闪烁</h3>
-  <ul>
-    <li><strong>现象</strong>：并发请求时 loading 提前关闭。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：用计数器，最后一个完成才关 loading。</p>
+
+  <h3>6.4 运行结果说明与对照</h3>
+  <p>对照裸 fetch 版本：<strong>业务组件从 ~30 行降到 ~15 行</strong>，且鉴权、错误提示、loading、竞态四处逻辑全项目只存在一份。新增接口的成本 = 一行 <code>http.get(...)</code>。</p>
+
+  <h3>6.5 生产改造扩展方向</h3>
+  <ol>
+    <li>401 升级为"无感刷新 token"：刷新 Promise 全局单飞 + 挂起请求重放（4.2）；</li>
+    <li>接入 OpenAPI 生成客户端（4.4），业务侧不再手写 API 函数；</li>
+    <li>加请求重试：仅对幂等 GET 且错误为网络/超时的请求，指数退避重试 2 次。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：拦截器执行顺序记反</h3>
+  <ul>
+    <li><strong>现象</strong>：注册了"加时间戳"和"加 token"两个请求拦截器，token 拦截器读不到时间戳字段；</li>
+    <li><strong>根因</strong>：请求拦截器<strong>逆序</strong>执行（后注册先跑）——先注册的在"更内层"；</li>
+    <li><strong>复现</strong>：两个拦截器各 console.log 一次；</li>
+    <li><strong>修复</strong>：按依赖关系调整注册顺序（被依赖的后注册）；</li>
+    <li><strong>规避</strong>：多拦截器时先画图 2 的链路再写代码。</li>
+  </ul>
+  <h3>7.2 坑 2：params 与 data 混用</h3>
+  <ul>
+    <li><strong>现象</strong>：GET 请求把参数放 data，后端收不到；</li>
+    <li><strong>根因</strong>：<code>params</code> 序列化为 URL query，<code>data</code> 是请求体——GET 没有有意义的 body；</li>
+    <li><strong>修复</strong>：GET/DELETE 用 params，POST/PUT 的载荷用 data；</li>
+    <li><strong>规避</strong>：API 函数签名里显式区分 query 与 body 参数。</li>
+  </ul>
+  <h3>7.3 坑 3：响应解包后丢 headers</h3>
+  <ul>
+    <li><strong>现象</strong>：业务层拿不到分页总数（X-Total-Count）或下载文件名（Content-Disposition）；</li>
+    <li><strong>根因</strong>：拦截器 <code>return res.data</code> 后 res 整个被替换，headers 随之丢弃；</li>
+    <li><strong>修复</strong>：拦截器内先挑出需要的 header 挂到 data（4.3），或下载类接口走独立实例；</li>
+    <li><strong>规避</strong>：设计解包方案时先盘点"有哪些信息住在 header 里"。</li>
+  </ul>
+  <h3>7.4 坑 4：非 2xx 认知差（fetch 惯性）</h3>
+  <ul>
+    <li><strong>现象</strong>：从 fetch 迁来，到处写 <code>if (res.ok)</code>，或以为 404 不会进 catch；</li>
+    <li><strong>根因</strong>：fetch 非 2xx 仍 resolve；Axios 非 2xx 直接 reject 到 onRejected；</li>
+    <li><strong>修复</strong>：统一走拦截器分流（3.2），业务层只写正常路径 + 特殊分支；</li>
+    <li><strong>规避</strong>：团队规范写明"Axios 错误处理只在拦截器与必要业务分支"。</li>
+  </ul>
+  <h3>7.5 坑 5：未取消请求导致竞态</h3>
+  <ul>
+    <li><strong>现象</strong>：快速切换页面/快速换搜索词，旧请求后返回，新数据被旧数据覆盖；</li>
+    <li><strong>根因</strong>：请求生命周期与组件生命周期脱钩；</li>
+    <li><strong>修复</strong>：AbortController 成对使用——发起新请求前 abort 上一个，组件卸载兜底 abort（6.2）；</li>
+    <li><strong>规避</strong>：搜索/详情页/Tab 切换类组件默认带取消逻辑。</li>
+  </ul>
+  <h3>7.6 坑 6：loading 用布尔导致提前关闭</h3>
+  <ul>
+    <li><strong>现象</strong>：并发发 5 个请求，第 1 个完成 loading 就消失，用户以为加载完了；</li>
+    <li><strong>根因</strong>：布尔只有两态，表达不了"还有 N 个在途"；</li>
+    <li><strong>修复</strong>：计数器——请求拦截器 +1、响应拦截器 -1，归零才关（6.1）；</li>
+    <li><strong>规避</strong>：全局 loading 一律计数器实现；局部 loading 也优先计数。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：请求拦截器和响应拦截器的执行顺序？为什么这样设计？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>请求拦截器逆序</strong>（后注册先跑）、<strong>响应拦截器顺序</strong>（先注册先跑）。原理：Axios 把请求拦截器 unshift、响应拦截器 push 到同一条 Promise 链——形成洋葱模型：后注册的请求拦截器在最外层，请求穿过它们到适配器，响应再按相反顺序穿回。<br><br>
+  <strong>工程含义</strong>：外层拦截器"包住"内层——鉴权这种需要最后确定请求形态的，放最后注册（最外层先执行）。</p>
+
+  <p><strong>Q2：Axios 和 fetch 怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：核心差异三点——<strong>①错误语义</strong>：Axios 非 2xx reject，fetch 要自己判 res.ok；<strong>②横切能力</strong>：Axios 内置拦截器链，fetch 无（要自己封装）；<strong>③生态细节</strong>：Axios 自带超时、进度回调、JSON 转换、params 序列化。<strong>结论</strong>：工程化项目选 Axios（或基于 fetch 的等价封装如 ky）——因为拦截器层是团队请求规范的载体；极简单页/无状态脚本用裸 fetch 足够。<strong>一句话</strong>：选型本质是"用现成的拦截器生态，还是自己造一个"。</p>
+
+  <p><strong>Q3：取消请求怎么实现？哪些场景必须取消？</strong></p>
+  <p class="note"><strong>参考答案</strong>：现代方案 <strong>AbortController</strong>——实例的 signal 传给请求 config，<code>controller.abort()</code> 使请求 reject（<code>error.code === 'ERR_CANCELED'</code>）。旧 CancelToken 已废弃。<strong>必须取消的场景</strong>：①路由/组件卸载——防止回调更新已卸载组件（内存泄漏 + 报警告）；②搜索换词/Tab 切换——防止旧响应竞态覆盖新响应（7.5）。<br><br>
+  <strong>追问：取消的请求要在拦截器里提示错误吗？</strong>——不。取消是预期行为，拦截器按 ERR_CANCELED 静默透传。</p>
+
+  <p><strong>Q4：并发请求下 401 会怎样？怎么设计单飞？</strong></p>
+  <p class="note"><strong>参考答案</strong>：页面并发 10 个请求都返回 401 时， naive 实现会跳 10 次登录页或触发 10 次 token 刷新。<strong>单飞（single-flight）设计</strong>：全局只有一个刷新流程在跑——把"刷新 token"包装成共享 Promise，后续 401 请求 <code>await</code> 同一个 Promise；成功后用新 token 重放挂起请求，失败才跳登录。要点：<strong>重放队列 + 共享 Promise + 原子标志位</strong>三件套；最简版至少做到跳登录去重。</p>
+
+  <p><strong>Q5：自测 5 问</strong></p>
+  <ol>
+    <li>拦截器的执行顺序与内部原理？多拦截器叠加时怎么预测效果？</li>
+    <li>error.response / error.request / error.code 各对应什么故障？超时和取消的错误码是什么？</li>
+    <li>params 与 data 的区别？GET 请求放 data 会怎样？</li>
+    <li>为什么解包后拿不到 headers？两种对策是什么？</li>
+    <li>loading 计数器怎么实现？为什么布尔不行？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
   <ul>
     <li>Axios 官方文档（拦截器/取消/配置完整索引）：<a href="https://axios-http.com/" rel="noopener">axios-http.com</a></li>
-    <li>Axios GitHub 仓库：<a href="https://github.com/axios/axios" rel="noopener">github.com/axios/axios</a></li>
+    <li>MDN AbortController（取消请求的标准机制）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/AbortController" rel="noopener">developer.mozilla.org</a></li>
   </ul>
-  <h3>延伸</h3>
+  <h3>进阶资料</h3>
   <ul>
-    <li>MDN AbortController（取消请求的标准）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/AbortController" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/AbortController</a></li>
-    <li>OpenAPI 规范（自动生成客户端的契约基础）：<a href="https://spec.openapis.org/" rel="noopener">spec.openapis.org</a></li>
+    <li>Axios GitHub 仓库（拦截器链的源码实现）：<a href="https://github.com/axios/axios" rel="noopener">github.com/axios/axios</a></li>
+    <li>OpenAPI Generator（契约生成客户端的工具族）：<a href="https://github.com/OpenAPITools/openapi-generator" rel="noopener">OpenAPITools/openapi-generator</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>按第 6 章封装团队请求模块：实例 + 拦截器 + 计数器 loading + 取消；</li>
+    <li>写一个"两个拦截器叠加"的实验，实测执行顺序并画链路图；</li>
+    <li>给项目里三处"搜索/详情"组件补竞态防护，用 Network 面板观察 abort 生效。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../04_实时通信/02_WebSocket通用实时通信【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/02_Day.js时间处理【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/06_vxe_table表格【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/04_VueUse组合式工具库【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Axios【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

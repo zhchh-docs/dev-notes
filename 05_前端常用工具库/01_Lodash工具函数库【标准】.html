@@ -484,347 +484,420 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Lodash 工具函数库</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：防抖节流/深拷贝/分组</span>
+      <span class="meta">定位：类目地图 / 四件招牌 API / 原生重合区的取舍</span>
     </div>
-    <p class="hero-desc">本文系统讲解 Lodash 工具函数库 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">Lodash 的价值集中在原生覆盖不了的地方：防抖节流的执行节奏控制、深拷贝的循环引用处理、按路径安全读写、集合分组排序。本篇按"类目地图定位需求 → 四件招牌 API 逐个讲透边界 → 原生重合区决策图"展开，配一个串起高频 API 的订单列表 Demo，以及 cloneDeep 性能、debounce cancel、体积优化等六个工程坑。</p>
   </div>
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/00_前端常用工具库模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/02_Day.js时间处理【标准】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心 API 精讲（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">场景决策图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>Lodash 工具函数库</strong> 是现代开发中广泛使用的技术方案之一，用于解决 Lodash 工具函数 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 Lodash 工具函数库 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Lodash 是一套一致性、高可靠性的 JavaScript 工具函数库</strong>，覆盖数组、对象、集合、函数、字符串等操作的高频封装。<strong>防抖节流、深拷贝、按路径取值、集合分组</strong>这四件事是它的招牌——都是"自己写容易写出边界 bug"的场景。本篇不讲函数目录（那是官方文档的事），讲的是：<strong>哪些函数值得学、为什么值得学、怎么不被它坑</strong>。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
+    <li>手写防抖忘了处理 this 与参数透传、手写深拷贝栽在循环引用和特殊类型上——<strong>边界 bug 都藏在这些"简单函数"里</strong>；</li>
+    <li>全量引入 <code>import _ from 'lodash'</code>，包体积暴涨 70KB+；</li>
+    <li>ES2020+ 之后 <code>Array.prototype.flat/group</code> 等原生能力逐步补齐，团队里"Lodash 还值不值得用"争论不休，没有判断框架。</li>
   </ul>
-  
-  <p>Lodash 工具函数库 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Lodash 工具函数库 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">Lodash 工具函数库 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
-  <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>Lodash 工具函数库</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>项目已在用 Lodash，想系统掌握高频 API 与避坑</td><td>日期处理 → 《Day.js》；HTTP → 《Axios》</td></tr>
+    <tr><td>要决定"新项目要不要引 Lodash"</td><td>函数式编程理论 → 本篇不涉及</td></tr>
+    <tr><td>面试（防抖节流/深拷贝/groupBy 手写是高频题）</td><td>lodash 源码逐行精读 → 官方仓库</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>用<strong>类目地图</strong>定位任意需求对应的 Lodash 函数（而不是凭记忆背 API）；</li>
+    <li>正确使用<strong>四件招牌</strong>：debounce/throttle、cloneDeep、get/set、groupBy/orderBy，并说出各自的手写版本会栽在哪；</li>
+    <li>按<strong>场景决策图</strong>回答"这个需求用 Lodash 还是原生"；</li>
+    <li>识别六类典型坑（cloneDeep 性能、debounce 参数、体积优化等）并给出工程对策。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：JS 基础（对象/数组操作、闭包——理解防抖节流实现需要）；01 模块 JS 核心篇。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（API 简单，边界与取舍是重点）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>刚接触</td><td>按顺序读第 2、3 章 → 跑第 6 章 Demo</td></tr>
+    <tr><td>已在用</td><td>第 4 章进阶（按需引入/原生重合）→ 第 7 章坑自查</td></tr>
+    <tr><td>面试准备</td><td>第 3.2/3.3 节（实现原理）→ 第 8 章</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点。<strong>务必动手</strong>：第 6 章 Demo——表格数据处理的完整链路，把本篇高频 API 串一遍。</p>
+  <p><strong>本篇不涉及</strong>：Lodash 与 underscore 的历史对比（结论一句话：直接选 Lodash）；ramda 等函数式库。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 Lodash 工具函数库 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>Lodash 工具函数库 的架构通常分为几层：</p>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>掌握 Lodash 不靠背函数名，靠三个模型：<strong>统一的 API 形态</strong>（2.1）、<strong>类目地图</strong>（2.2）、<strong>招牌函数的边界逻辑</strong>（2.3~2.4）。</p>
+
+  <h3>2.1 统一的 API 形态：<code>_.xxx(数据, 参数)</code></h3>
+  <p>Lodash 所有函数都是<strong>数据在第一位的普通函数</strong>：<code>_.groupBy(list, fn)</code>、<code>_.cloneDeep(obj)</code>。<strong>不污染原型</strong>（不像老的 jQuery 时代往 <code>Array.prototype</code> 上挂方法），这意味着<strong>随时可以只用其中一个函数、也可以随时用原生替代其中一个</strong>——替换粒度是函数级的。理解这一点，"要不要用 Lodash"就从信仰问题变成了逐函数的成本收益问题。</p>
+
+  <h3>2.2 类目地图：按"想干什么"定位函数</h3>
+  <table>
+    <tr><th>类目</th><th>回答的问题</th><th>高频函数</th></tr>
+    <tr><td><strong>集合 Collection</strong></td><td>对一组数据做统计/分组/排序</td><td><code>groupBy / keyBy / orderBy / countBy / map / filter</code></td></tr>
+    <tr><td><strong>数组 Array</strong></td><td>数组结构操作</td><td><code>uniqBy / chunk / flattenDeep / compact / pull</code></td></tr>
+    <tr><td><strong>对象 Object</strong></td><td>对象读写与合并</td><td><code>get / set / merge / omit / pick / cloneDeep / isEqual</code></td></tr>
+    <tr><td><strong>函数 Function</strong></td><td>控制函数的执行节奏</td><td><code>debounce / throttle / memoize / once</code></td></tr>
+    <tr><td><strong>语言 Lang</strong></td><td>类型判断与安全转换</td><td><code>isEmpty / isPlainObject / cloneDeep / toNumber</code></td></tr>
+    <tr><td><strong>字符串 String</strong></td><td>命名风格转换等</td><td><code>camelCase / kebabCase / truncate</code></td></tr>
+  </table>
+  <p><strong>用法</strong>：接到需求先翻译成"对什么数据、做什么类型的事"，再查对应类目——比背 API 快得多，也不会漏掉"原来还有现成的"。</p>
+
+  <h3>2.3 招牌函数为什么值得用：手写会栽在哪</h3>
   <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
+    <li><strong>debounce/throttle</strong>：手写要处理 <code>this</code> 透传、参数透传、立即执行选项、取消能力——四个边界缺一个就是线上 bug（细节见 3.3）；</li>
+    <li><strong>cloneDeep</strong>：手写深拷贝要处理循环引用（WeakMap 记忆化）、Date/RegExp/Map/Set、原型链——漏一个就是数据错乱（细节见 3.2）；</li>
+    <li><strong>get/set</strong>：<code>user.profile.address.city</code> 任意一层是 <code>null/undefined</code> 就抛 TypeError；<code>_.get(obj, 'a.b.c', 默认值)</code> 一次解决，且支持数组路径 <code>'items[0].id'</code>；</li>
+    <li><strong>groupBy/orderBy</strong>：手写分组要处理键不存在、分组键类型不一致；<code>_.orderBy(list, ['age', 'name'], ['desc', 'asc'])</code> 多字段多方向一行搞定。</li>
   </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+
+  <h3>2.4 链式调用 _.chain【了解即可】</h3>
+  <p><code>_.chain(list).filter(f).map(g).value()</code> 把数组操作串起来，<code>value()</code> 取结果。现代代码里更推荐原生链式（<code>list.filter().map()</code>）或直接组合函数——<strong>chain 的价值在老项目兼容与超长流水线</strong>，新代码少用（可读性与调试性都差一截）。</p>
+
+  <h3>2.5 与原生的重合度【进阶】</h3>
+  <p>ES2019~2023 补齐了大量 Lodash 对应能力：<code>Object.fromEntries / Array.flat / flatMap / at() / structuredClone / Array.prototype.group（较新）/ Object.groupBy（较新）</code>。<strong>判断原则见第 5 章决策图</strong>：原生已覆盖且语义一致的用原生，覆盖不了或边界处理更稳的用 Lodash。这决定了新项目的引入策略（4.1）。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>Lodash 工具函数库 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心 API 精讲（按场景）</h2>
+  <p>四个最高频场景，每个场景给出"什么时候用 + 怎么用 + 手写版栽在哪"。</p>
+
+  <h3>3.1 场景一：集合数据处理（分组/键值化/排序）</h3>
+<pre class="code" data-lang="js"><code>import { groupBy, keyBy, orderBy } from 'lodash-es'
+
+// 分组：订单按状态分组
+const byStatus = groupBy(orders, o =&gt; o.status)
+// =&gt; { paid: [...], pending: [...] }
+
+// 键值化：列表转 Map 便于 O(1) 查找（重复 key 后者覆盖）
+const byId = keyBy(users, u =&gt; u.id)
+
+// 多字段多方向排序
+const sorted = orderBy(list, ['priority', 'createdAt'], ['desc', 'asc'])</code></pre>
+  <p><strong>手写版栽在哪</strong>：groupBy 忘了处理 key 为 <code>undefined</code>（会被分到 "undefined" 键）；orderBy 用 <code>localeCompare</code> 排数字得到错误顺序。<strong>配套习惯</strong>：keyBy 转索引前想清楚 key 唯一性。</p>
+
+  <h3>3.2 场景二：深拷贝 cloneDeep</h3>
+<pre class="code" data-lang="js"><code>import { cloneDeep } from 'lodash-es'
+
+const draft = cloneDeep(formState)   // 编辑前拍快照，取消时还原
+draft.items[0].qty = 99              // 不影响 formState</code></pre>
+  <p><strong>手写版栽在哪</strong>：递归版遇<strong>循环引用</strong>直接栈溢出（要用 WeakMap 记忆化）；<code>JSON.parse(JSON.stringify())</code> 丢函数、丢 <code>undefined</code>、Date 变字符串、Map/Set 变空对象。<strong>性能注意</strong>：cloneDeep 是深遍历，<strong>大对象高频拷贝是性能事故高发区</strong>（坑 1，见 7.2）。</p>
+
+  <h3>3.3 场景三：执行节奏控制（debounce / throttle）</h3>
+  <table>
+    <tr><th></th><th>debounce 防抖</th><th>throttle 节流</th></tr>
+    <tr><td>语义</td><td>停止触发 N 毫秒后才执行一次</td><td>每 N 毫秒最多执行一次</td></tr>
+    <tr><td>适合</td><td>搜索输入、resize 结束后重算</td><td>scroll 监听、按钮防连点</td></tr>
+    <tr><td>类比</td><td>"等你打完字我再搜"</td><td>"每秒最多汇报一次"</td></tr>
+  </table>
+<pre class="code" data-lang="js"><code>import { debounce, throttle } from 'lodash-es'
+
+// 搜索：停 300ms 才发请求；组件卸载要取消
+const onSearch = debounce(query =&gt; fetchSuggest(query), 300, { leading: false })
+onCancel(() =&gt; onSearch.cancel())   // ⚠️ 忘记 cancel 会更新已卸载组件
+
+// 滚动：100ms 内最多处理一次
+window.addEventListener('scroll', throttle(updateHeader, 100))</code></pre>
+  <p><strong>手写版栽在哪</strong>：<code>this</code> 与参数透传、<code>leading/trailing</code> 选项语义、<code>cancel()</code> 取消能力。<strong>面试高频</strong>：要求手写两者并说明差异（8.1 有完整答案）。</p>
+
+  <h3>3.4 场景四：路径安全读写（get / set / has）</h3>
+<pre class="code" data-lang="js"><code>import { get, set, has } from 'lodash-es'
+
+// 深层取值不再抛 TypeError
+const city = get(user, 'profile.address.city', '未知')
+
+// 深层写入自动补齐中间结构
+set(config, 'theme.dark.header.height', 48)
+
+// 现代注意：可选链 obj?.a?.b 已覆盖"读"，get 剩余优势是
+// 默认值 + 字符串路径（路径来自后端配置/变量拼接时不可替代）</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：已在项目中使用第 3 章的高频 API。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
-  </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <h3>4.1 按需引入：lodash-es 与 tree-shaking</h3>
+  <p>体积策略三档：<strong>全量</strong> <code>import _ from 'lodash'</code>（~70KB gzip 前，禁止用于前端工程）；<strong>按函数</strong> <code>import debounce from 'lodash/debounce'</code>（可用但路径繁琐）；<strong>ES 模块版</strong> <code>import { debounce } from 'lodash-es'</code>（具名导出，配合构建工具 tree-shaking 自动只打包用到的）。<strong>团队规范默认 lodash-es + 具名导入</strong>，并在 CI 里加 bundle 体积检查兜底。</p>
+
+  <h3>4.2 memoize 与计算缓存</h3>
+  <p><code>_.memoize(fn, resolver)</code> 按参数缓存计算结果——适合<strong>纯函数且参数空间有限</strong>的场景（如格式化、路径解析）。注意两点：①缓存键默认取第一个参数，复杂入参用 resolver 自定义；②缓存无淘汰策略，<strong>参数空间无界的场景会内存泄漏</strong>（此时要 LRU，用别的方案）。</p>
+
+  <h3>4.3 cloneDeep 的替代方案：不可变更新与结构共享</h3>
+  <p>React/Vue 状态更新里"拷贝大对象只为改一个字段"是 cloneDeep 的最大误用区。<strong>结构共享</strong>方案（immer 的 produce、原生展开运算符浅层展开）只复制变化路径，性能与心智负担都更优：<code>{ ...state, items: state.items.map(...) }</code>。<strong>原则：改路径上的层用展开，拍整体快照才用 cloneDeep</strong>（如草稿还原场景）。</p>
+
+  <h3>4.4 isEqual 与差异比较</h3>
+  <p><code>_.isEqual(a, b)</code> 深比较——表单脏检查（"用户改过没"）的经典用法。注意：它对函数引用、<code>NaN</code>、<code>[undefined]</code> 的语义与 <code>===</code> 不同，比较前确认两边数据来源的形状一致（如一个是接口原始数据一个是表单归一化后的数据，先归一再比）。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>场景决策图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="Lodash 与原生选择决策图">
+      <defs>
+        <marker id="arrd" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">这个需求用 Lodash 还是原生？（决策图）</text>
+      <rect x="320" y="45" width="160" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="73" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">一个数据操作需求</text>
+      <line x1="400" y1="91" x2="400" y2="118" stroke="#7a8a70" marker-end="url(#arrd)"/>
+      <rect x="270" y="122" width="260" height="46" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="143" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">涉及函数执行节奏控制吗？</text>
+      <text x="400" y="161" text-anchor="middle" font-size="10.5" fill="#92400e">防抖/节流/缓存</text>
+      <line x1="270" y1="145" x2="200" y2="145" stroke="#7a8a70" marker-end="url(#arrd)"/>
+      <line x1="530" y1="145" x2="600" y2="145" stroke="#7a8a70" marker-end="url(#arrd)"/>
+      <rect x="40" y="122" width="160" height="46" rx="8" fill="#f0fdf4" stroke="#047857" stroke-width="2"/>
+      <text x="120" y="143" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">用 Lodash</text>
+      <text x="120" y="161" text-anchor="middle" font-size="10.5" fill="#047857">debounce/throttle/memoize</text>
+      <rect x="604" y="122" width="170" height="46" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="689" y="143" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">不涉及 → 继续判断</text>
+      <text x="689" y="161" text-anchor="middle" font-size="10.5" fill="#4f6348">看操作类型</text>
+      <line x1="689" y1="168" x2="689" y2="196" stroke="#7a8a70" marker-end="url(#arrd)"/>
+      <rect x="560" y="200" width="230" height="80" rx="8" fill="#f8faf0" stroke="#d8e2cc"/>
+      <text x="580" y="222" font-size="11.5" fill="#255a36">• 深拷贝/深比较/路径读写</text>
+      <text x="580" y="240" font-size="11.5" fill="#255a36">  → Lodash（原生覆盖不完整）</text>
+      <text x="580" y="258" font-size="11.5" fill="#255a36">• map/filter/flat/at 等基础操作</text>
+      <text x="580" y="276" font-size="11.5" fill="#255a36">  → 原生（已覆盖且语义一致）</text>
+      <line x1="270" y1="145" x2="200" y2="145" stroke="#7a8a70" marker-end="url(#arrd)" opacity="0"/>
+      <text x="270" y="230" text-anchor="middle" font-size="11.5" fill="#7a8a70">记忆口诀：</text>
+      <text x="270" y="248" text-anchor="middle" font-size="11.5" fill="#7a8a70">"节奏控制、深度操作找 Lodash，</text>
+      <text x="270" y="266" text-anchor="middle" font-size="11.5" fill="#7a8a70">浅层数组对象操作用原生"</text>
+    </svg>
+    <p class="diagram-caption">图 1 Lodash 与原生的选择决策图</p>
   </div>
+  <p><strong>读图要点</strong>：①<strong>函数节奏控制</strong>是 Lodash 不可替代区——原生没有防抖节流；②<strong>深度操作</strong>（cloneDeep/isEqual/get 字符串路径）原生要么没有要么有坑（structuredClone 不支持函数、可选链没有默认值）；③<strong>浅层基础操作</strong>是原生主场——<code>map/filter/reduce/flat/at/includes</code> 直接用，别为 <code>_.map</code> 引库。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
-  <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
-  </ul>
-</section>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个真实场景串起本篇高频 API：<strong>订单列表页的搜索、分组统计与编辑草稿</strong>。安装 <code>npm i lodash-es</code> 即可跑（Node 18+ 或浏览器）。</p>
 
-<section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
+  <h3>6.1 完整代码</h3>
+<pre class="code" data-lang="js"><code>import { debounce, groupBy, orderBy, cloneDeep, get, isEqual } from 'lodash-es'
+
+// —— 模拟数据：订单列表 ——
+const orders = [
+  { id: 1, status: 'paid',    amount: 99,  user: { name: 'Alice' } },
+  { id: 2, status: 'pending', amount: 199, user: { name: 'Bob' } },
+  { id: 3, status: 'paid',    amount: 59,  user: { name: 'Carol' } },
+]
+
+// 1) 路径安全读取：接口可能缺字段
+const firstName = get(orders[2], 'user.name', '匿名')   // 'Carol'
+const missing  = get(orders[2], 'coupon.discount', 0)   // 0，不抛错
+
+// 2) 分组统计：按状态分组并求各组合计
+const byStatus = groupBy(orders, o =&gt; o.status)
+const summary = Object.entries(byStatus).map(([status, list]) =&gt; ({
+  status, count: list.length, total: list.reduce((s, o) =&gt; s + o.amount, 0),
+}))
+
+// 3) 排序：金额降序
+const sorted = orderBy(orders, ['amount'], ['desc'])
+
+// 4) 防抖搜索 + 取消（组件卸载防泄漏）
+const onSearch = debounce(q =&gt; console.log('搜索:', q), 300)
+onSearch('shoe'); onSearch('shoes'); onSearch('shoes red')
+// 300ms 后只执行一次：'搜索: shoes red'
+// 组件卸载时：onSearch.cancel()
+
+// 5) 编辑草稿：拍快照 → 修改 → 取消时还原 / 保存时脏检查
+const snapshot = cloneDeep(orders)
+orders[0].amount = 999
+const dirty = !isEqual(orders, snapshot)   // true：提示用户保存
+if (!dirty === false) Object.assign(orders, cloneDeep(snapshot))  // 取消 → 还原
+
+console.log({ firstName, missing, summary, sorted, dirty })</code></pre>
+
+  <h3>6.2 逐段解析</h3>
   <ul>
-    <li>Lodash 官方文档：<a href="https://lodash.com/docs/" rel="noopener">https://lodash.com/docs/</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/lodash/lodash" rel="noopener">https://github.com/lodash/lodash</a></li>
-    <li>官方示例项目：<a href="https://lodash.com/" rel="noopener">https://lodash.com/</a></li>
+    <li><strong>get</strong>：接口字段随时可能缺——用 <code>get + 默认值</code> 代替一串可选链加判断；</li>
+    <li><strong>groupBy + reduce</strong>：分组统计两步走，比手写 reduce 累对象可读性高一个量级；</li>
+    <li><strong>debounce + cancel</strong>：注意 <code>cancel()</code>——三次调用只执行最后一次，组件卸载前取消防止更新已卸载组件；</li>
+    <li><strong>cloneDeep 快照 + isEqual 脏检查</strong>：表单编辑场景的经典组合——这里 orders 只有 3 条，cloneDeep 成本可忽略；如果是万级数据的表格，见 4.3 的结构共享替代方案。</li>
   </ul>
-  <h3>学习建议</h3>
+
+  <h3>6.3 运行结果</h3>
+<pre class="code" data-lang="text"><code>搜索: shoes red                     ← 防抖：只执行最后一次
+{
+  firstName: 'Carol',
+  missing: 0,
+  summary: [
+    { status: 'paid',    count: 2, total: 158 },
+    { status: 'pending', count: 1, total: 199 }
+  ],
+  sorted: [199, 999, 59 对应的三条订单按金额降序],
+  dirty: true
+}</code></pre>
+
+  <h3>6.4 生产改造扩展方向</h3>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>把搜索防抖封装成 Vue/React 组合式函数（自动在卸载时 cancel）；</li>
+    <li>万级数据的表格编辑改用结构共享方案（4.3），cloneDeep 只用于"拍快照"；</li>
+    <li>加 bundle 分析：对比全量引入与 lodash-es 具名引入的产物体积差。</li>
   </ol>
 </section>
 
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"性能 → 语义 → 工程"分组，每条五要素。</p>
 
+  <h3>7.1 性能</h3>
+  <p><strong>坑 1：cloneDeep 大对象/高频拷贝</strong></p>
+  <ul>
+    <li><strong>现象</strong>：万行表格每次编辑都 cloneDeep 全量数据，页面明显卡顿；</li>
+    <li><strong>根因</strong>：cloneDeep 是全量深遍历 + 递归创建，成本随对象规模线性放大；</li>
+    <li><strong>复现</strong>：console.time 包裹 <code>cloneDeep(bigObj)</code>；</li>
+    <li><strong>修复</strong>：状态更新改结构共享（4.3），cloneDeep 只用于低频快照；</li>
+    <li><strong>规避</strong>：code review 时对 cloneDeep 调用点问一句"拷贝的数据多大、多频"。</li>
+  </ul>
+
+  <h3>7.2 语义</h3>
+  <p><strong>坑 2：debounce 忘记 cancel / 忽略 leading</strong></p>
+  <ul>
+    <li><strong>现象 A</strong>：组件卸载后防抖回调仍触发，更新已卸载组件报警告；<strong>现象 B</strong>：按钮防连点用默认配置，用户第一次点击要等 N 毫秒才生效；</li>
+    <li><strong>根因</strong>：防抖定时器是独立生命周期，默认 <code>leading: false</code> 首次不立即执行；</li>
+    <li><strong>修复</strong>：卸载钩子里 <code>debounced.cancel()</code>；按钮防连点用 <code>{ leading: true, trailing: false }</code>；</li>
+    <li><strong>规避</strong>：封装成组合式函数/自定义 Hook，把 cancel 收进生命周期。</li>
+  </ul>
+  <p><strong>坑 3：keyBy/groupBy 的 key 不唯一或为空</strong></p>
+  <ul>
+    <li><strong>现象</strong>：keyBy 后查不到部分数据；groupBy 出现 "undefined" 分组；</li>
+    <li><strong>根因</strong>：key 函数取值路径有 <code>undefined</code>；key 不唯一时后者静默覆盖前者；</li>
+    <li><strong>修复</strong>：先数据清洗再分组；key 不唯一场景改 groupBy；</li>
+    <li><strong>规避</strong>：索引化前显式断言 key 唯一性（开发期 console.warn 重复 key）。</li>
+  </ul>
+  <p><strong>坑 4：get 的默认值掩盖真实数据问题</strong></p>
+  <ul>
+    <li><strong>现象</strong>：字段缺失长期被默认值掩盖，业务统计悄悄变错；</li>
+    <li><strong>根因</strong>：get 兜底太顺手，把"异常数据"当"正常缺省"处理了；</li>
+    <li><strong>修复</strong>：关键业务字段不用默认值兜底，让问题显式抛出；</li>
+    <li><strong>规避</strong>：默认值只用于"确实合法可为空"的字段（如可选配置）。</li>
+  </ul>
+
+  <h3>7.3 工程</h3>
+  <p><strong>坑 5：全量引入拖垮体积</strong></p>
+  <ul>
+    <li><strong>现象</strong>：项目只用了 10 个函数，产物里躺着整个 Lodash；</li>
+    <li><strong>根因</strong>：<code>import _ from 'lodash'</code> 全量 + 未用 ES 模块版；</li>
+    <li><strong>修复</strong>：切换 <code>lodash-es</code> + 具名导入（4.1）；</li>
+    <li><strong>规避</strong>：ESLint 禁止默认导入 lodash；CI 加产物体积预算。</li>
+  </ul>
+  <p><strong>坑 6：该用原生的也用了 Lodash</strong></p>
+  <ul>
+    <li><strong>现象</strong>：<code>_.map/_.filter/_.includes</code> 满天飞，新人误以为这些是 Lodash 特有能力；</li>
+    <li><strong>根因</strong>：历史代码惯性；原生重合区没有清理（2.5）；</li>
+    <li><strong>修复</strong>：按第 5 章决策图逐类清理——浅层基础操作换原生；</li>
+    <li><strong>规避</strong>：团队约定"新代码浅层操作用原生"，评审清单加一条。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：手写防抖和节流，并说明差异。</strong></p>
+  <p class="note"><strong>参考答案</strong>：</p>
+<pre class="code" data-lang="js"><code>function debounce(fn, wait) {
+  let timer = null
+  return function (...args) {          // 保存 this 与参数
+    clearTimeout(timer)
+    timer = setTimeout(() =&gt; fn.apply(this, args), wait)
+  }
+}
+function throttle(fn, wait) {
+  let last = 0
+  return function (...args) {
+    const now = Date.now()
+    if (now - last &gt;= wait) { last = now; fn.apply(this, args) }
+  }
+}</code></pre>
+  <p class="note"><strong>差异</strong>：debounce 是"<strong>停止触发后</strong>等 wait 执行"（重置计时器），适合搜索输入；throttle 是"<strong>固定频率</strong>最多执行一次"（比较时间戳），适合 scroll/防连点。手写要补的边界：this/参数透传、leading/trailing 选项、cancel 能力——这也是"生产用 Lodash 版"的理由。</p>
+
+  <p><strong>Q2：实现一个深拷贝，要处理哪些边界？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>①循环引用</strong>——用 WeakMap 缓存已拷贝对象（这是与 naive 递归的本质区别）；<strong>②特殊类型</strong>——Date/RegExp/Map/Set 需要分支处理，JSON 序列化版会全部出错；<strong>③函数与原型</strong>——一般拷贝引用即可；<strong>④性能</strong>——WeakMap 记忆化同时解决循环引用与重复引用。</p>
+<pre class="code" data-lang="js"><code>function deepClone(obj, map = new WeakMap()) {
+  if (obj === null || typeof obj !== 'object') return obj
+  if (map.has(obj)) return map.get(obj)            // 循环引用出口
+  const clone = Array.isArray(obj) ? [] : {}
+  map.set(obj, clone)
+  for (const key of Object.keys(obj)) clone[key] = deepClone(obj[key], map)
+  return clone
+}</code></pre>
+  <p class="note"><strong>追问：JSON.parse(JSON.stringify()) 有什么问题？</strong>——丢函数/undefined、Date 变字符串、Map/Set 变空对象、循环引用直接抛错。生产可以直接用 Lodash cloneDeep 或原生 structuredClone（注意后者不支持函数）。</p>
+
+  <p><strong>Q3：现代 JS 还需要 Lodash 吗？</strong></p>
+  <p class="note"><strong>参考答案</strong>：分层回答。<strong>收缩的部分</strong>：浅层数组/对象操作（map/filter/flat/at）原生已完美覆盖；<strong>仍在的部分</strong>：函数节奏控制（debounce/throttle 原生没有）、深度操作（cloneDeep/isEqual/字符串路径 get/set）、复杂集合操作（groupBy 早期环境/keyBy/orderBy 多字段排序）。<strong>工程结论</strong>：用 lodash-es 具名引入，按决策图（第 5 章）逐函数取舍——问题不是"要不要这个库"，而是"每个函数原生替代的边界成本是多少"。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>Lodash 类目地图的六类分别解决什么问题？</li>
+    <li>debounce 和 throttle 的语义差异？各举一个适用场景？</li>
+    <li>手写深拷贝的三个必处理边界是什么？WeakMap 起什么作用？</li>
+    <li>cloneDeep 在什么场景应该被结构共享替代？</li>
+    <li>"浅层基础操作用原生"——列举至少四个已覆盖的原生 API。</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Lodash 官方文档（按类目浏览，每个函数有示例）：<a href="https://lodash.com/docs/" rel="noopener">lodash.com/docs</a></li>
+    <li>MDN 对应原生 API（flat/at/groupBy/structuredClone）——对照着学重合区</li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>lodash-es 仓库（ES 模块版，tree-shaking 前提）：<a href="https://github.com/lodash/lodash" rel="noopener">github.com/lodash/lodash</a></li>
+    <li>Lodash 源码的 debounce.js / cloneDeep.js（理解 leading/trailing 与记忆化的工业级实现）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo，然后不查文档手写 groupBy 与 orderBy 的简化版；</li>
+    <li>给自己项目的搜索框加防抖 + 卸载取消，用 Performance 面板对比加防抖前后的请求数；</li>
+    <li>审计项目里的 Lodash 引用：按第 5 章决策图分出"保留/可换原生/应删"三档并动手清理一档。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/00_前端常用工具库模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/02_Day.js时间处理【标准】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考

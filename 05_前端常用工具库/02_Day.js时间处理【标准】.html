@@ -491,340 +491,363 @@ p, li, h1, h2, h3, h4, h5, h6 {
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/01_Lodash工具函数库【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/03_Axios【深入】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心 API 精讲（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">时间处理决策图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>Day.js 时间处理</strong> 是现代开发中广泛使用的技术方案之一，用于解决 日期时间处理 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 Day.js 时间处理 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Day.js 是一个 2KB 的轻量日期时间库</strong>：API 仿 Moment.js、核心不可变、插件按需加载。它解决的是"时间处理"这个前端经典泥潭——解析、格式化、加减、比较、时区。本篇按"为什么需要它 → 四个核心模型 → 分场景 API → 时间处理闭环"展开，重点标出日期库特有的坑（格式符大小写、diff 粒度、时区）。</p>
+
+  <h3>1.2 痛点：原生 Date 为什么不够用</h3>
   <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
+    <li><strong>月份从 0 开始</strong>：<code>new Date(2026, 10, 15)</code> 是 11 月 15 日——永远的坑源；</li>
+    <li><strong>可变性</strong>：<code>d.setMonth(3)</code> 直接改原对象，作为参数传递时被意外修改；</li>
+    <li><strong>格式化手写</strong>：<code>getFullYear() + '-' + (getMonth()+1)...</code> 每个项目写一遍；</li>
+    <li><strong>字符串解析不一致</strong>：<code>new Date('2026-10-15')</code> 与 <code>new Date('2026/10/15')</code> 在不同浏览器的时区解释不同；</li>
+    <li><strong>加减与比较</strong>：跨月加 30 天、"同一天吗"（到日还是到毫秒）都要自己绕。</li>
   </ul>
-  
-  <p>Day.js 时间处理 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Day.js 时间处理 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">Day.js 时间处理 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
-  <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>Day.js 时间处理</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>项目在做时间展示/计算（表单、报表、倒计时）</td><td>复杂时区业务（跨时区日历）→ 考虑 luxon/temporal，超出本篇</td></tr>
+    <tr><td>从 Moment.js 迁移或选型</td><td>日期选择器组件用法 → 组件库文档</td></tr>
+    <tr><td>面试（Date 坑、不可变设计）</td><td>后端时间存储规范 → 08 模块数据库篇</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>用 <strong>dayjs() 统一入口</strong>完成解析、格式化、加减、比较的日常操作；</li>
+    <li>正确使用 <strong>format 格式符</strong>与 <strong>diff/isSame 的单位粒度</strong>，避开大小写与粒度坑；</li>
+    <li>按需加载<strong>插件</strong>（utc/relativeTime/customParseFormat/isSameOrBefore）；</li>
+    <li>能回答"为什么选 Day.js 而不是 Moment/原生"以及不可变设计的理由。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：JS 基础（Date 对象基本用法）；做过一次"格式化日期"的需求更好。</p>
+  <p><strong>难度等级</strong>：★☆☆☆☆（API 简单直观，坑在细节语义）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>第一次用</td><td>按顺序读第 2、3 章 → 跑第 6 章 Demo</td></tr>
+    <tr><td>已在用</td><td>第 4 章进阶（插件体系/locale）→ 第 7 章坑自查</td></tr>
+    <tr><td>面试准备</td><td>第 2.1 节 + 第 7 章 → 第 8 章</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点。<strong>务必动手</strong>：第 6 章 Demo——把"解析→操作→格式化"闭环跑一遍。</p>
+  <p><strong>本篇不涉及</strong>：Temporal 新标准（仍在推进，关注即可）；日历排班的复杂时区计算。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 Day.js 时间处理 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>Day.js 时间处理 的架构通常分为几层：</p>
-  <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
-  </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>Day.js 的全部设计围绕四个模型：<strong>不可变、统一入口、插件体系、与 Moment 兼容的 API</strong>。</p>
+
+  <h3>2.1 不可变（Immutable）：所有操作返回新实例</h3>
+  <p>Day.js 的每个实例都不可变——<code>dayjs().add(1, 'day')</code> 返回<strong>新实例</strong>，原实例纹丝不动。两个推论：<strong>①必须接收返回值</strong>：<code>d.add(1, 'day')</code> 单独写一行是无效代码（新手第一大坑）；<strong>②可以安全传递</strong>：把实例当参数传给任何函数都不怕被改。这与原生 Date 的可变设计（<code>setMonth</code> 改自己）是根本分歧，也是"用库而不是裸用 Date"的最大理由之一。</p>
+
+  <h3>2.2 统一入口：<code>dayjs()</code> 包装一切</h3>
+  <p>无论输入是 Date 对象、ISO 字符串、时间戳还是无参（当前时间），都经 <code>dayjs(x)</code> 包装成 Dayjs 实例，之后统一用实例方法操作。判断"现在几点"用 <code>dayjs()</code>，校验合法用 <code>dayjs(x).isValid()</code>。<strong>约定：业务代码里不直接持有裸 Date</strong>，入口处立即包装，出口处再 format——把原生 Date 的坑挡在边界上。</p>
+
+  <h3>2.3 插件体系：核心 2KB，能力按需加载</h3>
+  <p>核心只保留最常用的解析/格式化/加减；<strong>utc、时区、相对时间、自定义解析、周数</strong>等能力全部以插件提供，用哪个 <code>extend</code> 哪个：</p>
+<pre class="code" data-lang="js"><code>import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+dayjs.extend(relativeTime)          // 注册一次，全局生效
+
+dayjs().fromNow()   // "3 天前"（未注册插件时此方法不存在）</code></pre>
+  <p><strong>坑预警</strong>：忘了注册插件 → 调用报 <code>not a function</code>（坑 5）。反过来这也是体积优势：<strong>不用时一个字节都不进包</strong>。</p>
+
+  <h3>2.4 与 Moment 的关系：API 兼容的轻量替代</h3>
+  <p>Day.js 的 API 刻意与 Moment.js 兼容（老项目迁移成本低），核心差异三点：<strong>①体积</strong>——核心 ~2KB vs Moment ~70KB；<strong>②不可变</strong>——Moment 实例可变（历史包袱）；<strong>③插件化</strong>——Moment 是大而全单体。结论：新项目直接 Day.js；Moment 已进入维护模式，存量项目渐进迁移。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>Day.js 时间处理 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心 API 精讲（按场景）</h2>
+  <p>四个日常场景：<strong>解析与格式化、加减与差值、比较判断、相对时间与时区</strong>。</p>
+
+  <h3>3.1 场景一：解析与格式化</h3>
+<pre class="code" data-lang="js"><code>import dayjs from 'dayjs'
+
+// 解析：字符串/Date/时间戳统一入口
+dayjs('2026-10-15 09:30:00')
+dayjs(new Date())            // 从裸 Date 包装
+dayjs(1760000000000)         // 毫秒时间戳
+
+// 格式化：常用格式符
+dayjs().format('YYYY-MM-DD HH:mm:ss')   // 2026-10-15 14:30:05
+dayjs().format('YYYY年M月D日 dddd')      // 本地化星期（需配 locale）
+dayjs().format('MM/DD HH:mm')           // 列表时间
+// 常用格式符速记：YYYY 四位年 / MM 两位月 / DD 两位日 /
+// HH 24时 / mm 分 / ss 秒 / dddd 星期全称 / A 上午下午</code></pre>
+  <p class="note"><strong>格式符大小写陷阱</strong>（高频坑，详见 7.2）：<code>YYYY</code> 是年、<code>yyyy</code> 在 Day.js 无效或含义不同；<code>DD</code> 是两位日、<code>dd</code> 是星期缩写——写错不报错，只是输出诡异。</p>
+
+  <h3>3.2 场景二：加减与差值（add / subtract / diff）</h3>
+<pre class="code" data-lang="js"><code>// 加减：单位 'day'/'month'/'year'/'hour'/'minute'/'second'
+dayjs('2026-10-15').add(1, 'month').format('YYYY-MM-DD')   // 2026-11-15（自动进位）
+dayjs().subtract(7, 'day')                                  // 一周前
+
+// 差值：diff 的粒度由单位参数决定
+dayjs('2026-10-15').diff(dayjs('2026-09-30'), 'day')        // 15
+dayjs('2026-10-15').diff(dayjs('2026-09-30'), 'month')      // 0（不满整月为 0）
+// 倒计时：毫秒差自己换算
+const ms = dayjs('2026-12-31').diff(dayjs())</code></pre>
+  <p class="note"><strong>diff 粒度陷阱</strong>（详见 7.3）：diff 按<strong>完整单位</strong>计数——10-15 与 9-30 差 15 天但差 0 个"整月"；要"月差"语义需自己按天换算或用 <code>exactDate</code> 相关选项。</p>
+
+  <h3>3.3 场景三：比较判断（isBefore / isSame / isAfter）</h3>
+<pre class="code" data-lang="js"><code>const now = dayjs()
+now.isBefore('2026-12-31')                    // 毫秒级比较
+now.isSame(dayjs(), 'day')                    // ⚠️ 单位参数决定粒度
+now.isSame('2026-10-15', 'date')              // "是同一天"必须给 'date'/'day'
+// 区间：需要插件
+import isBetween from 'dayjs/plugin/isBetween'
+dayjs.extend(isBetween)
+now.isBetween('2026-10-01', '2026-10-31', 'day', '[]')  // [] 含边界</code></pre>
+  <p><strong>核心认知</strong>：<code>isSame(a)</code> 不带单位是<strong>毫秒级相等</strong>（几乎永远 false）；"是不是同一天"必须传 <code>'day'</code>——这是 Day.js 使用频率最高的坑。</p>
+
+  <h3>3.4 场景四：相对时间与时区</h3>
+<pre class="code" data-lang="js"><code>// 相对时间：评论区"3 小时前"
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/zh-cn'
+dayjs.extend(relativeTime); dayjs.locale('zh-cn')
+dayjs().subtract(3, 'hour').fromNow()        // 3 小时前
+
+// UTC：跨时区展示（服务器时间用 UTC 存，前端转本地展示）
+import utc from 'dayjs/plugin/utc'
+dayjs.extend(utc)
+dayjs.utc('2026-10-15T06:00:00Z').local().format('HH:mm')  // 转本地时间</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：已熟练使用第 3 章 API。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
-  </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <h3>4.1 customParseFormat：非标准格式解析</h3>
+  <p><code>dayjs('15/10/2026', 'DD/MM/YYYY')</code> 需要 <code>customParseFormat</code> 插件——没有它，Day.js 把无法识别的字符串直接判 invalid。<strong>后端给非 ISO 格式时必开此插件</strong>，并显式声明格式，杜绝浏览器解析歧义。</p>
+
+  <h3>4.2 locale 国际化</h3>
+  <p>两套机制：<code>dayjs.locale('zh-cn')</code> 全局切换；<code>dayjs(x).locale('en')</code> 单实例切换（报表多语言并排时用后者）。注意 locale 只影响<strong>文字输出</strong>（星期名、相对时间文案），不影响数值与计算；周的起始日由 locale 定义（中欧周一起始 vs 美式周日），影响 <code>week()</code> 相关计算。</p>
+
+  <h3>4.3 时间的边界语义：startOf / endOf</h3>
+  <p><code>dayjs().startOf('day')</code>（当天 00:00:00.000）与 <code>endOf('month')</code>（月末 23:59:59.999）是<strong>区间查询的基石</strong>：查"今天的订单" = <code>createdAt >= startOf('day') && <= endOf('day')</code>。注意 endOf 的毫秒是 999——用 <code>&lt;</code> 下一个 startOf 代替 <code>&lt;=</code> endOf 是更稳的区间写法（避免毫秒精度歧义）。</p>
+
+  <h3>4.4 性能与内存：实例复用与避免链式过长</h3>
+  <p>Day.js 实例轻量，常规使用无性能问题。两个注意：<strong>①循环里重复 <code>dayjs()</code></strong>（取当前时间）提到循环外；<strong>②超长链式</strong>（add 之后 subtract 再 add）优先用中间变量命名步骤——可读性与可调试性优于"一行流"。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>时间处理决策图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 280" role="img" aria-label="时间处理决策图">
+      <defs>
+        <marker id="arrt" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">一个时间需求的处理闭环（决策图）</text>
+      <rect x="40" y="60" width="160" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="120" y="84" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">① 入口统一包装</text>
+      <text x="120" y="102" text-anchor="middle" font-size="10.5" fill="#4f6348">dayjs(x) + isValid()</text>
+      <line x1="200" y1="88" x2="240" y2="88" stroke="#7a8a70" marker-end="url(#arrt)"/>
+      <rect x="244" y="60" width="160" height="56" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="324" y="84" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">② 计算/比较</text>
+      <text x="324" y="102" text-anchor="middle" font-size="10.5" fill="#115e59">add/diff/isSame(带单位!)</text>
+      <line x1="404" y1="88" x2="444" y2="88" stroke="#7a8a70" marker-end="url(#arrt)"/>
+      <rect x="448" y="60" width="150" height="56" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="523" y="84" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">③ 接收新实例</text>
+      <text x="523" y="102" text-anchor="middle" font-size="10.5" fill="#92400e">不可变！必须接返回值</text>
+      <line x1="598" y1="88" x2="638" y2="88" stroke="#7a8a70" marker-end="url(#arrt)"/>
+      <rect x="642" y="60" width="130" height="56" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="707" y="84" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">④ 出口格式化</text>
+      <text x="707" y="102" text-anchor="middle" font-size="10.5" fill="#047857">format(格式符大小写!)</text>
+
+      <line x1="400" y1="116" x2="400" y2="150" stroke="#7a8a70" marker-end="url(#arrt)"/>
+      <text x="400" y="140" text-anchor="middle" font-size="11" fill="#7a8a70">任何一步结果异常 → 按下面排查序</text>
+
+      <rect x="150" y="155" width="500" height="100" rx="10" fill="#f8faf0" stroke="#d8e2cc"/>
+      <text x="400" y="180" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2e1f">异常排查序（从上到下）</text>
+      <text x="180" y="203" font-size="11.5" fill="#4f6348">1. 打印中间实例的 .toISOString() —— 定位是"解析错了"还是"算错了"</text>
+      <text x="180" y="223" font-size="11.5" fill="#b91c1c">2. isSame/diff 结果怪 → 检查单位参数（粒度）</text>
+      <text x="180" y="243" font-size="11.5" fill="#b91c1c">3. format 输出怪 → 检查格式符大小写（DD vs dd）</text>
+    </svg>
+    <p class="diagram-caption">图 1 时间处理闭环与异常排查序</p>
   </div>
+  <p><strong>读图要点</strong>：①业务代码不持有裸 Date——入口包装、出口格式化，中间全是 Dayjs 实例；②<strong>第③格是新手翻车率最高的一格</strong>：不可变设计下"光调用不接收"等于什么都没发生；③排查时间的异常先打 <code>toISOString()</code>（UTC 视角无歧义），再查单位与格式符。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
-  <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
-  </ul>
-</section>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个真实场景串起 API：<strong>活动倒计时 + 月度账单周期 + 评论区相对时间</strong>。安装 <code>npm i dayjs</code> 即跑。</p>
 
-<section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
+  <h3>6.1 完整代码</h3>
+<pre class="code" data-lang="js"><code>import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/zh-cn'
+dayjs.extend(relativeTime); dayjs.locale('zh-cn')
+
+// —— 场景 1：活动倒计时（天/时/分/秒 换算）——
+const deadline = dayjs('2026-12-31 23:59:59')
+const ms = deadline.diff(dayjs())                  // 毫秒差
+const days  = Math.floor(ms / 86400000)
+const hours = Math.floor(ms % 86400000 / 3600000)
+const mins  = Math.floor(ms % 3600000 / 60000)
+console.log(`距结束还有 ${days} 天 ${hours} 小时 ${mins} 分钟`)
+
+// —— 场景 2：月度账单周期（startOf/endOf 区间）——
+const billMonth = dayjs('2026-10-15')
+const from = billMonth.startOf('month')            // 10-01 00:00:00
+const to   = billMonth.endOf('month')              // 10-31 23:59:59.999
+console.log(from.format('YYYY-MM-DD HH:mm:ss'), '~', to.format('YYYY-MM-DD HH:mm:ss'))
+console.log('上月同期:', billMonth.subtract(1, 'month').startOf('month').format('YYYY-MM-DD'))
+
+// —— 场景 3：账单"是否本期"（isSame 带单位）——
+const someOrderTime = dayjs('2026-10-20 08:00:00')
+console.log('属于本期账单:', someOrderTime.isSame(billMonth, 'month'))  // true
+
+// —— 场景 4：评论区相对时间 ——
+console.log(dayjs().subtract(3, 'hour').fromNow())       // 3 小时前
+console.log(dayjs('2026-10-01').fromNow())               // X 个月前
+
+// —— 反例：不可变，光调用不接收 = 无效 ——
+let d = dayjs('2026-10-15')
+d.add(1, 'day')                                          // ⚠️ 无效调用
+console.log(d.format('YYYY-MM-DD'))                      // 还是 2026-10-15
+d = d.add(1, 'day')                                      // ✅ 接收返回值
+console.log(d.format('YYYY-MM-DD'))                      // 2026-10-16</code></pre>
+
+  <h3>6.2 逐段解析</h3>
   <ul>
-    <li>Day.js 官方文档：<a href="https://day.js.org/docs/zh-CN/installation/installation" rel="noopener">https://day.js.org/docs/zh-CN/installation/installation</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/iamkun/dayjs" rel="noopener">https://github.com/iamkun/dayjs</a></li>
-    <li>官方示例项目：<a href="https://day.js.org/" rel="noopener">https://day.js.org/</a></li>
+    <li><strong>倒计时</strong>：diff 取毫秒差后手动换算——不要用 <code>diff(x, 'hour')</code> 这类"整单位"语义做倒计时（不满整点直接为 0）；</li>
+    <li><strong>账单区间</strong>：startOf/endOf 定义区间边界，配合 isSame(单位) 做"归属判断"；</li>
+    <li><strong>相对时间</strong>：relativeTime 插件 + zh-cn locale，两行配置，评论区文案直接产出；</li>
+    <li><strong>反例段</strong>：刻意的无效调用示范——不可变库里最常见的"代码写了但没生效"。</li>
   </ul>
-  <h3>学习建议</h3>
+
+  <h3>6.3 生产改造扩展方向</h3>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>倒计时封装为 Vue/React Hook（内部 setInterval + 卸载清理）；</li>
+    <li>账单周期抽成纯函数 <code>getBillPeriod(date)</code>，单测覆盖跨年 2 月；</li>
+    <li>后端时间统一 UTC ISO 字符串，前端入口处 <code>dayjs.utc(x).local()</code> 转本地（4.3 配套）。</li>
   </ol>
 </section>
 
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"不可变 → 语义 → 环境"分组，每条五要素。</p>
 
+  <h3>7.1 不可变相关</h3>
+  <p><strong>坑 1：光调用不接收返回值</strong></p>
+  <ul>
+    <li><strong>现象</strong>：<code>d.add(1, 'day')</code> 执行了，d 纹丝不动；</li>
+    <li><strong>根因</strong>：Day.js 不可变设计——所有方法返回新实例，原实例永不变；</li>
+    <li><strong>复现</strong>：第 6 章 Demo 的反例段；</li>
+    <li><strong>修复</strong>：<code>d = d.add(1, 'day')</code>；</li>
+    <li><strong>规避</strong>：ESLint 规则 no-unused-expressions 可拦截这类孤立调用。</li>
+  </ul>
+
+  <h3>7.2 语义相关</h3>
+  <p><strong>坑 2：格式符大小写写错</strong></p>
+  <ul>
+    <li><strong>现象</strong>：<code>format('yyyy-MM-dd')</code> 输出里的"日期"变成了星期缩写或无效字符；</li>
+    <li><strong>根因</strong>：Day.js 格式符有严格语义——<code>YYYY</code> 年 / <code>DD</code> 两位日 / <code>dd</code> 星期缩写 / <code>HH</code> 24 时（<code>hh</code> 是 12 时）；</li>
+    <li><strong>复现</strong>：对照官方 format 表逐字符检查；</li>
+    <li><strong>修复</strong>：改正大小写；</li>
+    <li><strong>规避</strong>：团队沉淀常用格式串常量（'YYYY-MM-DD HH:mm:ss' 等），不手打。</li>
+  </ul>
+  <p><strong>坑 3：diff / isSame 的粒度没给单位</strong></p>
+  <ul>
+    <li><strong>现象 A</strong>：<code>d1.diff(d2, 'month')</code> 明明跨了月却返回 0；<strong>现象 B</strong>：<code>isSame(other)</code> 永远 false；</li>
+    <li><strong>根因</strong>：diff 按<strong>完整单位</strong>计数（15 天不足整月 = 0）；isSame 不带单位是<strong>毫秒级</strong>比较；</li>
+    <li><strong>修复</strong>："同一天"用 <code>isSame(x, 'day')</code>；"月差"按业务语义换算（天差/30 或精确日历差）；</li>
+    <li><strong>规避</strong>：code review 约定——isSame/diff 不带单位参数的调用必须有注释说明理由。</li>
+  </ul>
+  <p><strong>坑 4：字符串解析的浏览器/时区歧义</strong></p>
+  <ul>
+    <li><strong>现象</strong>：同一段 <code>dayjs('2026-10-15 08:00')</code> 在不同环境差了 8 小时；</li>
+    <li><strong>根因</strong>：非 ISO 格式（空格分隔、无时区标记）的解析行为依赖实现；带 <code>Z</code> 的 ISO 按 UTC、不带按本地；</li>
+    <li><strong>修复</strong>：后端输出统一 ISO UTC（<code>2026-10-15T00:00:00Z</code>），前端用 utc 插件 <code>dayjs.utc(x).local()</code>；非标准格式用 customParseFormat 显式声明；</li>
+    <li><strong>规避</strong>：接口时间字段格式写进前后端契约文档。</li>
+  </ul>
+
+  <h3>7.3 环境相关</h3>
+  <p><strong>坑 5：插件方法报 not a function</strong></p>
+  <ul>
+    <li><strong>现象</strong>：<code>dayjs().fromNow is not a function</code>；</li>
+    <li><strong>根因</strong>：用了插件能力但没 <code>extend</code> 注册（utc/relativeTime/isBetween 都要）；</li>
+    <li><strong>修复</strong>：入口文件统一注册所有用到的插件；</li>
+    <li><strong>规避</strong>：封装 <code>setupDayjs()</code> 统一做插件与 locale 配置，业务侧只 import 这个入口。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Day.js 为什么设计成不可变？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三个理由。<strong>①安全性</strong>：时间对象常被多处传递（组件 props、状态、缓存），可变对象会被意外修改产生难查的 bug——不可变从根上消除这类问题；<strong>②可预测性</strong>：操作即返回新值，与 <code>str.slice()</code> 等原生习惯一致，链式调用语义清晰；<strong>③并发/缓存友好</strong>：实例可以放心缓存复用（不可变天然线程安全的单线程版）。<br><br>
+  <strong>代价</strong>：忘接收返回值就"没生效"——这是新手最常踩的坑，但也正是不可变语义的直接体现。</p>
+
+  <p><strong>Q2：为什么选 Day.js 而不是 Moment 或原生 Date？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>vs 原生</strong>——原生 Date 有月份 0 基、可变、解析歧义、格式化手写四大坑，Day.js 全部解决且入口统一；<strong>vs Moment</strong>——API 兼容使迁移成本低，但体积 2KB vs ~70KB、不可变 vs 可变、插件化 vs 单体，且 Moment 官方已进入维护模式并推荐新项目用替代品。<strong>结论</strong>：新项目默认 Day.js；存量 Moment 项目按模块渐进迁移。<br><br>
+  <strong>加分点</strong>：能补一句"更复杂的时区场景会评估 luxon 或未来的 Temporal 标准"——说明选型视野在库之外。</p>
+
+  <p><strong>Q3：<code>isSame</code> 不带单位和带 <code>'day'</code> 有什么区别？diff 的"整单位"语义是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>isSame(x)</code> 是<strong>毫秒级完全相等</strong>，两个不同的 <code>dayjs()</code> 调用几乎必然不等；<code>isSame(x, 'day')</code> 是<strong>日历日相等</strong>（同一天即 true）。<code>diff(x, 'month')</code> 计算<strong>完整月份跨度</strong>：10-15 与 9-30 差 15 天但不足整月，结果为 0。<strong>工程规则</strong>：比较与差值永远显式声明单位；"月差"类业务需求（如账龄 N 个月）要确认业务定义是"完整月"还是"日历月差"，两者实现不同。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>原生 Date 的四个经典坑是什么？Day.js 分别怎么解决？</li>
+    <li>不可变设计下最容易犯的无效代码长什么样？</li>
+    <li>format 的格式符陷阱：DD、dd、HH、hh 各是什么？</li>
+    <li>“今天的订单"的区间查询怎么写？为什么建议用 startOf 代替 endOf 的 <=？</li>
+    <li>哪些能力需要插件？忘注册的症状与统一治理方案？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Day.js 官方文档（中文友好，API/插件/格式符三张表）：<a href="https://day.js.org/" rel="noopener">day.js.org</a></li>
+    <li>MDN Date 参考（理解底层，才能看懂库在解决什么）</li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>Day.js 插件列表页（utc/timezone/customParseFormat/isBetween/_duration 等）</li>
+    <li>Temporal 提案文档（关注未来标准的时区与不可变设计）：<a href="https://github.com/tc39/proposal-temporal" rel="noopener">tc39/proposal-temporal</a></li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo；把反例段的无效调用改成正确写法并解释原因；</li>
+    <li>给自己项目的"时间展示"做一次审计：找出裸 <code>new Date()</code> 与手写格式化，统一收敛到 dayjs 入口；</li>
+    <li>实现 <code>getBillPeriod(date)</code>（返回某月账单起止），用 2026 年 2 月与 2027 年 1 月做边界单测。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/01_Lodash工具函数库【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/03_Axios【深入】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考
