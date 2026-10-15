@@ -534,13 +534,13 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Kubernetes</h1>
     <div class="meta-row">
       <span class="badge basic">基础</span>
-      <span class="meta">定位：容器编排入门——Deployment、Service、探针与配置挂载</span>
+      <span class="meta">定位：声明式调和 / 探针分工 / 排障三件套</span>
     </div>
-    <p class="hero-desc">Docker 解决"把单个应用打包跑起来"，Kubernetes（K8s）解决"几十上百个容器在多台机器上怎么自动调度、扩缩容、故障自愈"。本页入门讲清 Deployment/Service/探针/配置挂载这几个最核心的概念。（说明：K8s 在我项目系列里主要由运维/后端主导，以学习与评估视角了解其编排模型，深度有限，如实呈现。）</p>
+    <p class="hero-desc">Docker 解决"把单个应用打包跑起来"，K8s 解决"几十上百个容器怎么自动调度、自愈、扩缩容、滚动更新"——你写 YAML 声明期望状态，它持续调和。本篇讲透 Pod/Deployment/Service 三对象关系、liveness 与 readiness 探针分工、ConfigMap 配置外置与 kubectl 排障三件套，配 minikube Demo 与四条高频坑。（说明：生产集群由运维主导，本篇为学习/评估视角，如实呈现深度。）</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/05_Docker容器化【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/06_Docker_Compose多容器编排【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/08_CI_CD_Jenkins与流水线【标准】.html">下一篇 →</a>
 </nav>
@@ -548,31 +548,124 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心配置要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Kubernetes 是容器编排系统：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Kubernetes（K8s）是容器编排系统</strong>：Docker 把应用做成镜像跑成容器，但当容器规模到几十上百台机器时，"哪个容器跑在哪台、挂了重启、流量怎么分发、怎么扩容"手工管不过来。<strong>K8s 的活</strong>：你声明"要跑 3 个这个镜像的实例"，它在集群里调度起来、坏了自愈、流量大了扩容——<strong>声明式自动化</strong>。本篇面向"读懂并写出最小可用编排"的目标，讲 Pod/Deployment/Service/探针四件核心。</p>
+
+  <h3>1.2 痛点：Compose 为什么不够</h3>
   <ul>
-    <li><strong>背景</strong>：Docker 把应用做成镜像跑成容器，但容器到几十上百台机器时，"哪个容器跑在哪台、挂了重启、流量怎么分发、怎么扩容"手工管不过来。</li>
-    <li><span class="tag-key">关键</span><strong>K8s 的活</strong>：你声明"要跑 3 个这个镜像实例"，K8s 负责在集群里调度起来、坏了自愈。</li>
+    <li>Compose 是<strong>单机</strong>编排：机器挂了整组服务全挂，没有自愈；</li>
+    <li>容器挂了没人拉起、流量大了不能自动加实例；</li>
+    <li>Pod IP 动态变化——实例漂移后"固定地址"不存在。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：容器编排的自动化：</p>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合用 K8s</th><th>不适合（看别的）</th></tr>
+    <tr><td>多服务、多实例、需要自愈与滚动更新的生产集群</td><td>本地开发/单机测试 → 06 Compose</td></tr>
+    <tr><td>理解公司里"容器跑在哪"的基建黑盒</td><td>镜像构建 → 05 Docker 篇</td></tr>
+    <tr><td>面试（Pod/Deployment/Service/探针是高频题）</td><td>集群运维深耕 → 运维方向</td></tr>
+  </table>
+  <p class="note"><strong>诚实声明</strong>：本篇实操以学习/评估为主——生产集群由运维管理，demo 在本地单节点（minikube/kind）验证，如实呈现深度。</p>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>说清 <strong>Pod / Deployment / Service</strong> 三对象关系与"声明式调和"；</li>
+    <li>区分 <strong>liveness / readiness</strong> 两种探针的职责与失败动作；</li>
+    <li>写出最小可用的 <strong>Deployment + Service YAML</strong> 并跑通；</li>
+    <li>掌握 <strong>kubectl 排障三件套</strong>与四条高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：Docker 镜像与容器（本模块 05 篇）。<strong>难度</strong>：★★★☆☆（概念多但每个都不深）。<strong>务必动手</strong>：minikube 跑通第 6 章 Demo——YAML 不 apply 过永远只是"看懂"。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型按依赖顺序：<strong>Pod</strong>（最小单元）→ <strong>Deployment</strong>（声明与自愈）→ <strong>Service</strong>（稳定入口）→ <strong>探针</strong>（健康判定）。</p>
+
+  <h3>2.1 Pod：最小调度单元</h3>
+  <p>Pod 是 K8s 里跑容器的最小单位——<strong>通常一个 Pod 跑一个应用容器</strong>。关键特性：<strong>Pod IP 是动态的</strong>，重启就变——所以不能靠 Pod IP 互相访问（坑 3），必须走 Service。"调度"的最小粒度也是 Pod：K8s 决定的是"这个 Pod 放哪个节点"。</p>
+
+  <h3>2.2 Deployment：声明"要什么"而非"怎么做"</h3>
+  <p>Deployment 声明期望状态：<strong>这个镜像、3 个副本</strong>。K8s 控制面<strong>持续调和</strong>（reconcile）：实际状态 ≠ 声明就自动逼近——Pod 挂了拉起新的凑够 3 个（自愈）、更新镜像 tag 自动滚动替换（不中断发版）。<strong>声明式是 K8s 的灵魂</strong>：对比 Compose 的"命令式启动"，K8s 里你写 YAML 描述想要什么，它持续让现实趋近描述。<strong>发版 = 改 YAML 里的镜像 tag</strong>，别的什么都不用做。</p>
+
+  <h3>2.3 Service：给漂移的 Pod 一个不变地址</h3>
+  <p>Pod IP 会变，<strong>Service 给这组 Pod 一个固定地址 + 负载均衡</strong>：流量到 Service，自动分发给背后<strong>健康的</strong> Pod（通过 label selector 选中）。前端/调用方只认 Service 地址，不关心后面几个实例、IP 是什么——这就是"为什么不能用 Pod IP 互访"的答案（衔接 06 篇的服务名 DNS，K8s 集群内 Service 名同样是 DNS）。</p>
+
+  <h3>2.4 探针：K8s 怎么知道 Pod 活没活</h3>
+  <p>两种探针各管一件事：<strong>livenessProbe</strong>（存活）——判断进程死没死/卡死，失败动作是<strong>重启容器</strong>；<strong>readinessProbe</strong>（就绪）——判断能不能接流量，失败动作是<strong>从 Service 摘除（不重启）</strong>。两者配合：<strong>readiness 挡住启动期的 502，liveness 负责崩溃后的自愈</strong>。配好探针，K8s 才不会把请求发给"半死不活"的实例。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Deployment 片段（核心字段）</h3>
+<pre class="code" data-lang="yaml"><code>apiVersion: apps/v1
+kind: Deployment
+spec:
+  replicas: 3                 # 期望 3 个副本
+  template:
+    spec:
+      containers:
+        - name: app
+          image: myapp:1.0
+          ports: [{ containerPort: 8080 }]
+          readinessProbe:       # 就绪探针
+            httpGet: { path: /health, port: 8080 }</code></pre>
+
+  <h3>3.2 场景二：Service 片段</h3>
+<pre class="code" data-lang="yaml"><code>kind: Service
+spec:
+  selector: { app: myapp }    # 选中带这个标签的 Pod
+  ports: [{ port: 80, targetPort: 8080 }]</code></pre>
+
+  <h3>3.3 场景三：配置外置（ConfigMap / Secret）</h3>
+  <p>数据库地址、密码等<strong>不写死进镜像</strong>——同一镜像跑不同环境靠配置外置：<strong>ConfigMap</strong> 挂非敏感配置（文件或环境变量），<strong>Secret</strong> 挂密码/证书（base64 编码 + 权限控制）。换环境 = 换 ConfigMap，镜像不动（衔接 05 篇"环境打包进镜像"的边界：环境打包、配置外置）。</p>
+
+  <h3>3.4 场景四：日常操作命令</h3>
+<pre class="code" data-lang="bash"><code>kubectl apply -f deployment.yaml   # 应用编排声明（增改都用它）
+kubectl get pods -o wide           # 看 Pod 状态与所在节点
+kubectl rollout restart deploy/backend   # 滚动重启（如加载新 ConfigMap）
+kubectl scale deploy/backend --replicas=5    # 手动扩容</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：第 6 章 Demo 已跑通。</p>
+
+  <h3>4.1 kubectl 排障三件套</h3>
   <ul>
-    <li><strong>自愈</strong>：挂了自动重启；<strong>水平扩缩容</strong>：流量大了加实例。</li>
-    <li><strong>服务发现与负载均衡</strong>：实例 IP 会变，K8s 提供稳定入口。</li>
-    <li><strong>滚动更新</strong>：发版不中断。</li>
+    <li><code>kubectl get pods -o wide</code>：状态与节点（CrashLoopBackOff/ImagePullBackOff 状态名即线索）；</li>
+    <li><code>kubectl describe pod &lt;pod名&gt;</code>：<strong>Events 是金矿</strong>——为什么没起来、探针为何失败、拉镜像报错全在这；</li>
+    <li><code>kubectl logs &lt;pod名&gt;</code>：容器日志；<code>--previous</code> 看<strong>崩溃前那个容器</strong>的日志（CrashLoop 排查必备）、<code>-f</code> 实时跟踪。</li>
   </ul>
-  <p class="pit-sentence">说明：我对 K8s 的实操以学习/评估为主，下面是通用编排实践概念。</p>
+
+  <h3>4.2 滚动更新的参数与回滚</h3>
+  <p>滚动节奏由 <code>maxSurge</code>/<code>maxUnavailable</code> 控制（先加新的再减旧的 vs 先减旧的再加新的）；配合 readinessProbe——<strong>新 Pod 未 ready 不会接流量，旧 Pod 不会提前下线</strong>。新版异常时 <code>kubectl rollout undo deploy/backend</code> 一键回滚——<strong>前提</strong>：镜像 tag 不可变（衔接 05 篇 4.4），回滚才有意义。</p>
+
+  <h3>4.3 资源请求与限制</h3>
+  <p><code>resources.requests</code>（调度依据：这个 Pod 至少要多少 CPU/内存）与 <code>limits</code>（上限：超了限流/OOMKill）。<strong>不配的后果</strong>：节点资源被无约束抢占，一个失控 Pod 拖垮整节点——生产必配。</p>
+
+  <h3>4.4 Deployment vs StatefulSet</h3>
+  <p><strong>无状态服务（Web/API）用 Deployment</strong>——副本等价、可任意替换；<strong>有状态服务（数据库、MQ）才用 StatefulSet</strong>——固定网络身份、有序部署、独立存储。坑：别用 Deployment 跑数据库（Pod 重建后存储与身份都丢语义）——生产数据库通常用云托管/独立部署，不硬塞进 K8s。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="Kubernetes Deployment Service Pod 关系示意图">
       <defs>
@@ -599,22 +692,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Deployment / Pod / Service 关系（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 Pod（最小调度单元）</h3>
-  <p class="lead"><b>一句话定位</b>：Pod 是 K8s 里跑容器的最小单位，通常一个 Pod 跑一个应用容器。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>动态 IP</strong>：Pod IP 动态、重启就变，不能靠 Pod IP 互相访问。</li>
-  </ul>
-  <h3>2.2 Deployment（声明与自愈）</h3>
-  <p class="lead"><b>一句话定位</b>：声明"要跑这个镜像、要 3 个副本"，K8s 持续让实际状态趋近声明。</p>
-  <ul>
-    <li><strong>自愈</strong>：某个 Pod 挂了，自动再拉起新的凑够 3 个。</li>
-    <li><strong>滚动更新</strong>：更新镜像时逐步替换，不中断服务。</li>
-    <li><strong>声明式</strong>：你只说想要什么状态，不说怎么一步步做。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="滚动更新过程图">
       <defs>
@@ -624,7 +701,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">滚动更新：逐步替换，全程不中断（示意）</text>
 
-      <!-- v1 三个pod -->
       <text x="120" y="55" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f6348">v1.0（旧版）</text>
       <rect x="50" y="65" width="60" height="30" rx="5" fill="#fee2e2" stroke="#dc2626"/>
       <text x="80" y="85" text-anchor="middle" font-size="10.5" fill="#b91c1c">v1</text>
@@ -636,7 +712,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <line x1="270" y1="80" x2="310" y2="80" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <text x="290" y="72" text-anchor="middle" font-size="10" fill="#7a8a70">先加1个v2</text>
 
-      <!-- 中间状态：2个v1 + 1个v2 -->
       <text x="420" y="55" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f6348">滚动中</text>
       <rect x="330" y="65" width="60" height="30" rx="5" fill="#fee2e2" stroke="#dc2626"/>
       <text x="360" y="85" text-anchor="middle" font-size="10.5" fill="#b91c1c">v1</text>
@@ -648,7 +723,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <line x1="540" y1="80" x2="580" y2="80" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <text x="560" y="72" text-anchor="middle" font-size="10" fill="#7a8a70">再替v1</text>
 
-      <!-- v2 三个pod -->
       <text x="700" y="55" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f6348">v2.0（新版）</text>
       <rect x="610" y="65" width="50" height="30" rx="5" fill="#d1fae5" stroke="#047857"/>
       <text x="635" y="85" text-anchor="middle" font-size="10.5" fill="#047857">v2</text>
@@ -660,20 +734,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="140" text-anchor="middle" font-size="12" fill="#4f6348">全程始终有足够实例接流量，不会一次性全停——这就是"不中断发版"</text>
       <text x="400" y="170" text-anchor="middle" font-size="11.5" fill="#b45309">如果新版探针一直失败 → 自动回滚到旧版</text>
     </svg>
-    <p class="diagram-caption">图 3 滚动更新过程（示意）</p>
+    <p class="diagram-caption">图 2 滚动更新过程（示意）</p>
   </div>
-  <h3>2.3 Service（稳定入口）</h3>
-  <p class="lead"><b>一句话定位</b>：Pod IP 会变，Service 给这组 Pod 一个固定地址 + 负载均衡。</p>
-  <ul>
-    <li><strong>机制</strong>：流量到 Service，它自动分发给背后健康的 Pod。</li>
-    <li><strong>好处</strong>：前端只需访问 Service 地址，不关心后面几个实例、IP 是啥。</li>
-  </ul>
-  <h3>2.4 探针（Probe）</h3>
-  <p class="lead"><b>一句话定位</b>：K8s 判断"Pod 活没活、能不能接流量"的健康检查。</p>
-  <ul>
-    <li><strong>livenessProbe</strong>：挂了就重启它。</li>
-    <li><strong>readinessProbe</strong>：还没准备好（启动中）就先别把流量分过来。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="两种探针区别图">
       <defs>
@@ -683,7 +745,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">liveness vs readiness：两种探针各管什么（示意）</text>
 
-      <!-- liveness -->
       <rect x="40" y="50" width="350" height="160" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="215" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">livenessProbe（存活探针）</text>
       <text x="60" y="100" font-size="11.5" fill="#4f6348">作用：判断进程是不是"死了/卡死了"</text>
@@ -691,7 +752,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="60" y="150" font-size="11.5" fill="#4f6348">场景：死锁、OOM、进程假死</text>
       <text x="60" y="180" font-size="11.5" fill="#7a8a70">例：/health 返回 500 → K8s 重启这个 Pod</text>
 
-      <!-- readiness -->
       <rect x="410" y="50" width="350" height="160" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="585" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">readinessProbe（就绪探针）</text>
       <text x="430" y="100" font-size="11.5" fill="#4f6348">作用：判断是不是"准备好了能接流量"</text>
@@ -701,55 +761,17 @@ p, li, h1, h2, h3, h4, h5, h6 {
 
       <text x="400" y="225" text-anchor="middle" font-size="12" fill="#7a8a70">两者配合：readiness 挡启动期的 502，liveness 负责崩溃后自愈</text>
     </svg>
-    <p class="diagram-caption">图 2 liveness vs readiness 探针（示意）</p>
+    <p class="diagram-caption">图 3 liveness vs readiness 探针（示意）</p>
   </div>
-  <p class="key-sentence">配好探针，K8s 才不会把请求发给"半死不活"的实例。</p>
+  <p><strong>读图要点</strong>：①三对象链路——Deployment 声明副本数、Pod 是实际实例、Service 是稳定门面；②滚动更新全程有活实例接流量（readiness 决定谁"算活"）；③两种探针的失败动作不同——<strong>配反了就是灾难</strong>：把"启动慢"交给 liveness 会被反复重启（启动中就杀）。</p>
 </section>
 
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>结合图 1：你提交一个 Deployment 声明（镜像名 + 3 副本 + 探针配置），K8s 控制面在集群里找到合适的节点拉起 3 个 Pod；探针持续检测，挂了自动重建；Service 在这组 Pod 前提供稳定入口与负载均衡；流量经 Service 分到健康的 Pod。配置（数据库地址等）不写死在镜像里，而用 ConfigMap/Secret 挂载进去，同一镜像能跑不同环境。</p>
-  <div class="note">声明式是 K8s 的灵魂：对比 Docker Compose 的"命令式启动"，K8s 里你写 YAML 描述期望状态，它持续调和。发版 = 更新 YAML 里的镜像 tag，它自动滚动替换。</div>
-</section>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：本地单节点（minikube/kind）验证，非生产。</p>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心配置要点</h2>
-  <h3>4.1 一个 Deployment 片段</h3>
+  <h3>6.1 Deployment YAML（含就绪探针）</h3>
 <pre class="code" data-lang="yaml"><code>apiVersion: apps/v1
-kind: Deployment
-spec:
-  replicas: 3                 # 期望 3 个副本
-  template:
-    spec:
-      containers:
-        - name: app
-          image: myapp:1.0
-          ports: [{ containerPort: 8080 }]
-          readinessProbe:       # 就绪探针
-            httpGet: { path: /health, port: 8080 }</code></pre>
-  <h3>4.2 Service 片段</h3>
-<pre class="code" data-lang="yaml"><code>kind: Service
-spec:
-  selector: { app: myapp }    # 选中带这个标签的 Pod
-  ports: [{ port: 80, targetPort: 8080 }]</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-  <div class="warn-box"><strong>说明</strong>：本节是自学 + 自建 Demo，非生产环境项目。生产 K8s 集群由运维管理，我没有独立操盘大规模集群的经历；下面是实践中常采用 Deployment/Service/探针在本地（minikube/单节点）跑通的编排 demo。</div>
-
-  <h3>5.1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"一个服务从打成镜像到在集群里跑起来"的完整编排链路认知。</p>
-  <ul><li><strong>缺口</strong>：真实项目后端跑在容器编排上，但以前端视角只接触部署结果，没亲手 apply 过资源对象。</li></ul>
-
-  <h3>5.2 搭建的 Demo 是什么</h3>
-  <ul>
-    <li><strong>功能</strong>：一个无状态 web 服务的 Deployment + Service + 就绪探针 + ConfigMap 挂载。</li>
-    <li><strong>环境</strong>：本地单节点（minikube/kind），把上一节的 SpringBoot 镜像跑进去。</li>
-  </ul>
-
-  <h3>5.3 落地步骤（含关键代码）</h3>
-  <pre class="code" data-lang="yaml"><code>apiVersion: apps/v1
 kind: Deployment
 metadata: { name: backend }
 spec:
@@ -765,52 +787,105 @@ spec:
           readinessProbe:            # 未 ready 不接流量
             httpGet: { path: /actuator/health, port: 8080 }
             initialDelaySeconds: 5</code></pre>
-  <pre class="code" data-lang="bash"><code>kubectl apply -f deployment.yaml   # 应用编排声明
-kubectl get pods                   # 看 Pod 状态</code></pre>
-  <div class="note"><strong>高频排障三件套</strong>：<code>kubectl get pods -o wide</code> 看状态与所在节点；<code>kubectl describe pod &lt;pod名&gt;</code> 看 Events（为什么没起来、探针为何失败、拉镜像报错）；<code>kubectl logs &lt;pod名&gt;</code> 看容器日志，加 <code>--previous</code> 看崩溃前那个容器的日志、加 <code>-f</code> 实时跟踪。</div>
 
-  <h3>5.4 自学遇到的坑与解决</h3>
+  <h3>6.2 跑起来与排障三件套</h3>
+<pre class="code" data-lang="bash"><code>kubectl apply -f deployment.yaml   # 应用声明
+kubectl get pods -o wide           # → STATUS: Running，2 个副本
+kubectl describe pod backend-xxx   # Events：为什么没起来/探针为何失败
+kubectl logs backend-xxx --previous # 崩溃前容器的日志（CrashLoop 必查）</code></pre>
+
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>没配 readinessProbe</strong>：服务启动未 ready 就接流量，启动期一片 502——补探针。</li>
-    <li><span class="tag-pit">坑</span><strong>配置写死镜像里</strong>：换环境要重打包——外置成 ConfigMap。</li>
-    <li><span class="tag-pit">坑</span><strong>用 Pod IP 互访</strong>：Pod 重启 IP 变，必挂——改走 Service 稳定地址。</li>
+    <li><strong>label 呼应</strong>：template.labels 与 Service 的 selector 对上，Service 才找得到这组 Pod；</li>
+    <li><strong>readinessProbe</strong>：initialDelaySeconds 给启动缓冲——未 ready 的 Pod 不进 Service 负载池；</li>
+    <li><strong>三件套实战顺序</strong>：get 看状态 → describe 看 Events → logs 看应用日志，90% 的问题三层之内定位。</li>
   </ul>
 
-  <h3>5.5 成果（可验证能力）</h3>
-  <ul><li><span class="tag-point">要点</span>能写一份最小可用的 Deployment+Service YAML，理解自愈/滚动更新/探针/配置外置；可复现：本地起 minikube → <code>kubectl apply -f</code> → <code>kubectl get pods</code> 看 Running。</li></ul>
-
-  <h3>5.6 与真实项目的差异（诚实说明）</h3>
-  <p>真实生产集群由运维管理，我没有独立操盘大规模集群、HPA、多环境发布的经历；本 demo 是本地单节点、无高可用、无监控告警，只验证资源对象的写法与概念。</p>
-
-  <h3>5.7 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中本地用 Deployment+Service+就绪探针把一个无状态服务跑通，理解为什么不能用 Pod IP 互访、配置要外置 ConfigMap；诚实说生产 K8s 集群由运维管，我是学习/评估视角。"</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 没配就绪探针</h3>
-  <p class="lead"><b>一句话定位</b>：服务未 ready 就接流量，启动期一片 502。</p>
-  <p class="pit-sentence">正解：配 readinessProbe。</p>
-  <h3>6.2 配置写死进镜像</h3>
-  <p class="lead"><b>一句话定位</b>：不同环境要重新打镜像，换环境成本高。</p>
-  <p class="key-sentence">正解：配置外置 ConfigMap / Secret 挂载。</p>
-  <h3>6.3 用 Pod IP 互相访问</h3>
-  <p class="lead"><b>一句话定位</b>：Pod 重启 IP 就变，靠 Pod IP 访问必挂。</p>
-  <p class="key-sentence">正解：始终经 Service 的稳定地址访问。</p>
-  <h3>6.4 混淆 Deployment 与 StatefulSet</h3>
-  <p class="lead"><b>一句话定位</b>：无状态用 Deployment，有状态才用 StatefulSet。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>正解</strong>：Web 服务用 Deployment；数据库这类需要固定身份/存储的才用 StatefulSet——别用 Deployment 跑数据库。</li>
-  </ul>
+  <h3>6.4 生产改造扩展方向</h3>
+  <ol>
+    <li>补 livenessProbe 与 resources（4.3）；</li>
+    <li>配置外置 ConfigMap/Secret，镜像与环境解耦；</li>
+    <li>接 HPA（按 CPU 自动扩缩容）体验"流量大了自动加实例"。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：没配就绪探针</h3>
+  <ul>
+    <li><strong>现象</strong>：每次发版启动期一片 502；</li>
+    <li><strong>根因</strong>：Pod 一"启动"就进 Service 负载池，应用还在初始化；</li>
+    <li><strong>修复</strong>：配 readinessProbe（/health 探测），未 ready 不接流量；</li>
+    <li><strong>规避</strong>：任何接流量的服务默认带 readiness——模板里写死。</li>
+  </ul>
+  <h3>7.2 坑 2：配置写死进镜像</h3>
+  <ul>
+    <li><strong>现象</strong>：换环境（测试→生产）要重新打镜像；</li>
+    <li><strong>根因</strong>：数据库地址等环境差异打进了镜像；</li>
+    <li><strong>修复</strong>：配置外置 ConfigMap/Secret 挂载，同一镜像多环境；</li>
+    <li><strong>规避</strong>："环境打包进镜像，配置外置"——两句话划清边界（衔接 05 篇）。</li>
+  </ul>
+  <h3>7.3 坑 3：用 Pod IP 互访</h3>
+  <ul>
+    <li><strong>现象</strong>：服务间调用时通时不通；</li>
+    <li><strong>根因</strong>：Pod 重启 IP 就变——写死 Pod IP 必挂；</li>
+    <li><strong>修复</strong>：始终经 Service 稳定地址访问（集群内 Service 名即 DNS，衔接 06 篇服务名互访的同构逻辑）；</li>
+    <li><strong>规避</strong>：配置审查禁出现 Pod IP。</li>
+  </ul>
+  <h3>7.4 坑 4：Deployment 跑有状态服务</h3>
+  <ul>
+    <li><strong>现象</strong>：用 Deployment 跑 MySQL，Pod 重建后数据/身份语义全乱；</li>
+    <li><strong>根因</strong>：Deployment 假设副本无状态等价；</li>
+    <li><strong>修复</strong>：有状态用 StatefulSet（固定身份+独立存储），生产数据库建议云托管；</li>
+    <li><strong>规避</strong>：选对象先问"副本等价吗"（4.4）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Pod、Deployment、Service 各是什么？为什么需要三个而不是一个？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>Pod</strong> 是最小调度单元（跑容器，IP 动态）；<strong>Deployment</strong> 声明期望状态（镜像+副本数），控制面持续调和实现自愈与滚动更新；<strong>Service</strong> 给漂移的 Pod 组提供固定地址与负载均衡。<strong>为什么三个</strong>：职责分离——调度单位、生命周期管理、流量入口是三个不同关注点；Pod 易逝所以需要 Deployment 保副本，Pod 漂移所以需要 Service 稳定入口。<br><br>
+  <strong>一句话</strong>：Pod 会死会漂，Deployment 负责让它"永远凑够数"，Service 负责让别人"永远找得到"。</p>
+
+  <p><strong>Q2：liveness 和 readiness 有什么区别？配反了会怎样？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>liveness</strong> 判断"死没死"，失败动作<strong>重启容器</strong>（治死锁/OOM/假死）；<strong>readiness</strong> 判断"能不能接流量"，失败动作<strong>从 Service 摘除不重启</strong>（挡启动中/依赖未就绪/过载）。<br><br>
+  <strong>配反的形态</strong>：把启动慢的应用只配 liveness 且无 initialDelay → 启动中探针失败 → 被反复重启 → 永远起不来（CrashLoop 假象）；只配 liveness 不配 readiness → 启动期/过载期照接流量 → 502。<strong>正确姿势</strong>：两个都配，readiness 挡流量、liveness 保自愈。</p>
+
+  <p><strong>Q3：什么是声明式？它和 Compose 的命令式差在哪？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>声明式 = 描述期望状态，系统持续调和到该状态</strong>——你写"要 3 个副本"，Pod 挂了它自动补；命令式 = 描述操作步骤，执行完就结束（Compose up 起完不管，挂了不补）。声明式的三个工程红利：<strong>自愈</strong>（调和是持续的）、<strong>可版本化</strong>（YAML 进 git，发版=改 tag）、<strong>幂等</strong>（apply 多少次结果一致）。<br><br>
+  <strong>追问：发版流程是什么？</strong>——改 YAML 镜像 tag → apply → 滚动替换（readiness 把关）→ 异常 rollout undo 回滚。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>Pod IP 为什么不能用于服务互访？谁解决了这个问题？</li>
+    <li>"声明式调和"怎么实现自愈？发版怎么触发？</li>
+    <li>两种探针的失败动作？各自典型场景？</li>
+    <li>kubectl 排障三件套？CrashLoop 排查看什么？</li>
+    <li>Deployment 与 StatefulSet 的选择依据？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
   <ul>
     <li>Kubernetes 官方文档（含中文）：<a href="https://kubernetes.io/zh-cn/docs/home/" rel="noopener">kubernetes.io/zh-cn/docs/home</a></li>
     <li>K8s 概念一览（Deployment/Service/Probe）：<a href="https://kubernetes.io/zh-cn/docs/concepts/" rel="noopener">kubernetes.io/zh-cn/docs/concepts</a></li>
   </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>minikube / kind 官方（本地集群跑起来最快路径）</li>
+    <li>K8s in Action（体系化教材，生产视角）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>minikube 起本地集群，跑通第 6 章 Demo；故意去掉 readinessProbe 复现启动期 502 再修复；</li>
+    <li>用 describe 排查一个 ImagePullBackOff（写错镜像名制造）；</li>
+    <li>改镜像 tag 触发滚动更新，用 get pods -w 观察先加后减节奏。</li>
+  </ol>
 </section>
 
 </main>

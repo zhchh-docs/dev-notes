@@ -534,9 +534,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Docker 容器化</h1>
     <div class="meta-row">
       <span class="badge basic">基础</span>
-      <span class="meta">定位：容器入门——镜像分层、Dockerfile、Compose 编排与镜像瘦身</span>
+      <span class="meta">定位：镜像分层缓存 / 多阶段构建 / 一容器一进程</span>
     </div>
-    <p class="hero-desc">Docker 把"应用 + 它依赖的环境"打包成一个镜像，在任何机器上一致地跑起来，解决"我本地能跑、服务器上不行"。本页入门讲清镜像与容器的关系、Dockerfile 的分层构建、Compose 一键编排多服务，并用一个 SpringBoot 服务的容器化实践收尾——这里我更多是参与学习与评估，如实说明深度。</p>
+    <p class="hero-desc">Docker 用"镜像打包环境"终结"在我电脑上是好的"：镜像=只读模板，容器=运行实例，共享宿主内核所以 MB 级秒启动。本篇讲透分层缓存（少变的放下、常变的放上）、CMD vs ENTRYPOINT 与 COPY vs ADD、多阶段构建与镜像瘦身四板斧、一容器一进程原则，配 SpringBoot+Compose Demo 与四条高频坑。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
@@ -548,27 +548,134 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心配置与命令要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Docker 是容器化工具：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Docker 把应用和它运行需要的一切（代码、运行时、系统库、配置）打成一个"镜像"</strong>：镜像跑起来就是容器。它解决的是那句经典抱怨——<strong>"在我电脑上好好的，为什么上服务器就崩"</strong>：本地与服务器 JDK 版本、环境配置不一致。容器把环境也打包，<strong>本地开发、测试、生产跑同一个镜像</strong>，环境一致从"约定"变成"物理事实"。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><span class="tag-key">关键</span><strong>镜像（Image）</strong>：把应用和它运行需要的一切（代码、运行时、系统库、配置）打成一个"安装包"。</li>
-    <li><strong>容器（Container）</strong>：镜像跑起来就是一个"正在运行的程序实例"。</li>
-    <li><strong>比虚拟机轻</strong>：容器共享宿主内核，秒级启动。</li>
+    <li>环境漂移：本地 Node 18、服务器 Node 14，依赖安装方式各异——部署即玄学；</li>
+    <li>环境搭建慢：新机器装 Nginx+MySQL+Redis+运行时，半天起步；</li>
+    <li>构建巨慢：Dockerfile 顺序不对，改一行代码重装全部依赖。</li>
   </ul>
-  <p><strong>解决什么问题</strong>："在我电脑上好好的，为什么上服务器就崩"——本地和服务器 JDK 版本、环境配置不一致。容器把环境也打包进去，本地开发、测试、生产跑同一个镜像，环境一致。</p>
-  <p class="pit-sentence">说明：本项目后端容器化主要由后端同学主导，以前端视角参与学习与评估、配合写 Dockerfile，深度有限，下面如实呈现。</p>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要把服务（或前端 Nginx）容器化</td><td>多容器一键编排 → 06 Compose 篇</td></tr>
+    <tr><td>Dockerfile 构建慢/镜像大要优化</td><td>集群调度与自愈 → 07 Kubernetes</td></tr>
+    <tr><td>面试（镜像分层/容器 vs 虚拟机是高频题）</td><td>容器网络深究 → 06 篇网络部分</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>说清<strong>镜像/容器/分层</strong>三个概念及"容器为什么比虚拟机轻"；</li>
+    <li>写出<strong>分层合理</strong>的 Dockerfile（稳定层在下、常变层在上命中缓存）；</li>
+    <li>用<strong>精简基础镜像 + 多阶段构建</strong>把镜像从几百 MB 压到几十 MB；</li>
+    <li>避开四类高频坑（分层顺序、镜像臃肿、漏端口映射、容器当虚拟机用）。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：命令行基础（本模块 01 篇）；知道"部署"是什么。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（概念直观，优化细节有深度）。</p>
+  <p class="note"><strong>诚实声明</strong>：本项目后端容器化由后端同学主导，本篇以前端视角参与学习与评估、配合写 Dockerfile，深度有限——如实呈现，demo 为自学自建。<strong>路线</strong>：第一次接触按顺序读 → 已在用直接查第 7 章坑。<strong>务必动手</strong>：第 6 章 Demo。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>三个核心模型：<strong>镜像 vs 容器</strong>（静态模板 vs 运行实例）→ <strong>分层与缓存</strong>（构建优化的全部秘密）→ <strong>Dockerfile vs Compose</strong>（构建一个 vs 编排一组）。</p>
+
+  <h3>2.1 镜像 vs 容器：安装包 vs 进程</h3>
+  <p><strong>镜像（Image）是只读的静态模板</strong>——打好的"安装包"；<strong>容器（Container）是镜像跑起来的进程实例</strong>。一个镜像可以同时跑多个容器（3 个后端实例 = 同一镜像 × 3）。<strong>容器共享宿主内核</strong>——这是它比虚拟机轻的根源：不需要每个实例带一个完整操作系统（图 2 见第 5 章）。</p>
+
+  <h3>2.2 镜像分层与缓存：构建优化的全部秘密</h3>
+  <p>Dockerfile 每条指令生成<strong>一层</strong>，镜像 = 各层叠加；构建时<strong>已有且未变化的层直接命中缓存</strong>。由此推出优化总纲：<strong>少变的放下、常变的放上</strong>——</p>
+  <ul>
+    <li><strong>错误顺序</strong>：先 COPY 全部代码再装依赖 → 改一行代码，依赖层缓存全部失效，重装几分钟；</li>
+    <li><strong>正解</strong>：先 COPY 依赖清单（package.json/pom.xml）→ 装依赖（这层基本不变，被缓存）→ 再 COPY 代码（只重建最上层）；</li>
+    <li><strong>前端对照</strong>：node_modules 缓存同理——这就是 CI 里缓存依赖目录的原因。</li>
+  </ul>
+
+  <h3>2.3 Dockerfile vs Compose：构建一个 vs 编排一组</h3>
+  <p><strong>Dockerfile 管"怎么构建一个镜像"</strong>（配方）；<strong>docker-compose.yml 管"怎么把多个容器一起起、连网"</strong>（编排）。<code>docker compose up</code> 一条命令拉起 app + MySQL + Redis 整套环境（图 3 见第 5 章）——开发/演示环境的效率神器。两篇分工：本篇讲构建，06 篇讲编排。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最小 Dockerfile（SpringBoot 服务）</h3>
+<pre class="code" data-lang="dockerfile"><code># 依赖层先写，利用缓存
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY target/app.jar app.jar     # 拷产物
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]</code></pre>
+  <div class="note"><strong>CMD vs ENTRYPOINT</strong>：<code>ENTRYPOINT</code> 固定容器启动入口、不会被 <code>docker run</code> 后的参数整体覆盖，<code>CMD</code> 提供默认参数（命令行给了就覆盖、没给就用它）；常见写法是 <code>ENTRYPOINT ["java","-jar"]</code> + <code>CMD ["app.jar"]</code>。<strong>COPY vs ADD</strong>：日常拷文件用 <code>COPY</code>（只做本地拷贝、语义明确）；<code>ADD</code> 会自动解压本地 tar 包、还能拉远程 URL，隐式行为多，官方建议能用 <code>COPY</code> 就用 <code>COPY</code>。</div>
+
+  <h3>3.2 场景二：前端 Nginx 容器（前端最常用）</h3>
+<pre class="code" data-lang="dockerfile"><code>FROM nginx:alpine
+COPY dist /usr/share/nginx/html         # 构建产物拷进站点目录
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80</code></pre>
+  <p><strong>前端容器化三步</strong>：本地/CI 构建出 dist → 拷进 Nginx 镜像 → 端口映射对外。更优做法是多阶段构建（4.2），把 node 构建也装进 Dockerfile。</p>
+
+  <h3>3.3 场景三：常用命令四件套</h3>
+<pre class="code" data-lang="bash"><code>docker build -t myapp .        # 构建镜像
+docker run -p 8080:8080 myapp  # 跑容器（-p 端口映射，漏了外部访问不到）
+docker compose up -d           # 一键起整套（06 篇）
+docker compose down            # 停掉</code></pre>
+  <p><strong>调试三板斧</strong>：<code>docker ps</code> 看容器状态（Exited 要看退出原因）、<code>docker logs -f 容器名</code> 看日志、<code>docker exec -it 容器名 sh</code> 进容器排查。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：基础 Dockerfile 已跑通。</p>
+
+  <h3>4.1 多阶段构建：构建环境与运行环境分离</h3>
+<pre class="code" data-lang="dockerfile"><code># 前端多阶段构建的标准形态
+FROM node:20-alpine AS build      # 阶段一：构建（大，含 node_modules）
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine                 # 阶段二：运行（小，只有 nginx）
+COPY --from=build /app/dist /usr/share/nginx/html</code></pre>
+  <p><strong>关键机制</strong>：<code>--from=build</code> 只从构建阶段拷走产物（dist），node_modules/node 本体全部留在构建阶段不进最终镜像——<strong>最终镜像能从 1GB+ 压到几十 MB</strong>。后端同理：JDK 编译阶段 → JRE 运行阶段。</p>
+
+  <h3>4.2 镜像瘦身的四板斧</h3>
+  <ul>
+    <li><strong>精简基础镜像</strong>：alpine/slim 变体（完整 JDK 几百 MB → JRE-alpine 几十 MB）；</li>
+    <li><strong>多阶段构建</strong>（4.1）；</li>
+    <li><strong>合并 RUN 与清缓存</strong>：<code>RUN apt-get update &amp;&amp; apt-get install -y x &amp;&amp; rm -rf /var/lib/apt/lists/*</code>——同层内清理才有效（跨层清理无效，层是只读叠加）；</li>
+    <li><strong>.dockerignore</strong>：node_modules、.git、dist 不进构建上下文——构建更快更小更安全。</li>
+  </ul>
+
+  <h3>4.3 一容器一进程：容器不是虚拟机</h3>
+  <p>反模式：<strong>一个容器里装 Nginx+应用+MySQL</strong>（把容器当虚拟机用）。正确姿势：<strong>一容器一进程</strong>，多服务交给 Compose/K8s 编排。理由：容器的生命周期管理、日志采集、弹性伸缩都按"进程"为单位设计——多进程容器让这些机制全部失灵。</p>
+
+  <h3>4.4 标签与仓库：镜像的版本管理</h3>
+  <p><code>docker tag myapp:latest registry/myapp:v1.2.3</code> + <code>docker push</code>——镜像进仓库才能分发。<strong>纪律</strong>：生产镜像用<strong>不可变 tag</strong>（版本号/git sha），<strong>禁用 latest 部署</strong>（latest 会漂移，回滚与审计全是坑）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="镜像分层与容器运行示意图">
       <defs>
@@ -596,22 +703,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 镜像分层与镜像/容器关系（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 镜像分层（Layer）与缓存</h3>
-  <p class="lead"><b>一句话定位</b>：Dockerfile 每条指令生成一层，优化核心是"少变的放下、常变的放上"以命中缓存。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>机制</strong>：镜像 = 各层叠加；构建时缓存已有层。</li>
-    <li><span class="tag-pit">坑</span><strong>错误顺序</strong>：把代码 COPY 放装依赖前→改一次代码就重装依赖，构建巨慢。</li>
-    <li><strong>正解</strong>：先 COPY 依赖清单、装依赖（这层基本不变、被缓存），再 COPY 代码。</li>
-  </ul>
-  <h3>2.2 容器与镜像的区别</h3>
-  <p class="lead"><b>一句话定位</b>：镜像是只读静态模板，容器是镜像跑起来的进程实例。</p>
-  <ul>
-    <li><strong>一个镜像可跑多个容器</strong>：比如同时起 3 个后端实例。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="Docker容器 vs 虚拟机对比图">
       <defs>
@@ -621,7 +712,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">为什么容器比虚拟机轻？（示意）</text>
 
-      <!-- 虚拟机 -->
       <rect x="40" y="45" width="340" height="180" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="210" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">虚拟机（VM）</text>
       <rect x="60" y="80" width="300" height="22" rx="3" fill="#fee2e2" stroke="#dc2626"/>
@@ -635,7 +725,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="210" y="195" text-anchor="middle" font-size="11" fill="#b91c1c">每个 VM 带完整 Guest OS，GB 级</text>
       <text x="210" y="215" text-anchor="middle" font-size="11" fill="#7a8a70">启动分钟级，重</text>
 
-      <!-- Docker容器 -->
       <rect x="420" y="45" width="340" height="180" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="590" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Docker 容器</text>
       <rect x="440" y="80" width="140" height="22" rx="3" fill="#d1fae5" stroke="#047857"/>
@@ -651,148 +740,120 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 容器 vs 虚拟机（示意）</p>
   </div>
-  <h3>2.3 Dockerfile 与 Compose</h3>
-  <p class="lead"><b>一句话定位</b>：Dockerfile 管"怎么构建一个镜像"，Compose 管"怎么把多个容器一起起、连网"。</p>
-  <ul>
-    <li><strong>Dockerfile</strong>：构建一个镜像的配方。</li>
-    <li><strong>docker-compose.yml</strong>：把应用+数据库+缓存一起启动、连网的编排文件。</li>
-    <li><strong>体验</strong>：一条 <code>docker compose up</code> 拉起整套环境，开发/演示特别方便。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 230" role="img" aria-label="Compose多容器编排关系图">
-      <defs>
-        <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">docker compose up 一键拉起的三个容器（示意）</text>
-
-      <!-- 应用容器 -->
-      <rect x="300" y="50" width="200" height="70" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="400" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">app 容器（SpringBoot）</text>
-      <text x="400" y="100" text-anchor="middle" font-size="11" fill="#4f6348">8080 端口映射到宿主机</text>
-
-      <!-- MySQL容器 -->
-      <rect x="80" y="150" width="180" height="60" rx="10" fill="#fefce8" stroke="#d97706"/>
-      <text x="170" y="175" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">mysql 容器</text>
-      <text x="170" y="195" text-anchor="middle" font-size="10.5" fill="#4f6348">数据挂 volume 持久化</text>
-
-      <!-- Redis容器 -->
-      <rect x="540" y="150" width="180" height="60" rx="10" fill="#f0fdf4" stroke="#047857"/>
-      <text x="630" y="175" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">redis 容器</text>
-      <text x="630" y="195" text-anchor="middle" font-size="10.5" fill="#4f6348">缓存，无状态</text>
-
-      <!-- 网络连线 -->
-      <line x1="350" y1="120" x2="200" y2="150" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr2)"/>
-      <line x1="450" y1="120" x2="600" y2="150" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr2)"/>
-      <text x="250" y="140" font-size="10.5" fill="#4f6348">jdbc:mysql://mysql:3306</text>
-      <text x="530" y="140" font-size="10.5" fill="#4f6348">redis://redis:6379</text>
-
-      <text x="400" y="225" text-anchor="middle" font-size="11.5" fill="#7a8a70">同一个 compose 网络内容器名互访，不用记 IP——应用里写 mysql:3306 即可</text>
-    </svg>
-    <p class="diagram-caption">图 3 Compose 多容器编排（示意）</p>
-  </div>
+  <p><strong>读图要点</strong>：①分层的"自上而下"就是 Dockerfile 的指令顺序——<strong>改动只影响该层及之上，之下命中缓存</strong>；②容器 vs 虚拟机的本质差异一行：**Guest OS 有无**——容器共享宿主内核，所以 MB 级、秒级启动；③从下往上读 Dockerfile（基础镜像→依赖→代码）就是读"哪些层稳定"。</p>
 </section>
 
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>结合图 1：从下往上读 Dockerfile——基础 JDK 镜像 → 装依赖 → 拷应用代码，每步一层、上层变化只重建上层（下面命中缓存）。构建出镜像后 <code>docker run</code> 启动容器实例。Compose 则把"应用容器 + 它依赖的 MySQL/Redis 容器 + 网络连接"写成一个文件，一键起停整套环境。</p>
-  <div class="note">镜像瘦身的关键：用精简基础镜像（如 <code>eclipse-temurin:17-jre-alpine</code> 而非完整 JDK）、多阶段构建（构建阶段用 JDK 编译，运行阶段只把产物拷进更小的 JRE 镜像），最终镜像能从几百 MB 压到几十 MB。</div>
-</section>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>把一个 SpringBoot jar 连同 MySQL/Redis 在本地一条命令起起来（自学自建，非生产）：</p>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心配置与命令要点</h2>
-  <h3>4.1 SpringBoot 服务 Dockerfile</h3>
-<pre class="code" data-lang="dockerfile"><code># 依赖层先写，利用缓存
-FROM eclipse-temurin:17-jre-alpine
-WORKDIR /app
-COPY target/app.jar app.jar     # 拷产物
-EXPOSE 8080
-ENTRYPOINT ["java","-jar","app.jar"]</code></pre>
-  <div class="note"><strong>CMD vs ENTRYPOINT</strong>：<code>ENTRYPOINT</code> 固定容器启动入口、不会被 <code>docker run</code> 后的参数整体覆盖，<code>CMD</code> 提供默认参数（命令行给了就覆盖、没给就用它）；常见写法是 <code>ENTRYPOINT ["java","-jar"]</code> + <code>CMD ["app.jar"]</code>。<strong>COPY vs ADD</strong>：日常拷文件用 <code>COPY</code>（只做本地拷贝、语义明确）；<code>ADD</code> 会自动解压本地 tar 包、还能拉远程 URL，隐式行为多，官方建议能用 <code>COPY</code> 就用 <code>COPY</code>。</div>
-  <h3>4.2 compose 编排</h3>
-<pre class="code" data-lang="yaml"><code>services:
-  app:
-    build: .
-    ports: ["8080:8080"]
-  mysql:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: example</code></pre>
-  <h3>4.3 常用命令</h3>
-<pre class="code" data-lang="bash"><code>docker build -t myapp .        # 构建镜像
-docker run -p 8080:8080 myapp  # 跑容器
-docker compose up -d           # 一键起整套
-docker compose down            # 停掉</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-  <div class="warn-box"><strong>说明</strong>：本节是自学 + 自建 Demo，非生产环境项目。后端服务容器化在真实项目里由后端主导，以前端视角学习与配合评估；下面是我本地用 Dockerfile + Compose 跑通的 SpringBoot 编排 demo。</div>
-
-  <h3>5.1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"把一个服务连同依赖一条命令起起来"的容器化实操缺口。</p>
-  <ul><li><strong>缺口</strong>：真实项目后端用 Docker，以前端视角了解但没独立写过完整 Dockerfile/Compose。</li></ul>
-
-  <h3>5.2 搭建的 Demo 是什么</h3>
-  <ul>
-    <li><strong>功能</strong>：一个 SpringBoot jar + MySQL + Redis 的本地编排。</li>
-    <li><strong>技术栈</strong>：Dockerfile（精简 JRE/alpine 基础镜像）+ docker compose。</li>
-  </ul>
-
-  <h3>5.3 落地步骤（含关键代码）</h3>
-  <pre class="code" data-lang="dockerfile"><code># Dockerfile：依赖层在下、代码层在上
+  <h3>6.1 Dockerfile（分层合理 + 精简）</h3>
+<pre class="code" data-lang="dockerfile"><code># Dockerfile：依赖层在下、代码层在上
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY target/app.jar /app/app.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","/app/app.jar"]</code></pre>
-  <pre class="code" data-lang="bash"><code>docker build -t rmp-backend .
-docker compose up -d    # 起后端+MySQL+Redis</code></pre>
 
-  <h3>5.4 自学遇到的坑与解决</h3>
+  <h3>6.2 起服务</h3>
+<pre class="code" data-lang="bash"><code>docker build -t rmp-backend .
+docker compose up -d    # 起 app + MySQL + Redis（compose.yml 见 06 篇）</code></pre>
+
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>Dockerfile 顺序错</strong>：COPY 代码放装依赖前，每次改代码全量重建——调整分层后命中缓存。</li>
-    <li><span class="tag-pit">坑</span><strong>完整 JDK 镜像太大</strong>：换 JRE/alpine 瘦身。</li>
-    <li><span class="tag-pit">坑</span><strong>漏端口映射</strong>：漏 <code>-p</code>，容器内服务起了外网访问不到。</li>
+    <li><strong>jre-alpine 基础镜像</strong>：只有运行时没有编译器，几百 MB → 几十 MB；</li>
+    <li><strong>jar 是唯一 COPY</strong>：依赖已打进 jar（SpringBoot fat jar），没有独立依赖层可缓存——多模块项目可先 COPY 依赖 pom 装依赖再 COPY 代码；</li>
+    <li><strong>compose 三容器</strong>：app 映射 8080、MySQL 挂卷、Redis 无状态——完整复现"一条命令起环境"。</li>
   </ul>
 
-  <h3>5.5 成果（可验证能力）</h3>
-  <ul><li><span class="tag-point">要点</span>能独立写出分层合理、精简的 SpringBoot Dockerfile 并用 Compose 起 app+MySQL+Redis；可复现：<code>docker build</code> → <code>docker compose up -d</code> → 访问 8080。</li></ul>
+  <h3>6.4 与真实项目的差异（诚实说明）</h3>
+  <p>真实项目的生产镜像由后端团队维护，本 demo 是本地单机编排——<strong>无 registry 推送、无高可用、无监控</strong>。面试讲法如实定位："配合评估过容器化方案，独立跑通过本地编排，生产镜像未主导。"</p>
 
-  <h3>5.6 与真实项目的差异（诚实说明）</h3>
-  <p>真实项目的生产镜像由后端团队维护，我主要以前端视角学习与配合评估容器化方案，未独立写生产级 Dockerfile；本 demo 是本地单机编排，无高可用、无 registry 推送、无监控。</p>
-
-  <h3>5.7 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："我自学用 Dockerfile + Compose 把 SpringBoot jar 连同 MySQL/Redis 在本地一条命令起起来，踩过分层顺序错导致缓存失效和漏端口映射的坑；真实项目里后端容器化我是配合评估，不是主导。"</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 Dockerfile 分层顺序错</h3>
-  <p class="lead"><b>一句话定位</b>：常变的代码层放下面，一改代码全量重建、缓存失效。</p>
-  <p class="key-sentence">正解：稳定层（基础镜像、依赖）在下，常变层（代码）在上。</p>
-  <h3>6.2 镜像体积过大</h3>
-  <p class="lead"><b>一句话定位</b>：用完整 JDK/OS 镜像、打包了不需要的东西，镜像臃肿。</p>
-  <p class="key-sentence">正解：精简基础镜像（alpine）+ 多阶段构建。</p>
-  <h3>6.3 端口 / 数据没持久化</h3>
-  <p class="lead"><b>一句话定位</b>：忘 -p 映射外部访问不到；数据库写容器内、一删数据全丢。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>正解</strong>：端口要 <code>-p</code> 映射；数据要挂 volume。</li>
-  </ul>
-  <h3>6.4 镜像当虚拟机用</h3>
-  <p class="lead"><b>一句话定位</b>：反模式是一个容器跑多个服务，正确是一容器一进程。</p>
-  <p class="key-sentence">多服务交给 Compose / K8s 编排，而不是塞进一个容器。</p>
+  <h3>6.5 生产改造扩展方向</h3>
+  <ol>
+    <li>改多阶段构建：Maven 构建阶段 + JRE 运行阶段（4.1）；</li>
+    <li>镜像推 registry 并打不可变 tag（4.4）；</li>
+    <li>前端 dist 也容器化（3.2），与后端一起进 compose（衔接 06 篇）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：Dockerfile 分层顺序错</h3>
+  <ul>
+    <li><strong>现象</strong>：改一行代码构建要几分钟；</li>
+    <li><strong>根因</strong>：COPY 代码放在装依赖之前——代码一变，依赖层缓存全部失效重装；</li>
+    <li><strong>复现</strong>：两种顺序各 build 两次对比耗时；</li>
+    <li><strong>修复</strong>：稳定层在下（基础镜像/依赖），常变层在上（代码）；</li>
+    <li><strong>规避</strong>：写 Dockerfile 先画分层图（图 1），每层问一句"这层多久变一次"。</li>
+  </ul>
+  <h3>7.2 坑 2：镜像体积过大</h3>
+  <ul>
+    <li><strong>现象</strong>：一个 SpringBoot 应用镜像 800MB；</li>
+    <li><strong>根因</strong>：完整 JDK/OS 基础镜像 + 构建工具进运行镜像 + 无 .dockerignore；</li>
+    <li><strong>修复</strong>：alpine/slim 基础镜像 + 多阶段构建 + .dockerignore（4.1/4.2）；</li>
+    <li><strong>规避</strong>：CI 里加镜像体积预算，超阈值告警。</li>
+  </ul>
+  <h3>7.3 坑 3：漏端口映射 / 数据没持久化</h3>
+  <ul>
+    <li><strong>现象 A</strong>：容器内服务正常，外部访问不到——漏 <code>-p</code>；<strong>现象 B</strong>：容器删了数据全丢——数据库没挂卷；</li>
+    <li><strong>根因</strong>：容器默认网络隔离、可写层随容器销毁；</li>
+    <li><strong>修复</strong>：端口 <code>-p 宿主:容器</code> 映射；数据挂 volume（06 篇）；</li>
+    <li><strong>规避</strong>：run/compose 配置评审清单固定两查："端口映射？数据卷？"</li>
+  </ul>
+  <h3>7.4 坑 4：镜像当虚拟机用</h3>
+  <ul>
+    <li><strong>现象</strong>：一个容器里装 Nginx+应用+MySQL，用 supervisor 拉起多进程；</li>
+    <li><strong>根因</strong>：用 VM 思维写容器——容器设计哲学是<strong>一容器一进程</strong>；</li>
+    <li><strong>修复</strong>：拆成多容器，交给 Compose/K8s 编排；</li>
+    <li><strong>规避</strong>：Dockerfile 出现多个服务启动命令就是红色信号。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：容器为什么比虚拟机轻？</strong></p>
+  <p class="note"><strong>参考答案</strong>：一句话——<strong>容器共享宿主内核，没有 Guest OS</strong>。虚拟机每个实例带完整操作系统（GB 级、分钟级启动）；容器只打包应用+依赖（MB 级、秒级启动），隔离由内核的 namespace（视图隔离）/cgroup（资源限制）实现。<br><br>
+  <strong>推论</strong>：轻带来三个工程红利——秒级扩缩容、同机高密度部署、镜像可分发可缓存。"环境一致性"则来自镜像把运行时也打包。</p>
+
+  <p><strong>Q2：镜像分层是什么？怎么优化构建速度？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Dockerfile 每条指令生成一层，镜像 = 只读层叠加；构建时未变化层<strong>命中缓存</strong>。优化总纲：<strong>少变的放下、常变的放上</strong>——先 COPY 依赖清单并装依赖（稳定层，被缓存），再 COPY 代码（常变层，只重建它）。<br><br>
+  <strong>追问：.dockerignore 有什么用？</strong>——缩小构建上下文（不传 node_modules/.git 进 daemon），构建更快、镜像更小、还避免敏感文件进镜像。</p>
+
+  <p><strong>Q3：CMD 和 ENTRYPOINT 的区别？COPY 和 ADD 呢？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>ENTRYPOINT</strong> 固定启动入口不被参数覆盖；<strong>CMD</strong> 是默认参数（docker run 给了参数就覆盖它）——组合写法 <code>ENTRYPOINT ["java","-jar"]</code> + <code>CMD ["app.jar"]</code>：入口固定、包名可换。<strong>COPY</strong> 语义单一（本地拷贝）；<strong>ADD</strong> 隐式行为多（自动解压 tar、支持远程 URL）——官方建议默认用 COPY，需要解压时才用 ADD。两题共同的答题姿态：<strong>选语义明确的那一个</strong>。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>镜像与容器的关系？一个镜像能跑几个容器？</li>
+    <li>分层缓存的优化总纲？为什么依赖层要在代码层下面？</li>
+    <li>多阶段构建解决什么问题？--from=build 拷的是什么？</li>
+    <li>为什么"一容器一进程"？多服务怎么办？</li>
+    <li>为什么生产镜像禁用 latest 标签？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
   <ul>
     <li>Docker 官方文档：<a href="https://docs.docker.com/" rel="noopener">docs.docker.com</a></li>
-    <li>Dockerfile 最佳实践：<a href="https://docs.docker.com/develop/develop-images/dockerfile_best-practices/" rel="noopener">docs.docker.com/develop/develop-images/dockerfile_best-practices</a></li>
-    <li>Compose 官方文档：<a href="https://docs.docker.com/compose/" rel="noopener">docs.docker.com/compose</a></li>
+    <li>Dockerfile 最佳实践（官方）：<a href="https://docs.docker.com/develop/develop-images/dockerfile_best-practices/" rel="noopener">docs.docker.com</a></li>
   </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>Compose 官方文档（衔接 06 篇）：<a href="https://docs.docker.com/compose/" rel="noopener">docs.docker.com/compose</a></li>
+    <li>多阶段构建官方指南（Java/前端示例）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo；再故意把 COPY 顺序写错，对比两次构建耗时；</li>
+    <li>把一个 Vite 前端项目改成多阶段构建（node 构建 → nginx 运行），记录镜像体积变化；</li>
+    <li>给镜像打不可变 tag 并推到测试 registry（或本地 registry 容器）。</li>
+  </ol>
 </section>
 
 </main>
