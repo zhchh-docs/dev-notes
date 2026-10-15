@@ -534,9 +534,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Prometheus 与 Grafana 监控</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：指标采集、PromQL 查询、告警规则与可视化面板——容器/K8s 时代的观测基座</span>
+      <span class="meta">定位：pull 采集 / PromQL / 告警防抖——指标监控四模型</span>
     </div>
-    <p class="hero-desc">服务上线后最头疼的是"出问题了但没人知道"。Prometheus 是云原生事实标准的指标监控系统：主动从各服务拉取（pull）时间序列指标，存进自己的时序库；Grafana 负责把这些指标画成看板；AlertManager 负责按规则告警。本页讲指标模型、exporter、PromQL、告警规则与可视化，并说明它如何与 K8s/容器监控衔接——这块以学习与评估为主。</p>
+    <p class="hero-desc">监控把"系统现在健不健康"变成可量化、可预警的指标。本篇讲透四个核心模型：时间序列与标签（切片统计的钥匙）、pull 采集与 exporter、PromQL（Counter 必 rate）、告警规则四要素（for 防抖是公信力所在）；配 compose 三组件本地 Demo 与四条高频坑。指标监控与 ELK 日志的分工、Four Golden Signals 选指标框架也一并讲清。（说明：生产监控由运维主导，我以学习/评估视角为主，如实呈现深度。）</p>
   </div>
 </header>
 
@@ -549,184 +549,82 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
-  <section id="sec1" class="card">
-    <h2><span class="num">1</span>技术点概览</h2>
-    <p><strong>是什么</strong>：一套开源监控告警栈，分工明确：</p>
-    <ul>
-      <li><span class="tag-key">关键</span><strong>Prometheus</strong>：指标采集与时序数据库，按固定间隔主动去各目标拉（pull）指标。</li>
-      <li><strong>Grafana</strong>：可视化层，连 Prometheus 数据源后把指标画成仪表盘图表。</li>
-      <li><strong>AlertManager</strong>：告警组件，Prometheus 触发告警规则后交给它去重、分组、路由到钉钉/邮件。</li>
-    </ul>
-    <p><strong>解决什么问题</strong>：靠人盯日志、出问题等用户报，既滞后又被动。监控栈把"系统现在健不健康"变成可量化、可预警的指标：</p>
-    <ul>
-      <li><strong>看得见</strong>：CPU/内存/QPS/延迟/错误率，一屏看板实时刷新。</li>
-      <li><strong>会报警</strong>：指标越过阈值自动通知，故障在用户感知前就被发现。</li>
-      <li><strong>本技术栈位置</strong>：与 K8s/容器监控衔接（K8s 里的 cAdvisor、kube-state-metrics 都是 exporter），是容器化部署后的观测基座。</li>
-    </ul>
-    <div class="diagram">
-      <svg viewBox="0 0 800 220" role="img" aria-label="Prometheus 监控架构示意图">
-        <defs>
-          <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">指标从被监控对象到告警/看板的完整链路（示意）</text>
-        <rect x="40" y="60" width="160" height="120" rx="10" fill="#f0f5e6" stroke="#3d7a4f" stroke-width="1.5"/>
-        <text x="120" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">被监控目标</text>
-        <text x="120" y="118" text-anchor="middle" font-size="11" fill="#4f6348">应用 / exporter</text>
-        <text x="120" y="138" text-anchor="middle" font-size="11" fill="#4f6348">/metrics 端点</text>
-        <rect x="320" y="60" width="160" height="120" rx="10" fill="#f0f5e6" stroke="#5a9e6a" stroke-width="1.5"/>
-        <text x="400" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">Prometheus</text>
-        <text x="400" y="118" text-anchor="middle" font-size="11" fill="#4f6348">pull 采集</text>
-        <text x="400" y="138" text-anchor="middle" font-size="11" fill="#4f6348">时序库 + 规则</text>
-        <rect x="600" y="40" width="160" height="55" rx="10" fill="#eef3e5" stroke="#9cae90" stroke-width="1.5"/>
-        <text x="680" y="63" text-anchor="middle" font-size="12" font-weight="700" fill="#354835">Grafana</text>
-        <text x="680" y="82" text-anchor="middle" font-size="11" fill="#4f6348">看板可视化</text>
-        <rect x="600" y="130" width="160" height="55" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
-        <text x="680" y="153" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">AlertManager</text>
-        <text x="680" y="172" text-anchor="middle" font-size="11" fill="#b91c1c">钉钉/邮件告警</text>
-        <line x1="200" y1="120" x2="318" y2="120" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr)"/>
-        <text x="259" y="112" text-anchor="middle" font-size="11" fill="#5a9e6a">pull</text>
-        <line x1="480" y1="80" x2="598" y2="67" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr)"/>
-        <line x1="480" y1="160" x2="598" y2="157" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr)"/>
-      </svg>
-      <p class="diagram-caption">图 1 Prometheus 监控采集-存储-可视化-告警链路（示意）</p>
-    </div>
-  </section>
 
-  <section id="sec2" class="card">
-    <h2><span class="num">2</span>核心概念</h2>
+<section id="sec1" class="card">
+  <h2><span class="num">1</span>简介与阅读指引</h2>
 
-    <h3>2.1 指标与时间序列（Metric / Time Series）</h3>
-    <p class="lead"><b>一句话定位</b>：Prometheus 把监控数据组织成"指标名 + 标签 + 时间戳+值"的时间序列。</p>
-    <ul>
-      <li><strong>样本结构</strong>：一条样本 = 指标名（如 <code>http_requests_total</code>）+ 标签集（<code>method="GET",status="200"</code>）+ 时间戳 + 数值。</li>
-      <li><strong>四种类型</strong>：Counter（只增计数器，如请求总数）、Gauge（可增可减，如当前内存）、Histogram（分布，算分位延迟）、Summary（客户端侧分位）。</li>
-      <li><span class="tag-key">关键</span><strong>为什么重要</strong>：标签维度让你能"按接口、按状态码、按实例"任意切片统计，这是它比简单日志计数强的地方。</li>
-    </ul>
+  <h3>1.1 定位</h3>
+  <p><strong>Prometheus 是云原生事实标准的指标监控系统</strong>：按固定间隔主动去各目标拉（pull）时间序列指标，存进内置时序库；<strong>Grafana</strong> 是可视化层，把指标画成看板；<strong>AlertManager</strong> 是告警组件，把规则触发的告警去重、分组、路由到钉钉/邮件。三者分工明确，一套组合拳终结"出问题了但没人知道"的被动状态。</p>
 
-    <div class="diagram">
-      <svg viewBox="0 0 800 140" role="img" aria-label="四种指标类型对比图">
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Prometheus 四种指标类型（示意）</text>
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>靠人盯日志、故障等用户报——<strong>滞后且被动</strong>；</li>
+    <li>出了问题不知道从哪下手——没有量化指标，"感觉卡"无法定位；</li>
+    <li>告警轰炸或没有告警——瞬时抖动就通知，或真出事没人发现。</li>
+  </ul>
 
-        <!-- Counter -->
-        <rect x="20" y="45" width="180" height="80" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-        <text x="110" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">Counter</text>
-        <text x="110" y="92" text-anchor="middle" font-size="11" fill="#4f6348">只增计数器</text>
-        <text x="110" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">请求总数</text>
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要给服务/容器搭指标监控与告警（数值趋势）</td><td>排查具体错误文本 → ELK 日志系统（见 8 章 Q2）</td></tr>
+    <tr><td>看懂运维配的监控、参与指标定义</td><td>Jenkins 流水线 → 本模块 08 篇</td></tr>
+    <tr><td>面试（rate/for 防抖/高基数/指标 vs 日志是高频）</td><td>大规模存储架构（Thanos 细节）→ 运维方向</td></tr>
+  </table>
+  <p class="note"><strong>诚实声明</strong>：生产监控集群由后端/运维落地，我以学习与方案评估视角为主；本篇含自建 demo，如实呈现深度。</p>
 
-        <!-- Gauge -->
-        <rect x="215" y="45" width="180" height="80" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-        <text x="305" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#4f8a63">Gauge</text>
-        <text x="305" y="92" text-anchor="middle" font-size="11" fill="#4f6348">可增可减</text>
-        <text x="305" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#4f8a63">当前内存</text>
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>指标模型</strong>（指标名+标签+时间序列）与四种指标类型；</li>
+    <li>理解 <strong>pull 采集 + exporter</strong> 机制，知道 K8s 监控怎么衔接；</li>
+    <li>写出常用 <strong>PromQL</strong>（QPS/错误率/P99）与一条带 for 防抖的告警规则；</li>
+    <li>避开四条高频坑（Counter 忘 rate、高基数、无 for、当长期存储）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：HTTP 与容器基础（本模块 05 篇）；知道 QPS/延迟/错误率是什么。<strong>难度</strong>：★★☆☆☆。<strong>务必动手</strong>：第 6 章 Demo——compose 起三组件跑通采集→看板→告警。</p>
+</section>
 
-        <!-- Histogram -->
-        <rect x="410" y="45" width="180" height="80" rx="8" fill="#fefce8" stroke="#d97706"/>
-        <text x="500" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">Histogram</text>
-        <text x="500" y="92" text-anchor="middle" font-size="11" fill="#4f6348">分布（分桶）</text>
-        <text x="500" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#b45309">P99 延迟</text>
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>时间序列与标签</strong>（数据形态）→ <strong>pull 采集与 exporter</strong>（数据从哪来）→ <strong>PromQL</strong>（数据怎么查）→ <strong>告警规则</strong>（数据怎么变成通知）。</p>
 
-        <!-- Summary -->
-        <rect x="605" y="45" width="175" height="80" rx="8" fill="#f0fdf4" stroke="#047857"/>
-        <text x="692" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">Summary</text>
-        <text x="692" y="92" text-anchor="middle" font-size="11" fill="#4f6348">客户端侧分位</text>
-        <text x="692" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">较少用</text>
-      </svg>
-      <p class="diagram-caption">图 1 四种指标类型对比（示意）</p>
-    </div>
+  <h3>2.1 指标与时间序列：标签是查询的钥匙</h3>
+  <p>一条样本 = <strong>指标名 + 标签集 + 时间戳 + 数值</strong>（如 <code>http_requests_total{method="GET",status="200"}</code>）。四种类型：<strong>Counter</strong>（只增计数器，如请求总数）、<strong>Gauge</strong>（可增可减，如当前内存）、<strong>Histogram</strong>（分桶分布，算分位延迟）、<strong>Summary</strong>（客户端侧分位，较少用）。<br><br>
+  <span class="tag-key">关键</span><strong>为什么标签重要</strong>：同一指标按标签维度可以"按接口、按状态码、按实例"任意切片统计——这是它比简单日志计数强的地方。注意反面：每个标签组合都是一条序列，<strong>高基数字段（user_id/订单号）绝不能当 label</strong>（坑 7.2）。</p>
 
-    <h3>2.2 拉取模型与 Exporter</h3>
-    <p class="lead"><b>一句话定位</b>：Prometheus 主动去每个目标的 <code>/metrics</code> 端点拉数据，而非被推送。</p>
-    <ul>
-      <li><strong>pull 模式</strong>：Prometheus 按 scrape_interval 主动请求目标暴露的 <code>/metrics</code> HTTP 端点。</li>
-      <li><strong>exporter</strong>：把第三方系统（MySQL、Nginx、服务器主机、Redis）的指标翻译成 Prometheus 格式的组件，如 <code>node_exporter</code>（主机）、<code>mysqld_exporter</code>。</li>
-      <li><strong>K8s 场景</strong>：kubelet 内置 cAdvisor 暴露容器指标，无需额外装 exporter。</li>
-    </ul>
+  <h3>2.2 pull 模型与 exporter：主动去拉</h3>
+  <p>Prometheus 按 <code>scrape_interval</code> 主动请求各目标暴露的 <code>/metrics</code> HTTP 端点（pull，而非推送）。<strong>exporter</strong> 是"指标翻译器"：把第三方系统翻译成 Prometheus 格式——<code>node_exporter</code>（主机）、<code>mysqld_exporter</code> 等。<strong>K8s 场景</strong>：kubelet 内置 cAdvisor 暴露容器指标，kube-state-metrics 补对象状态——所以 K8s 天然接得上 Prometheus（衔接 07 篇）。</p>
 
-    <h3>2.3 PromQL 查询语言</h3>
-    <p class="lead"><b>一句话定位</b>：PromQL 是对时间序列做过滤、聚合、计算的查询语言，Grafana 图表和告警规则都用它。</p>
-    <ul>
-      <li><strong>基础查询</strong>：<code>http_requests_total</code> 直接取该指标所有序列。</li>
-      <li><strong>过滤</strong>：<code>http_requests_total{status="500"}</code> 只留 500 的序列。</li>
-      <li><strong>聚合</strong>：<code>sum by (instance)(rate(http_requests_total[5m]))</code>——先算 5 分钟每秒增速，再按实例求和，得到 QPS。</li>
-      <li><span class="tag-point">要点</span><strong>面试高频</strong>：Counter 必须先 <code>rate()</code>/<code>increase()</code> 再聚合，否则拿到的是累计总量而非速率。</li>
-    </ul>
+  <h3>2.3 PromQL：对时间序列做过滤、聚合、计算</h3>
+  <ul>
+    <li><strong>直接查询</strong>：<code>http_requests_total</code> 取该指标所有序列；</li>
+    <li><strong>过滤</strong>：<code>http_requests_total{status="500"}</code> 只留 500 的序列；</li>
+    <li><strong>聚合</strong>：<code>sum by (instance)(rate(http_requests_total[5m]))</code>——先算 5 分钟每秒增速再按实例求和，得到 QPS；</li>
+    <li><span class="tag-point">要点</span><strong>面试高频</strong>：Counter 必须先 <code>rate()</code>/<code>increase()</code> 再聚合，否则拿到的是累计总量而非速率（坑 7.1）。</li>
+  </ul>
 
-    <h3>2.4 告警规则与 AlertManager</h3>
-    <p class="lead"><b>一句话定位</b>：Prometheus 里写"什么条件算告警"，AlertManager 决定"告警出来后怎么通知"。</p>
-    <ul>
-      <li><strong>告警规则</strong>：一段 PromQL 表达式，评估结果持续超过阈值一段时间（for）才触发，避免抖动误报。</li>
-      <li><strong>AlertManager</strong>：负责分组、去重、静默、路由——同类型告警合并成一条，发到对应渠道（钉钉/邮件/Webhook）。</li>
-      <li><span class="tag-key">关键</span><strong>为什么重要</strong>：没有告警规则的看板只是"好看的图片"，有了告警才是主动预警。</li>
-    </ul>
+  <h3>2.4 告警规则与 AlertManager：规则评估与通知路由分离</h3>
+  <p><strong>Prometheus</strong> 管"什么条件算告警"：一段 PromQL 持续超阈值一段时间（<code>for</code>）才触发——for 是防抖关键。<strong>AlertManager</strong> 管"告警出来后怎么通知"：分组、去重、静默、路由到对应渠道。没有告警规则的看板只是"好看的图片"，有了告警才是主动预警。</p>
 
-    <h3>2.5 Grafana 可视化</h3>
-    <p class="lead"><b>一句话定位</b>：Grafana 本身不存数据，它是连 Prometheus 等数据源做图表的展示层。</p>
-    <ul>
-      <li><strong>面板（Panel）</strong>：一个图表 = 一个 PromQL 查询 + 图表类型（折线/数字/热力图）。</li>
-      <li><strong>看板（Dashboard）</strong>：多个面板组成一页，常用"系统概览""接口延迟""错误率"几块。</li>
-      <li><strong>好处</strong>：拖拽配置、支持时间范围缩放、可下钻，比自己写图表组件省事得多。</li>
-    </ul>
-  </section>
+  <h3>2.5 Grafana：无状态的展示层</h3>
+  <p>Grafana 本身不存数据，连接 Prometheus 做图表：<strong>面板（Panel）</strong>=一个 PromQL + 图表类型；<strong>看板（Dashboard）</strong>=多面板一页（系统概览/接口延迟/错误率几块）。拖拽配置、时间缩放、可下钻，比自己写图表组件省事得多。</p>
+</section>
 
-  <section id="sec3" class="card">
-    <h2><span class="num">3</span>工作原理与流程</h2>
-    <p class="lead"><b>一句话定位</b>：一次"采集→存储→查询/告警→可视化"的闭环，是监控栈工作原理的主干。</p>
-    <div class="diagram">
-      <svg viewBox="0 0 800 180" role="img" aria-label="监控闭环流程示意图">
-        <defs>
-          <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">监控闭环：采集 → 存储 → 规则评估/可视化 → 通知（示意）</text>
-        <rect x="30" y="70" width="150" height="70" rx="10" fill="#f0f5e6" stroke="#3d7a4f" stroke-width="1.5"/>
-        <text x="105" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">① 采集</text>
-        <text x="105" y="122" text-anchor="middle" font-size="11" fill="#4f6348">scrape /metrics</text>
-        <rect x="230" y="70" width="150" height="70" rx="10" fill="#f0f5e6" stroke="#5a9e6a" stroke-width="1.5"/>
-        <text x="305" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">② 存储</text>
-        <text x="305" y="122" text-anchor="middle" font-size="11" fill="#4f6348">本地时序库 TSDB</text>
-        <rect x="430" y="70" width="160" height="70" rx="10" fill="#eef3e5" stroke="#9cae90" stroke-width="1.5"/>
-        <text x="510" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">③ 查询/告警评估</text>
-        <text x="510" y="122" text-anchor="middle" font-size="11" fill="#4f6348">PromQL + 规则 for</text>
-        <rect x="640" y="70" width="140" height="70" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
-        <text x="710" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">④ 通知/看板</text>
-        <text x="710" y="122" text-anchor="middle" font-size="11" fill="#b91c1c">Grafana / 钉钉</text>
-        <line x1="180" y1="105" x2="228" y2="105" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr3)"/>
-        <line x1="380" y1="105" x2="428" y2="105" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr3)"/>
-        <line x1="590" y1="105" x2="638" y2="105" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr3)"/>
-      </svg>
-      <p class="diagram-caption">图 2 指标从采集到告警通知的闭环（示意）</p>
-    </div>
-    <ol>
-      <li><strong>① 采集</strong>：Prometheus 按 scrape_interval（如 15s）去各目标的 <code>/metrics</code> 拉样本。</li>
-      <li><strong>② 存储</strong>：样本按时间序列写进内置 TSDB，带保留期（如 15 天热数据）。</li>
-      <li><strong>③ 查询/告警评估</strong>：Grafana 用 PromQL 查数据画图；告警规则按周期评估表达式，持续超阈值（for 段）才触发。</li>
-      <li><strong>④ 通知</strong>：触发的告警交给 AlertManager 分组去重后发钉钉/邮件，同时 Grafana 看板持续展示趋势。</li>
-    </ol>
-  </section>
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
 
-  <section id="sec4" class="card">
-    <h2><span class="num">4</span>核心语法与 API 要点</h2>
-
-    <h3>4.1 常用 PromQL 查询</h3>
-    <pre class="code" data-lang="promql"><code># 每秒请求数（QPS）：Counter 先 rate 再聚合
+  <h3>3.1 场景一：常用 PromQL 四件套</h3>
+<pre class="code" data-lang="promql"><code># 每秒请求数（QPS）：Counter 先 rate 再聚合
 sum by (instance) (rate(http_requests_total[5m]))
 
 # 5xx 错误率：错误数 / 总请求数
@@ -738,11 +636,11 @@ sum(rate(http_requests_total[5m]))
 histogram_quantile(0.99,
   rate(http_request_duration_seconds_bucket[5m]))
 
-# 当前内存使用（Gauge）
+# 当前内存使用（Gauge，直接取值）
 node_memory_MemAvailable_bytes</code></pre>
 
-    <h3>4.2 一条告警规则</h3>
-    <pre class="code" data-lang="yaml"><code>groups:
+  <h3>3.2 场景二：一条告警规则（含 for 防抖）</h3>
+<pre class="code" data-lang="yaml"><code>groups:
   - name: api-alerts
     rules:
       - alert: HighErrorRate          # 告警名
@@ -755,79 +653,241 @@ node_memory_MemAvailable_bytes</code></pre>
         annotations:
           summary: "接口 5xx 错误率超 5%"
           description: "实例 {{ $labels.instance }} 错误率持续偏高"</code></pre>
-    <div class="note"><strong>Recording rules（预计算规则）</strong>：和告警规则写在同一个 <code>rules</code> 列表里，只是用 <code>record:</code> 代替 <code>alert:</code>——把高频、昂贵的 PromQL（如按实例算好的 5xx 错误率）预先算成一条新指标存下来，Grafana 看板直接查这条新指标，不用每次现算。Grafana 大查询加载卡、PromQL 慢时，第一反应就是拆一条 Recording rule。</div>
 
-    <h3>4.3 抓取目标配置片段</h3>
-    <pre class="code" data-lang="yaml"><code>scrape_configs:
+  <h3>3.3 场景三：抓取目标配置（接 Java 后端）</h3>
+<pre class="code" data-lang="yaml"><code>scrape_configs:
   - job_name: 'springboot-app'
     metrics_path: '/actuator/prometheus'   # SpringBoot 暴露的指标端点
     static_configs:
       - targets: ['app:8080']</code></pre>
-    <p><span class="tag-point">要点</span>：SpringBoot 服务接 <code>micrometer-registry-prometheus</code> 后会自动暴露 <code>/actuator/prometheus</code>，Prometheus 直接抓即可，这是与 Java 后端衔接的标准做法。</p>
-  </section>
+  <p><span class="tag-point">要点</span>：SpringBoot 服务接 <code>micrometer-registry-prometheus</code> 后自动暴露 <code>/actuator/prometheus</code>，Prometheus 直接抓——这是与 Java 后端衔接的标准做法。</p>
+</section>
 
-  <section id="sec5" class="card">
-    <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-    <div class="warn-box"><strong>说明</strong>：本节是自学 + 自建 Demo，非生产环境项目。生产监控由后端/运维落地，以前端视角做学习与方案评估；下面是我本地用 node_exporter + Prometheus + Grafana 跑通的指标采集 demo。</div>
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：采集→看板→告警已跑通。</p>
 
-    <h3>5.1 自学背景与动机</h3>
-    <p class="lead"><b>一句话定位</b>：补"容器/服务指标怎么采集、怎么看板、怎么告警"这层只懂概念的缺口。</p>
-    <ul><li><strong>缺口</strong>：真实项目服务容器化后监控由运维管，我想亲手把采集→看板→告警跑通一遍。</li></ul>
+  <h3>4.1 Recording rules：预计算高频查询</h3>
+  <p>把高频、昂贵的 PromQL（如按实例算好的 5xx 错误率）用 <code>record:</code> 预先算成一条新指标存下来（与告警规则写在同一个 rules 列表），Grafana 直接查这条新指标，不每次现算。<strong>Grafana 大查询加载卡、PromQL 慢时，第一反应就是拆一条 Recording rule。</strong></p>
 
-    <h3>5.2 搭建的 Demo 是什么</h3>
-    <ul>
-      <li><strong>功能</strong>：node_exporter 采主机指标 → Prometheus 抓取 → Grafana 面板 → 一条告警规则。</li>
-      <li><strong>技术栈</strong>：Prometheus + Grafana + node_exporter（本地 docker compose 起）。</li>
-    </ul>
+  <h3>4.2 服务发现：K8s 里怎么自动找到新 Pod</h3>
+  <p>静态 <code>static_configs</code> 适合固定目标；容器/K8s 场景用<strong>服务发现</strong>（kubernetes_sd 等）——新 Pod 起来自动加入抓取、销毁自动移除，不用手改配置。这是"容器动态伸缩"与"静态抓取配置"矛盾的解。</p>
 
-    <h3>5.3 落地步骤（含关键配置）</h3>
-    <pre class="code" data-lang="promql"><code># Grafana 面板里看速率（Counter 必须先 rate）
-rate(node_cpu_seconds_total[5m])
-# 告警：5xx 错误率 > 5% 持续 2 分钟
-# alert: HighErrorRate  expr: rate(http_5xx[2m]) > 0.05  for: 2m</code></pre>
+  <h3>4.3 数据保留与长期存储</h3>
+  <p>Prometheus 是<strong>按保留期滚动删除的时序库</strong>（默认 15 天热数据），不适合存几年历史。长期归档接 <strong>Thanos/Mimir</strong> 等远程存储——监控大盘看趋势可以接受、跨年报表分析不能依赖它。</p>
 
-    <h3>5.4 自学遇到的坑与解决</h3>
-    <ul>
-      <li><span class="tag-pit">坑</span><strong>Counter 直接画图</strong>：一条只涨不降的累计线——先 <code>rate()[5m]</code>。</li>
-      <li><span class="tag-pit">坑</span><strong>告警没加 for</strong>：偶发一次就狂发——加 <code>for: 2m</code> 防抖。</li>
-      <li><span class="tag-pit">坑</span><strong>标签基数爆炸</strong>：高基数字段当 label 拖垮 Prometheus。</li>
-    </ul>
+  <h3>4.4 Four Golden Signals：指标该盯哪四个</h3>
+  <p>Google 经典框架——<strong>延迟</strong>（P99 越高越危险）、<strong>流量</strong>（QPS）、<strong>错误</strong>（错误率）、<strong>饱和度</strong>（资源水位）。给服务配监控时按这四格先配齐，再补业务指标，是最省心的起点。</p>
+</section>
 
-    <h3>5.5 成果（可验证能力）</h3>
-    <ul><li><span class="tag-point">要点</span>能搭起 node_exporter→Prometheus→Grafana 链路并写 rate 与告警规则；理解指标 vs 日志分工；可复现：compose 起三组件 → 配 scrape → Grafana 接 Prometheus 看 CPU 面板。</li></ul>
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="Prometheus 监控架构示意图">
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">指标从被监控对象到告警/看板的完整链路（示意）</text>
+      <rect x="40" y="60" width="160" height="120" rx="10" fill="#f0f5e6" stroke="#3d7a4f" stroke-width="1.5"/>
+      <text x="120" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">被监控目标</text>
+      <text x="120" y="118" text-anchor="middle" font-size="11" fill="#4f6348">应用 / exporter</text>
+      <text x="120" y="138" text-anchor="middle" font-size="11" fill="#4f6348">/metrics 端点</text>
+      <rect x="320" y="60" width="160" height="120" rx="10" fill="#f0f5e6" stroke="#5a9e6a" stroke-width="1.5"/>
+      <text x="400" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">Prometheus</text>
+      <text x="400" y="118" text-anchor="middle" font-size="11" fill="#4f6348">pull 采集</text>
+      <text x="400" y="138" text-anchor="middle" font-size="11" fill="#4f6348">时序库 + 规则</text>
+      <rect x="600" y="40" width="160" height="55" rx="10" fill="#eef3e5" stroke="#9cae90" stroke-width="1.5"/>
+      <text x="680" y="63" text-anchor="middle" font-size="12" font-weight="700" fill="#354835">Grafana</text>
+      <text x="680" y="82" text-anchor="middle" font-size="11" fill="#4f6348">看板可视化</text>
+      <rect x="600" y="130" width="160" height="55" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="680" y="153" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">AlertManager</text>
+      <text x="680" y="172" text-anchor="middle" font-size="11" fill="#b91c1c">钉钉/邮件告警</text>
+      <line x1="200" y1="120" x2="318" y2="120" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="259" y="112" text-anchor="middle" font-size="11" fill="#5a9e6a">pull</text>
+      <line x1="480" y1="80" x2="598" y2="67" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="480" y1="160" x2="598" y2="157" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arr)"/>
+    </svg>
+    <p class="diagram-caption">图 1 Prometheus 监控采集-存储-可视化-告警链路（示意）</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 140" role="img" aria-label="四种指标类型对比图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Prometheus 四种指标类型（示意）</text>
 
-    <h3>5.6 与真实项目的差异（诚实说明）</h3>
-    <p>真实生产监控集群由后端/运维落地，我没有独立操盘生产监控的深度；本 demo 是单机采集，无多服务、无 AlertManager 路由、无长期远程存储。与 K8s 监控的衔接（cAdvisor/kube-state-metrics）我只做过方案评估。</p>
+      <rect x="20" y="45" width="180" height="80" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="110" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">Counter</text>
+      <text x="110" y="92" text-anchor="middle" font-size="11" fill="#4f6348">只增计数器</text>
+      <text x="110" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">请求总数</text>
 
-    <h3>5.7 面试讲法（一句话抓手）</h3>
-    <p class="key-sentence">一句话抓手："我本地搭过 node_exporter+Prometheus+Grafana，理解 Counter 必须先 rate、告警要加 for 防抖、高基数字段别当 label；诚实说生产监控是运维主导，我是学习/方案评估视角。"</p>
-  </section>
+      <rect x="215" y="45" width="180" height="80" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="305" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#4f8a63">Gauge</text>
+      <text x="305" y="92" text-anchor="middle" font-size="11" fill="#4f6348">可增可减</text>
+      <text x="305" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#4f8a63">当前内存</text>
 
-  <section id="sec6" class="card">
-    <h2><span class="num">6</span>易错点与面试重点</h2>
-    <ul>
-      <li><span class="tag-pit">坑</span><strong>Counter 忘了 rate 直接聚合</strong>：画出累计总量而非速率，趋势完全失真。原因：Counter 单调递增。正解：先 <code>rate()[区间]</code> 再聚合。</li>
-      <li><span class="tag-pit">坑</span><strong>高基数标签拖垮系统</strong>：把 user_id、订单号当 label，时间序列数量爆炸。原因：Prometheus 每条 label 组合都是一条序列。正解：高基数字段放日志，不做监控标签。</li>
-      <li><span class="tag-pit">坑</span><strong>告警阈值无 for 防抖</strong>：瞬时抖动就轰炸通知。正解：加 <code>for</code> 持续时长，配 AlertManager 分组去重。</li>
-      <li><span class="tag-pit">坑</span><strong>把 Prometheus 当长期存储</strong>：它是按保留期滚动删除的时序库，不适合存几年历史。正解：长期归档接 Thanos/Mimir 等远程存储。</li>
-      <li><strong>面试高频</strong>：Prometheus pull 模型 vs 日志系统 ELK？答：Prometheus 管"指标"（数值、趋势、阈值告警），ELK 管"日志"（文本、排查详情）；线上告警靠指标，定位具体错误靠日志，两者互补。</li>
-    </ul>
-  </section>
+      <rect x="410" y="45" width="180" height="80" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="500" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">Histogram</text>
+      <text x="500" y="92" text-anchor="middle" font-size="11" fill="#4f6348">分布（分桶）</text>
+      <text x="500" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#b45309">P99 延迟</text>
 
-  <section id="sec7" class="card">
-    <h2><span class="num">7</span>学习资源与参考</h2>
-    <h4>官方文档</h4>
-    <ul>
-      <li><a href="https://prometheus.io/docs/">Prometheus 官方文档</a>——概念、PromQL、告警规则权威参考。</li>
-      <li><a href="https://grafana.com/docs/">Grafana 官方文档</a>——数据源与面板配置。</li>
-      <li><a href="https://prometheus.io/docs/concepts/metric_types/">指标四种类型</a>——Counter/Gauge/Histogram/Summary 区别。</li>
-    </ul>
-    <h4>实战 / 方法论</h4>
-    <ul>
-      <li>Prometheus 官方《Querying basics》与《Alerting》指南——PromQL 与告警入门。</li>
-      <li>Google《Four Golden Signals》（延迟/流量/错误/饱和度）——监控指标该盯哪四个的经典框架。</li>
-    </ul>
-  </section>
+      <rect x="605" y="45" width="175" height="80" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="692" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">Summary</text>
+      <text x="692" y="92" text-anchor="middle" font-size="11" fill="#4f6348">客户端侧分位</text>
+      <text x="692" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">较少用</text>
+    </svg>
+    <p class="diagram-caption">图 2 四种指标类型对比（示意）</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 180" role="img" aria-label="监控闭环流程示意图">
+      <defs>
+        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">监控闭环：采集 → 存储 → 规则评估/可视化 → 通知（示意）</text>
+      <rect x="30" y="70" width="150" height="70" rx="10" fill="#f0f5e6" stroke="#3d7a4f" stroke-width="1.5"/>
+      <text x="105" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">① 采集</text>
+      <text x="105" y="122" text-anchor="middle" font-size="11" fill="#4f6348">scrape /metrics</text>
+      <rect x="230" y="70" width="150" height="70" rx="10" fill="#f0f5e6" stroke="#5a9e6a" stroke-width="1.5"/>
+      <text x="305" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">② 存储</text>
+      <text x="305" y="122" text-anchor="middle" font-size="11" fill="#4f6348">本地时序库 TSDB</text>
+      <rect x="430" y="70" width="160" height="70" rx="10" fill="#eef3e5" stroke="#9cae90" stroke-width="1.5"/>
+      <text x="510" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#354835">③ 查询/告警评估</text>
+      <text x="510" y="122" text-anchor="middle" font-size="11" fill="#4f6348">PromQL + 规则 for</text>
+      <rect x="640" y="70" width="140" height="70" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+      <text x="710" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">④ 通知/看板</text>
+      <text x="710" y="122" text-anchor="middle" font-size="11" fill="#b91c1c">Grafana / 钉钉</text>
+      <line x1="180" y1="105" x2="228" y2="105" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr3)"/>
+      <line x1="380" y1="105" x2="428" y2="105" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr3)"/>
+      <line x1="590" y1="105" x2="638" y2="105" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arr3)"/>
+    </svg>
+    <p class="diagram-caption">图 3 指标从采集到告警通知的闭环（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 的分工是心智模型——采集与评估归 Prometheus、展示归 Grafana、通知归 AlertManager；②图 2 是选指标类型时的判断依据——只增用 Counter、看当下用 Gauge、看分布用 Histogram；③图 3 的闭环四步各有自己的坑：采集（exporter 没装）、查询（Counter 忘 rate）、告警（忘 for）、通知（AlertManager 没配路由）。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：自学自建 demo（本地 compose 三组件），非生产。</p>
+
+  <h3>6.1 完整配置（docker-compose 起三组件）</h3>
+<pre class="code" data-lang="yaml"><code>services:
+  node-exporter:
+    image: prom/node-exporter
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  grafana:
+    image: grafana/grafana
+    ports: ["3000:3000"]</code></pre>
+
+  <h3>6.2 跑通步骤</h3>
+<pre class="code" data-lang="promql"><code># prometheus.yml 配抓取 node-exporter，再在 Grafana：
+# ① 添加 Prometheus 数据源（http://prometheus:9090）
+# ② 建面板：rate(node_cpu_seconds_total[5m])   # Counter 先 rate
+# ③ 建告警规则：5xx 错误率 > 5% 持续 2 分钟
+#    alert: HighErrorRate  expr: ... > 0.05  for: 2m</code></pre>
+
+  <h3>6.3 逐段解析</h3>
+  <ul>
+    <li><strong>node-exporter 暴露 /metrics</strong>：Prometheus 无需对它做任何配置之外的改造——pull 模型的直观体现；</li>
+    <li><strong>面板先 rate 再看</strong>：直接画 Counter 是一条只涨不降的累计线，完全失真；</li>
+    <li><strong>for: 2m</strong>：把 CPU 压到满 10 秒验证——告警不响（防抖生效），压满 3 分钟才响。</li>
+  </ul>
+
+  <h3>6.4 生产改造扩展方向</h3>
+  <ol>
+    <li>加 AlertManager 容器，配分组去重与钉钉路由（3.2 规则里接上）；</li>
+    <li>抓 K8s 集群（kubernetes_sd 服务发现 + cAdvisor/kube-state-metrics，4.2）；</li>
+    <li>高频面板查询改 Recording rule（4.1），长存储接 Thanos（4.3）。</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：Counter 忘了 rate 直接聚合</h3>
+  <ul>
+    <li><strong>现象</strong>：画出来的请求量是一条只涨不降的直线，毫无"趋势"；</li>
+    <li><strong>根因</strong>：Counter 单调递增，直接查拿到的是累计总量而非速率；</li>
+    <li><strong>复现</strong>：对 http_requests_total 直接建面板对照；</li>
+    <li><strong>修复</strong>：先 <code>rate()[区间]</code> 再聚合；</li>
+    <li><strong>规避</strong>：口诀——<strong>Counter 必 rate，Gauge 直取值</strong>。</li>
+  </ul>
+  <h3>7.2 坑 2：高基数标签拖垮系统</h3>
+  <ul>
+    <li><strong>现象</strong>：接入后 Prometheus 内存暴涨、查询变慢；</li>
+    <li><strong>根因</strong>：user_id/订单号当 label——每个标签组合都是一条序列，时间序列数量爆炸；</li>
+    <li><strong>修复</strong>：高基数字段放日志，监控标签只用有限枚举值（接口名/状态码/实例）；</li>
+    <li><strong>规避</strong>：定义指标时先问"这个标签有几种取值"。</li>
+  </ul>
+  <h3>7.3 坑 3：告警阈值无 for 防抖</h3>
+  <ul>
+    <li><strong>现象</strong>：瞬时抖动就轰炸通知，狼来了效应；</li>
+    <li><strong>根因</strong>：表达式瞬时满足就触发，无持续时间要求；</li>
+    <li><strong>修复</strong>：加 <code>for: 2m</code> + AlertManager 分组去重；</li>
+    <li><strong>规避</strong>：告警规则模板默认带 for；通知渠道分 severity 路由。</li>
+  </ul>
+  <h3>7.4 坑 4：把 Prometheus 当长期存储</h3>
+  <ul>
+    <li><strong>现象</strong>：想查半年前的趋势，数据没了；</li>
+    <li><strong>根因</strong>：它按保留期滚动删除（默认 15 天热数据），不是归档库；</li>
+    <li><strong>修复</strong>：长期归档接 Thanos/Mimir 远程存储（4.3）；</li>
+    <li><strong>规避</strong>：定位——Prometheus 管实时监控，不是数据仓库。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Prometheus 的 pull 模型是什么？为什么选 pull？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Prometheus 按 scrape_interval <strong>主动去各目标的 /metrics HTTP 端点拉指标</strong>，而非目标推送。pull 的好处：①监控端集中控制节奏，目标服务无感知、无推送风暴风险；②天然自带<strong>健康检查</strong>——拉不到就是目标挂了；③配置集中在监控端，新增目标改监控端即可。<br><br>
+  <strong>配套机制</strong>：exporter 负责"翻译"第三方系统指标；K8s 场景用服务发现自动找到新 Pod（4.2）。</p>
+
+  <p><strong>Q2：Prometheus 指标监控和 ELK 日志系统的分工？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>Prometheus 管"指标"</strong>——数值化、趋势化、按阈值告警（错误率涨没涨、延迟高不高）；<strong>ELK 管"日志"</strong>——文本详情、逐条排查（具体哪条请求报了什么错）。<strong>线上告警靠指标，定位具体错误靠日志</strong>：指标监控先发现"5xx 错误率 3 分钟涨到 8%"，然后去日志系统查这段时间的 error 日志看具体堆栈。两者互补而非替代。</p>
+
+  <p><strong>Q3：一条合格的告警规则要包含什么？为什么 for 重要？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四要素——<strong>expr</strong>（PromQL 阈值表达式）、<strong>for</strong>（持续时长防抖）、<strong>labels.severity</strong>（分级，决定通知渠道与优先级）、<strong>annotations</strong>（人能看懂的描述与实例信息）。<strong>for 的意义</strong>：瞬时抖动是常态，无 for 的告警会高频轰炸造成"狼来了"，让人对告警脱敏——<strong>告警系统的公信力比覆盖率更重要</strong>。配合 AlertManager 的分组去重，同类型告警合并成一条通知。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四种指标类型各适合什么场景？请求总数/当前内存/P99 分别用什么？</li>
+    <li>为什么 Counter 必须先 rate？直接聚合会得到什么？</li>
+    <li>高基数标签为什么会拖垮 Prometheus？什么该放日志？</li>
+    <li>告警规则四要素？AlertManager 与告警规则的分工？</li>
+    <li>监控闭环四步各自的坑？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li><a href="https://prometheus.io/docs/" rel="noopener">Prometheus 官方文档</a>——概念、PromQL、告警规则权威参考</li>
+    <li><a href="https://grafana.com/docs/" rel="noopener">Grafana 官方文档</a>——数据源与面板配置</li>
+    <li><a href="https://prometheus.io/docs/concepts/metric_types/" rel="noopener">指标四种类型</a>——Counter/Gauge/Histogram/Summary 区别</li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>Prometheus 官方《Querying basics》与《Alerting》指南——PromQL 与告警入门</li>
+    <li>Google《Four Golden Signals》（延迟/流量/错误/饱和度）——监控指标该盯哪四个的经典框架</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo，验证 rate 面板与 for 防抖行为；</li>
+    <li>故意画一次裸 Counter 面板，体会"累计线"失真，再修复；</li>
+    <li>给自己项目定一套 Four Golden Signals 监控清单（不搭环境，先列指标）。</li>
+  </ol>
+</section>
+
 </main>
 </div>
 <nav class="doc-nav bottom">
