@@ -540,39 +540,156 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../03_数据可视化/06_Three.js_3D可视化【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/08_大屏自适应方案【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/01_音视频基础与流媒体协议【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：大数据量或高频更新下，把渲染维持在 60fps（16.6ms/帧）的工程方法论。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：体系而非 API</h3>
+  <p><strong>可视化性能优化 = 大数据量或高频更新下把渲染维持 60fps（16.6ms/帧）的工程方法论</strong>。两条主线：<strong>渲染端</strong>（选 Canvas/SVG/WebGL、减 draw call、分层、剔除）与<strong>数据端</strong>（增量更新、抽稀、虚拟化、Worker）。它不是某个库的 API，而是"<strong>先定位瓶颈、再对症下药</strong>"的体系——本篇是 02/04/06 三篇优化内容的总纲收束。</p>
+
+  <h3>1.2 渲染后端对比：性能问题的第一道坎</h3>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>维度</th><th>Canvas 2D</th><th>SVG</th><th>WebGL</th></tr></thead>
+    <tbody>
+      <tr><td>绘制模型</td><td>单画布位图，整层重画</td><td>每个图形一个 DOM 节点</td><td>GPU 并行光栅化</td></tr>
+      <tr><td>大数据</td><td>万级点可扛</td><td>上千节点 DOM 膨胀变慢</td><td>十万级+，3D 必备</td></tr>
+      <tr><td>交互</td><td>需自己做命中测试</td><td>天然事件、可 CSS/无障碍</td><td>需自己做拾取</td></tr>
+      <tr><td>适用</td><td>图表、高频刷新、中等规模</td><td>少量图形、需可访问性</td><td>3D、超大点云、粒子</td></tr>
+    </tbody>
+  </table>
+  <p><strong>口径</strong>：图大量多+高频刷新 → Canvas（ECharts 默认/G6 canvas）；图形少+要 CSS/无障碍 → SVG；3D 或十万级点云 → WebGL（Three.js/echarts-gl）。</p>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立<strong>帧预算</strong>第一性原理（16.6ms 三段分解）；</li>
+    <li>掌握四层优化顺序：<strong>渲染层 → 布局 → 更新方式 → 数据聚合</strong>；</li>
+    <li>会用 <strong>Performance 面板先量后优</strong>；</li>
+    <li>把 02/04/06 三篇的优化手段收进一张体系图。</li>
+  </ol>
+  <p><strong>前置知识</strong>：02 ECharts / 04 G6 / 06 Three.js。<strong>难度</strong>：★★★★☆。<strong>本篇不涉及</strong>：网络层优化（06 工程化模块）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>帧预算</strong>（第一性原理）→ <strong>增量更新</strong>→ <strong>虚拟化与剔除</strong>→ <strong>分层渲染</strong>→ <strong>Worker 卸载</strong>→ <strong>抽稀与 rAF 对齐</strong>。</p>
+
+  <h3>2.1 帧预算：把每帧压进 16.6ms</h3>
+  <p>构成：<strong>JS 更新 + 布局/剔除 + GPU 绘制</strong>，任何一段超时都掉帧。<span class="tag-pit">坑</span>120Hz 屏预算更紧（8.3ms）；<strong>先量（Performance 面板）再优化，凭感觉改代码最浪费时间</strong>。</p>
+
+  <h3>2.2 增量更新：O(n) 全量 → O(变化量)</h3>
   <ul>
-    <li><strong>两条主线</strong>：渲染端（选 Canvas/SVG/WebGL、减 draw call、分层、剔除）与数据端（增量更新、抽稀、虚拟化、Worker）。</li>
-    <li><strong>不是某库 API</strong>：而是"先定位瓶颈、再对症下药"的体系。</li>
+    <li><strong>ECharts</strong>：setOption merge / appendData（02 篇三路径）；</li>
+    <li><strong>G6</strong>：updateItem 而非 render()（04 篇分界）；</li>
+    <li><strong>Three.js</strong>：复用 BufferGeometry 只更新属性脏位（06 篇纪律）。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：根因是"每帧做了远超 16.6ms 的事"，逐项拆解压缩。</p>
-  <ul>
-    <li><strong>典型卡顿</strong>：千节点流程图拖不动、万点 3D 掉帧、高频曲线卡、大表格滚动卡。</li>
-    <li><strong>根因</strong>：全量重绘、DOM 节点爆炸、主线程被计算占满、GPU 调度过载。</li>
-  </ul>
+
+  <h3>2.3 虚拟化与视口裁剪：看不见的不画</h3>
+  <p><strong>表格虚拟化</strong>：只渲染可视行，千行表格 DOM 始终几十行；<strong>视锥剔除</strong>：图/3D 不提交视口外物体；配合 LOD 远处低模——"用户看不见的东西就不要画"是总纲。</p>
+
+  <h3>2.4 分层渲染：静态缓存，动态重画</h3>
+  <p>静态背景画一次缓存（离屏 Canvas/低频层），动态前景每帧只重画变化部分——避免"改一个点却整屏重画"。ECharts 按系列分层、大屏静态底图离屏缓存（01 篇 4.2 同款）。</p>
+
+  <h3>2.5 Web Worker 卸载计算</h3>
+  <p>CPU 重活（数据聚合/排序/布局计算）放 Worker，<strong>主线程只接收结果并绘制</strong>——大屏分布式聚合、千节点布局都适合下沉。</p>
+
+  <h3>2.6 抽稀与 rAF 对齐</h3>
+  <p><strong>抽稀</strong>：屏幕像素有限，按视口宽度采样（LTTB 算法）——视觉无损数据量骤降；坐标轴自动采样、progressive 渐进渲染都是同一思想。<strong>rAF 对齐</strong>：数据到达只打脏标记，每帧最多消费一次——与浏览器绘制节奏对齐。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：高频更新 rAF 脏标记节流</h3>
+<pre class="code" data-lang="js"><code>var dirty = false, latest = null;
+function onData(d) { latest = d; dirty = true; }   // 数据到达：只打标记
+function frame() {
+  if (dirty) {
+    dirty = false;
+    chart.setOption({ series: [{ data: latest }] }, { notMerge: false });  // 增量 merge
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);</code></pre>
+
+  <h3>3.2 场景二：全量重绘 vs 增量更新（写法对比）</h3>
+<pre class="code" data-lang="js"><code>// 坏：每轮全量 setOption + 动画，主线程长任务
+// setInterval(() =&gt; chart.setOption(fullOption, true), 1000);
+
+// 好：merge 局部更新 + 关动画 + rAF 节流
+chart.setOption({ animation: false, series: [{ large: true, progressive: 5000 }] });</code></pre>
+  <p><span class="tag-key">取舍</span>：整批替换 → merge；尾部追加 → appendData；结构大变才全量。高频场景一律关动画。</p>
+
+  <h3>3.3 场景三：Web Worker 卸载重计算</h3>
+<pre class="code" data-lang="js"><code>// worker.js：重计算不阻塞主线程
+self.onmessage = (e) =&gt; {
+  const result = aggregate(e.data);        // 聚合/排序/抽稀
+  self.postMessage(result);
+};
+// 主线程
+const worker = new Worker('worker.js');
+worker.onmessage = (e) =&gt; render(e.data);
+worker.postMessage(rawData);</code></pre>
+
+  <h3>3.4 场景四：虚拟滚动骨架</h3>
+<pre class="code" data-lang="js"><code>// 只渲染可视区间行：totalRows 撑高，slice 出可视段
+function visibleRange(scrollTop, rowHeight, viewHeight) {
+  const start = Math.floor(scrollTop / rowHeight);
+  const end = Math.min(totalRows, start + Math.ceil(viewHeight / rowHeight) + 1);
+  return [start, end];
+}</code></pre>
+
+  <h3>3.5 场景五：四层优化清单（按顺序问）</h3>
+  <ol>
+    <li><strong>渲染层</strong>：SVG 该不该切 canvas/WebGL？（阈值：约 800-1000 图形）</li>
+    <li><strong>布局</strong>：力导向迭代要不要换一次性布局（dagre/grid）？</li>
+    <li><strong>更新方式</strong>：全量 render/setOption 能不能改增量？动画关了吗？</li>
+    <li><strong>数据聚合</strong>：重计算要不要下沉 Worker？大数据要不要抽稀？</li>
+  </ol>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：帧预算与四层清单已会用。</p>
+
+  <h3>4.1 Performance 面板定位法</h3>
+  <p>录制一段交互：<strong>长任务（Long Task）</strong>看 JS 段占比、<strong>Frames/GPU 轨道</strong>看绘制段、<strong>掉帧锯齿</strong>对齐到具体函数。<strong>判定口径</strong>：JS 段长 → 优化数据/下沉 Worker；GPU 段长 → 减 draw call/降材质；两者都短仍卡 → 查强制同步布局（layout thrashing）。</p>
+
+  <h3>4.2 内存与长跑泄漏</h3>
+  <p>大屏 7×24 常驻：定时器/事件监听/图表实例成对清理（02 篇 dispose、04 篇 destroy）；数据缓存设上限（环形缓冲只留最近 N 点）；<strong>内存阶梯上涨 = 泄漏信号</strong>，用 Memory 面板对比快照定位。</p>
+
+  <h3>4.3 帧间调度：分帧与时间片</h3>
+  <p>超预算的一次性工作拆帧：<strong>分帧渲染</strong>（progressive 渐进）、<strong>时间片</strong>（scheduler.yield/requestIdleCallback 处理低优先级）、<strong>合帧</strong>（多次数据到达合并为一帧消费）——与 01 模块 rAF+脏标记读写分离同构。</p>
+
+  <h3>4.4 降级策略与机型分级</h3>
+  <p>按现场 GPU 档位分级（06 篇弱机适配）：材质降级（PBR→Lambert）、抗锯齿关闭、阴影关闭、粒子上限减半——<strong>开发机流畅≠现场流畅</strong>，降级开关做成配置而非硬编码。</p>
+
+  <h3>4.5 数据端协同</h3>
+  <p>前端优化的天花板是数据量——与后端协同：服务端预聚合（分钟级聚合代替原始点下发）、增量协议（只推变化点，WebSocket 增量与 04 模块衔接）、二进制传输（Float32Array 直解，省 JSON 解析）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="可视化性能优化体系分层示意图">
       <defs>
@@ -592,79 +709,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 可视化性能优化的三层体系（示意）</p>
   </div>
-  <h3>横向对比：Canvas vs SVG vs WebGL 渲染后端</h3>
-  <table>
-    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
-    <thead><tr><th>维度</th><th>Canvas 2D</th><th>SVG</th><th>WebGL</th></tr></thead>
-    <tbody>
-      <tr><td>绘制模型</td><td>单画布位图，整层重画</td><td>每个图形一个 DOM 节点</td><td>GPU 并行光栅化</td></tr>
-      <tr><td>大数据</td><td>万级点可扛</td><td>上千节点 DOM 膨胀变慢</td><td>十万级+，3D 必备</td></tr>
-      <tr><td>交互</td><td>需自己做命中测试</td><td>天然事件绑定、可 CSS/无障碍</td><td>需自己做拾取</td></tr>
-      <tr><td>适用</td><td>图表、高频刷新、中等规模</td><td>少量图形、需可访问性</td><td>3D、超大点云、粒子</td></tr>
-    </tbody>
-  </table>
-  <p class="lead"><b>一句话定位</b>：选错后端是性能问题的第一道坎。</p>
-  <ul>
-    <li><strong>图大量多 + 高频刷新 → Canvas</strong>（ECharts 默认、G6 canvas 模式）。</li>
-    <li><strong>图形少、要 CSS/无障碍 → SVG</strong>。</li>
-    <li><strong>3D 或十万级点云 → WebGL</strong>（Three.js/echarts-gl）。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 帧预算（Frame Budget）</h3>
-  <p class="lead"><b>一句话定位</b>：优化的第一性原理——把每帧工作量压进 16.6ms 预算。</p>
-  <ul>
-    <li><strong>构成</strong>：JS 更新 + 布局/剔除 + GPU 绘制，任何一步超时都掉帧。</li>
-    <li><span class="tag-pit">坑</span>120Hz 屏预算更紧（8.3ms）；先量（Performance 面板）再优化，别凭感觉。</li>
-  </ul>
-  <h3>2.2 增量更新（Incremental Update）</h3>
-  <p class="lead"><b>一句话定位</b>：只更新变化部分，把 O(n) 全量降到 O(变化量)。</p>
-  <ul>
-    <li><strong>ECharts</strong>：<code>setOption</code> merge / <code>appendData</code>。</li>
-    <li><strong>G6</strong>：<code>updateItem</code> 而非 <code>render()</code>。</li>
-    <li><strong>Three.js</strong>：复用 BufferGeometry 只更新属性。</li>
-  </ul>
-  <h3>2.3 虚拟化与视口裁剪（Virtualization / Viewport Culling）</h3>
-  <p class="lead"><b>一句话定位</b>：用户看不见的东西就不要画。</p>
-  <ul>
-    <li><strong>表格虚拟化</strong>：只渲染可视行，千行表格 DOM 始终几十行。</li>
-    <li><strong>视锥剔除</strong>：图/3D 不提交视口外物体。</li>
-  </ul>
-  <h3>2.4 分层渲染（Layered Rendering）</h3>
-  <p class="lead"><b>一句话定位</b>：静态背景画一次缓存，动态前景每帧只重画变化部分。</p>
-  <ul>
-    <li><strong>做法</strong>：ECharts 按系列分层，Canvas 可离屏缓存静态底图。</li>
-    <li><strong>收益</strong>：避免"改一个点却整屏重画"。</li>
-  </ul>
-  <h3>2.5 Web Worker 卸载计算</h3>
-  <p class="lead"><b>一句话定位</b>：CPU 重活放 Worker，不阻塞主线程渲染。</p>
-  <ul>
-    <li><strong>适用</strong>：数据聚合、排序、布局计算——大屏分布式聚合、千节点布局都适合下沉。</li>
-    <li><strong>分工</strong>：主线程只接收结果并绘制。</li>
-  </ul>
-  <h3>2.6 GPU 利用与 draw call（GPU &amp; Draw Call）</h3>
-  <p class="lead"><b>一句话定位</b>：减 draw call 是 3D 性能第一原则。</p>
-  <ul>
-    <li><strong>问题</strong>：万级独立 Mesh 产生万次 draw call，打爆 GPU 调度。</li>
-    <li><span class="tag-point">要点</span><code>InstancedMesh</code> 把同形物体合成一次调用。</li>
-  </ul>
-  <h3>2.7 数据抽稀与采样（Sampling / Downsampling）</h3>
-  <p class="lead"><b>一句话定位</b>：屏幕像素有限，按视口宽度抽稀，视觉无损但数据量骤降。</p>
-  <ul>
-    <li><strong>算法</strong>：LTTB 等；坐标轴自动采样、progressive 渐进渲染都是这一思想。</li>
-  </ul>
-  <h3>2.8 rAF 对齐与节流（rAF &amp; Throttle）</h3>
-  <p class="lead"><b>一句话定位</b>：更新与浏览器绘制节奏对齐，一帧内最多消费一次。</p>
-  <ul>
-    <li><strong>做法</strong>：<code>requestAnimationFrame</code>；数据到达只打脏标记，每帧最多消费一次。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一帧的预算分解</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="一帧 16.6ms 预算分解示意图">
       <defs>
@@ -687,7 +731,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 一帧预算的三段分解（示意）</p>
   </div>
-  <h3>3.2 虚拟化视口裁剪原理</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="虚拟化视口裁剪原理示意图">
       <defs>
@@ -714,78 +757,22 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 虚拟化视口裁剪原理（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 体系总纲——三层（目标/手段/观测），观测层是一切优化的起点；②图 2 帧预算三段——哪段最长先优化哪段；③图 3 虚拟化通式——表格/图/3D 的"看不见不画"都是这一个模型。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 高频更新：rAF 脏标记节流</h3>
-<pre class="code" data-lang="js"><code>var dirty = false, latest = null;
-function onData(d) { latest = d; dirty = true; }   // 数据到达：只打标记
-function frame() {
-  if (dirty) {
-    dirty = false;
-    chart.setOption({ series: [{ data: latest }] }, { notMerge: false });  // 增量 merge
-  }
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);</code></pre>
-  <h3>4.2 写法对比：全量重绘 vs 增量更新</h3>
-<pre class="code" data-lang="js"><code>// 坏：每轮全量 setOption + 动画，主线程长任务
-// setInterval(() => chart.setOption(fullOption, true), 1000);
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战双场景——低代码平台千节点流程编辑器掉帧 + 电力大屏 3D 万点与高频曲线同屏两路互相挤占。</p>
 
-// 好：merge 局部更新 + 关动画 + rAF 节流
-chart.setOption({ animation: false, series: [{ large: true, progressive: 5000 }] });</code></pre>
-  <div class="note"><strong>取舍</strong>：数据是整批替换 → merge；尾部追加 → appendData；结构大变才全量。高频场景一律关动画。</div>
-  <h3>4.3 Web Worker 卸载重计算</h3>
-<pre class="code" data-lang="js"><code>// worker.js：重计算不阻塞主线程
-self.onmessage = (e) => {
-  const result = aggregate(e.data);        // 聚合/排序/抽稀
-  self.postMessage(result);
-};
-// 主线程
-const worker = new Worker('worker.js');
-worker.onmessage = (e) => render(e.data);
-worker.postMessage(rawData);</code></pre>
-  <h3>4.4 虚拟滚动骨架</h3>
-<pre class="code" data-lang="js"><code>// 只渲染可视区间行：totalRows 撑高，slice 出可视段
-function visibleRange(scrollTop, rowHeight, viewHeight) {
-  const start = Math.floor(scrollTop / rowHeight);
-  const end = Math.min(totalRows, start + Math.ceil(viewHeight / rowHeight) + 1);
-  return [start, end];
-}</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：低代码平台千节点流程编辑器掉帧，电力大屏同时跑 3D 万点与高频曲线两路都卡。</p>
+  <h3>6.1 落地设计（四层各下一刀）</h3>
   <ul>
-    <li><strong>低代码平台</strong>（Vue3+G6）：流程编辑器节点上千，拖拽/缩放/滚动视野卡顿。</li>
-    <li><strong>电力大屏</strong>：Three.js 万级监测点 3D + ECharts 高频负荷曲线同屏，两路互相挤占。</li>
+    <li><strong>图编辑</strong>：SVG→canvas，力导向→dagre 一次性布局，交互增量 updateItem；</li>
+    <li><strong>3D</strong>：逐点 Mesh→InstancedMesh，draw call 万级→个位数；</li>
+    <li><strong>高频图</strong>：merge 局部更新 + 关动画 + large/progressive；</li>
+    <li><strong>数据</strong>：两路数据聚合下沉 Worker，不挤占渲染预算。</li>
   </ul>
 
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：渲染性能优化负责人，定位瓶颈并落地分层/增量/虚拟化。</p>
-  <ul>
-    <li><strong>分工</strong>：用 Performance 定位主线程长任务，落地渲染层、布局、数据聚合的优化。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>图形层</strong>：G6（canvas 渲染层）、Three.js（WebGL）、ECharts。</li>
-    <li><strong>优化手段</strong>：Worker 数据聚合、增量更新、视口裁剪、draw call 合并。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：渲染层切 canvas、布局改 dagre、交互走增量、数据聚合下沉 Worker。</p>
-  <ul>
-    <li><strong>图编辑</strong>：SVG→canvas，力导向→dagre 一次性布局，交互增量 <code>updateItem</code>。</li>
-    <li><strong>3D</strong>：逐点 Mesh→<code>InstancedMesh</code>，draw call 万级→个位数。</li>
-    <li><strong>高频图</strong>：merge 局部更新 + 关动画 + <code>large/progressive</code>。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
+  <h3>6.2 关键实现</h3>
 <pre class="code" data-lang="js"><code>const graph = new G6.Graph({
   renderer: 'canvas',                       // 千节点：canvas
   layout: { type: 'dagre', rankdir: 'LR' }, // 一次性分层，不迭代
@@ -796,88 +783,85 @@ graph.on('node:drag', (e) =&gt; graph.updateItem(e.item, { /* 增量 */ }));
 const inst = new THREE.InstancedMesh(geo, mat, 10000);
 chart.setOption({ animation: false, series: [{ large: true, progressive: 5000 }] });</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.3 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>力导向重算</strong>：千节点每帧 O(n²) 迭代——换 dagre。</li>
-    <li><span class="tag-pit">坑</span><strong>SVG 掉帧</strong>：超约 800 节点 DOM 爆炸——切 canvas。</li>
-    <li><span class="tag-pit">坑</span><strong>全量校验/重绘</strong>：每次拖动全量遍历千节点、高频曲线全量 setOption——增量校验 + merge。</li>
+    <li><span class="tag-pit">坑</span><strong>力导向重算</strong>：千节点每帧 O(n²) 迭代——换 dagre；</li>
+    <li><span class="tag-pit">坑</span><strong>SVG 掉帧</strong>：超约 800 节点 DOM 爆炸——切 canvas；</li>
+    <li><span class="tag-pit">坑</span><strong>全量校验/重绘</strong>：每次拖动全量遍历千节点、高频曲线全量 setOption——增量校验 + merge；</li>
     <li><span class="tag-pit">坑</span><strong>主线程挤占</strong>：两路数据聚合在主线程挤占渲染预算——下沉 Worker。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>帧率</strong>：千节点流程拖拽/缩放稳定在可交互范围（估算）。</li>
-    <li><strong>draw call</strong>：3D 万点从万级压到个位数。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端约定批量聚合数据格式，配合 Worker 搬运。</li>
-    <li><strong>排期</strong>：性能优化作为上线反馈驱动的迭代项，按模块分批落地。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>先定位再优化</strong>：用 Performance 找到主线程瓶颈，别盲目加动画节流。</li>
-    <li><span class="tag-point">要点</span><strong>分层优化</strong>：渲染层、布局、更新方式、数据聚合四层分别下手。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「千节点流程编辑器与万点 3D 同屏卡顿，实践中常采用 canvas 渲染层+dagre 布局+增量 updateItem+InstancedMesh+Worker 聚合分层优化，帧率拉回可交互。」</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 不量直接优化</h3>
-  <ul>
-    <li><strong>误区</strong>：凭感觉改代码，改完还是卡。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：先 Performance 面板定位是 JS 段、剔除段还是 GPU 段瓶颈，再对症。</p>
-  <h3>6.2 高频全量重绘</h3>
-  <ul>
-    <li><strong>现象</strong>：高频刷新卡。</li>
-    <li><strong>原因</strong>：每轮全量 setOption/render + 动画。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：增量 merge/appendData、关动画、rAF 节流。</p>
-  <h3>6.3 SVG 画大图</h3>
-  <ul>
-    <li><strong>现象</strong>：图形上千后掉帧。</li>
-    <li><strong>原因</strong>：SVG 每图形一个 DOM，DOM 爆炸。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：大数据切 Canvas/WebGL，SVG 只留给小图。</p>
-  <h3>6.4 万级独立 draw call</h3>
-  <ul>
-    <li><strong>现象</strong>：3D/粒子转不动。</li>
-    <li><strong>原因</strong>：每个物体一次 draw call 打爆 GPU 调度。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：InstancedMesh/合批。</p>
-  <h3>6.5 看不见的也画</h3>
-  <ul>
-    <li><strong>现象</strong>：大场景滚动/缩放卡。</li>
-    <li><strong>原因</strong>：视口外物体仍参与计算与提交。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：虚拟化 + 视锥剔除 + LOD。</p>
-  <h3>6.6 重计算堵主线程</h3>
-  <ul>
-    <li><strong>现象</strong>：动画卡顿、交互无响应。</li>
-    <li><strong>原因</strong>：聚合/布局在主线程跑。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：下沉 Web Worker。</p>
+  <h3>6.4 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：千节点流程拖拽/缩放稳定可交互（估算）；3D 万点 draw call 万级→个位数；</li>
+    <li><strong>协作</strong>：与后端约定批量聚合格式配合 Worker 搬运；性能优化按模块分批落地（上线反馈驱动）；</li>
+    <li><strong>可复用经验</strong>：先定位再优化（Performance 找瓶颈，别盲目加节流）；分层优化（渲染层/布局/更新方式/数据聚合四层分别下手）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 不量直接优化</h3>
+  <p><strong>误区</strong>：凭感觉改代码，改完还是卡。<strong>正解</strong>：先 Performance 面板定位 JS 段/剔除段/GPU 段瓶颈再对症（图 2）。</p>
+
+  <h3>7.2 高频全量重绘</h3>
+  <p><strong>原因</strong>：每轮全量 setOption/render + 动画。<strong>正解</strong>：增量 merge/appendData、关动画、rAF 节流。</p>
+
+  <h3>7.3 SVG 画大图</h3>
+  <p><strong>原因</strong>：每图形一个 DOM，上千即爆炸。<strong>正解</strong>：大数据切 Canvas/WebGL，SVG 留给小图。</p>
+
+  <h3>7.4 万级独立 draw call</h3>
+  <p><strong>原因</strong>：每物体一次 draw call 打爆 GPU 调度。<strong>正解</strong>：InstancedMesh/合批。</p>
+
+  <h3>7.5 看不见的也画</h3>
+  <p><strong>原因</strong>：视口外物体仍参与计算与提交。<strong>正解</strong>：虚拟化 + 视锥剔除 + LOD。</p>
+
+  <h3>7.6 重计算堵主线程</h3>
+  <p><strong>原因</strong>：聚合/布局在主线程跑。<strong>正解</strong>：下沉 Web Worker。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：可视化性能优化的方法论是什么？拿到一个卡顿场景怎么下手？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>第一步永远是观测</strong>——Performance 面板录制，看长任务与掉帧落在哪一段（JS 更新/布局剔除/GPU 绘制三段，对应 16.6ms 预算分解）。<strong>第二步四层对症</strong>：①渲染层（SVG 超 800 图形切 canvas/WebGL）；②布局（力导向 O(n²) 迭代换 dagre 一次性布局）；③更新方式（全量 setOption/render 改增量 merge/updateItem + 关动画 + rAF 脏标记）；④数据聚合（重计算下沉 Worker、LTTB 抽稀、虚拟化）。<strong>反模式</strong>：凭感觉全局重写——先量后优，哪段最长先动哪段。</p>
+
+  <p><strong>Q2：增量更新的本质是什么？三个库各对应什么 API？</strong></p>
+  <p class="note"><strong>参考答案</strong>：本质是把更新成本从 <strong>O(全量) 降到 O(变化量)</strong>——只让引擎处理变化的部分，保留未变部分的状态（交互状态/已算好的布局/已上传的缓冲）。<strong>三库对应</strong>：ECharts 用 setOption merge（整批替换）与 appendData（流式尾部追加，开销最低）；G6 用 updateItem/addItem（交互期）区分于 render()（初次/结构大变）；Three.js 复用 BufferGeometry 只更新属性脏位（needsUpdate/addUpdateRange），绝不每帧重建几何体。共性：<strong>"全量重建"是万恶之源</strong>——状态丢失+重算+内存抖动三重代价。</p>
+
+  <p><strong>Q3：虚拟化为什么能扛千行表格/万点场景？它的通用模型是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：通用模型三句话——<strong>数据全集内存里全量保留但不画、只取可视窗口区间的数据渲染、用总高度/总包围盒占位保持滚动语义</strong>。收益是渲染节点数恒定（千行表格 DOM 始终几十行），滚动/缩放只做"换区间"。<strong>同源思想</strong>：表格虚拟滚动、G6 combo 折叠+视口裁剪、Three.js 视锥剔除+八叉树空间划分、"拉取分页"——全是"看不见的不画"。<strong>边界</strong>：虚拟化牺牲随机访问（跳转要算偏移），打印/全文检索场景不适用。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>16.6ms 三段分解？每段的典型优化手段？</li>
+    <li>四层优化清单的顺序与判据？</li>
+    <li>三个库的增量更新 API 与适用数据形态？</li>
+    <li>虚拟化通用模型三句话？同源思想有哪些？</li>
+    <li>大屏 7×24 长跑要注意什么泄漏？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>web.dev 渲染性能与大数据渲染最佳实践：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
+    <li>web.dev 渲染性能：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
     <li>MDN 性能优化与 Canvas 性能：<a href="https://developer.mozilla.org/zh-CN/docs/Web/Performance" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/Performance</a></li>
-    <li>ECharts 大数据性能（large/progressive）文档：<a href="https://echarts.apache.org/zh/how-to/faq.html" rel="noopener">echarts.apache.org/zh</a></li>
+    <li>ECharts 大数据性能（large/progressive）：echarts.apache.org/zh</li>
   </ul>
   <h3>书籍与延伸</h3>
   <ul>
-    <li>《Web 性能权威指南》（Ilya Grigorik）——网络与渲染底层的经典。</li>
-    <li>Three.js 性能优化指南（官方）：<a href="https://threejs.org/docs/" rel="noopener">threejs.org/docs</a></li>
+    <li>《Web 性能权威指南》（Ilya Grigorik）；Three.js 性能优化指南（官方）：<a href="https://threejs.org/docs/" rel="noopener">threejs.org/docs</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>构造 5000 点高频刷新页，用 Performance 找出瓶颈段并按四层清单优化，记录前后帧率；</li>
+    <li>手写千行表格虚拟滚动（3.4 骨架），对比全量渲染的 DOM 数与滚动帧率；</li>
+    <li>把一个主线程聚合任务迁到 Worker，观察长任务消失。</li>
+  </ol>
 </section>
 
 </main>
@@ -885,7 +869,7 @@ chart.setOption({ animation: false, series: [{ large: true, progressive: 5000 }]
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../03_数据可视化/06_Three.js_3D可视化【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/01_音视频基础与流媒体协议【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 可视化性能优化与大数据渲染【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
