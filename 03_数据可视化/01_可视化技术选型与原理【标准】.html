@@ -540,35 +540,143 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../03_数据可视化/09_可视化性能优化与大数据渲染【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/00_数据可视化模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../04_实时通信/05_WebRTC【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/02_ECharts【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>是什么</b>：一套"按需求形态选库、按数据规模选渲染后端"的决策方法。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p>本篇是数据可视化模块的<strong>总纲</strong>：一套"按<strong>需求形态</strong>选库、按<strong>数据规模</strong>选渲染后端"的决策方法。避免"用错工具"——为简单柱状图引入重型游戏引擎，或为万点关系图硬上手写 SVG。<strong>决策三要素</strong>：需求形态 × 数据规模 × 生态与成本，三者交集即答案。</p>
+
+  <h3>1.2 模块地图</h3>
+  <p>本模块覆盖：统计图表/告警热力图（02 ECharts）、自定义可视化（03 D3）、节点关系图（04 G6 / 05 GoJS）、3D 态势（06 Three.js）、地理可视化（07 GIS）、大屏与性能（08/09）。本篇先立选型框架，各篇再展开。</p>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>掌握<strong>四类数据形态</strong>判断（Chart/Graph/Connector/3D）——判断错形态，后面全错；</li>
+    <li>理解<strong>三种渲染后端</strong>原理与规模阈值；</li>
+    <li>把<strong>开源 vs 商业授权</strong>算进决策；</li>
+    <li>用五问检查清单产出选型结论。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 模块 HTML/Canvas 基础。<strong>难度</strong>：★★☆☆☆。<strong>本篇不涉及</strong>：具体库的 API 细节（在各篇展开）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>数据形态</strong>（总纲）→ <strong>渲染后端</strong>→ <strong>规模阈值</strong>→ <strong>授权成本</strong>→ <strong>生态与上手成本</strong>。</p>
+
+  <h3>2.1 数据形态决定库：Chart vs Graph vs Connector vs 3D</h3>
   <ul>
-    <li><strong>收束各篇结论</strong>：先判断数据形态（图表/图/连线/3D），再判断规模（小/大/超大），最后在开源免费与商业授权间取舍。</li>
+    <li><strong>图表 Chart</strong>：表达数值（折线/柱/饼/热力）→ ECharts；</li>
+    <li><strong>图 Graph</strong>：表达实体关系（流程/组织/网络）→ G6/GoJS；</li>
+    <li><strong>连线 Connector</strong>：只在已有 DOM 节点间补连线 → JsPlumb；</li>
+    <li><strong>3D/地理</strong>：→ Three.js/Cesium。</li>
   </ul>
-  <p class="lead"><b>解决什么问题</b>：避免"用错工具"——为简单柱状图引入重型游戏引擎，或为万点关系图硬上手写 SVG。</p>
+
+  <h3>2.2 渲染后端：SVG vs Canvas vs WebGL</h3>
   <ul>
-    <li><strong>决策三要素</strong>：需求形态 × 数据规模 × 生态与成本，三者交集即答案。</li>
+    <li><strong>SVG</strong>：矢量 DOM——每个图形一个节点，缩放清晰、可 CSS、天然事件，<strong>节点上千后 DOM 膨胀掉帧</strong>；</li>
+    <li><strong>Canvas 2D</strong>：单画布位图——整层重画、大数据快，<strong>命中测试要自己做</strong>；</li>
+    <li><strong>WebGL</strong>：GPU 并行光栅化——扛十万级点与 3D，<strong>shader 编程门槛高</strong>（Three.js 封装后易用）。</li>
   </ul>
+
+  <h3>2.3 规模阈值：小/大/超大</h3>
+  <ul>
+    <li><strong>几十到几百</strong>：SVG 或 Canvas 都行；</li>
+    <li><strong>上千</strong>：切 Canvas；</li>
+    <li><strong>万级点/3D</strong>：WebGL 或 InstancedMesh；<strong>高频刷新额外倾向 Canvas</strong>。</li>
+  </ul>
+  <p><span class="tag-key">核心</span>：超过阈值不换后端，是最常见的性能事故。</p>
+
+  <h3>2.4 开源 vs 商业授权</h3>
+  <ul>
+    <li><strong>开源免费</strong>：ECharts/G6/Three.js/D3——免费商用、社区活跃，<strong>预算敏感首选</strong>；</li>
+    <li><strong>商业收费</strong>：GoJS、JsPlumb 商业版——开箱能力强（事务撤销等）+技术支持，<strong>刚需+预算充足才买</strong>；</li>
+    <li><strong>付费条件</strong>：商业库的开箱能力恰是项目刚需且预算充足（实战中 GoJS 因授权落选，G6+History 已够用）。</li>
+  </ul>
+
+  <h3>2.5 生态与上手成本：选"最优解"而非"最强"</h3>
+  <ul>
+    <li><strong>Vue 项目</strong>：选中文文档活跃、集成顺畅的库（ECharts/G6）；</li>
+    <li><strong>深度定制</strong>：D3 类底层更灵活但要自己写渲染、成本高——<strong>常规统计图表优先 ECharts/Chart.js 这类开箱配置库，只有需要高度定制交互或非标准图形时才上 D3</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：渲染后端切换</h3>
+<pre class="code" data-lang="js"><code>// ECharts：init 时指定渲染后端
+echarts.init(el, null, { renderer: 'canvas' });   // 默认；大数据/高频
+echarts.init(el, null, { renderer: 'svg' });      // 少图形/需可访问性
+
+// G6：new Graph 时指定
+new G6.Graph({ container: 'c', renderer: 'canvas' });  // 千节点
+new G6.Graph({ container: 'c', renderer: 'svg' });    // 小图</code></pre>
+
+  <h3>3.2 场景二：选型检查清单（五问）</h3>
+<pre class="code" data-lang="text"><code>1. 数据是数值、节点关系、连线、还是 3D？
+2. 量级：几十 / 上千 / 万级以上？
+3. 更新频率：静态展示 / 高频刷新？
+4. 预算：可接受商业授权吗？
+5. 团队：Vue 集成与中文文档要求？
+→ 交集即选型结论</code></pre>
+
+  <h3>3.3 场景三：实战决策矩阵（本套技术栈真实选型）</h3>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:22%"><col style="width:52%"></colgroup>
+    <thead><tr><th>项目场景</th><th>选型</th><th>决策依据</th></tr></thead>
+    <tbody>
+      <tr><td>大屏统计图表/告警热力图</td><td>ECharts</td><td>数值型图表、高频刷新，dataZoom/visualMap 内置，开源免费</td></tr>
+      <tr><td>后端编排/流程编辑器</td><td>G6 + JsPlumb</td><td>节点关系图，G6 开源管画布，JsPlumb 补 Vue 节点端口连线</td></tr>
+      <tr><td>图编辑库初评</td><td>GoJS（落选）</td><td>能力强但商业授权，G6 配 History 已够用</td></tr>
+      <tr><td>万级监测点 3D 态势</td><td>Three.js</td><td>3D 点云需 WebGL，InstancedMesh 扛万点</td></tr>
+      <tr><td>已有 DOM 节点间连线</td><td>JsPlumb</td><td>不引入整图引擎，轻量补连线</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三要素决策框架已会用。</p>
+
+  <h3>4.1 命中测试：Canvas 的代价与解法</h3>
+  <p>SVG 每个节点天然接收事件；Canvas 整层重画——点击要<strong>自己算几何</strong>（点在矩形/圆内）。成熟方案：渲染时维护<strong>图形包围盒索引</strong>（网格/四叉树），或用 ECharts 这类已封装命中测试的库——这也是"开箱库 vs 底层库"成本差的具体来源。</p>
+
+  <h3>4.2 离屏 Canvas 与分层渲染</h3>
+  <p>大屏常用<strong>分层</strong>：静态背景一层 Canvas（低频重绘）、动态数据一层（高频）、交互浮层一层 DOM/SVG——避免整幅重画；离屏 Canvas 预渲染复用位图（09 篇展开）。</p>
+
+  <h3>4.3 WebGL 抽象层级</h3>
+  <p>裸 WebGL（shader）→ Three.js（场景图/材质/灯光）→ 高层库（Cesium 地理）。<strong>选型含义</strong>：万点 3D 态势用 Three.js + InstancedMesh 即可，不必裸写 shader；地理底图需求则直接 Cesium/Mapbox。</p>
+
+  <h3>4.4 SSR 与无头渲染</h3>
+  <p>ECharts 支持 <strong>SSR 字符串渲染</strong>（服务端出 SVG 字符串，首屏无闪白）；定时任务用 <strong>node-canvas/headless</strong> 出图发报告——选型时把"是否需要服务端出图"也问进去（第 6 问）。</p>
+
+  <h3>4.5 授权合规清单</h3>
+  <p>开源不等于随便用：检查 <strong>license 条款</strong>（ECharts Apache-2.0 宽松；部分图编辑库对商业闭源有限制）、保留版权声明、商业库买断范围（开发席位数/域名数）——选型结论要附一页授权合规记录。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="可视化选型决策流程图">
       <defs>
@@ -595,74 +703,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 可视化选型决策流（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 数据形态决定库（Chart vs Graph vs Connector vs 3D）</h3>
-  <p class="lead"><b>一句话定位</b>：判断错形态，后面全错。</p>
-  <ul>
-    <li><strong>图表 Chart</strong>：表达数值（折线/柱/饼/热力）→ ECharts。</li>
-    <li><strong>图 Graph</strong>：表达实体关系（流程/组织/网络）→ G6/GoJS。</li>
-    <li><strong>连线 Connector</strong>：只在已有 DOM 节点间补连线 → JsPlumb。</li>
-    <li><strong>3D/地理</strong>：→ Three.js/Cesium。</li>
-  </ul>
-  <h3>2.2 渲染后端原理：SVG vs Canvas vs WebGL</h3>
-  <p class="lead"><b>一句话定位</b>：先定形态，再按规模选后端。</p>
-  <ul>
-    <li><strong>SVG</strong>：矢量 DOM，缩放清晰、可 CSS、天然事件，节点上千后 DOM 膨胀。</li>
-    <li><strong>Canvas 2D</strong>：单画布位图，整层重画、大数据快，但需自己做命中测试。</li>
-    <li><strong>WebGL</strong>：GPU 并行，扛十万级点与 3D，编程门槛高。</li>
-  </ul>
-  <h3>2.3 规模阈值（小/大/超大）</h3>
-  <p class="lead"><b>一句话定位</b>：超过阈值不换后端，是最常见的性能事故。</p>
-  <ul>
-    <li><strong>几十到几百</strong>：SVG 或 Canvas 都行。</li>
-    <li><strong>上千</strong>：Canvas。</li>
-    <li><strong>万级点/3D</strong>：WebGL 或 InstancedMesh；高频刷新额外倾向 Canvas。</li>
-  </ul>
-  <h3>2.4 开源 vs 商业授权</h3>
-  <p class="lead"><b>一句话定位</b>：预算敏感优先开源，刚需开箱能力才为授权付费。</p>
-  <ul>
-    <li><strong>开源免费</strong>：G6/ECharts/Three.js；<strong>商业收费</strong>：GoJS；<strong>混合</strong>：JsPlumb 社区免费、商业付费。</li>
-    <li><strong>付费条件</strong>：商业库的开箱能力（如 GoJS 事务撤销）恰是项目刚需且预算充足。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 160" role="img" aria-label="开源与商业授权对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">开源免费 vs 商业付费（示意）</text>
-
-      <!-- 开源 -->
-      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">开源免费</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">ECharts / G6 / Three.js / D3</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">免费商用、社区活跃、灵活定制</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#047857">预算敏感首选</text>
-
-      <!-- 商业 -->
-      <rect x="420" y="45" width="350" height="100" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">商业付费</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">GoJS / JsPlumb 商业版</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">开箱能力强（事务撤销等）、技术支持</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#b45309">刚需+预算充足才买</text>
-    </svg>
-    <p class="diagram-caption">图 1 开源 vs 商业授权（示意）</p>
-  </div>
-  <h3>2.5 生态与上手成本</h3>
-  <p class="lead"><b>一句话定位</b>：选型不是选"最强"，而是选"需求覆盖 × 成本"最优解。</p>
-  <ul>
-    <li><strong>Vue 项目</strong>：选中文文档活跃、集成顺畅的库（ECharts/G6）。</li>
-    <li><strong>深度定制</strong>：D3 类底层更灵活但要自己写渲染、成本高；常规统计图表优先 ECharts/Chart.js 这类开箱配置库，只有需要高度定制交互或非标准图形时才上 D3。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 三种渲染后端的原理差异</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="SVG Canvas WebGL 渲染原理对比示意图">
       <defs>
@@ -692,130 +732,101 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 SVG/Canvas/WebGL 原理对比（示意）</p>
   </div>
-  <ol>
-    <li><strong>SVG</strong>：DOM 驱动，浏览器负责渲染，适合少图形、需可访问性。</li>
-    <li><strong>Canvas</strong>：JS 直接画像素，性能与可控性好，适合大数据图表。</li>
-    <li><strong>WebGL</strong>：GPU 加速，3D 与超大点云的唯一现实选择。</li>
-  </ol>
-</section>
+  <div class="diagram">
+    <svg viewBox="0 0 800 160" role="img" aria-label="开源与商业授权对比图">
+      <defs>
+        <marker id="arr3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">开源免费 vs 商业付费（示意）</text>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 渲染后端如何切换（以 ECharts/G6 为例）</h3>
-<pre class="code" data-lang="js"><code>// ECharts：init 时指定渲染后端
-echarts.init(el, null, { renderer: 'canvas' });   // 默认；大数据/高频
-echarts.init(el, null, { renderer: 'svg' });      // 少图形/需可访问性
+      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">开源免费</text>
+      <text x="50" y="95" font-size="11" fill="#4f6348">ECharts / G6 / Three.js / D3</text>
+      <text x="50" y="117" font-size="11" fill="#4f6348">免费商用、社区活跃、灵活定制</text>
+      <text x="50" y="137" font-size="11" font-weight="600" fill="#047857">预算敏感首选</text>
 
-// G6：new Graph 时指定
-new G6.Graph({ container: 'c', renderer: 'canvas' });  // 千节点
-new G6.Graph({ container: 'c', renderer: 'svg' });    // 小图</code></pre>
-  <h3>4.2 选型检查清单</h3>
-<pre class="code" data-lang="text"><code>1. 数据是数值、节点关系、连线、还是 3D？
-2. 量级：几十 / 上千 / 万级以上？
-3. 更新频率：静态展示 / 高频刷新？
-4. 预算：可接受商业授权吗？
-5. 团队：Vue 集成与中文文档要求？
-→ 交集即选型结论</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：本套技术栈横跨大屏图表、流程编排、3D 态势，需要统一的可视化选型决策。</p>
-  <ul>
-    <li><strong>覆盖场景</strong>：统计图表/告警热力图、后端编排与流程编辑器、万点 3D 态势、已有 DOM 间连线。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：前端选型与落地，把"为什么这么选"沉淀为可复用决策矩阵。</p>
-  <ul>
-    <li><strong>分工</strong>：按数据形态与渲染规模选库，评估许可成本与团队上手成本。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>图表</strong>：ECharts；<strong>图编辑</strong>：G6 + JsPlumb；<strong>3D</strong>：Three.js；<strong>评估落选</strong>：GoJS。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：按数据形态选库——数值图表用 ECharts、节点关系用 G6、3D 用 Three.js。</p>
-  <table>
-    <colgroup><col style="width:26%"><col style="width:22%"><col style="width:52%"></colgroup>
-    <thead><tr><th>项目场景</th><th>选型</th><th>决策依据</th></tr></thead>
-    <tbody>
-      <tr><td>大屏统计图表/告警热力图</td><td>ECharts</td><td>数值型图表、高频刷新，dataZoom/visualMap 内置，开源免费</td></tr>
-      <tr><td>后端编排/流程编辑器</td><td>G6 + JsPlumb</td><td>节点关系图，G6 开源管画布，JsPlumb 补 Vue 节点端口连线</td></tr>
-      <tr><td>图编辑库初评</td><td>GoJS（落选）</td><td>能力强但商业授权，G6 配 History 已够用</td></tr>
-      <tr><td>万级监测点 3D 态势</td><td>Three.js</td><td>3D 点云需 WebGL，InstancedMesh 扛万点</td></tr>
-      <tr><td>已有 DOM 节点间连线</td><td>JsPlumb</td><td>不引入整图引擎，轻量补连线</td></tr>
-    </tbody>
-  </table>
-
-  <h3>5.5 关键实现要点</h3>
-  <ul>
-    <li><span class="tag-point">要点</span>选型先问数据形态：是「数值序列」还是「节点关系图」还是「三维空间」，三者对应不同渲染路径。</li>
-    <li><span class="tag-point">要点</span>规模决定渲染器：超约 800 点走 canvas/WebGL，别用 SVG。</li>
-  </ul>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>凭熟悉度硬上 SVG</strong>：流程编辑器初期想直接手写 SVG 连线——评估后改用 G6+JsPlumb，省开发量又可维护。</li>
-    <li><span class="tag-pit">坑</span><strong>混淆图表与图</strong>：节点连线不是 ECharts graph 能撑的，要用图编辑库。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>复用</strong>：决策矩阵复用于后续新可视化需求，避免重复评估。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：选型结论与后端/产品对齐数据形态与授权预算后再动工。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>按形态而非熟悉度选型</strong>：先判数据形态与渲染规模，再谈个人熟悉哪个库。</li>
-    <li><span class="tag-point">要点</span><strong>把许可算进决策</strong>：预算敏感优先开源。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「我不凭熟悉度选库，而是按数据形态和渲染规模建决策矩阵——数值图表 ECharts、节点关系 G6+JsPlumb、3D 用 Three.js，许可成本一并计入。」</p>
+      <rect x="420" y="45" width="350" height="100" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">商业付费</text>
+      <text x="440" y="95" font-size="11" fill="#4f6348">GoJS / JsPlumb 商业版</text>
+      <text x="440" y="117" font-size="11" fill="#4f6348">开箱能力强（事务撤销等）、技术支持</text>
+      <text x="440" y="137" font-size="11" font-weight="600" fill="#b45309">刚需+预算充足才买</text>
+    </svg>
+    <p class="diagram-caption">图 3 开源 vs 商业授权（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 先按形态分流——形态判错后面全错；②图 2 三后端是"表达能力 vs 性能 vs 门槛"三角；③图 3 授权是硬约束——上线后才发现要授权是代价最高的事故。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 用错工具类别</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：本套技术栈横跨大屏图表、流程编排、3D 态势，需要统一的可视化选型决策——本 Demo 是"决策矩阵"沉淀过程。</p>
+
+  <h3>6.1 落地步骤</h3>
+  <ol>
+    <li>列全需求：统计图表/告警热力图、后端编排与流程编辑器、万点 3D 态势、已有 DOM 间连线；</li>
+    <li>按 3.3 表格逐项走五问清单，产出选型与理由；</li>
+    <li>初评落选记录（GoJS）：能力够但商业授权、G6+History 已覆盖——<strong>落选也要写原因</strong>，后续复评不再重复评估；</li>
+    <li>与后端/产品对齐数据形态与授权预算后动工（契约先行）。</li>
+  </ol>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>现象</strong>：为简单柱状图引入重型库。</li>
+    <li><span class="tag-pit">坑</span><strong>凭熟悉度硬上 SVG</strong>：流程编辑器初期想直接手写 SVG 连线——评估后改用 G6+JsPlumb，省开发量又可维护；</li>
+    <li><span class="tag-pit">坑</span><strong>混淆图表与图</strong>：节点连线不是 ECharts graph 能撑的，要用图编辑库。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：先判断数据形态再选库，不为"可能的扩展"过度设计。</p>
-  <h3>6.2 SVG 画大图</h3>
-  <ul>
-    <li><strong>现象</strong>：图形上千后掉帧。</li>
-    <li><strong>原因</strong>：DOM 节点爆炸。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：规模上去切 Canvas/WebGL。</p>
-  <h3>6.3 忽视授权成本</h3>
-  <ul>
-    <li><strong>现象</strong>：上线后才发现库要商业授权。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：选型阶段把授权算进决策，预算敏感优先开源。</p>
-  <h3>6.4 混淆图表与图</h3>
-  <ul>
-    <li><strong>误区</strong>：流程节点连线也用 ECharts 的 graph 系列硬撑。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：节点关系是"图"问题，用 G6/GoJS 这类图编辑库。</p>
-  <h3>6.5 只看能力不看生态</h3>
-  <ul>
-    <li><strong>误区</strong>：选了"功能最强"但与技术栈割裂的库。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：权衡需求覆盖、上手成本、框架集成。</p>
+
+  <h3>6.3 验证与经验</h3>
+  <ol>
+    <li>决策矩阵复用于后续新可视化需求，避免重复评估；</li>
+    <li><strong>经验</strong>：按形态而非熟悉度选型；规模决定渲染器（超约 800 点走 canvas/WebGL）；把许可算进决策。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 用错工具类别</h3>
+  <p><strong>现象</strong>：为简单柱状图引入重型库。<strong>正解</strong>：先判断数据形态再选库，不为"可能的扩展"过度设计。</p>
+
+  <h3>7.2 SVG 画大图</h3>
+  <p><strong>现象</strong>：图形上千后掉帧。<strong>根因</strong>：DOM 节点爆炸。<strong>正解</strong>：规模上去切 Canvas/WebGL。</p>
+
+  <h3>7.3 忽视授权成本</h3>
+  <p><strong>现象</strong>：上线后才发现库要商业授权。<strong>正解</strong>：选型阶段把授权算进决策，预算敏感优先开源。</p>
+
+  <h3>7.4 混淆图表与图</h3>
+  <p><strong>误区</strong>：流程节点连线也用 ECharts 的 graph 系列硬撑。<strong>正解</strong>：节点关系是"图"问题，用 G6/GoJS 这类图编辑库。</p>
+
+  <h3>7.5 只看能力不看生态</h3>
+  <p><strong>误区</strong>：选了"功能最强"但与技术栈割裂的库。<strong>正解</strong>：权衡需求覆盖、上手成本、框架集成。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：可视化选型的决策流程是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三要素取交集——①<strong>数据形态</strong>：数值（Chart→ECharts）、实体关系（Graph→G6/GoJS）、已有 DOM 补连线（Connector→JsPlumb）、3D/地理（WebGL→Three.js/Cesium）；②<strong>数据规模与更新频率</strong>：几百内 SVG/Canvas 均可、上千 Canvas、万级/3D 走 WebGL；③<strong>生态与成本</strong>：授权预算、Vue 集成、中文文档。<strong>铁律</strong>：形态判错后面全错；授权上线前确认。实战沉淀为决策矩阵（3.3 表）复用。</p>
+
+  <p><strong>Q2：SVG、Canvas、WebGL 三种渲染后端的原理差异与选型阈值？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>SVG</strong>——每个图形一个 DOM 节点，矢量缩放不失真、天然事件与 CSS，但千节点 DOM 膨胀掉帧，适合少图形/需可访问性；<strong>Canvas 2D</strong>——单画布位图整层重绘，大数据与高频刷新快，命中测试要自建（包围盒索引）；<strong>WebGL</strong>——GPU 并行光栅化，十万级点与 3D 的唯一现实选择，shader 门槛高（用 Three.js 封装）。<strong>阈值</strong>：几十~几百都行、上千切 Canvas、万级/3D 走 WebGL 或 InstancedMesh——<strong>超阈值不换后端是最常见的性能事故</strong>。</p>
+
+  <p><strong>Q3：什么时候选商业库？开源库有什么隐性成本？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>付费条件</strong>——商业库的开箱能力（如 GoJS 事务撤销/技术支持）恰是项目刚需且预算充足；开源优先是默认（ECharts/G6/Three.js 免费商用）。<strong>开源的隐性成本</strong>：深度定制要自己写渲染（D3 类）、命中测试自建、license 合规检查（Apache-2.0 等条款与版权声明保留）。实战样本：GoJS 能力够但授权贵，G6+History 插件已覆盖流程编辑器需求——落选记录在案。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四类数据形态分别对应什么库？判错的代价？</li>
+    <li>三渲染后端的原理差异与规模阈值？</li>
+    <li>Canvas 的命中测试为什么是代价？</li>
+    <li>商业库的付费条件？开源的隐性成本？</li>
+    <li>选型检查清单的五问？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>ECharts：<a href="https://echarts.apache.org/zh/index.html" rel="noopener">echarts.apache.org/zh</a></li>
@@ -828,14 +839,20 @@ new G6.Graph({ container: 'c', renderer: 'svg' });    // 小图</code></pre>
     <li>MDN Canvas 与 SVG 对比：<a href="https://developer.mozilla.org/zh-CN/docs/Web/SVG" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/SVG</a></li>
     <li>WebGL fundamentals：<a href="https://webglfundamentals.org/" rel="noopener">webglfundamentals.org</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>用五问清单给自己的一个可视化需求做选型，写出决策矩阵；</li>
+    <li>用 ECharts 分别以 svg/canvas 渲染 2000 点散点图，对比交互流畅度；</li>
+    <li>给 Canvas 画布加点击命中测试（包围盒法），体会与 SVG 事件模型的差异。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../03_数据可视化/09_可视化性能优化与大数据渲染【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/00_数据可视化模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../04_实时通信/05_WebRTC【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/02_ECharts【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 可视化技术选型与原理【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

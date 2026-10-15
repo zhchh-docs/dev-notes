@@ -540,42 +540,190 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/09_微信小程序与uni-app【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../03_数据可视化/04_AntV_G6【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/03_D3.js与自定义可视化【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：ECharts 是配置式图表引擎——你只描述"要什么图"，引擎负责布局、绘制与交互。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>ECharts 是配置式图表引擎</strong>——你只描述"要什么图"（写一个 option 对象），引擎负责布局、绘制与交互。<strong>心智模型</strong>：与命令式绘图库的本质区别——你对"结果"负责，不对"每一步画在哪"负责。核心价值是<strong>图表的可维护性与交互完整性</strong>：手绘一张带 tooltip/图例联动/缩放/动画的折线图要数千行，引擎全部内置。</p>
+
+  <h3>1.2 横向对比：与 Chart.js / D3 / AntV 的分工</h3>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>维度</th><th>ECharts</th><th>Chart.js</th><th>D3 / AntV</th></tr></thead>
+    <tbody>
+      <tr><td>抽象层级</td><td>配置式，一份 option 出图，上手快、组件全</td><td>配置式，但图种与交互组件少</td><td>D3 是命令式底层；AntV/G2 是配置式</td></tr>
+      <tr><td>图种与组件</td><td>几十种图型，内置 dataZoom/visualMap/主题</td><td>基础图表为主，复杂交互需自写插件</td><td>D3 任意定制但全靠拼；G6 主打图分析</td></tr>
+      <tr><td>大数据渲染</td><td>large 模式 + 采样 + progressive，十万级点可扛</td><td>大数据需自行降级，原生弱</td><td>D3 靠 Canvas 手动优化</td></tr>
+      <tr><td>取舍结论</td><td>大屏/报表"开箱即用 + 高频数据"首选</td><td>极简后台统计卡片够用</td><td>节点连线走 G6（01 篇）</td></tr>
+    </tbody>
+  </table>
+  <p><strong>按数据形态分工</strong>：统计图表/大屏高密度面板一律 ECharts；节点连线编排是"图（graph）"问题，走 G6+JsPlumb——坐标系心智模型不适用。</p>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立 <strong>option 即唯一真相源</strong>的心智模型（声明式而非命令式）；</li>
+    <li>分清<strong>坐标系与组件</strong>两层（位置编码 vs 交互语义）；</li>
+    <li>掌握<strong>三条更新路径</strong>的开销差异（notMerge/merge/appendData）——高频刷新的核心；</li>
+    <li>落地高频刷新三件套与大数据 large/progressive；</li>
+    <li>避开六条高频坑（全量重传/resize/notMerge/换肤/dispose/SVG 大图）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇渲染后端选型。<strong>难度</strong>：★★★☆☆。<strong>本篇不涉及</strong>：自定义系列源码级扩展（D3 篇对照）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>option</strong>（总纲）→ <strong>坐标系与组件</strong>→ <strong>系列</strong>→ <strong>dataset</strong>→ <strong>交互与事件</strong>→ <strong>visualMap/主题/渲染后端</strong>。</p>
+
+  <h3>2.1 option 配置对象：整图的唯一真相源</h3>
+  <p>一棵嵌套的纯 JSON 可序列化对象，同时描述"画什么系列、挂哪个坐标系、配哪些组件、什么颜色主题"——<strong>描述最终状态而非绘制过程</strong>。所有更新都归约为 <code>setOption</code>。<span class="tag-pit">坑</span>不要读引擎内部状态：业务层维护自己的数据，每次重新推导 option。</p>
+
+  <h3>2.2 坐标系与组件：分清两层，配置就不乱</h3>
   <ul>
-    <li><strong>声明式而非命令式</strong>：开发者不直接操作绘图 API，而是写一个 <code>option</code> 对象。</li>
-    <li><strong>一份 option 管全部</strong>：同时声明坐标系（<code>xAxis/yAxis/grid</code>）、系列数据（<code>series</code>）、组件（<code>legend/tooltip/dataZoom/visualMap</code>）与交互。</li>
-    <li><strong>双渲染后端</strong>：5.x/6.x 均同时支持 <strong>Canvas</strong>（默认）与 <strong>SVG</strong>（<code>renderer:'svg'</code>），另有 WebGL 加速的 <strong>echarts-gl</strong> 做 3D 与大规模点。</li>
+    <li><strong>坐标系</strong>管位置编码：直角（xAxis/yAxis/grid）、极坐标、地理（geo/map）、日历等；系列通过 <code>xAxisIndex/yAxisIndex/coordinateSystem</code> 挂载；</li>
+    <li><strong>组件</strong>管交互与语义：legend（图例）、tooltip、dataZoom（缩放）、visualMap（视觉映射）、title/toolbox。</li>
   </ul>
-  <p class="key-sentence"><span class="tag-key">心智模型</span>与命令式绘图库的本质区别：你对"结果"负责，不对"每一步画在哪"负责。</p>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：把"图表工程"沉淀进引擎，业务只写数据与图形语义。</p>
+
+  <h3>2.3 系列类型：type 声明图形语义</h3>
+  <p>series 是数组，每项用 type 声明一种图形语义（line/bar/pie/scatter/heatmap/radar/graph/tree/sankey 等），<strong>可混挂同一坐标系</strong>（如柱+线双 Y 轴）。通用字段 name/data/encode/itemStyle/emphasis；<strong>data 形状随坐标系变</strong>：直角用 [x,y]、热力图用 [x,y,value]、饼图用 {name,value}。</p>
+
+  <h3>2.4 dataset：数据与图形分离</h3>
+  <p><code>dataset.source</code> 放一张二维表，各系列用 <code>series.encode</code> 声明"x 取第几列、y 取第几列"——解决"多系列各维护一份 data 容易错位"的问题。<span class="tag-point">要点</span>一份数据多视图复用，tooltip 自动带出整行字段，更新只改 dataset。</p>
+
+  <h3>2.5 交互与事件：声明式 + 编程式两层</h3>
   <ul>
-    <li><strong>手写成本高</strong>：用 Canvas/SVG 手绘一张带 tooltip、图例联动、缩放、动画的折线图要数千行且难维护。</li>
-    <li><strong>引擎内置能力</strong>：坐标系自适应、轴刻度自动采样、交互动画缓动、主题切换全部开箱即用。</li>
-    <li><strong>核心价值</strong>：<strong>图表的可维护性与交互完整性</strong>——布局、绘制、事件都交给引擎。</li>
+    <li><strong>声明式</strong>：组件自带，配置即生效（dataZoom 拖选/legend 点选/tooltip 悬浮）；</li>
+    <li><strong>编程式</strong>：<code>chart.on('click', params =&gt; ...)</code>，params 携带命中系列名/数据值/坐标；联动典型用法：点地图某省→外部表格过滤、拖 dataZoom→刷新明细。</li>
   </ul>
+
+  <h3>2.6 visualMap / 主题 / 渲染后端</h3>
+  <ul>
+    <li><strong>visualMap</strong>：把连续数值映射到颜色/大小——continuous 滑块配热力色带，<strong>piecewise 分段配"正常/预警/告警"分级</strong>；价值是把业务阈值规则收敛进配置，不在 series 里手算颜色；</li>
+    <li><strong>主题</strong>：内置（init 第二参 'dark'）/注册（registerTheme）/option 级局部覆盖三层；</li>
+    <li><strong>渲染后端</strong>：Canvas（默认，大数据高频）vs SVG（少图形/可访问性）——01 篇已述。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最小 option + resize 必加</h3>
+<pre class="code" data-lang="js"><code>var chart = echarts.init(document.getElementById('main'));
+var option = {
+  title: { text: '变电站实时负荷' },
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['有功', '无功'] },
+  grid: { left: 50, right: 20, bottom: 40 },
+  xAxis: { type: 'category', data: ['00:00','04:00','08:00','12:00','16:00','20:00'] },
+  yAxis: { type: 'value' },
+  series: [
+    { name: '有功', type: 'line', smooth: true, data: [120, 200, 150, 80, 170, 130] },
+    { name: '无功', type: 'line', data: [40, 90, 60, 30, 80, 50] }
+  ]
+};
+chart.setOption(option);
+window.addEventListener('resize', function () { chart.resize(); });  // 必加，大屏多分辨率</code></pre>
+
+  <h3>3.2 场景二：整批刷新用 merge（局部更新）</h3>
+<pre class="code" data-lang="js"><code>// 每 2 秒后端返回"整批最新数据"——用 merge，只更新 series.data
+function onPollBatch(batch) {
+  chart.setOption({
+    series: [
+      { name: '有功', data: batch.active },   // 只传变化的数据片段
+      { name: '无功', data: batch.reactive }
+    ]
+  }, { notMerge: false });   // 默认 merge：保留 legend/dataZoom/tooltip 状态
+}</code></pre>
+  <p><strong>关键</strong>：只传要变的部分，不要把整个 option 重拼再 setOption——整图重传触发不必要 diff，高频时叠加动画卡顿。</p>
+
+  <h3>3.3 场景三：流式追加用 appendData（增量）</h3>
+<pre class="code" data-lang="js"><code>// 时间轴持续右滚、只新增最新一个点——用 appendData，开销最低
+function onStreamPoint(pt) {
+  chart.appendData({ seriesIndex: 0, data: [pt] });   // 仅追加尾部
+  chart.setOption({ xAxis: { min: pt.time - 3600, max: pt.time } });  // 窗口右移
+}</code></pre>
+  <p><span class="tag-key">取舍</span>：后端给"整批替换"→<strong>merge</strong>；给"流式新点"（WebSocket 推时间序列）→<strong>appendData</strong>；两者都远优于全量 notMerge 重建。</p>
+
+  <h3>3.4 场景四：visualMap 分段着色（告警分级）</h3>
+<pre class="code" data-lang="js"><code>visualMap: {
+  type: 'piecewise',
+  pieces: [
+    { min: 80, label: '越限告警', color: '#dc2626' },
+    { min: 60, max: 80, label: '预警',   color: '#d97706' },
+    { min: 0,  max: 60, label: '正常',   color: '#059669' }
+  ],
+  dimension: 2          // 取 heatmap 数据 [x,y,v] 的第 3 维着色
+}</code></pre>
+
+  <h3>3.5 场景五：事件联动</h3>
+<pre class="code" data-lang="js"><code>chart.on('click', function (params) {
+  if (params.componentType === 'series') {
+    // 点中某热力格 → 通知外部明细面板过滤
+    bus.emit('heatpoint:select', { x: params.data[0], y: params.data[1], v: params.data[2] });
+  }
+});
+chart.on('datazoom', function () { /* 拖缩放后刷新明细表格 */ });</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三条更新路径与基本配置已熟。</p>
+
+  <h3>4.1 渲染管线四阶段（性能开销在哪）</h3>
+  <p>一次 setOption 一帧内走完：<strong>merge 配置 → 布局（grid/轴刻度自动抽稀/系列位置）→ 可视编码（数据→像素坐标，visualMap 在此生效）→ 绘制（Painter 分层画到 Canvas，事件命中靠反向索引）→ rAF 上屏</strong>。开启动画则在"旧帧→新帧"间插值补间，<strong>每帧都额外消耗主线程</strong>。瓶颈排序：数据可视编码 &gt; 布局 &gt; 绘制。</p>
+
+  <h3>4.2 高频刷新三件套：关动画 + large + 节流</h3>
+<pre class="code" data-lang="js"><code>chart.setOption({
+  animation: false,                 // 1. 关掉过渡动画，否则每帧都在做插值
+  series: [{
+    type: 'line',
+    large: true,                    // 2. 大数据优化路径：跳过逐点样式计算
+    progressive: 5000,              // 3. 分批渐进渲染，避免单帧过长
+    data: hugeData
+  }]
+});
+// 4. 数据到达用 rAF + 脏标记节流，保证一帧最多 setOption 一次
+var dirty = false, latest = null;
+function onData(d) { latest = d; dirty = true; }
+function frame() {
+  if (dirty) { dirty = false; chart.setOption({ series: [{ data: latest }] }); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);</code></pre>
+  <p>配合 Canvas 后端，万级折线可稳定 60fps——"帧预算"思路（09 篇继续展开）。</p>
+
+  <h3>4.3 dataset 与 encode 的多视图复用</h3>
+  <p>一份 dataset.source（二维表）+ 多个系列各自 encode（x 取第 0 列、y 取第 2 列…）——同一份数据同时出折线与柱状；更新只改 source，多图联动不重排各系列 data。</p>
+
+  <h3>4.4 换肤与主题同步</h3>
+  <p>Canvas 不随 CSS 主题自动变——换肤时显式 <code>setOption</code> 同步 backgroundColor/textStyle/axisLine 颜色，或用 registerTheme 注册的主题重新 init（01 模块大屏换肤实战同款问题）。</p>
+
+  <h3>4.5 SSR 与无头出图</h3>
+  <p>ECharts 5 支持 <strong>SSR 字符串渲染</strong>（renderToSVGString，服务端出 SVG 首屏无闪白）；node-canvas/headless 定时出图发报告——服务端能力也是选型考量（01 篇第 6 问）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="ECharts 在前端可视化链路中的位置示意图">
       <defs>
@@ -605,92 +753,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 ECharts 在可视化链路中的位置（示意）</p>
   </div>
-  <h3>横向对比：为什么项目系列选 ECharts 而不是 Chart.js / D3 / AntV</h3>
-  <table>
-    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
-    <thead><tr><th>维度</th><th>ECharts</th><th>Chart.js</th><th>D3 / AntV</th></tr></thead>
-    <tbody>
-      <tr><td>抽象层级</td><td>配置式，一份 option 出图，上手快、组件全</td><td>配置式，但图种与交互组件少</td><td>D3 是命令式底层（操作数据与 DOM/SVG）；AntV/G2 是配置式</td></tr>
-      <tr><td>图种与组件</td><td>折线/柱/饼/散点/热力/地图/关系图/树图几十种，内置 dataZoom/visualMap/主题</td><td>基础图表为主，复杂交互需自写插件</td><td>D3 任意定制但全靠拼；AntV G2plot 接近 ECharts 但生态较新</td></tr>
-      <tr><td>大数据渲染</td><td>large 模式 + 采样 + progressive 渐进渲染，十万级点可扛</td><td>大数据需自行降级，原生弱</td><td>AntV G6 主打图分析；D3 靠 Canvas 手动优化</td></tr>
-      <tr><td>取舍结论</td><td>大屏/报表"开箱即用 + 高频数据"首选</td><td>极简后台统计卡片够用</td><td>需要高度定制或图关系分析（节点连线）走 AntV G6，见本系列 02 篇</td></tr>
-    </tbody>
-  </table>
-  <p class="lead"><b>一句话定位</b>：按"数据形态"分工，三者不是谁取代谁。</p>
-  <ul>
-    <li><strong>统计图表 / 大屏高密度面板</strong>：一律用 ECharts——dataZoom、visualMap、tooltip 联动、主题换肤全内置，高频刷新有 merge/large/progressive 兜底。</li>
-    <li><strong>节点连线编排</strong>：用 AntV G6 + JsPlumb——那是"图（graph）"问题，不是"图表（chart）"问题，坐标系心智模型不适用。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 option 配置对象（Option）</h3>
-  <p class="lead"><b>一句话定位</b>：option 是整图的唯一真相源——描述最终状态，而非绘制过程。</p>
-  <ul>
-    <li><strong>声明式树</strong>：一棵嵌套的纯 JSON 可序列化对象，同时描述"画什么系列、挂哪个坐标系、配哪些组件、什么颜色主题"。</li>
-    <li><strong>所有更新都归约为 setOption</strong>：改数据、切图例、改主题，都产出一个新 option 片段再 <code>setOption</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>不要读引擎内部状态</strong>：业务层维护自己的数据，每次重新推导 option。</li>
-  </ul>
-  <h3>2.2 坐标系与组件（Coordinate System &amp; Component）</h3>
-  <p class="lead"><b>一句话定位</b>：坐标系管位置编码，组件管交互与语义——分清这两层，配置就不会乱。</p>
-  <ul>
-    <li><strong>坐标系</strong>：直角（<code>xAxis/yAxis/grid</code>）、极坐标（<code>polar</code>）、地理（<code>geo/map</code>）、日历（<code>calendar</code>）等。</li>
-    <li><strong>系列挂载</strong>：系列通过 <code>xAxisIndex/yAxisIndex/coordinateSystem</code> 指定挂到哪个坐标系。</li>
-    <li><strong>组件</strong>：叠加在坐标系上的 UI 元素——<code>legend</code>（图例）、<code>tooltip</code>（悬浮提示）、<code>dataZoom</code>（区域缩放）、<code>visualMap</code>（视觉映射）、<code>title/toolbox</code>。</li>
-  </ul>
-  <h3>2.3 系列类型（Series Type）</h3>
-  <p class="lead"><b>一句话定位</b>：series 是数组，每项用 type 声明一种图形语义，可混挂同一坐标系。</p>
-  <ul>
-    <li><strong>图种丰富</strong>：<code>line/<wbr>bar/<wbr>pie/<wbr>scatter/<wbr>heatmap/<wbr>radar/<wbr>graph/<wbr>tree/<wbr>sankey/<wbr>effectScatter</code> 等。</li>
-    <li><strong>同坐标系混搭</strong>：一个 <code>series</code> 数组里可混多个类型（如柱状 + 折线双 Y 轴）。</li>
-    <li><strong>通用字段</strong>：每个系列都有 <code>name/data/encode/itemStyle/emphasis</code>，再叠加类型特有字段。</li>
-    <li><strong>data 形状随坐标系变</strong>：直角用 <code>[x, y]</code>，热力图用 <code>[x, y, value]</code>，饼图用 <code>{name, value}</code>。</li>
-  </ul>
-  <h3>2.4 dataset 数据集（Dataset）</h3>
-  <p class="lead"><b>一句话定位</b>：把"数据"从"图形"里抽出来，一份二维表供多视图复用。</p>
-  <ul>
-    <li><strong>解决错位</strong>：早期每个系列各自维护一份 <code>data</code>，多系列共享维度时要手动对齐、容易错位。</li>
-    <li><strong>写法</strong>：<code>dataset.source</code> 放一张二维表，各系列用 <code>series.encode</code> 声明"x 取第几列、y 取第几列"。</li>
-    <li><span class="tag-point">要点</span><strong>一份数据、多视图复用</strong>：tooltip 自动带出整行字段，更新数据只改 dataset。</li>
-  </ul>
-  <h3>2.5 交互组件与事件（Interaction &amp; Event）</h3>
-  <p class="lead"><b>一句话定位</b>：交互分两层——声明式配置即生效，编程式监听做联动。</p>
-  <ul>
-    <li><strong>声明式交互</strong>：组件自带，配置即生效——<code>dataZoom</code> 拖选缩放、<code>legend</code> 点选显隐、<code>tooltip</code> 悬浮。</li>
-    <li><strong>编程式事件</strong>：<code>chart.on('click', params =&gt; ...)</code> 监听，<code>params</code> 携带命中的系列名、数据值、坐标。</li>
-    <li><strong>常用事件</strong>：<code>click/<wbr>mouseover/<wbr>brushselected/<wbr>legendselectchanged/<wbr>datazoom</code>。</li>
-    <li><strong>联动典型用法</strong>：点地图某省 → 外部表格过滤；拖 dataZoom → 刷新明细。</li>
-  </ul>
-  <h3>2.6 视觉映射（visualMap）</h3>
-  <p class="lead"><b>一句话定位</b>：把连续数值映射到颜色/大小/透明度等视觉通道，阈值规则收敛进配置。</p>
-  <ul>
-    <li><strong>continuous</strong>：连续滑块，适合热力图色带。</li>
-    <li><strong>piecewise</strong>：分段区间，适合"正常/预警/告警"分级着色。</li>
-    <li><strong>大屏告警热力图即用 piecewise</strong>：遥测值按阈值段映射到绿/黄/红，值班一眼定位越限区域。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>它的价值是把业务阈值规则收敛进配置，而不是在 series 里手算每个点的颜色。</p>
-  <h3>2.7 主题与样式扩展（Theme）</h3>
-  <p class="lead"><b>一句话定位</b>：主题分内置/注册两层，再加 option 级局部覆盖。</p>
-  <ul>
-    <li><strong>内置主题</strong>：<code>echarts.init(el, 'dark')</code>。</li>
-    <li><strong>注册主题</strong>：<code>echarts.registerTheme(name, obj)</code> 注入一组颜色、字体、轴线样式。</li>
-    <li><strong>局部覆盖</strong>：<code>color</code> 调色板、<code>itemStyle/lineStyle</code> 改局部。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>大屏换肤的坑：Canvas 不随 CSS 主题自动变，必须显式重新 <code>setOption</code> 同步文字与坐标轴颜色，否则夜间模式图表仍是白底。</p>
-  <h3>2.8 渲染后端：Canvas vs SVG</h3>
-  <p class="lead"><b>一句话定位</b>：大数据高频动画用 Canvas，少量需可访问性/清晰缩放用 SVG。</p>
-  <ul>
-    <li><strong>Canvas</strong>：单画布重绘，适合数据量大、动画频繁（十万点散点）；代价是无独立 DOM 节点，无障碍与文字选择弱。</li>
-    <li><strong>SVG</strong>：每个图形是 DOM 节点，缩放清晰、可加 CSS/无障碍；代价是节点上千后 DOM 膨胀、重绘变慢。</li>
-    <li><strong>选型</strong>：大屏高频大数据用 Canvas，静态关系图/少量需可访问性的图用 SVG。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 渲染管线：option 如何变成像素</h3>
-  <p>一次 <code>setOption</code> 后，引擎在一帧内走完"合并配置 → 布局 → 可视编码 → 绘制"四步。理解这条链，就知道性能开销花在哪一步。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="ECharts 渲染管线示意图">
       <defs>
@@ -728,14 +790,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 ECharts 渲染管线四阶段（示意）</p>
   </div>
-  <ol>
-    <li><strong>merge 配置</strong>：新 option 与已存 option 深合并，得到完整新状态。默认是 merge（局部更新），传 <code>notMerge:true</code> 才会清空重建。</li>
-    <li><strong>布局</strong>：根据容器尺寸算 grid 划分、坐标轴刻度采样（数据点密时自动抽稀）、系列位置。</li>
-    <li><strong>可视编码</strong>：把每个数据点映射成画布坐标与颜色（visualMap 在这一步生效）。</li>
-    <li><strong>绘制</strong>：Painter 把图元画到 Canvas 层。多系列分层绘制，事件命中靠反向索引。</li>
-  </ol>
-  <h3>3.2 setOption 的 merge 与 appendData：增量更新机制</h3>
-  <p>更新图表有三条路径，开销差异巨大，这是高频刷新场景的核心：</p>
   <div class="diagram">
     <svg viewBox="0 0 800 270" role="img" aria-label="三种数据更新方式的开销对比示意图">
       <defs>
@@ -772,134 +826,21 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 setOption merge 与 appendData 的增量机制对比（示意）</p>
   </div>
-  <ol>
-    <li><strong>merge（默认）</strong>：<code>setOption(partialOption)</code> 把传入片段深合并进现有 option，未传的配置保留。组件交互状态（如 dataZoom 当前窗口、legend 选中态）不丢失。</li>
-    <li><strong>notMerge</strong>：<code>setOption(option, true)</code> 等价于重置——整图按新 option 重建。只在"换图种/改结构/彻底重置"时用。</li>
-    <li><strong>appendData</strong>：<code>chart.appendData({ seriesIndex, data })</code> 只把新数据追加到指定系列尾部，不触发整体 merge 与重布局，是流式时间序列的最低开销路径。</li>
-  </ol>
-  <h3>3.3 大数据渲染：large / progressive 与分层</h3>
-  <p class="lead"><b>一句话定位</b>：十万级点靠三件套——large 跳过逐点计算、progressive 拆帧、坐标轴抽稀。</p>
-  <ul>
-    <li><strong>为什么会卡</strong>：逐点布局绘制十万散点，单帧必超 16ms。</li>
-    <li><code>large:true</code>：启用大数据优化路径，跳过部分逐点样式计算、合并绘制调用。</li>
-    <li><code>progressive</code>：把绘制拆成多帧渐进渲染——首屏先出一帧，剩余分批补。</li>
-    <li><strong>坐标轴自动采样抽稀</strong>：数据点密时自动抽稀刻度。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>配合 Canvas 后端，万级折线可稳定在 60fps——这就是"帧预算"思路，Three.js 篇与可视化性能篇继续展开。</p>
+  <p><strong>读图要点</strong>：①图 1 总纲——业务只产出 option，引擎负责其余一切；②图 2 定位性能开销——动画插值每帧耗主线程，所以高频必关动画；③图 3 是高频刷新的决策依据——按数据到达形态选更新路径。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 最小可运行 option</h3>
-<pre class="code" data-lang="js"><code>var chart = echarts.init(document.getElementById('main'));
-var option = {
-  title: { text: '变电站实时负荷' },
-  tooltip: { trigger: 'axis' },
-  legend: { data: ['有功', '无功'] },
-  grid: { left: 50, right: 20, bottom: 40 },
-  xAxis: { type: 'category', data: ['00:00','04:00','08:00','12:00','16:00','20:00'] },
-  yAxis: { type: 'value' },
-  series: [
-    { name: '有功', type: 'line', smooth: true, data: [120, 200, 150, 80, 170, 130] },
-    { name: '无功', type: 'line', data: [40, 90, 60, 30, 80, 50] }
-  ]
-};
-chart.setOption(option);
-window.addEventListener('resize', function () { chart.resize(); });  // 必加，大屏多分辨率</code></pre>
-  <p>要点：<code>init</code> 第二个参数传主题名，第三个参数传 <code>{renderer:'svg'}</code>；<code>resize</code> 必须监听，否则容器尺寸变化后图表错位。</p>
-  <h3>4.2 写法对比一：整批刷新用 merge（局部更新）</h3>
-<pre class="code" data-lang="js"><code>// 每 2 秒后端返回"整批最新数据"——用 merge，只更新 series.data
-function onPollBatch(batch) {
-  chart.setOption({
-    series: [
-      { name: '有功', data: batch.active },   // 只传变化的数据片段
-      { name: '无功', data: batch.reactive }
-    ]
-  }, { notMerge: false });   // 默认 merge：保留 legend/dataZoom/tooltip 状态
-}</code></pre>
-  <p>关键：<strong>只传要变的部分</strong>，不要把整个 option 重新拼一遍再 <code>setOption</code>。整图重传会触发不必要的 diff，且高频时叠加动画造成卡顿。</p>
-  <h3>4.3 写法对比二：流式追加用 appendData（增量）</h3>
-<pre class="code" data-lang="js"><code>// 时间轴持续右滚、只新增最新一个点——用 appendData，开销最低
-function onStreamPoint(pt) {
-  chart.appendData({ seriesIndex: 0, data: [pt] });   // 仅追加尾部
-  // 同时把 xAxis 的窗口右移（保持最近 N 个点可见）
-  chart.setOption({ xAxis: { min: pt.time - 3600, max: pt.time } });
-}</code></pre>
-  <div class="note"><strong>两种写法的取舍</strong>：后端给的是"整批替换"（每轮全量拉取当前状态）→ <strong>merge</strong>；后端给的是"流式新点"（WebSocket 推送时间序列）→ <strong>appendData</strong>。两者都远优于全量 <code>notMerge</code> 重建。</div>
-  <h3>4.4 高频刷新三件套：关动画 + large + 节流</h3>
-<pre class="code" data-lang="js"><code>// 高频场景配置原则
-chart.setOption({
-  animation: false,                 // 1. 关掉过渡动画，否则每帧都在做插值
-  series: [{
-    type: 'line',
-    large: true,                    // 2. 大数据优化路径
-    progressive: 5000,              // 3. 分批渐进渲染，避免单帧过长
-    data: hugeData
-  }]
-});
-// 4. 数据到达用 rAF + 脏标记节流，保证一帧最多 setOption 一次
-var dirty = false, latest = null;
-function onData(d) { latest = d; dirty = true; }
-function frame() {
-  if (dirty) { dirty = false; chart.setOption({ series: [{ data: latest }] }); }
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);</code></pre>
-  <h3>4.5 visualMap 分段着色（告警分级）</h3>
-<pre class="code" data-lang="js"><code>visualMap: {
-  type: 'piecewise',
-  pieces: [
-    { min: 80, label: '越限告警', color: '#dc2626' },
-    { min: 60, max: 80, label: '预警',   color: '#d97706' },
-    { min: 0,  max: 60, label: '正常',   color: '#059669' }
-  ],
-  dimension: 2          // 取 heatmap 数据 [x,y,v] 的第 3 维着色
-}</code></pre>
-  <h3>4.6 事件联动</h3>
-<pre class="code" data-lang="js"><code>chart.on('click', function (params) {
-  if (params.componentType === 'series') {
-    // 点中某热力格 → 通知外部明细面板过滤
-    bus.emit('heatpoint:select', { x: params.data[0], y: params.data[1], v: params.data[2] });
-  }
-});
-chart.on('datazoom', function () { /* 拖缩放后刷新明细表格 */ });</code></pre>
-</section>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——数据可视化大屏项目（2016-2022）值班大屏热力矩阵 + Qiankun 整合 5+ 子应用的实时负荷曲线；监测点成百上千、轮询秒级、低配主机渲染预算紧。</p>
 
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：数据可视化大屏项目（2016-2022）把大量实时遥测数据铺到值班大屏，要求一眼定位越限。</p>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>场景一</strong>：值班大屏用热力矩阵铺一片区域的众多监测点，绿黄红分级、越限即闪，值班员扫一眼定位片区再下钻站点。</li>
-    <li><strong>场景二</strong>：可视化大屏系统（Qiankun 整合 5+ 子应用）实时负荷监测曲线，每 2 秒拉一次遥测刷新折线与状态点。</li>
-    <li><strong>量级</strong>：监测点成百上千个、轮询秒级到达、大屏常跑在低配主机上，渲染预算紧。</li>
+    <li><strong>热力图</strong>：矩阵数据用 heatmap 系列 [x,y,value]，visualMap.piecewise 把阈值规则收进配置；</li>
+    <li><strong>高频曲线</strong>：更新只传 series.data 走 merge，animation:false，rAF 节流每帧一次；</li>
+    <li><strong>容器</strong>：尺寸变化用 ResizeObserver（旧内核退回 resize 防抖），卸载 dispose。</li>
   </ul>
 
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：前端可视化主力，负责图表选型、渲染性能与联调。</p>
-  <ul>
-    <li><strong>分工</strong>：与后端约定遥测数据聚合格式，前端负责图表层、轮询调度与大屏多分辨率适配。</li>
-    <li><strong>协作</strong>：对接后端采集聚合接口、运维确认现场主机配置与分辨率。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <p class="lead"><b>一句话定位</b>：Vue2 + jQuery + ECharts + Qiankun 微前端的混合栈。</p>
-  <ul>
-    <li><strong>前端</strong>：Vue2、jQuery（早期 智能监控大屏 智能监控）、Layui+Vue 混合、ECharts。</li>
-    <li><strong>架构</strong>：可视化大屏系统 用 Qiankun 整合 5+ 子应用独立部署。</li>
-    <li><strong>后端</strong>：Java，分布式数据聚合。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：选 ECharts heatmap/line 系列，用 merge 局部更新扛高频轮询。</p>
-  <ul>
-    <li><strong>热力图</strong>：矩阵数据用 <code>heatmap</code> 系列 <code>[x,y,value]</code>，<code>visualMap.piecewise</code> 把阈值规则收进配置。</li>
-    <li><strong>高频曲线</strong>：更新只传 <code>series.data</code> 走 merge，<code>animation:false</code>，rAF 节流到每帧一次。</li>
-    <li><strong>容器</strong>：尺寸变化用 <code>ResizeObserver</code>（旧内核退回 resize 防抖），卸载 <code>dispose</code>。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
+  <h3>6.2 关键实现</h3>
 <pre class="code" data-lang="js"><code>var heat = echarts.init(document.getElementById('heatPanel'));
 heat.setOption({
   tooltip: { position: 'top' },
@@ -923,106 +864,93 @@ requestAnimationFrame(frame);
 new ResizeObserver(function () { chart.resize(); }).observe(subAppEl);
 window.__POWERED_BY_QIANKUN__ &amp;&amp; (unmount =&gt; chart.dispose());</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
-  <p class="lead"><b>一句话定位</b>：卡顿根因是更新方式与动画，不是轮询本身。</p>
+  <h3>6.3 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>全量重传+未关动画</strong>：初版每轮 <code>setOption(完整option)</code> 且动画开着，轮询一密就卡——改 merge 只传 <code>series.data</code> 后立刻顺滑。</li>
-    <li><span class="tag-pit">坑</span><strong>只上 rAF 没改更新方式</strong>：保留整图重传，卡顿依旧——rAF 只是节流，根因必须同时改 merge 并关 <code>animation</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>visualMap max 写死</strong>：冬季负荷峰值溢出，越限点颜色挤在红顶看不出梯度——改动态 max 或 piecewise 固定业务阈值段。</li>
-    <li><span class="tag-pit">坑</span><strong>微前端切走未 dispose</strong>：多次进出内存只涨不降、Canvas 叠加——在 Qiankun <code>unmount</code> 成对清理。</li>
-    <li><span class="tag-point">要点</span><strong>前后对比</strong>：主线程长任务从 120ms+ 降到 16ms 内（估算），曲线刷新与模块切换恢复即时。</li>
+    <li><span class="tag-pit">坑</span><strong>全量重传+未关动画</strong>：初版每轮 setOption(完整option) 且动画开着，轮询一密就卡——改 merge 只传 series.data 立刻顺滑；</li>
+    <li><span class="tag-pit">坑</span><strong>只上 rAF 没改更新方式</strong>：保留整图重传卡顿依旧——rAF 只是节流，根因必须同时改 merge 并关 animation；</li>
+    <li><span class="tag-pit">坑</span><strong>visualMap max 写死</strong>：冬季负荷峰值溢出，越限点挤在红顶看不出梯度——改动态 max 或 piecewise 固定业务阈值段；</li>
+    <li><span class="tag-pit">坑</span><strong>微前端切走未 dispose</strong>：多次进出内存只涨不降、Canvas 叠加——Qiankun unmount 成对清理；</li>
+    <li><span class="tag-point">要点</span><strong>前后对比</strong>：主线程长任务从 120ms+ 降到 16ms 内（估算）。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>帧率</strong>：高频刷新主线程占用从 120ms+ 降到单帧 16ms 内（估算），低配机不再掉帧。</li>
-    <li><strong>体验</strong>：越限片区一眼可见，值班下钻定位时间明显缩短。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端先约定矩阵格式 <code>[x,y,value]</code> 与轮询频率，再各自动手。</li>
-    <li><strong>联调协商</strong>：现场旧内核不支持 ResizeObserver，协商退回 resize 防抖方案；低配机阴影按机型分级关闭。</li>
-    <li><strong>排期</strong>：性能优化作为上线后值班反馈驱动的迭代项，随版本排期修复。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>更新方式优先于节流</strong>：高频图表先改 merge 局部更新+关动画，再谈 rAF 节流。</li>
-    <li><span class="tag-point">要点</span><strong>阈值即配置</strong>：业务阈值收敛进 visualMap/配置，不写死在渲染里。</li>
-    <li><span class="tag-point">要点</span><strong>生命周期成对清理</strong>：微前端/SPA 切走必 dispose 实例与定时器。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「大屏高频图表卡顿，实践中常采用 rAF 定位到主线程被整图 setOption+动画占满，改成 merge 局部更新、关 animation、ResizeObserver 监听、卸载 dispose，长任务从 120ms 降到 16ms。」</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 全量 setOption 导致卡顿</h3>
-  <ul>
-    <li><strong>现象</strong>：高频轮询的图表越来越卡，主线程长任务报警。</li>
-    <li><strong>原因</strong>：每轮都把完整 option 重传并 <code>notMerge</code>，引擎整图重布局、重绘、重放动画；叠加逐帧动画插值，主线程预算被吃光。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：改 merge 局部更新（只传变化的 series.data），<code>animation:false</code>，大数据开 <code>large/progressive</code>，数据到达用 rAF 脏标记节流。</p>
-  <h3>6.2 忘记 resize，图表尺寸错位</h3>
-  <ul>
-    <li><strong>现象</strong>：窗口或容器尺寸变化后，图表被拉伸/留白/只画一部分。</li>
-    <li><strong>原因</strong>：ECharts 在 <code>init</code> 时按容器尺寸算了布局，之后不会自动跟踪容器变化。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：监听 <code>window.resize</code>（或 <code>ResizeObserver</code>）调 <code>chart.resize()</code>；大屏多分辨率、微前端子应用尤其不能漏。</p>
-  <h3>6.3 notMerge 误开，交互状态丢失</h3>
-  <ul>
-    <li><strong>现象</strong>：每次更新后，用户拖的 dataZoom 窗口、选中的 legend 都被重置。</li>
-    <li><strong>原因</strong>：传了 <code>notMerge:true</code>，引擎按新 option 完全重建，丢弃了运行时交互状态。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：常规更新一律默认 merge；只有"彻底换图/重置"时才用 notMerge。</p>
-  <h3>6.4 Canvas 不随 CSS 主题换肤</h3>
-  <ul>
-    <li><strong>现象</strong>：页面切夜间模式后，图表仍是白底黑字，与页面割裂。</li>
-    <li><strong>原因</strong>：图表画在 Canvas 位图里，不受页面 CSS 变量影响。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：换肤时显式 <code>setOption</code> 同步 <code>backgroundColor/textStyle/axisLine</code> 颜色，或换用注册好的主题重新 init。</p>
-  <h3>6.5 dispose 泄漏：切页后内存只涨不降</h3>
-  <ul>
-    <li><strong>现象</strong>：单页应用/微前端反复进出图表页，内存持续上涨，FPS 下降。</li>
-    <li><strong>原因</strong>：只 <code>init</code> 不 <code>dispose</code>，Canvas 实例、事件监听、定时器随路由切换残留。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：组件销毁钩子成对清理——<code>chart.dispose()</code>、移除 resize 监听、clearInterval。</p>
-  <h3>6.6 SVG 渲染节点过多反而慢</h3>
-  <ul>
-    <li><strong>现象</strong>：用 <code>renderer:'svg'</code> 画了上千个点，页面滚动卡顿。</li>
-    <li><strong>原因</strong>：SVG 每个图元是 DOM 节点，上千节点让 DOM 树膨胀，浏览器布局与样式计算变慢。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：大数据/动画频繁场景用 Canvas；SVG 只留给少量、需可访问性或 CSS 控制的静态图。</p>
+  <h3>6.4 协作与复盘</h3>
+  <ol>
+    <li><strong>契约先行</strong>：与后端先约定矩阵格式 [x,y,value] 与轮询频率；联调协商旧内核 ResizeObserver 退回 resize 防抖、低配机阴影分级关闭；</li>
+    <li><strong>可复用经验</strong>：更新方式优先于节流（先 merge+关动画再谈 rAF）；阈值即配置；生命周期成对清理。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 全量 setOption 导致卡顿</h3>
+  <p><strong>原因</strong>：每轮完整 option 重传 + notMerge，引擎整图重布局重绘重放动画。<strong>正解</strong>：merge 局部更新 + animation:false + large/progressive + rAF 脏标记节流。</p>
+
+  <h3>7.2 忘记 resize，图表尺寸错位</h3>
+  <p><strong>原因</strong>：init 时算的布局不会自动跟踪容器变化。<strong>正解</strong>：监听 window.resize 或 ResizeObserver 调 chart.resize()；大屏多分辨率、微前端子应用尤其不能漏。</p>
+
+  <h3>7.3 notMerge 误开，交互状态丢失</h3>
+  <p><strong>现象</strong>：每次更新后 dataZoom 窗口、legend 选中态被重置。<strong>正解</strong>：常规更新一律默认 merge；只有"彻底换图/重置"才 notMerge。</p>
+
+  <h3>7.4 Canvas 不随 CSS 主题换肤</h3>
+  <p><strong>现象</strong>：切夜间模式后图表仍白底黑字。<strong>正解</strong>：换肤时显式 setOption 同步 backgroundColor/textStyle/axisLine，或注册主题重新 init。</p>
+
+  <h3>7.5 dispose 泄漏：切页后内存只涨不降</h3>
+  <p><strong>原因</strong>：只 init 不 dispose，Canvas 实例/事件/定时器残留。<strong>正解</strong>：销毁钩子成对清理——dispose、移除 resize 监听、clearInterval。</p>
+
+  <h3>7.6 SVG 渲染节点过多反而慢</h3>
+  <p><strong>原因</strong>：SVG 每个图元是 DOM 节点，上千节点让 DOM 树膨胀。<strong>正解</strong>：大数据/高频用 Canvas；SVG 留给少量、需可访问性的静态图。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：ECharts 的"声明式"体现在哪？option 的心智模型是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：开发者不调用绘图 API，而是写一棵<strong>可序列化的 option JSON 树</strong>——同时声明坐标系、系列数据、交互组件与主题；引擎把"声明"编译成"图形+动画+交互"，更新图表=改 option 再 setOption。<strong>心智模型</strong>：对"结果"负责、不对"每一步画在哪"负责；option 是整图唯一真相源——所以不要读引擎内部状态，业务自己维护数据、每次重新推导 option 片段。</p>
+
+  <p><strong>Q2：高频刷新大屏图表卡顿，你怎么定位与优化？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>定位</strong>：Performance 面板看主线程长任务——典型根因是每轮<strong>全量 setOption（notMerge）+ 动画插值</strong>，整图重布局重绘每帧都做。<strong>优化按优先级</strong>：①改 merge 局部更新（只传变化的 series.data）；②animation:false（动画插值每帧耗主线程）；③数据到达用 rAF+脏标记节流（一帧最多 setOption 一次）；④大数据叠加 large/progressive。<strong>实战数字</strong>：大屏项目主线程长任务从 120ms+ 降到 16ms 内（估算）。<strong>关键教训</strong>：更新方式优先于节流——只上 rAF 不改更新方式，卡顿依旧。</p>
+
+  <p><strong>Q3：setOption 的三条更新路径怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：按<strong>数据到达形态</strong>选——①<strong>merge（默认）</strong>：新片段深合并进现有 option，保留 dataZoom 窗口/legend 选中态等运行时状态，适合"整批替换"周期刷新；②<strong>notMerge:true</strong>：整图重建，只用于换图种/改结构/彻底重置；③<strong>appendData</strong>：仅往系列尾部追加数据块，不触发整体 merge 与重布局，开销最低，适合 WebSocket 流式时间序列（配 large/progressive 最佳）。<strong>高频轮询里用 notMerge = 卡顿 + 交互状态丢失双重事故</strong>。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>option 为什么是"唯一真相源"？为什么不读引擎内部状态？</li>
+    <li>坐标系与组件各管什么？系列怎么挂坐标系？</li>
+    <li>三条更新路径的机制与开销排序？</li>
+    <li>高频刷新三件套是什么？为什么 rAF 不是第一优先级？</li>
+    <li>Canvas 换肤为什么不生效？dispose 泄漏怎么防？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Apache ECharts 官网与配置手册（option 全字段索引）：<a href="https://echarts.apache.org/zh/index.html" rel="noopener">echarts.apache.org/zh</a></li>
     <li>ECharts GitHub 仓库（示例集与更新日志）：<a href="https://github.com/apache/echarts" rel="noopener">github.com/apache/echarts</a></li>
     <li>echarts-gl（3D 与大规模点 WebGL 扩展）：<a href="https://github.com/ecomfe/echarts-gl" rel="noopener">github.com/ecomfe/echarts-gl</a></li>
   </ul>
-  <h3>书籍与课程</h3>
+  <h3>概念延伸</h3>
   <ul>
-    <li>《ECharts 数据可视化实战》（各级别配置与案例集，适合对照官方手册落地）。</li>
-    <li>Apache ECharts 官方"手拉手"教程（从 init 到 dataset/visualMap 的渐进示例）。</li>
+    <li>官方"手拉手"教程（init→dataset→visualMap 渐进示例）；《ECharts 数据可视化实战》对照手册。</li>
   </ul>
-  <h3>实战要点</h3>
-  <ul>
-    <li>高频刷新三板斧：merge 局部更新 + <code>animation:false</code> + rAF 节流；大数据再叠加 <code>large/progressive</code>。</li>
-    <li>选型边界：常规统计图表/大屏高密度面板用 ECharts；节点连线编排走 AntV G6（见本系列 02 篇）。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>按 3.1 跑通最小图，故意不监听 resize 复现错位；</li>
+    <li>写一个 500 点/秒的模拟流：分别用 notMerge 与 merge/appendData 刷新，Performance 对比主线程占用；</li>
+    <li>用 piecewise visualMap 实现三级告警热力图，点击格子联动外部表格。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/09_微信小程序与uni-app【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../03_数据可视化/04_AntV_G6【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../03_数据可视化/03_D3.js与自定义可视化【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · ECharts【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
