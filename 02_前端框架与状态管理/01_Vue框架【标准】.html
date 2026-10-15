@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../01_前端基础/08_Tailwind_CSS原子化【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/10_Canvas与SVG【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/02_Vue3组合式API与响应式原理【深入】.html">下一篇 →</a>
 </nav>
@@ -548,21 +548,145 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Vue 是一套渐进式 JavaScript 框架，核心是<strong>响应式数据绑定 + 组件化</strong>。你维护一份状态（data），声明它在界面上长什么样（模板），状态一变，框架自动把受影响的那部分 DOM 更新掉——这就是"MVVM"（Model-View-ViewModel）：视图与模型双向绑定，中间的 ViewModel（Vue 实例）负责同步。Vue2 用 <code>Object.defineProperty</code> 做响应式，Vue3 换成 <code>Proxy</code>（见深入页）。</p>
-  <p><strong>解决什么问题</strong>：jQuery 时代"状态变了→自己改 DOM"极易漏改、难维护。Vue 把"状态到视图的同步"自动化，让开发者只关心数据；组件化又把界面拆成可复用、可组合的单元。本技术栈从 智能监控大屏（Vue2+jQuery）到数据编排平台（Vue2+ElementUI）再到 业务系统（Vue3），主线就是这条。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Vue 是渐进式 JavaScript 框架，核心是响应式数据绑定 + 组件化</strong>：你维护一份状态（data）、声明它在界面上长什么样（模板），状态一变，框架自动更新受影响的 DOM——这就是 MVVM（Model-View-ViewModel）：视图与模型绑定，ViewModel 负责同步。Vue2 用 <code>Object.defineProperty</code> 做响应式，Vue3 换成 Proxy（02 篇深入）。它终结的是 jQuery 时代"状态变了→自己改 DOM"的漏改噩梦——<strong>开发者只关心数据</strong>。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>手改 DOM 极易漏改、难维护——状态到视图的同步是体力活；</li>
+    <li>界面无法拆分复用；</li>
+    <li>老项目要上 Vue 却不敢推翻重写。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>理解<strong>响应式数据流</strong>（状态→依赖收集→批量更新→patch DOM）；</li>
+    <li>掌握选项式组件五要素（props/data/computed/watch/生命周期）；</li>
+    <li>分清 <strong>v-if/v-show、computed/methods</strong> 等易混对；</li>
+    <li>学会<strong>渐进引入</strong>（局部挂载与 jQuery 共存）；</li>
+    <li>避开五条高频坑（Vue.set/key/nextTick/清理/computed）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 模块 JS 核心。<strong>难度</strong>：★★☆☆☆。<strong>务必动手</strong>：第 6 章 Demo。<strong>本篇不涉及</strong>：组合式 API 深入与响应式原理（02 篇专讲）、路由/状态管理（03/04 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>响应式绑定</strong>（灵魂）→ <strong>组件化</strong>（复用单元）→ <strong>指令</strong>（模板语法）→ <strong>computed 与 watch</strong>（派生与副作用）→ <strong>生命周期</strong>（初始化与清理的锚点）。</p>
+
+  <h3>2.1 响应式绑定：谁用到就记谁</h3>
+  <p>data 字段被劫持：Vue2 用 <code>Object.defineProperty</code> 把属性转 getter/setter——<strong>访问时收集依赖、修改时触发更新</strong>；模板渲染/computed/watch 都是依赖方。<span class="tag-pit">坑</span>：新增/删除属性检测不到（需 <code>Vue.set</code>）；数组按下标赋值 <code>arr[i]=x</code>、改 length 也不触发——但 push/pop/shift/unshift/splice/sort/reverse 这 <strong>7 个数组方法已被 Vue 重写</strong>，可正常触发。Vue3 用 Proxy 解决全部盲区。</p>
+
+  <h3>2.2 组件化：单向数据流</h3>
+  <p>应用是一棵组件树：数据靠 <strong>props 向下</strong>、事件靠 <strong>emit 向上</strong>单向流动；每个组件自带模板、状态、逻辑。组件是复用与拆分的基本单位——表格面板、流程图容器、低代码物料都做成组件。</p>
+
+  <h3>2.3 模板指令与 v-if/v-show</h3>
+  <p>常用指令：插值 <code>{{ }}</code>、<code>v-bind(:)</code> 绑属性、<code>v-on(@)</code> 绑事件、<code>v-if/v-show</code> 控显隐、<code>v-for</code> 列表。<strong>v-if vs v-show</strong>：v-show 始终渲染只切 display（切换开销小）；v-if 惰性销毁/重建（切换开销大但初始不渲染）——<strong>频繁切换用 v-show，很少切换用 v-if</strong>。<span class="tag-pit">坑</span>：v-for 必须给稳定的 <code>:key</code>（唯一 id，别用 index）。</p>
+
+  <h3>2.4 computed 与 watch：派生值 vs 副作用</h3>
+  <p><strong>computed</strong>：派生状态，依赖变才重算、<strong>带缓存</strong>——模板组合逻辑首选；<strong>watch</strong>：观察变化后做<strong>副作用</strong>（发请求/操作 DOM）。<span class="tag-point">经验法则</span>：能 computed 就别在 methods 里重复算；methods 只用于事件处理。</p>
+
+  <h3>2.5 生命周期：在哪初始化、在哪清理</h3>
+  <ul>
+    <li><strong>created</strong>：实例建好、data 可用——常在这发请求；</li>
+    <li><strong>mounted</strong>：DOM 已挂载——操作 DOM、初始化图表；</li>
+    <li><strong>beforeDestroy/destroyed</strong>：清理定时器、解绑监听、dispose 图表——<strong>防内存泄漏</strong>（衔接 01 模块 04 篇泄漏三来源）。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：选项式组件基本结构</h3>
+<pre class="code" data-lang="js"><code>export default {
+  props: { title: String },
+  data() { return { count: 0, list: [] }; },
+  computed: {
+    double() { return this.count * 2; }      // 派生状态，带缓存
+  },
+  watch: {
+    count(nv, ov) { console.log('变了', ov, '→', nv); }
+  },
+  mounted() { this.fetchList(); },
+  beforeDestroy() { clearInterval(this.timer); },
+  methods: {
+    inc() { this.count++; },
+    async fetchList() { this.list = await api.getList(); }
+  }
+};</code></pre>
+
+  <h3>3.2 场景二：模板绑定与列表</h3>
+<pre class="code" data-lang="html"><code>&lt;template&gt;
+  &lt;h3&gt;{{ title }}&lt;/h3&gt;
+  &lt;button @click="inc" :disabled="count &gt;= 10"&gt;加 {{ double }}&lt;/button&gt;
+  &lt;ul&gt;
+    &lt;li v-for="item in list" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/template&gt;</code></pre>
+
+  <h3>3.3 场景三：Vue2 与 Vue3 写法对照</h3>
+  <table>
+    <colgroup><col style="width:25%"><col style="width:37%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>Vue2（选项式）</th><th>Vue3（组合式）</th></tr></thead>
+    <tbody>
+      <tr><td>响应式原理</td><td>Object.defineProperty</td><td>Proxy</td></tr>
+      <tr><td>组织方式</td><td>data/methods/watch 分块</td><td>setup 里按逻辑聚合</td></tr>
+      <tr><td>新增属性</td><td>需 Vue.set</td><td>直接赋值即可</td></tr>
+      <tr><td>复用</td><td>mixins</td><td>组合式函数 composables</td></tr>
+    </tbody>
+  </table>
+  <p><strong>定位</strong>：Vue2 是老项目存量、Vue3 是新项目默认——两套都要能读，新代码按团队栈选。</p>
+
+  <h3>3.4 场景四：渐进引入（与 jQuery 共存）</h3>
+<pre class="code" data-lang="js"><code>// 智能监控大屏：局部挂载 Vue，与 jQuery 页面共存
+new Vue({
+  el: '#alarm-panel',
+  data: { alarms: [] },
+  mounted() {
+    // WebSocket 推来的数据，jQuery 负责别处，这里只管告警面板
+    ws.on('alarm', (msg) =&gt; this.alarms.push(msg));
+  }
+});</code></pre>
+  <p><strong>关键纪律</strong>：划清"谁管哪块 DOM"——两边改同一节点会互相覆盖。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：选项式五要素已用熟。</p>
+
+  <h3>4.1 nextTick 与更新时序</h3>
+  <p>DOM 更新是<strong>异步批量</strong>的：同一 tick 内多次改状态合并成一次重渲染。<strong>改完立刻读 DOM 是旧值</strong>——要 <code>this.$nextTick(() =&gt; ...)</code>。原理见 03 篇微任务（nextTick 在微任务阶段批量 flush）。</p>
+
+  <h3>4.2 v-for 里的 key 与 diff</h3>
+  <p>key 是虚拟 DOM diff 的"身份"：稳定 id 让节点跨渲染可追踪（移动复用），index 作 key 在排序/增删时身份错位——就地复用导致输入框内容串行等经典 bug。<strong>原则：列表项有唯一 id 就绝不用 index。</strong></p>
+
+  <h3>4.3 mixins 的复用困境与替代</h3>
+  <p>mixins 的问题：<strong>来源不透明</strong>（模板里 this.data 看不出来自哪个 mixin）、<strong>命名冲突</strong>、多 mixin 叠加难追踪。Vue3 的 composables（组合式函数）按"逻辑功能"聚合、显式导入——复用方式的演进是 Vue3 的核心动机之一（02 篇展开）。</p>
+
+  <h3>4.4 组件通信谱系</h3>
+  <p>props/emit 是主干；跨层级：provide/inject（祖先→后代，主题/配置类场景）；全局状态：Vuex/Pinia（04 篇）；事件总线在 Vue3 已移除（$on 依赖实例方法）——跨组件非父子通信收敛到状态管理。<strong>通信方式按"层级距离"选，别一步到位上全局 store。</strong></p>
+
+  <h3>4.5 keep-alive 与组件缓存</h3>
+  <p><code>&lt;keep-alive&gt;</code> 包裹的组件切换时不销毁（activated/deactivated 钩子），保留状态——列表页→详情页→返回列表不丢滚动与筛选。代价：内存驻留，配合 include/exclude 控制缓存范围。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="Vue 数据驱动视图的响应式数据流示意图">
       <defs>
@@ -590,52 +714,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Vue 响应式数据流（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 响应式绑定（Reactivity）</h3>
-  <p class="lead"><b>一句话定位</b>：data 字段被劫持，谁用到就记为依赖，字段一变依赖处自动更新——这是 Vue 的灵魂。</p>
-  <ul>
-    <li><strong>原理（Vue2）</strong>：<code>Object.defineProperty</code> 把每个属性转 getter/setter，访问时收集依赖、修改时触发更新。</li>
-    <li><strong>依赖</strong>：模板渲染、computed、watch 都是字段的依赖方。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>新增/删除属性检测不到（需 <code>Vue.set</code>）——这是 Vue2 著名限制，Vue3 用 Proxy 解决。</p>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>数组也有盲区：按下标赋值 <code>arr[i] = x</code>、直接改 <code>arr.length</code> 不会触发视图更新，需用 <code>Vue.set(arr, i, v)</code> 或 <code>arr.splice</code>；而 <code>push/pop/shift/unshift/splice/sort/reverse</code> 这 7 个数组方法已被 Vue 重写，调用它们能正常触发更新。</p>
-  <h3>2.2 组件化（Component）</h3>
-  <p class="lead"><b>一句话定位</b>：应用是一棵组件树，数据靠 props 向下、事件靠 emit 向上单向流动。</p>
-  <ul>
-    <li><strong>封装</strong>：每个组件自带模板、状态、逻辑。</li>
-    <li><strong>通信</strong>：<code>props</code> 收父级数据、<code>emit</code> 向父级发事件。</li>
-  </ul>
-  <p>组件是复用与拆分的基本单位——数据编排平台把表格面板、流程图容器做成组件，低代码平台把每个物料做成组件。</p>
-  <h3>2.3 模板语法与指令（Directives）</h3>
-  <p class="lead"><b>一句话定位</b>：指令是带 v- 的特殊属性，告诉框架对这个 DOM 做什么。</p>
-  <ul>
-    <li><strong>常用</strong>：<code>{{ }}</code> 插值、<code>v-bind</code>(<code>:</code>) 绑属性、<code>v-on</code>(<code>@</code>) 绑事件、<code>v-if/v-show</code> 控显隐、<code>v-for</code> 列表渲染。</li>
-    <li><strong>v-if vs v-show</strong>：<code>v-show</code> 始终渲染、只切 <code>display</code>，切换开销小；<code>v-if</code> 惰性销毁/重建，切换开销大但初始不渲染——频繁切换用 v-show，很少切换用 v-if。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span><code>v-for</code> 必须给稳定的 <code>:key</code>（唯一 id，别用 index），否则节点就地复用出错、渲染错乱。</p>
-  <h3>2.4 计算属性与侦听器（computed &amp; watch）</h3>
-  <p class="lead"><b>一句话定位</b>：派生值用 computed（带缓存），做副作用才用 watch。</p>
-  <ul>
-    <li><strong>computed</strong>：派生状态，依赖变才重算、带缓存，适合模板组合逻辑。</li>
-    <li><strong>watch</strong>：观察某变化后做副作用（发请求、操作 DOM）。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">经验法则</span>能 computed 就别在 methods 里重复算；methods 只用于事件处理。</p>
-  <h3>2.5 生命周期钩子（Lifecycle）</h3>
-  <p class="lead"><b>一句话定位</b>：组件从创建到销毁的钩子序列，决定"在哪初始化、在哪清理"。</p>
-  <ul>
-    <li><strong>created</strong>：实例建好、data 可用，常在这里发请求。</li>
-    <li><strong>mounted</strong>：DOM 已挂载，能操作 DOM、初始化图表。</li>
-    <li><strong>beforeDestroy/destroyed</strong>：清理定时器、解绑监听、dispose 图表，防内存泄漏。</li>
-  </ul>
-  <p>大屏在 mounted 初始化图表、destroyed 销毁实例，是标准姿势。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次数据变化如何到 DOM</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Vue2 响应式更新调度流程图">
       <defs>
@@ -663,52 +741,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Vue2 响应式更新调度（示意）</p>
   </div>
-  <ol>
-    <li><strong>触发 setter</strong>：改 data 字段，被劫持的 setter 被调用。</li>
-    <li><strong>通知 Watcher</strong>：该字段的依赖者（渲染 Watcher）收到通知，但不立即更新。</li>
-    <li><strong>批量入队</strong>：同一 tick 内多次修改合并，避免重复渲染。</li>
-    <li><strong>diff 并 patch</strong>：nextTick 时用虚拟 DOM diff 算出最小改动，更新真实 DOM。</li>
-  </ol>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 选项式组件基本结构</h3>
-<pre class="code" data-lang="js"><code>export default {
-  props: { title: String },
-  data() { return { count: 0, list: [] }; },
-  computed: {
-    double() { return this.count * 2; }      // 派生状态，带缓存
-  },
-  watch: {
-    count(nv, ov) { console.log('变了', ov, '→', nv); }
-  },
-  mounted() { this.fetchList(); },
-  beforeDestroy() { clearInterval(this.timer); },
-  methods: {
-    inc() { this.count++; },
-    async fetchList() { this.list = await api.getList(); }
-  }
-};</code></pre>
-  <h3>4.2 模板：绑定与列表</h3>
-<pre class="code" data-lang="html"><code>&lt;template&gt;
-  &lt;h3&gt;{{ title }}&lt;/h3&gt;
-  &lt;button @click="inc" :disabled="count &gt;= 10"&gt;加 {{ double }}&lt;/button&gt;
-  &lt;ul&gt;
-    &lt;li v-for="item in list" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/template&gt;</code></pre>
-  <h3>4.3 Vue2 与 Vue3 写法对照</h3>
-  <table>
-    <colgroup><col style="width:25%"><col style="width:37%"><col style="width:38%"></colgroup>
-    <thead><tr><th>维度</th><th>Vue2（选项式）</th><th>Vue3（组合式）</th></tr></thead>
-    <tbody>
-      <tr><td>响应式原理</td><td>Object.defineProperty</td><td>Proxy</td></tr>
-      <tr><td>组织方式</td><td>data/methods/watch 分块</td><td>setup 里按逻辑聚合</td></tr>
-      <tr><td>新增属性</td><td>需 Vue.set</td><td>直接赋值即可</td></tr>
-      <tr><td>复用</td><td>mixins</td><td>组合式函数 composables</td></tr>
-    </tbody>
-  </table>
+  <p><strong>一次变更四步</strong>：①改 data 触发 setter → ②通知依赖的 Watcher（<strong>不立即更新，入队</strong>）→ ③nextTick 批量刷新（同 tick 合并多次变更，避免重复渲染）→ ④虚拟 DOM diff 算最小改动、patch 真实 DOM。<strong>所有"改了数据 DOM 没变"的问题，先查是不是异步时序。</strong></p>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="Vue2与Vue3对比图">
       <defs>
@@ -718,127 +751,89 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Vue2 vs Vue3（示意）</text>
 
-      <!-- Vue2 -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Vue2（选项式）</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">Object.defineProperty 响应式</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">data/methods/watch 分块组织</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">老项目存量</text>
 
-      <!-- Vue3 -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Vue3（组合式）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">Proxy 响应式，直接赋值即可</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">setup 按逻辑聚合，composables 复用</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">新项目默认</text>
     </svg>
-    <p class="diagram-caption">图 1 Vue2 vs Vue3（示意）</p>
+    <p class="diagram-caption">图 3 Vue2 vs Vue3（示意）</p>
   </div>
 </section>
 
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：从 jQuery 老项目（智能监控大屏）渐进引入 Vue2，到数据编排平台/低代码全面 Vue2+ElementUI 组件化。</p>
-  <ul>
-    <li><strong>智能监控大屏</strong>（2016-2018）：jQuery 时代项目，要逐步上 Vue2 不推翻重写。</li>
-    <li><strong>数据编排平台/低代码</strong>：Vue2+ElementUI 完整组件化应用。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责 Vue 渐进引入与业务组件封装。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算）；我负责告警面板等局部 Vue 化与物料 SFC 抽离。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Vue2（Options API）+ ElementUI + jQuery 共存 + WebSocket。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>渐进式挂载</strong>：页面局部挂 Vue 实例（如告警面板），其余仍 jQuery，同页共存。</li>
-    <li><strong>组件化</strong>：可复用面板/表格封装成 SFC，props 收数据、emit 发事件。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 智能监控大屏：局部挂载 Vue，与 jQuery 页面共存
-new Vue({
-  el: '#alarm-panel',
-  data: { alarms: [] },
-  mounted() {
-    // WebSocket 推来的数据，jQuery 负责别处，这里只管告警面板
-    ws.on('alarm', (msg) =&gt; this.alarms.push(msg));
-  }
-});</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><strong>Vue 与 jQuery 抢 DOM</strong>：两边改同一节点互相覆盖；划清"谁管哪块"。</li>
-    <li><strong>Vue2 新增属性不响应</strong>：<code>row.status='read'</code> 视图不更新；改用 <code>Vue.set</code> 或整体替换数组。</li>
-    <li><strong>图表未 dispose</strong>：切屏销毁忘 <code>chart.dispose()</code> 内存只涨不降；beforeDestroy 补上。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>老项目局部享受数据驱动，新模块全面组件化，物料复用率提升。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>排期</strong>：先在告警面板试点 Vue 挂载，跑通再推到更多模块。</li>
-    <li><strong>协作</strong>：与 jQuery 老代码维护者约定 DOM 边界，避免互相覆盖。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>渐进引入优于重写</strong>：老项目局部 Vue 化，风险可控。</li>
-    <li><strong>Vue2 响应式是"加属性"敏感点</strong>：新增属性要 Vue.set，或整体替换。</li>
-    <li><strong>卸载即释放</strong>：ECharts/定时器在 beforeDestroy 统一清。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>在 jQuery 老项目里用局部挂载 Vue2 渐进升级，并踩平了 Vue/jQuery 抢 DOM、Vue2 新增属性不响应这两个经典坑。</p>
-</section>
-
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 Vue2 新增属性不响应</h3>
-  <p class="lead"><b>一句话定位</b>：Vue2 的 defineProperty 劫持已有属性，新增的没有 setter。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实项目演进——从 jQuery 老项目（智能监控大屏）渐进引入 Vue2，到数据编排平台/低代码全面组件化。</p>
+
+  <h3>6.1 完整实现（渐进挂载 + 组件化）</h3>
+  <p><strong>落地设计</strong>：①渐进式挂载——页面局部挂 Vue 实例（告警面板），其余仍 jQuery；②组件化——可复用面板/表格封装 SFC，props 收数据、emit 发事件。</p>
+  <p>局部挂载代码见 3.4 场景。</p>
+
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>现象</strong>：给对象新加字段后视图不更新。</li>
-    <li><strong>正解</strong>：<code>Vue.set(obj, key, val)</code> 或整体替换对象；Vue3 无此问题。</li>
+    <li><strong>Vue 与 jQuery 抢 DOM</strong>：两边改同一节点互相覆盖——划清"谁管哪块"；</li>
+    <li><strong>Vue2 新增属性不响应</strong>：<code>row.status='read'</code> 视图不更新——改用 <code>Vue.set</code> 或整体替换数组；</li>
+    <li><strong>图表未 dispose</strong>：切屏销毁忘 <code>chart.dispose()</code> 内存只涨不降——beforeDestroy 统一清理。</li>
   </ul>
-  <h3>6.2 v-for 缺 key 或用 index</h3>
-  <p class="lead"><b>一句话定位</b>：用 index 作 key 会导致就地复用错误、渲染错乱。</p>
-  <ul>
-    <li><strong>现象</strong>：列表排序/增删后渲染错乱。</li>
-    <li><strong>正解</strong>：用稳定的唯一 id 作 key。</li>
-  </ul>
-  <h3>6.3 改数据后立刻读 DOM</h3>
-  <p class="lead"><b>一句话定位</b>：Vue 的 DOM 更新是异步的，改完立刻读还是旧值。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>this.list.push(x); querySelector('li').length</code> 还是旧值。</li>
-    <li><strong>正解</strong>：<code>this.$nextTick(() =&gt; {...})</code>。</li>
-  </ul>
-  <h3>6.4 定时器/监听未清理</h3>
-  <p class="lead"><b>一句话定位</b>：组件销毁时没清理定时器/监听/图表，切走后还在跑。</p>
-  <ul>
-    <li><strong>现象</strong>：切走页面后还在跑、报"操作已销毁组件"。</li>
-    <li><strong>正解</strong>：在 beforeDestroy 里 clearInterval、off 事件、dispose 图表。</li>
-  </ul>
-  <h3>6.5 computed 与 methods 混用</h3>
-  <p class="lead"><b>一句话定位</b>：派生值用 computed（有缓存），methods 只用于事件处理。</p>
-  <ul>
-    <li><strong>误区</strong>：把模板里的组合逻辑写进 methods。</li>
-    <li><strong>正解</strong>：派生值用 computed（依赖不变不重算），methods 用于事件处理。</li>
-  </ul>
+
+  <h3>6.3 验证与经验</h3>
+  <ol>
+    <li>告警面板收到 WebSocket 推送自动渲染（数据驱动生效）；</li>
+    <li>给 row 新增字段用 Vue.set 后视图更新；</li>
+    <li><strong>经验</strong>：渐进引入优于重写（局部 Vue 化风险可控）；Vue2 响应式的敏感点是"加属性"；卸载即释放。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 Vue2 新增属性不响应</h3>
+  <p><strong>根因</strong>：defineProperty 只劫持已有属性，新增的没有 setter。<strong>正解</strong>：<code>Vue.set(obj, key, val)</code> 或整体替换对象；Vue3 无此问题。</p>
+
+  <h3>7.2 v-for 缺 key 或用 index</h3>
+  <p><strong>现象</strong>：列表排序/增删后渲染错乱。<strong>根因</strong>：index 作 key 身份错位、就地复用。<strong>正解</strong>：稳定的唯一 id 作 key（4.2）。</p>
+
+  <h3>7.3 改数据后立刻读 DOM</h3>
+  <p><strong>现象</strong>：<code>this.list.push(x)</code> 后马上查 li 还是旧值。<strong>根因</strong>：DOM 更新异步批量。<strong>正解</strong>：<code>this.$nextTick(() =&gt; {...})</code>。</p>
+
+  <h3>7.4 定时器/监听未清理</h3>
+  <p><strong>现象</strong>：切走页面后定时器还在跑、报"操作已销毁组件"。<strong>正解</strong>：beforeDestroy 里 clearInterval、off 事件、dispose 图表（对应泄漏三来源）。</p>
+
+  <h3>7.5 computed 与 methods 混用</h3>
+  <p><strong>误区</strong>：把模板组合逻辑写进 methods。<strong>正解</strong>：派生值用 computed（依赖不变不重算、有缓存），methods 只用于事件处理。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Vue 的响应式原理（Vue2 版）？有什么局限？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Vue2 用 <code>Object.defineProperty</code> 把 data 的每个属性转成 getter/setter——<strong>访问时收集依赖</strong>（谁在渲染/computed/watch 里读了这个字段，就把它记为依赖），<strong>修改时触发更新</strong>（通知依赖方入队，nextTick 批量刷新后虚拟 DOM diff、patch DOM）。<strong>局限三处</strong>：①新增/删除属性劫持不到（defineProperty 只能处理"声明时存在的属性"）——需 Vue.set；②数组下标赋值与 length 修改不触发——7 个重写方法除外；③初始化要递归遍历全部属性，深层对象开销大。<strong>Vue3 用 Proxy 代理整个对象</strong>，三处局限全解（02 篇深入）。</p>
+
+  <p><strong>Q2：v-if 和 v-show 怎么选？computed 和 watch 怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>v-show</strong> 始终渲染、只切 display——切换开销小、初始开销大（即使隐藏也要渲染），适合<strong>频繁切换</strong>；<strong>v-if</strong> 惰性渲染、销毁/重建——初始不渲染省成本、切换开销大，适合<strong>很少切换或权限类一次判断</strong>。<strong>computed</strong> 是带缓存的派生值（依赖不变直接返回缓存），适合模板组合逻辑；<strong>watch</strong> 是观察变化执行副作用（发请求/操作 DOM/深度监听），适合"变化后要做事"。口诀：<strong>要一个值用 computed，要做一件事用 watch</strong>。</p>
+
+  <p><strong>Q3：老项目怎么渐进引入 Vue？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Vue 的"渐进式"就为此设计——<strong>局部挂载</strong>：在老页面某个区域 <code>new Vue({ el: '#panel' })</code>，该区域享受数据驱动，其余仍 jQuery。<strong>关键纪律是 DOM 所有权</strong>：划清 Vue 管哪块、jQuery 管哪块，两边改同一节点会互相覆盖。路径：局部试点（告警面板）→ 跑通后推广 → 新模块全面组件化（SFC）。<strong>渐进引入优于推翻重写</strong>：风险可控、随时可停。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>响应式更新的四步调度？为什么读不到新 DOM？</li>
+    <li>Vue2 数组响应式的盲区与 7 个重写方法？</li>
+    <li>v-for 的 key 为什么不能用 index？</li>
+    <li>组件销毁时要清理哪些东西？</li>
+    <li>渐进引入的 DOM 所有权纪律是什么？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Vue 官方文档（中文，含 Vue2/Vue3）：<a href="https://cn.vuejs.org/" rel="noopener">cn.vuejs.org</a></li>
@@ -846,15 +841,21 @@ new Vue({
   </ul>
   <h3>书籍</h3>
   <ul>
-    <li>《Vue.js 设计与实现》（霍春阳，人民邮电出版社）——讲透响应式原理与虚拟 DOM，深入页的思想来源。</li>
+    <li>《Vue.js 设计与实现》（霍春阳）——讲透响应式原理与虚拟 DOM，02 篇的思想来源。</li>
     <li>《Vue.js 实战》——基于真实项目的上手书。</li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>写一个列表组件：v-for + 稳定 key + computed 过滤 + watch 发请求；</li>
+    <li>故意用 index 作 key 复现排序错乱，再修复；</li>
+    <li>写一个带定时器的组件，验证 beforeDestroy 清理前后切屏的行为差异。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../01_前端基础/08_Tailwind_CSS原子化【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/10_Canvas与SVG【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/02_Vue3组合式API与响应式原理【深入】.html">下一篇 →</a>
 </nav>

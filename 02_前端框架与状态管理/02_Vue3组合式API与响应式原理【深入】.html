@@ -542,29 +542,152 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/01_Vue框架【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/04_状态管理_Vuex与Pinia【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/03_组件设计模式与插槽机制【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p>Vue3 是 Vue 的第三代重写版本，两大核心升级：<strong>组合式 API</strong>——不再用 data/methods/computed 分块组织，而是在 <code>setup()</code> 里按"逻辑关注点"自由组织代码，并把可复用逻辑抽成函数（composables）；<strong>Proxy 响应式</strong>——用 <code>new Proxy(target, handler)</code> 劫持整个对象，替代 Vue2 逐属性 <code>Object.defineProperty</code>。同时 Vue3 原生支持 TypeScript、虚拟 DOM 重写更小更快、支持 Fragments 与多根节点。</p>
-  <h3>解决什么问题</h3>
-  <p>选项式 API 的痛点是"同一逻辑被拆散在 data/methods/watch 各处"——组件一大，要盯着一个功能就得上下滚动找齐。组合式让"一个功能的所有相关代码写在一起"。响应式上，Vue2 的 defineProperty 检测不到新增/删除属性、数组下标赋值，Proxy 从根上解决：深层对象惰性代理、新增删除自动追踪。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Vue3 两大核心升级</strong>：①<strong>组合式 API</strong>——不再 data/methods/computed 分块，而是在 <code>&lt;script setup&gt;</code> 里按"逻辑关注点"组织代码，可复用逻辑抽成 composables 函数；②<strong>Proxy 响应式</strong>——<code>new Proxy(target, handler)</code> 劫持整个对象，替代 Vue2 逐属性 defineProperty。附带：原生 TS 支持、虚拟 DOM 重写更小更快、Fragments 多根节点。它解决的是选项式的两大痛点：同一逻辑被拆散在 data/methods/watch 各处（组件一大上下滚动找齐），以及 Vue2 响应式的增删盲区。</p>
+
+  <h3>1.2 横向对比：选项式 vs 组合式</h3>
+  <ul>
+    <li><strong>逻辑组织</strong>：选项式按"选项类型"分块、同一功能拆散；组合式按"功能"聚合——组件越大组合式越好维护（图 2）；</li>
+    <li><strong>复用方式</strong>：mixins（命名冲突、来源不清）→ composable 函数（显式导入、类型清晰）——业务系统把表单逻辑抽成公共 composable 的原因；</li>
+    <li><strong>响应式底层</strong>：defineProperty 逐属性劫持、检测不到增删 → Proxy 整对象代理、增删自动追踪——<strong>理解这个差异，才知道 Vue.set 在 Vue3 为什么消失了</strong>。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 <strong>ref/reactive</strong> 的选择与解构陷阱；</li>
+    <li>口述 <strong>Proxy + track/trigger + 三层映射</strong>的响应式闭环；</li>
+    <li>会手写一个<strong>最小 reactive</strong>（面试题）；</li>
+    <li>抽一个可复用 <strong>composable</strong>（useRequest/useFormSchema）；</li>
+    <li>避开六条高频坑（解构丢响应/.value/computed 副作用/nextTick/deep/增删误区）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇选项式基础、01 模块 06 篇 TS。<strong>难度</strong>：★★★★☆（响应式原理是前端面试深水区）。<strong>务必动手</strong>：第 6 章 Demo——手写 reactive 并用之驱动视图。<strong>本篇不涉及</strong>：插槽与组件模式（03 篇）、Pinia（04 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>组合式组织</strong>→ <strong>ref 与 reactive</strong>→ <strong>computed 与 watch/watchEffect</strong>→ <strong>Proxy+Reflect</strong>→ <strong>track/trigger 闭环</strong>→ <strong>composables</strong>。</p>
+
+  <h3>2.1 组合式 API 与 script setup</h3>
+  <p>状态/计算/方法都在 <code>&lt;script setup&gt;</code> 一个作用域里，同一逻辑关注点写在一起；普通变量/函数取代 <code>this.xxx</code>——<strong>类型推导更友好、利于 Tree-shaking、可抽函数复用</strong>，模板直接用声明的变量。</p>
+
+  <h3>2.2 ref 与 reactive：统一用 ref 最稳</h3>
+  <p><strong>ref(x)</strong>：包装任意值，带 <code>.value</code>（模板自动解包、JS 要 .value）；<strong>reactive(obj)</strong>：对象转 Proxy，直接访问属性。<span class="tag-pit">坑</span>：<strong>reactive 解构会失去响应性</strong>（解构出普通值脱离 Proxy）；ref 解构后仍是引用。<span class="tag-point">经验法则</span>：基础类型用 ref，对象两者皆可但 <strong>ref 更统一</strong>（图 3）。</p>
+
+  <h3>2.3 computed 与 watch/watchEffect</h3>
+  <p><strong>computed</strong>：内部建 effect，依赖变才重算、带缓存。<strong>watch(source, cb)</strong>：默认惰性（首次不跑）、能拿 oldValue/newValue、可监听多源、可配 deep/immediate。<strong>watchEffect(fn)</strong>：自动收集 fn 里用到的依赖、变了重跑——挂载时立即执行一次、拿不到 oldValue。<strong>选择</strong>：要 oldValue/惰性用 watch，要"立即跑+自动收集"用 watchEffect。</p>
+
+  <h3>2.4 Proxy 与 Reflect 的配合</h3>
+  <p>Proxy 包装目标对象拦截 get/set/has/deleteProperty；Reflect 提供<strong>同名默认操作</strong>（<code>Reflect.get(target,key)</code>）。<span class="tag-point">组合</span>：get 时先 track、再 Reflect.get 返回真值；set 时先 Reflect.set 写值、再 trigger——<strong>在默认行为前后插一脚</strong>。</p>
+
+  <h3>2.5 track/trigger 闭环</h3>
+  <p><strong>track（依赖收集）</strong>：三层映射——<code>targetMap</code>（WeakMap，键=原始对象）→ <code>depsMap</code>（Map，键=属性名）→ <code>dep</code>（Set，装依赖该属性的所有 effect）；读属性时若当前有 effect 在跑就登记进 dep。<strong>trigger（触发更新）</strong>：写属性时取出 dep，重跑里面所有 effect；effect 重跑时重新读依赖、自动更新依赖关系（旧的不再用就自然解除）。<span class="tag-key">闭环</span>：<strong>"读时收集、写时触发"就是 Vue3 响应式的核心</strong>。</p>
+
+  <h3>2.6 effect 调度与 composables</h3>
+  <p><strong>异步批量</strong>：渲染 effect 不立即执行，进更新队列、下一微任务统一 flush——同一次同步代码改三次状态只渲染一次；更新后操作 DOM 必须 <code>await nextTick()</code>。<strong>composables</strong>：把一组响应式状态与逻辑封装成函数返回（返回响应式引用保持响应性），多组件 import 复用——Vue3 逻辑复用的标准答案，比 mixin 清晰、比 renderless 组件直接。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：script setup 基本写法</h3>
+<pre class="code" data-lang="ts"><code>&lt;script setup&gt;
+import { ref, computed, watch } from 'vue';
+
+const count = ref(0);                       // 基础类型用 ref
+const double = computed(() =&gt; count.value * 2);
+
+watch(count, (nv, ov) =&gt; console.log(ov, '→', nv));
+
+function inc() { count.value++; }           // JS 里用 .value
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;button @click="inc"&gt;{{ count }} ×2 = {{ double }}&lt;/button&gt;  &lt;!-- 模板自动解包 --&gt;
+&lt;/template&gt;</code></pre>
+
+  <h3>3.2 场景二：composable——useRequest</h3>
+<pre class="code" data-lang="ts"><code>// useRequest.ts：封装"加载-数据-错误"状态
+export function useRequest(fetcher) {
+  const data = ref(null);
+  const loading = ref(false);
+  async function run() {
+    loading.value = true;
+    try { data.value = await fetcher(); }
+    finally { loading.value = false; }
+  }
+  return { data, loading, run };   // 返回响应式引用，调用方保持响应性
+}</code></pre>
+
+  <h3>3.3 场景三：手写一个最小 reactive（面试题）</h3>
+<pre class="code" data-lang="ts"><code>let activeEffect = null;
+const targetMap = new WeakMap();
+
+function track(target, key) {
+  if (!activeEffect) return;
+  let depsMap = targetMap.get(target);
+  if (!depsMap) targetMap.set(target, (depsMap = new Map()));
+  let dep = depsMap.get(key);
+  if (!dep) depsMap.set(key, (dep = new Set()));
+  dep.add(activeEffect);                 // 登记依赖
+}
+function trigger(target, key) {
+  const depsMap = targetMap.get(target);
+  const dep = depsMap?.get(key);
+  dep?.forEach(e =&gt; e());                // 重跑所有依赖该属性的 effect
+}
+function reactive(target) {
+  return new Proxy(target, {
+    get(t, k) { track(t, k); return Reflect.get(t, k); },
+    set(t, k, v) { const r = Reflect.set(t, k, v); trigger(t, k); return r; }
+  });
+}</code></pre>
+  <p><strong>三件套记忆</strong>：activeEffect（当前在跑的副作用）、track（读时登记）、trigger（写时重跑）——30 行讲清响应式。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：track/trigger 闭环已能口述。</p>
+
+  <h3>4.1 shallowRef 与 triggerRef</h3>
+  <p><code>shallowRef</code> 只对 .value 本身响应（内部对象变化不追踪）——大表格/大列表替换整体时性能更好；配合 <code>triggerRef</code> 手动触发。大数据场景"整替优于深改"。</p>
+
+  <h3>4.2 toRefs 与解构安全</h3>
+  <p><code>toRefs(obj)</code> 把 reactive 对象的每个属性转成 ref——解构后仍是响应式引用；store 解构用 <code>storeToRefs</code>（Pinia 专用，跳过函数）。<strong>解构安全的两个工具：toRefs（reactive）与 storeToRefs（store）。</strong></p>
+
+  <h3>4.3 effect 的清理与 stop</h3>
+  <p>watch/watchEffect 返回 stop 函数——组件卸载时自动调用；手动场景（异步回调里创建的 effect）要自己管理。<strong>onInvalidate</strong>：watch 回调里注册清理逻辑（如防抖取消），下次触发前先执行。</p>
+
+  <h3>4.4 defineProps/defineEmits 的编译期魔法</h3>
+  <p>script setup 里 defineProps/defineEmits/defineExpose 无需 import（编译器宏）；TS 泛型写法 <code>defineProps&lt;{ title: string }&gt;()</code>——类型即 props 声明，与 01 模块 TS 篇的结构化类型一脉相承。</p>
+
+  <h3>4.5 响应式性能：大对象的策略</h3>
+  <p>超大列表/树的三板斧：①shallowRef + 整体替换；②分页/虚拟滚动（06 工程化篇）；③真正离线的计算挪 Worker。<strong>原则：响应式追踪有成本，追踪"需要 reactive 的最小范围"。</strong></p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="Vue3 Proxy 响应式拦截与依赖收集触发示意图">
       <defs>
@@ -591,7 +714,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Proxy 响应式的拦截入口（示意）</p>
   </div>
-  <h3>横向对比：Vue2 选项式 vs Vue3 组合式</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="Vue2选项式与Vue3组合式代码组织对比图">
       <defs>
@@ -601,7 +723,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同一逻辑，在两种写法里放在哪里（示意）</text>
 
-      <!-- Vue2选项式 -->
       <rect x="30" y="50" width="350" height="150" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">Vue2 选项式（按类型分块）</text>
       <text x="50" y="100" font-size="11" fill="#4f6348">data() { count, name }  // 状态</text>
@@ -610,7 +731,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="50" y="170" font-size="11" fill="#b91c1c">问题：同一功能被拆散在 data/computed/methods</text>
       <text x="50" y="190" font-size="11" fill="#7a8a70">组件大了要上下滚动找齐一个功能</text>
 
-      <!-- Vue3组合式 -->
       <rect x="420" y="50" width="350" height="150" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Vue3 组合式（按功能聚合）</text>
       <text x="440" y="100" font-size="11" font-family="monospace" fill="#4f6348">// 计数器功能：全部写在一起</text>
@@ -621,27 +741,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Vue2 选项式 vs Vue3 组合式（示意）</p>
   </div>
-  <ul>
-    <li><strong>逻辑组织</strong>：选项式按"选项类型"分块（data 一块、methods 一块），同一功能被拆散；组合式按"功能"聚合，一个功能的 ref/computed/函数写在一起。组件越大，组合式越好维护。</li>
-    <li><strong>复用方式</strong>：选项式靠 mixins（命名冲突、来源不清）；组合式靠 composable 函数（显式导入、类型清晰）。这是 业务系统 把表单逻辑抽成公共 composable 的原因。</li>
-    <li><strong>响应式底层</strong>：defineProperty 逐属性劫持、检测不到增删；Proxy 整对象代理、增删自动追踪。理解这个差异，才知道 Vue2 的 <code>Vue.set</code> 在 Vue3 为什么消失了。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 组合式 API 与 setup（Composition API）</h3>
-  <p class="lead"><b>一句话定位</b>：状态/计算/方法都在 &lt;script setup&gt; 一个作用域里，同一逻辑关注点的代码写在一起。</p>
-  <ul>
-    <li><strong>组织方式</strong>：不再分 data/methods/computed 块，模板直接用声明的变量。</li>
-    <li><strong>优势</strong>：普通变量/函数取代选项式的 <code>this.xxx</code>，类型推导更友好、更利于 Tree-shaking、可抽成函数复用。</li>
-  </ul>
-  <h3>2.2 ref 与 reactive</h3>
-  <p class="lead"><b>一句话定位</b>：ref 包装任意值（模板自动解包、JS 要 .value）；reactive 把对象转成 Proxy。</p>
-  <ul>
-    <li><strong>ref(x)</strong>：带 <code>.value</code> 的响应式引用；<strong>reactive(obj)</strong>：对象转 Proxy 代理。</li>
-    <li><strong>经验法则</strong>：基础类型用 ref，对象两者皆可但 ref 更统一。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="ref与reactive对比图">
       <defs>
@@ -651,14 +750,12 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">ref vs reactive 怎么选（示意）</text>
 
-      <!-- ref -->
       <rect x="30" y="50" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">ref</text>
       <text x="50" y="100" font-size="11" fill="#4f6348">包装任意类型（基础类型/对象都行）</text>
       <text x="50" y="122" font-size="11" fill="#4f6348">JS 里要 .value，模板自动解包</text>
       <text x="50" y="145" font-size="11" font-weight="600" fill="#047857">推荐：统一用 ref，避免 reactive 解构丢响应性</text>
 
-      <!-- reactive -->
       <rect x="420" y="50" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f8a63">reactive</text>
       <text x="440" y="100" font-size="11" fill="#4f6348">只能包装对象，返回 Proxy 代理</text>
@@ -667,50 +764,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 ref vs reactive（示意）</p>
   </div>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>reactive 解构会失去响应性（解构出普通值），ref 解构后仍保持引用——统一用 ref 返回最稳。</p>
-  <h3>2.3 computed 与 watch / watchEffect</h3>
-  <p class="lead"><b>一句话定位</b>：computed 做带缓存的派生值，watch/watchEffect 做副作用。</p>
-  <ul>
-    <li><strong>computed</strong>：内部建 effect，依赖变才重算、带缓存。</li>
-    <li><strong>watch(source, cb)</strong>：观察变化执行回调，默认惰性（首次不跑）、能拿到 oldValue/newValue、可监听多个源、可配 deep/immediate。</li>
-    <li><strong>watchEffect(fn)</strong>：自动收集 fn 里用到的响应式依赖、变了重跑；组件挂载时立即执行一次、回调里拿不到 oldValue。</li>
-  </ul>
-  <h3>2.4 Proxy 与 Reflect</h3>
-  <p class="lead"><b>一句话定位</b>：Proxy 拦截操作，Reflect 提供默认行为，两者配合在"默认行为前后插一脚"。</p>
-  <ul>
-    <li><strong>Proxy</strong>：包装目标对象，拦截 get/set/has/deleteProperty 等。</li>
-    <li><strong>Reflect</strong>：与拦截器同名的默认操作（如 <code>Reflect.get(target,key)</code>）。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">组合</span>get 时先 track、再 Reflect.get 返回真值；set 时先 Reflect.set 写值、再 trigger。</p>
-  <h3>2.5 依赖收集 track（Dependency Tracking）</h3>
-  <p class="lead"><b>一句话定位</b>：三层映射精确记录"哪个 effect 依赖了哪个对象的哪个属性"。</p>
-  <ul>
-    <li><strong>三层结构</strong>：<code>targetMap</code>（WeakMap，键=原始对象）→ <code>depsMap</code>（Map，键=属性名）→ <code>dep</code>（Set，装所有依赖该属性的 effect）。</li>
-    <li><strong>时机</strong>：读属性时若当前正有 effect 在跑，就把它加进对应 dep。</li>
-  </ul>
-  <h3>2.6 触发更新 trigger</h3>
-  <p class="lead"><b>一句话定位</b>：写属性时取出该属性的 dep，把里面所有 effect 重新执行。</p>
-  <ul>
-    <li><strong>重跑</strong>：effect 重跑时重新读依赖，自动建立新关系；旧依赖不再被用就自然解除。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-key">闭环</span>这套"读时收集、写时触发"就是 Vue3 响应式的核心。</p>
-  <h3>2.7 effect 副作用函数与调度</h3>
-  <p class="lead"><b>一句话定位</b>：渲染 effect 不是立即执行，而是进更新队列、下一微任务统一 flush——这就是组件更新异步的根因。</p>
-  <ul>
-    <li><strong>批量更新</strong>：同一同步代码块内多次修改状态，渲染 effect 在一个微任务 tick 内只执行一次。</li>
-    <li><strong>nextTick</strong>：想在更新后操作 DOM，必须 <code>await nextTick()</code>。</li>
-  </ul>
-  <h3>2.8 组合式函数 composables</h3>
-  <p class="lead"><b>一句话定位</b>：把一组响应式状态与逻辑封装成函数返回，多组件 import 复用——Vue3 逻辑复用的标准答案。</p>
-  <ul>
-    <li><strong>优势</strong>：比 mixin 清晰（来源明确、无命名冲突）、比 renderless 组件直接。</li>
-    <li><strong>实践</strong>：业务系统 的表单逻辑、请求 loading 状态都是 composable。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 依赖收集的三层映射结构</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 290" role="img" aria-label="Vue3 依赖收集三层映射 targetMap 结构示意图">
       <defs>
@@ -744,101 +797,17 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="668" y="163" text-anchor="middle" font-size="11.5" fill="#b45309">computed effect</text>
       <text x="400" y="272" text-anchor="middle" font-size="12.5" fill="#4f6348">改 objA.count 时：trigger 取出 dep 集合，重跑里面所有 effect。</text>
     </svg>
-    <p class="diagram-caption">图 2 依赖收集的三层映射结构（示意）</p>
+    <p class="diagram-caption">图 4 依赖收集的三层映射结构（示意）</p>
   </div>
-  <ol>
-    <li><strong>读属性</strong>：Proxy.get 拦截，查 targetMap 找到该对象→属性对应的 dep Set。</li>
-    <li><strong>登记</strong>：把当前正在执行的 effect 加进 dep。</li>
-    <li><strong>写属性</strong>：Proxy.set 拦截，查 dep，把其中所有 effect 重新调度。</li>
-    <li><strong>重跑</strong>：effect 重跑时重新读依赖，自动更新 dep。</li>
-  </ol>
-  <h3>3.2 为什么更新是异步的</h3>
-  <p>修改状态后，渲染 effect 不是立即执行，而是被放进一个队列（jobQueue），用 <code>Promise.then</code>（微任务）flush。同一次同步代码里改 count 三次，渲染 effect 只会执行一次——这就是批量更新。想在更新后操作 DOM，必须 <code>await nextTick()</code>。</p>
+  <p><strong>闭环四步</strong>：①读属性——Proxy.get 拦截，沿 targetMap→depsMap 找到 dep；②登记——当前正在执行的 effect 加进 dep；③写属性——Proxy.set 拦截，取出 dep 重跑所有 effect；④重跑——effect 重新读依赖自动更新关系。<strong>为什么更新是异步的</strong>：渲染 effect 进 jobQueue，用 Promise.then（微任务）flush——同一次同步代码改三次状态只渲染一次（衔接 01 模块 03 篇事件循环）。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 script setup 基本写法</h3>
-<pre class="code" data-lang="ts"><code>&lt;script setup&gt;
-import { ref, computed, watch } from 'vue';
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：业务系统（Vue3+TS+Pinia）表单设计器/渲染器实战——两端共享同一套字段元数据逻辑。</p>
 
-const count = ref(0);                       // 基础类型用 ref
-const double = computed(() =&gt; count.value * 2);
-
-watch(count, (nv, ov) =&gt; console.log(ov, '→', nv));
-
-function inc() { count.value++; }           // JS 里用 .value
-&lt;/script&gt;
-
-&lt;template&gt;
-  &lt;button @click="inc"&gt;{{ count }} ×2 = {{ double }}&lt;/button&gt;  &lt;!-- 模板自动解包 --&gt;
-&lt;/template&gt;</code></pre>
-  <h3>4.2 composable：把逻辑抽出来复用</h3>
-<pre class="code" data-lang="ts"><code>// useRequest.ts：封装"加载-数据-错误"状态
-export function useRequest(fetcher) {
-  const data = ref(null);
-  const loading = ref(false);
-  async function run() {
-    loading.value = true;
-    try { data.value = await fetcher(); }
-    finally { loading.value = false; }
-  }
-  return { data, loading, run };   // 返回响应式引用，调用方保持响应性
-}</code></pre>
-  <h3>4.3 手写一个最小 reactive</h3>
-<pre class="code" data-lang="ts"><code>let activeEffect = null;
-const targetMap = new WeakMap();
-
-function track(target, key) {
-  if (!activeEffect) return;
-  let depsMap = targetMap.get(target);
-  if (!depsMap) targetMap.set(target, (depsMap = new Map()));
-  let dep = depsMap.get(key);
-  if (!dep) depsMap.set(key, (dep = new Set()));
-  dep.add(activeEffect);                 // 登记依赖
-}
-function trigger(target, key) {
-  const depsMap = targetMap.get(target);
-  const dep = depsMap?.get(key);
-  dep?.forEach(e =&gt; e());                // 重跑所有依赖该属性的 effect
-}
-function reactive(target) {
-  return new Proxy(target, {
-    get(t, k) { track(t, k); return Reflect.get(t, k); },
-    set(t, k, v) { const r = Reflect.set(t, k, v); trigger(t, k); return r; }
-  });
-}</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统（Vue3+TS+Pinia）的表单设计器/渲染器要共享同一套字段元数据逻辑，Pinia store 也建立在 ref/reactive 之上。</p>
-  <ul>
-    <li><strong>业务场景</strong>：设计态拖拽改字段、渲染态按 schema 生成表单，两端逻辑必须同源。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责抽 composable 复用设计/渲染两端逻辑与 Pinia store 拆分。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算）；我负责表单设计器这一块。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Vue3 组合式 API（script setup）+ TypeScript + Pinia（setup 风格）+ ElementPlus。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>抽 composable</strong>：字段增删改、选中字段、校验状态抽成 <code>useFormSchema()</code>，设计器与渲染器共用。</li>
-    <li><strong>泛型约束</strong>：schema 用 TS 泛型，与公共包 FieldMeta 一致。</li>
-    <li><strong>store 即响应式</strong>：Pinia setup 风格里就是 ref + computed。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="ts"><code>// useFormSchema.ts
+  <h3>6.1 完整实现：useFormSchema composable</h3>
+<pre class="code" data-lang="ts"><code>// useFormSchema.ts
 export function useFormSchema(initial: FieldMeta[] = []) {
   const fields = ref&lt;FieldMeta[]&gt;(initial);
   const selected = ref&lt;FieldMeta | null&gt;(null);
@@ -849,7 +818,7 @@ export function useFormSchema(initial: FieldMeta[] = []) {
   return { fields, selected, addField, removeField };
 }
 // 设计器与渲染器各自 import，逻辑单一来源、不漂移</code></pre>
-  <pre class="code" data-lang="ts"><code>// stores/user.ts（setup 风格）
+<pre class="code" data-lang="ts"><code>// stores/user.ts（Pinia setup 风格——store 即响应式）
 export const useUserStore = defineStore('user', () =&gt; {
   const token = ref('');
   const profile = ref&lt;Profile | null&gt;(null);
@@ -858,92 +827,96 @@ export const useUserStore = defineStore('user', () =&gt; {
   return { token, profile, isLogin, setToken };
 });</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>解构后仍是 ref</strong>：<code>const { fields } = useFormSchema()</code> 后 fields 还是 ref，要 .value；曾误当普通数组 push 报错。</li>
-    <li><strong>reactive 解构丢响应</strong>：reactive schema 解构丢响应性，统一用 ref 返回。</li>
-    <li><strong>深层 watch 漏 deep</strong>：校验在 watch 里做，深层嵌套没加 <code>{ deep: true }</code> 不触发，补上后正常。</li>
-    <li><strong>直接解构 store 丢响应</strong>：<code>const { token } = useUserStore()</code> token 变了视图不更新；用 <code>storeToRefs</code> 保持引用。</li>
+    <li><strong>解构后仍是 ref</strong>：<code>const { fields } = useFormSchema()</code> 后 fields 还是 ref 要 .value——曾误当普通数组 push 报错；</li>
+    <li><strong>reactive 解构丢响应</strong>：reactive schema 解构丢响应性——统一用 ref 返回；</li>
+    <li><strong>深层 watch 漏 deep</strong>：校验在 watch 里做，深层嵌套没加 <code>{ deep: true }</code> 不触发；</li>
+    <li><strong>直接解构 store 丢响应</strong>：<code>const { token } = useUserStore()</code> token 变了视图不更新——用 <strong>storeToRefs</strong> 保持引用。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li>设计态与渲染态逻辑从两份拷贝合并为一个 composable，改一处两端同步。</li>
+    <li><strong>返回 ref 而非 reactive</strong>：解构后仍是响应式引用——composable 的返回契约；</li>
+    <li><strong>Pinia setup 风格</strong>：store 就是 ref+computed+函数——组合式的自然延伸，概念零新增；</li>
+    <li><strong>FieldMeta 泛型</strong>：与公共包类型一致（01 模块 06 篇 OpenAPI codegen 同源）。</li>
   </ul>
 
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端/产品定 FieldMeta 结构，composable 才好泛型约束。</li>
-    <li><strong>排期</strong>：先做渲染器跑通 schema，再抽 composable 给设计器复用。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>逻辑同源靠 composable</strong>：多入口共享逻辑就抽成函数返回响应式状态。</li>
-    <li><strong>ref 返回优于 reactive 解构</strong>：避免响应性丢失。</li>
-    <li><strong>解构 store 必用 storeToRefs</strong>：这是 Pinia 最常见的"视图不更新"坑。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用一个 useFormSchema composable 把设计器与渲染器逻辑合并为单一来源，并踩平了解构 ref/reactive/store 丢响应这一连串问题。</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 reactive 解构丢响应性</h3>
-  <p class="lead"><b>一句话定位</b>：解构出的是普通值，脱离了 Proxy，所以视图不更新。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>const { name } = reactive(obj)</code> 后改 name 视图不更新。</li>
-    <li><strong>正解</strong>：用 ref、或 <code>storeToRefs</code> / <code>toRefs</code> 保持引用。</li>
-  </ul>
-  <h3>6.2 ref 在 JS 里忘写 .value</h3>
-  <p class="lead"><b>一句话定位</b>：模板自动解包，但 JS 逻辑里必须 .value。</p>
-  <ul>
-    <li><strong>现象</strong>：比较 <code>count === 0</code> 永远 false。</li>
-    <li><strong>正解</strong>：ESLint 规则兜底，逻辑里一律 <code>count.value</code>。</li>
-  </ul>
-  <h3>6.3 computed 里写副作用</h3>
-  <p class="lead"><b>一句话定位</b>：computed 是纯派生、有缓存，副作用应该放 watch。</p>
-  <ul>
-    <li><strong>现象</strong>：computed 里发请求/改 DOM。</li>
-    <li><strong>原因</strong>：computed 可能被延迟求值，写副作用不可控。</li>
-    <li><strong>正解</strong>：副作用用 watch/watchEffect。</li>
-  </ul>
-  <h3>6.4 改状态后立刻读 DOM</h3>
-  <p class="lead"><b>一句话定位</b>：Vue 更新是异步批量的，改完立刻读还是旧值。</p>
-  <ul>
-    <li><strong>现象</strong>：改完 ref 立刻读 DOM 还是旧值。</li>
-    <li><strong>正解</strong>：<code>await nextTick()</code>。</li>
-  </ul>
-  <h3>6.5 watch 深层对象漏 deep</h3>
-  <p class="lead"><b>一句话定位</b>：改嵌套属性要 deep:true，否则不触发。</p>
-  <ul>
-    <li><strong>现象</strong>：改嵌套属性 watch 不触发。</li>
-    <li><strong>正解</strong>：深层观察用 <code>watch(obj, cb, { deep: true })</code>，或直接 watch 一个 getter。</li>
-  </ul>
-  <h3>6.6 Proxy 不能监听新增删除？</h3>
-  <p class="lead"><b>一句话定位</b>：误解——Proxy 能拦截 delete/add，新增/删除天然响应。</p>
-  <ul>
-    <li><strong>误区</strong>：以为 Vue3 也有 Vue2 的限制。</li>
-    <li><strong>口径</strong>：Proxy 能拦截 delete/add，新增/删除对象属性天然响应，不需要 Vue.set。</li>
-  </ul>
+  <h3>6.4 复盘与可复用经验</h3>
+  <ol>
+    <li><strong>逻辑同源靠 composable</strong>：多入口共享逻辑就抽成函数返回响应式状态；</li>
+    <li><strong>ref 返回优于 reactive 解构</strong>：避免响应性丢失；</li>
+    <li><strong>解构 store 必用 storeToRefs</strong>：Pinia 最常见的"视图不更新"坑。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 reactive 解构丢响应性</h3>
+  <p><strong>现象</strong>：<code>const { name } = reactive(obj)</code> 后改 name 视图不更新。<strong>根因</strong>：解构出普通值脱离 Proxy。<strong>正解</strong>：用 ref、或 <code>toRefs</code>/<code>storeToRefs</code> 保持引用。</p>
+
+  <h3>7.2 ref 在 JS 里忘写 .value</h3>
+  <p><strong>现象</strong>：<code>count === 0</code> 永远 false。<strong>根因</strong>：模板自动解包、JS 不解包。<strong>正解</strong>：逻辑里一律 <code>count.value</code>，ESLint 规则兜底。</p>
+
+  <h3>7.3 computed 里写副作用</h3>
+  <p><strong>现象</strong>：computed 里发请求/改 DOM。<strong>根因</strong>：computed 可能被延迟求值，副作用不可控。<strong>正解</strong>：副作用用 watch/watchEffect——<strong>computed 是纯派生</strong>。</p>
+
+  <h3>7.4 改状态后立刻读 DOM</h3>
+  <p><strong>根因</strong>：更新异步批量（jobQueue 微任务 flush）。<strong>正解</strong>：<code>await nextTick()</code>。</p>
+
+  <h3>7.5 watch 深层对象漏 deep</h3>
+  <p><strong>现象</strong>：改嵌套属性 watch 不触发。<strong>正解</strong>：<code>watch(obj, cb, { deep: true })</code>，或直接 watch 一个 getter（<code>(() =&gt; obj.a.b)</code>——更精确还省 deep）。</p>
+
+  <h3>7.6 "Proxy 不能监听新增删除"？——误解</h3>
+  <p><strong>口径</strong>：Proxy 能拦截 delete/add，<strong>新增/删除对象属性天然响应</strong>，Vue3 不需要 Vue.set——别把 Vue2 的限制带进 Vue3。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Vue3 的 Proxy 响应式是怎么工作的？相比 Vue2 解决了什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>工作原理</strong>——reactive 返回 <code>new Proxy(target, handler)</code>：get 拦截时先 <strong>track</strong>（把当前正在执行的 effect 登记进三层映射 targetMap→depsMap→dep），再 Reflect.get 返回真值；set 拦截时先 Reflect.set 写值、再 <strong>trigger</strong>（取出 dep 重跑所有 effect）。effect 重跑重新读依赖，依赖关系自动更新。<strong>解决三件事</strong>：①新增/删除属性天然响应（Proxy 拦截整个对象的所有操作，Vue.set 消失）；②数组下标赋值/length 可追踪；③惰性代理（访问到才深层代理，初始化不用递归全量劫持）。<br><br>
+  <strong>加分点</strong>：能写出 30 行最小 reactive（track/trigger/activeEffect 三件套）。</p>
+
+  <p><strong>Q2：ref 和 reactive 怎么选？解构为什么会丢响应性？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>ref</strong> 包装任意值（内部也用 reactive 实现对象包装），JS 里 .value、模板自动解包，解构后仍是引用；<strong>reactive</strong> 只包装对象返回 Proxy，解构出的是普通值——<strong>脱离了 Proxy 拦截，改成什么样 Vue 都不知道</strong>，所以丢响应。<strong>工程约定</strong>：统一用 ref（composable 返回 ref、store 用 storeToRefs 解构），需要按属性解构 reactive 时用 toRefs。<strong>口诀：解构出来的东西必须还是 ref。</strong></p>
+
+  <p><strong>Q3：组合式 API 为什么比 mixins 好？怎么抽一个 composable？</strong></p>
+  <p class="note"><strong>参考答案</strong>：mixins 三宗罪——<strong>来源不透明</strong>（this.foo 不知道来自哪个 mixin）、<strong>命名冲突</strong>、多 mixin 叠加难追踪；composable 是显式 import 的普通函数——来源清晰、可 TS 类型化、可组合嵌套。<strong>抽取方法</strong>：把"一组相关响应式状态 + 操作函数"装进函数并 <strong>返回 ref 引用</strong>（不是 reactive 解构值），如 useRequest（data/loading/run）、useFormSchema（fields/selected/addField/removeField）。实战收益：设计器与渲染器逻辑从两份拷贝合并为单一来源，改一处两端同步。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>track/trigger 的触发时机？三层映射结构？</li>
+    <li>为什么渲染 effect 是异步批量执行的？</li>
+    <li>watch 与 watchEffect 的三个差异？</li>
+    <li>手写最小 reactive 需要哪三件套？</li>
+    <li>store 解构为什么要 storeToRefs？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Vue3 组合式 API 文档（中文）：<a href="https://cn.vuejs.org/guide/extras/composition-api-faq.html" rel="noopener">cn.vuejs.org/guide/extras/composition-api-faq</a></li>
-    <li>Vue3 响应式原理（Reactivity Fundamentals）：<a href="https://cn.vuejs.org/guide/extras/reactivity-in-depth.html" rel="noopener">cn.vuejs.org/guide/extras/reactivity-in-depth</a></li>
+    <li>Vue3 响应式深入（Reactivity in Depth）：<a href="https://cn.vuejs.org/guide/extras/reactivity-in-depth.html" rel="noopener">cn.vuejs.org/guide/extras/reactivity-in-depth</a></li>
   </ul>
   <h3>书籍</h3>
   <ul>
-    <li>《Vue.js 设计与实现》（霍春阳）——Proxy 响应式、依赖收集、调度器源码级讲解，本页核心思想来源。</li>
+    <li>《Vue.js 设计与实现》（霍春阳）——Proxy 响应式、依赖收集、调度器源码级讲解，本篇核心思想来源。</li>
   </ul>
   <h3>实战资源</h3>
   <ul>
-    <li>VueUse（官方 composable 集合，学习如何抽象复用逻辑）：<a href="https://vueuse.org/" rel="noopener">vueuse.org</a></li>
+    <li>VueUse（官方 composable 集合，学抽象方式）：<a href="https://vueuse.org/" rel="noopener">vueuse.org</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 3.3 手写 reactive，用它驱动一个计数器视图；</li>
+    <li>复现 reactive 解构丢响应与 store 解构丢响应，用 toRefs/storeToRefs 修复；</li>
+    <li>把自己项目里一段重复逻辑抽成 composable，并用 VueUse 对照学习抽象粒度。</li>
+  </ol>
 </section>
 
 </main>
@@ -951,7 +924,7 @@ export const useUserStore = defineStore('user', () =&gt; {
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/01_Vue框架【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/04_状态管理_Vuex与Pinia【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/03_组件设计模式与插槽机制【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Vue3组合式API与响应式原理【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
