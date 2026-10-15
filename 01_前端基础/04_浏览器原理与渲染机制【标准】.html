@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../01_前端基础/10_Canvas与SVG【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/03_JavaScript进阶_事件循环与异步【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../01_前端基础/05_HTTP与跨域请求【标准】.html">下一篇 →</a>
 </nav>
@@ -548,21 +548,126 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">可观测 API 与工具要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：浏览器原理与渲染机制是"从用户输入 URL 到屏幕上出现像素"这整条链路里所有可观察行为的总和，包括网络层（DNS/TCP/TLS/HTTP）、进程与线程模型（浏览器进程、渲染进程、GPU 进程、网络进程）、解析与渲染流水线（DOM/CSSOM → 样式 → 布局 → 绘制 → 合成）、以及性能指标的采集口径。它不是一门 API，而是一套"解释现象"的框架。</p>
-  <p><strong>解决什么问题</strong>：前端优化的绝大多数决策都建立在这套框架上——首屏慢先查关键渲染路径，滚动卡顿先怀疑合成层，高频更新先查主线程长任务。不懂机制时，性能问题只能靠试错；懂了机制，看一眼 Performance 面板就能说出"卡在强制同步布局还是卡在绘制"。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>浏览器原理是"从输入 URL 到屏幕出现像素"整条链路里所有可观察行为的总和</strong>：网络层（DNS/TCP/TLS/HTTP）、多进程模型（浏览器/渲染/GPU/网络进程）、渲染流水线（DOM/CSSOM→样式→布局→绘制→合成）、性能指标口径。它不是一门 API，而是<strong>一套"解释现象"的框架</strong>——首屏慢先查关键渲染路径、滚动卡顿先怀疑合成层、高频更新先查长任务。懂了机制，看一眼 Performance 面板就能说出"卡在强制同步布局还是卡在绘制"；不懂，性能问题只能靠试错。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>性能优化靠感觉——"加了防抖怎么还是卡"；</li>
+    <li>指标混着说——把 LCP 优化做成 load 优化；</li>
+    <li>切屏后内存只涨不降——泄漏来源找不到。</li>
+  </ul>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>多进程架构</strong>与导航时序（三个进程的接力）；</li>
+    <li>分清<strong>重排/重绘/合成</strong>三档代价与各自触发属性；</li>
+    <li>分清 <strong>DOMContentLoaded / load / FCP / LCP</strong> 口径并会采集（Performance API）；</li>
+    <li>落地<strong>读写分离</strong>（Layout Thrashing 的解）与 DevTools 定位套路；</li>
+    <li>避开五条高频坑（三档代价/强制布局/顺序题/指标混淆/内存泄漏）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇渲染流水线五阶段、03 篇事件循环（本篇是两者的"全景骨架"）。<strong>难度</strong>：★★★★☆。<strong>务必动手</strong>：第 6 章 Demo——用 Performance 面板亲手录一次强制同步布局。<strong>本篇不涉及</strong>：HTTP 协议细节（05 篇专讲）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>多进程架构</strong>（谁在干活）→ <strong>导航流程</strong>（资源怎么来）→ <strong>渲染流水线</strong>（像素怎么出）→ <strong>重排/重绘/合成</strong>（改动的代价）→ <strong>关键渲染路径与指标</strong>（怎么量化）。</p>
+
+  <h3>2.1 多进程架构：职责隔离</h3>
+  <p><strong>四大进程</strong>：浏览器进程（UI/地址栏/标签管理）、渲染进程（每标签一个，跑 HTML/CSS/JS）、GPU 进程（合成与光栅化）、网络进程（所有请求）。<strong>站点隔离</strong>：Chrome 把跨站页面分到不同渲染进程——一个页面挂掉不影响其他标签。<span class="tag-point">排查线索</span>：页面卡顿多半是"渲染进程主线程被占满"（其他标签不受影响）；浏览器整体卡顿才怀疑浏览器进程或 GPU 进程。</p>
+
+  <h3>2.2 导航流程：DNS→TCP→TLS→HTTP→解析</h3>
+  <p>浏览器进程判断输入并处理重定向 → DNS 解析（缓存未命中才走网络）→ TCP 建链（连接池复用）→ TLS 握手 → HTTP 请求响应 → 交付渲染进程解析。<span class="tag-point">优化对应</span>：<code>preconnect</code>（预建连接）与 <code>preload</code>（预加载关键资源）就是把 DNS/TCP/TLS 与主流程并行。</p>
+
+  <h3>2.3 渲染流水线与三档改动代价</h3>
+  <p>资源变像素五步（前四步主线程、合成在合成线程）：DOM/CSSOM→样式→布局→绘制→合成。<strong>改什么样式决定代价多大</strong>：<br>①<strong>重排（Layout）</strong>：改宽高/位置/字体等几何属性——整棵受影响子树重算几何，最贵（<code>width/height/margin/padding/font-size/position</code>，<strong>读 offsetWidth/scrollTop 也算</strong>——强制布局）；<br>②<strong>重绘（Paint）</strong>：改颜色/背景等非几何——跳过布局但仍在主线程生成绘制指令；<br>③<strong>仅合成</strong>：改 <code>transform/opacity</code>——完全不上主线程。<span class="tag-key">结论</span>：只动这两者的动画能保 60fps。</p>
+
+  <h3>2.4 关键渲染路径与指标口径</h3>
+  <p><strong>阻塞渲染</strong>：<code>&lt;link rel="stylesheet"&gt;</code> 与同步 <code>&lt;script&gt;</code> 都阻塞。defer vs async：<strong>defer 按文档顺序、DOMContentLoaded 之前执行；async 下载完即执行、时机无序</strong>——有依赖顺序用 defer。<strong>指标别混</strong>：DOMContentLoaded（DOM 就绪）≠ load（资源全完）≠ FCP（首次内容绘制）≠ LCP（最大内容绘制）。<strong>CWV 口径</strong>：LCP ≤2.5s 良好、2.5~4s 需改进、&gt;4s 差；INP ≤200ms；CLS ≤0.1。<span class="tag-point">要点</span>：先量指标再定位阶段，别凭感觉改。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Performance API 量指标</h3>
+<pre class="code" data-lang="js"><code>// 导航时序：DNS/TCP/首字节/加载完成各阶段耗时
+var nav = performance.getEntriesByType('navigation')[0];
+console.log('TTFB(首字节):', Math.round(nav.responseStart - nav.requestStart), 'ms');
+console.log('DOMContentLoaded:', Math.round(nav.domContentLoadedEventEnd - nav.startTime), 'ms');
+
+// 观测 LCP（最大内容绘制）
+new PerformanceObserver(function (list) {
+  var e = list.getEntries().at(-1);
+  console.log('LCP:', e.startTime, 'ms，元素:', e.element || '(未知)');
+}).observe({ type: 'largest-contentful-paint', buffered: true });</code></pre>
+
+  <h3>3.2 场景二：rAF 驱动 UI 更新</h3>
+<pre class="code" data-lang="js"><code>// setInterval 不与渲染帧对齐；rAF 在每帧绘制前回调，天然与渲染节奏一致
+function startTicker(fn) {
+  var running = true;
+  function tick() { if (!running) return; fn(); requestAnimationFrame(tick); }
+  requestAnimationFrame(tick);
+  return function () { running = false; };
+}</code></pre>
+
+  <h3>3.3 场景三：读写分离——布局性能第一原则</h3>
+<pre class="code" data-lang="js"><code>// 坏：读(offsetWidth) 与 写(style) 交替 → 每次读强制布局一次 → Layout Thrashing
+// 好：先统一读，再统一写
+var widths = items.map(function (el) { return el.offsetWidth; });   // 第一批：读
+widths.forEach(function (w, i) { items[i].style.width = (w / 2) + 'px'; }); // 第二批：写</code></pre>
+
+  <h3>3.4 场景四：懒加载与屏外跳过</h3>
+<pre class="code" data-lang="js"><code>const io = new IntersectionObserver(function (entries) {
+  entries.forEach(function (en) {
+    if (en.isIntersecting) { en.target.src = en.target.dataset.src; io.unobserve(en.target); }
+  });
+}, { rootMargin: '200px' });
+document.querySelectorAll('img[data-src]').forEach(function (img) { io.observe(img); });</code></pre>
+<pre class="code" data-lang="css"><code>.long-list-item { content-visibility: auto; contain-intrinsic-size: 0 200px; }
+/* 屏外列表项跳过布局与绘制，滚入视口才渲染；intrinsic-size 先占位防跳动 */</code></pre>
+
+  <h3>3.5 场景五：DevTools 定位套路</h3>
+  <p>Performance 面板录制 → 复现卡顿 → 看三个信号：<strong>长任务</strong>（红色块，超 50ms）、<strong>强制同步布局警告</strong>（黄色三角，读写没分离）、<strong>FPS 曲线</strong>（掉到 30 以下）。先分清"卡在脚本执行"还是"卡在渲染阶段"，再决定拆长任务还是改布局策略。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三档代价与读写分离已掌握。</p>
+
+  <h3>4.1 图层（Layer）管理</h3>
+  <p>浏览器按需给元素建图层（will-change、fixed 元素、合成属性动画元素）。<strong>图层太多耗尽 GPU 内存、滚动掉帧</strong>——will-change 是"给高频动画的提示"，不能滥用。DevTools Layers 面板可看图层树（衔接 01 篇层叠上下文）。</p>
+
+  <h3>4.2 长任务与任务拆分</h3>
+  <p>&gt;50ms 即 Long Task（INP 恶化的直接来源）。拆分手段：大循环分批（每批一个宏任务，让渲染有机会插入）；<code>scheduler.postTask</code> / <code>requestIdleCallback</code> 做低优先级调度；纯计算量大时移到 <strong>Web Worker</strong>（独立线程，不占主线程）。</p>
+
+  <h3>4.3 内存泄漏排查法</h3>
+  <p>三种经典来源：<strong>未解绑事件监听</strong>（对已移除 DOM 还挂着）、<strong>未清理定时器/观察器</strong>（setInterval 不 clear、IntersectionObserver 不 disconnect）、<strong>闭包与全局引用</strong>（大对象被匿名函数长期引用）。排查：Memory 面板拍堆快照对比（切屏前后），看哪类对象只增不减。<strong>正解</strong>：组件销毁钩子里成对清理，懒加载时 unobserve。</p>
+
+  <h3>4.4 Web Vitals 的采集与上报</h3>
+  <p><code>web-vitals</code> 库封装了 LCP/INP/CLS 采集，<code>onLCP(console.log)</code> 一行接入；自研上报用 PerformanceObserver（如 3.1），注意 <code>buffered:true</code> 回溯页面加载早期发生的指标。<strong>上报本身也要克制</strong>：批量合并、用 sendBeacon 避免页面卸载丢数据。</p>
+
+  <h3>4.5 预加载谱系</h3>
+  <p><code>preconnect</code>（提前 DNS/TCP/TLS）→ <code>dns-prefetch</code>（仅 DNS，兼容老浏览器）→ <code>preload</code>（提前加载本页关键资源）→ <code>prefetch</code>（低优先级预取可能访问的下一页资源）→ <code>prerender</code>（整页提前渲染）。按"确定性"递增选用。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="一次页面加载从地址输入到首次绘制的主干链路示意图">
       <defs>
@@ -594,54 +699,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 从 URL 输入到首次绘制的完整主干（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 多进程架构（Multi-process Architecture）</h3>
-  <p class="lead"><b>一句话定位</b>：浏览器把职责拆成多个进程隔离，页面崩溃不拖垮整个浏览器。</p>
-  <ul>
-    <li><strong>四大进程</strong>：浏览器进程（UI/地址栏/标签管理）、渲染进程（每标签一个，跑 HTML/CSS/JS）、GPU 进程（合成与光栅化）、网络进程（所有请求）。</li>
-    <li><strong>站点隔离</strong>：Chrome 的 Site Isolation 把跨站页面分到不同渲染进程，一个页面挂掉不影响其他标签。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">排查线索</span>页面卡顿多半是"渲染进程主线程被占满"（其他标签不受影响）；浏览器整体卡顿才要怀疑浏览器进程或 GPU 进程。</p>
-  <h3>2.2 导航流程（Navigation）</h3>
-  <p class="lead"><b>一句话定位</b>：一次地址输入背后是 DNS→TCP→TLS→HTTP→解析 的完整链路。</p>
-  <ol>
-    <li>浏览器进程判断是搜索词还是 URL，发起导航（含重定向处理）。</li>
-    <li>查 DNS（缓存未命中才走网络）→ 建 TCP 连接（复用连接池）→ TLS 握手。</li>
-    <li>发 HTTP 请求 → 网络进程把响应流交给渲染进程 → 渲染进程解析 HTML。</li>
-  </ol>
-  <p class="key-sentence"><span class="tag-point">优化对应</span><code>preconnect</code>（预建连接）与 <code>preload</code>（预加载关键资源）就是把 DNS/TCP/TLS 和关键资源与主流程并行。</p>
-  <h3>2.3 渲染流水线（Rendering Pipeline）</h3>
-  <p class="lead"><b>一句话定位</b>：资源变像素分五步，前四步在主线程、合成在独立合成线程。</p>
-  <ol>
-    <li>构建 DOM 与 CSSOM → 样式计算（层叠裁决）。</li>
-    <li>布局（算盒几何）→ 绘制（生成绘制指令）。</li>
-    <li>合成（图层拼装上屏，合成线程/GPU）。</li>
-  </ol>
-  <p class="key-sentence"><span class="tag-key">结论</span>只改 <code>transform/opacity</code> 的动画能保持 60fps——它不碰主线程的布局与绘制，只在合成线程重拼图层。</p>
-  <h3>2.4 重排、重绘与合成（Reflow / Repaint / Composite）</h3>
-  <p class="lead"><b>一句话定位</b>：改什么样式决定代价多大——重排最贵、重绘次之、仅合成最便宜。</p>
-  <ul>
-    <li><strong>重排（Layout）</strong>：改宽高/位置/字体等几何属性，整棵受影响子树重算几何，代价最高。</li>
-    <li><strong>重绘（Paint）</strong>：改颜色/背景等非几何属性，跳过布局但仍在主线程生成绘制指令。</li>
-    <li><strong>仅合成</strong>：改 <code>transform/opacity</code>，完全不上主线程。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>读 <code>offsetWidth</code> 这类布局属性时若此前有未生效的样式改动，浏览器被迫立刻布局——循环读写就形成"布局抖动"（Layout Thrashing）。</p>
-  <h3>2.5 关键渲染路径与核心指标（CRP &amp; Metrics）</h3>
-  <p class="lead"><b>一句话定位</b>：首屏看关键渲染路径，指标口径要分清，别把首屏优化做成资源加载优化。</p>
-  <ul>
-    <li><strong>阻塞渲染</strong>：<code>&lt;link rel="stylesheet"&gt;</code> 与同步 <code>&lt;script&gt;</code> 都阻塞渲染，能推迟的都应异步加载。区别：<code>defer</code> 按文档顺序执行、且在 DOMContentLoaded 之前执行；<code>async</code> 下载完即执行、执行时机无序——有依赖顺序的脚本用 defer。</li>
-    <li><strong>指标别混</strong>：<code>DOMContentLoaded</code>（DOM 就绪）≠ <code>load</code>（资源全完）≠ FCP（首次内容绘制）≠ LCP（最大内容绘制）。</li>
-    <li><strong>CWV</strong>：LCP（最大内容绘制）是核心，官方口径 <strong>≤2.5s 为良好</strong>、2.5~4s 需改进、&gt;4s 为差；配套 INP ≤200ms 良好、CLS（累积布局偏移）≤0.1。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>做性能优化先量指标、再定位阶段，而不是凭感觉改代码。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 导航时序：从输入地址到首字节与首次绘制</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 320" role="img" aria-label="浏览器多进程视角的导航时序图">
       <defs>
@@ -678,14 +735,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 导航时序：三个进程的接力（示意）</p>
   </div>
-  <ol>
-    <li><strong>导航发起</strong>：浏览器进程接管地址栏输入，按策略走缓存或发起请求；期间可发生重定向（301/302），最终到达可解析的 HTML。</li>
-    <li><strong>网络建链</strong>：DNS 解析（浏览器多级缓存：memory cache → DNS 缓存 → 系统解析）、TCP 三次握手（连接池复用）、TLS 握手（HTTPS 多一个往返）。preconnect 就是把这三步提前到用户可能访问前完成。</li>
-    <li><strong>交付渲染进程</strong>：网络进程收到响应头后，把响应体数据流交给渲染进程（跨进程传输），渲染进程从首字节就开始解析，不必等整个文档。</li>
-    <li><strong>解析与阻塞</strong>：解析 HTML 时遇到 CSS 会阻塞渲染（渲染树要等 CSSOM），遇到同步 JS 会阻塞解析（脚本可能改 DOM）。</li>
-    <li><strong>首次绘制</strong>：走完渲染流水线后，合成线程把第一帧上屏——这一刻就是 FCP 之前的那次"绘制"。</li>
-  </ol>
-  <h3>3.2 渲染进程内部：主线程与合成线程的分工</h3>
+  <p><strong>导航五步</strong>：①导航发起（含 301/302 重定向）→ ②网络建链（DNS 多级缓存：memory cache→DNS 缓存→系统解析；TCP 复用连接池；HTTPS 多一个 TLS 往返）→ ③<strong>首字节即解析</strong>（网络进程把响应流交给渲染进程，不必等整个文档）→ ④解析阻塞（CSS 阻塞渲染、同步 JS 阻塞解析）→ ⑤首帧上屏。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 300" role="img" aria-label="渲染进程主线程与合成线程分工示意图">
       <defs>
@@ -712,85 +762,15 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 主线程与合成线程的分工（示意）</p>
   </div>
-  <ol>
-    <li><strong>主线程是瓶颈所在</strong>：JS 执行、解析、样式、布局、绘制指令生成都挤在主线程。一次超过 50ms 的长任务（Long Task）就可能造成用户可见的卡顿——Performance 面板里标红的任务就是它。</li>
-    <li><strong>合成线程负责流畅性</strong>：它只做"把已经画好的图层拼起来"，与刷新率对齐。滚动、transform/opacity 动画都由它处理，不占主线程。</li>
-    <li><strong>图层的产生</strong>：浏览器按需给元素建图层（如 <code>will-change</code>、fixed 元素、合成属性动画元素）。图层太多会耗尽 GPU 内存、滚动掉帧；所以 <code>will-change</code> 是"给高频动画的提示"，不能滥用。</li>
-    <li><strong>一帧的时间预算</strong>：60Hz 下每帧 16.6ms，主线程的任务（JS + 样式 + 布局 + 绘制）必须挤进这个预算；120Hz 屏则只有 8.3ms。超过就掉帧。</li>
-  </ol>
+  <p><strong>分工四要点</strong>：①主线程是瓶颈——JS/解析/样式/布局/绘制指令都挤在这，&gt;50ms 长任务即用户可见卡顿（Performance 面板标红）；②合成线程管流畅——滚动、transform/opacity 动画不占主线程；③图层按需产生——太多耗 GPU 内存，will-change 不能滥用；④<strong>一帧时间预算</strong>：60Hz 每帧 16.6ms，120Hz 只有 8.3ms，主线程任务必须挤进预算，超过即掉帧。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>可观测 API 与工具要点</h2>
-  <h3>4.1 Performance API：量指标再动手</h3>
-<pre class="code" data-lang="js"><code>// 导航时序数据：DNS/TCP/首字节/加载完成各阶段耗时
-var nav = performance.getEntriesByType('navigation')[0];
-console.log('TTFB(首字节):', Math.round(nav.responseStart - nav.requestStart), 'ms');
-console.log('DOMContentLoaded:', Math.round(nav.domContentLoadedEventEnd - nav.startTime), 'ms');
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：来自数据可视化大屏项目实战——实时负荷面板每 2s 拉遥测刷新 ECharts，上线后掉帧。</p>
 
-// 观测 LCP（最大内容绘制）
-new PerformanceObserver(function (list) {
-  var e = list.getEntries().at(-1);
-  console.log('LCP:', e.startTime, 'ms，元素:', e.element || '(未知)');
-}).observe({ type: 'largest-contentful-paint', buffered: true });</code></pre>
-  <h3>4.2 用 rAF 而不是裸 setInterval 驱动 UI 更新</h3>
-<pre class="code" data-lang="js"><code>// setInterval 的回调不与渲染帧对齐：可能一帧里跑两次，也可能跨帧
-// rAF 由浏览器在每帧绘制前回调，天然与渲染节奏一致
-function startTicker(fn) {
-  var running = true;
-  function tick() { if (!running) return; fn(); requestAnimationFrame(tick); }
-  requestAnimationFrame(tick);
-  return function () { running = false; };
-}</code></pre>
-  <h3>4.3 读写分离：避免强制同步布局</h3>
-<pre class="code" data-lang="js"><code>// 坏：读(offsetWidth) 与 写(style) 交替 → 每次读都强制先布局一次 → Layout Thrashing
-// 好：先统一读，再统一写（或把读缓存起来）
-var widths = items.map(function (el) { return el.offsetWidth; });   // 第一批：读
-widths.forEach(function (w, i) { items[i].style.width = (w / 2) + 'px'; }); // 第二批：写</code></pre>
-  <h3>4.4 懒加载与可见性观察</h3>
-<pre class="code" data-lang="js"><code>const io = new IntersectionObserver(function (entries) {
-  entries.forEach(function (en) {
-    if (en.isIntersecting) { en.target.src = en.target.dataset.src; io.unobserve(en.target); }
-  });
-}, { rootMargin: '200px' });
-document.querySelectorAll('img[data-src]').forEach(function (img) { io.observe(img); });</code></pre>
-  <h3>4.5 CSS 侧：content-visibility 跳过屏外渲染</h3>
-<pre class="code" data-lang="css"><code>.long-list-item { content-visibility: auto; contain-intrinsic-size: 0 200px; }
-/* 屏外的列表项跳过布局与绘制，滚入视口才渲染；intrinsic-size 先占位防跳动 */</code></pre>
-  <h3>4.6 DevTools 定位套路</h3>
-  <p>打开 Performance 面板录制 → 复现卡顿 → 看三个信号：<strong>长任务</strong>（红色块，超 50ms）、<strong>强制同步布局警告</strong>（黄色三角，说明读写没分离）、<strong>FPS 曲线</strong>（掉到 30 以下说明主线程或合成瓶颈）。先分清"卡在脚本执行"还是"卡在渲染阶段"，再决定是拆长任务还是改布局策略。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：数据可视化大屏项目（可视化大屏系统）实时负荷监测面板每 2s 拉遥测刷新 ECharts，上线后面板掉帧、切模块卡顿。</p>
-  <ul>
-    <li><strong>业务场景</strong>：值班大屏持续刷新曲线与状态点，要求任何时刻点击都即时响应。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责大屏性能定位与优化。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算），实践中常采用 Performance 面板定位并修复渲染卡顿。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Vue2 + ECharts + 2s 轮询 + Chrome DevTools Performance。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>读写分离</strong>：rAF 节流器里先批量读容器宽度、再批量写 setOption，避免强制同步布局。</li>
-    <li><strong>尺寸监听独立</strong>：容器宽度用 <code>ResizeObserver</code> 单独处理，不每次刷新都读。</li>
-    <li><strong>局部更新</strong>：setOption 改局部 merge 只更 series，关 ECharts 过渡动画。</li>
-    <li><strong>合成线程动画</strong>：告警闪烁改用 CSS <code>opacity</code>，丢到合成线程不占主线程。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 高频刷新节流：rAF + 脏标记，保证一帧最多刷新一次
+  <h3>6.1 优化前 vs 优化后核心代码</h3>
+<pre class="code" data-lang="js"><code>// 高频刷新节流：rAF + 脏标记，保证一帧最多刷新一次
 var dirty = false;
 function onData(data) { dirty = true; latest = data; }        // 数据到达只打标记
 function render() {                                            // 每帧回调，读写在帧内分离
@@ -802,77 +782,78 @@ function render() {                                            // 每帧回调�
   requestAnimationFrame(render);
 }
 requestAnimationFrame(render);</code></pre>
+  <p><strong>配套设计</strong>：容器尺寸用 <code>ResizeObserver</code> 单独监听（不每次刷新都读）；告警闪烁改 CSS <code>opacity</code>（合成线程，不占主线程）。</p>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>强制同步布局</strong>：setInterval 回调里既读 <code>offsetWidth</code> 又写尺寸，触发大量同步布局，回调平均超 120ms；读写分离后降到 16ms 内（估算）。</li>
-    <li><strong>rAF 不是解药</strong>：只加 rAF 没去掉"每次读 offsetWidth"仍卡，必须读写分离。</li>
-    <li><strong>系列动画叠加</strong>：ECharts 默认动画，高频 setOption 每帧插值，显式 <code>animation:false</code> 才彻底。</li>
-    <li><strong>ResizeObserver 兜底</strong>：低版本浏览器无 ResizeObserver，退回 <code>window.resize</code>+防抖，避免宽高对不上。</li>
+    <li><strong>强制同步布局</strong>：setInterval 回调里既读 offsetWidth 又写尺寸，回调平均超 120ms；读写分离后降到 16ms 内（估算）；</li>
+    <li><strong>rAF 不是解药</strong>：只加 rAF 没去掉"每次读 offsetWidth"仍卡——必须读写分离；</li>
+    <li><strong>系列动画叠加</strong>：ECharts 默认动画，高频 setOption 每帧插值，显式 <code>animation:false</code> 才彻底；</li>
+    <li><strong>ResizeObserver 兜底</strong>：低版本浏览器退回 window.resize+防抖。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>主线程长任务从 120ms+ 降到 16ms 内（估算），面板与其他模块点击恢复即时响应。</li>
-  </ul>
+  <h3>6.3 验证方法（Performance 面板取证）</h3>
+  <ol>
+    <li>录制前后各 10s：对比红色长任务块（120ms+ → 消失）；</li>
+    <li>观察黄色三角警告（强制同步布局）是否清零；</li>
+    <li>FPS 曲线是否稳定在 55+；</li>
+    <li>切模块点击响应恢复即时（主线程空闲）。</li>
+  </ol>
 
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>复现共识</strong>：与值班同事确认"切模块半拍"的复现路径，用 Performance 录制拿到证据。</li>
-    <li><strong>排期</strong>：先做读写分离 + rAF，再补动画关闭与 ResizeObserver 兜底。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>先录 Performance 再改</strong>：卡顿要拿长任务/强制布局证据，不凭感觉优化。</li>
-    <li><strong>读写分离是布局性能第一原则</strong>：把同步布局从高频回调里彻底拿掉。</li>
+  <h3>6.4 复盘与可复用经验</h3>
+  <ol>
+    <li><strong>先录 Performance 再改</strong>：拿长任务/强制布局证据，不凭感觉优化；</li>
+    <li><strong>读写分离是布局性能第一原则</strong>：把同步布局从高频回调里彻底拿掉；</li>
     <li><strong>动画能走合成线程就别占主线程</strong>：opacity/transform 优先。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用 Performance 录到强制同步布局根因，靠读写分离 + rAF 局部更新把大屏主线程长任务从 120ms+ 压到一帧内。</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 重排 / 重绘 / 合成分不清</h3>
-  <p class="lead"><b>一句话定位</b>：三者不是同义词——改几何触发重排（最贵），改颜色触发重绘，改 transform/opacity 仅合成。</p>
-  <ul>
-    <li><strong>重排（reflow）</strong>：改几何属性，主线程算布局，最贵。</li>
-    <li><strong>重绘（repaint）</strong>：改颜色类，主线程生成绘制指令。</li>
-    <li><strong>合成（composite）</strong>：改 transform/opacity，不占主线程。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">考点</span>触发重排的属性：<code>width/height/margin/padding/font-size/position</code>；读 <code>offsetWidth/scrollTop</code> 也算（强制布局）。</p>
-  <h3>6.2 强制同步布局与 Layout Thrashing</h3>
-  <p class="lead"><b>一句话定位</b>：循环里交替读布局属性、写样式，打断浏览器的批量布局、逼它反复同步布局。</p>
-  <p><strong>现象</strong>：循环里交替读 <code>offsetWidth</code> 和写 <code>style.width</code>，页面越来越卡，Performance 面板满屏黄色警告。</p>
-  <p><strong>原因</strong>：浏览器是"攒一批改动一次性布局"的，读布局属性会打断批处理、立即执行一次布局以满足读取。</p>
-  <p><strong>正解</strong>：读归读、写归写，两段式（见板块 4.3）；批量场景用 <code>DocumentFragment</code> 或一次性改 class。</p>
-  <h3>6.3 宏任务 / 微任务执行顺序</h3>
-  <p class="lead"><b>一句话定位</b>：同步代码先跑 → 微任务末尾清空 → 宏任务排到下一轮。</p>
-  <ul>
-    <li><strong>高频题</strong>：<code>console.log(1); Promise.resolve().then(()=&gt;console.log(2)); setTimeout(()=&gt;console.log(3),0); console.log(4);</code> 输出 1、4、2、3。</li>
-    <li><strong>与渲染的关系</strong>：微任务清空后才到渲染机会，所以"在微任务里改样式"不会多出一帧延迟。</li>
-  </ul>
-  <h3>6.4 DOMContentLoaded 与 load 分不清</h3>
-  <p class="lead"><b>一句话定位</b>：两者都不等于"用户看到内容"——用户感知要看 FCP/LCP。</p>
-  <ul>
-    <li><strong>DOMContentLoaded</strong>：DOM 就绪，可能还在等 CSS/图片。</li>
-    <li><strong>load</strong>：所有资源完成。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>指标用错会把"首屏优化"做成"资源加载优化"。</p>
-  <h3>6.5 内存泄漏的三种经典来源</h3>
-  <p class="lead"><b>一句话定位</b>：切屏后内存只涨不降，基本是这三种来源之一。</p>
-  <ul>
-    <li><strong>未解绑事件监听</strong>：对已移除的 DOM 还挂着监听。</li>
-    <li><strong>未清理定时器/观察器</strong>：setInterval 不 clear、IntersectionObserver 不 disconnect。</li>
-    <li><strong>闭包与全局引用</strong>：大对象被匿名函数长期引用。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">正解</span>组件销毁钩子里成对清理，长列表懒加载时 unobserver。</p>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 重排/重绘/合成分不清</h3>
+  <p><strong>考点</strong>：改几何触发重排（最贵，主线程算布局）；改颜色触发重绘（主线程生成绘制指令）；改 transform/opacity 仅合成（不占主线程）。<span class="tag-point">易漏</span>：<strong>读 offsetWidth/scrollTop 也触发强制布局</strong>。</p>
+
+  <h3>7.2 强制同步布局与 Layout Thrashing</h3>
+  <p><strong>现象</strong>：循环里交替读 offsetWidth、写 style.width，Performance 满屏黄色警告。<strong>根因</strong>：浏览器"攒一批改动一次性布局"，读布局属性打断批处理、立即执行一次布局。<strong>正解</strong>：读归读写归写两段式（3.3）；批量用 DocumentFragment 或一次性改 class。</p>
+
+  <h3>7.3 宏任务/微任务与渲染的关系</h3>
+  <p><strong>高频题</strong>：<code>log(1); Promise.then(log 2); setTimeout(log 3, 0); log(4);</code> 输出 1、4、2、3。<strong>与渲染的关系</strong>：微任务清空后才到渲染机会——"在微任务里改样式"不会多出一帧延迟。</p>
+
+  <h3>7.4 DOMContentLoaded 与 load 分不清</h3>
+  <p>DOMContentLoaded=DOM 就绪（可能还在等 CSS/图片）；load=所有资源完成——<strong>两者都不等于"用户看到内容"</strong>（要看 FCP/LCP）。<span class="tag-pit">坑</span>：指标用错会把"首屏优化"做成"资源加载优化"。</p>
+
+  <h3>7.5 内存泄漏三种来源</h3>
+  <p>未解绑事件监听、未清理定时器/观察器、闭包与全局引用。<strong>排查</strong>：Memory 面板堆快照前后对比。<strong>正解</strong>：销毁钩子成对清理、懒加载 unobserve（4.3）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：从输入 URL 到页面显示，发生了什么？（按进程讲）</strong></p>
+  <p class="note"><strong>参考答案</strong>：按三个进程接力——<strong>浏览器进程</strong>接管地址输入、判断 URL/搜索词、处理重定向与缓存策略；<strong>网络进程</strong>做 DNS 解析（多级缓存）、TCP 握手（连接池复用）、TLS 握手、HTTP 请求，收到响应头后把响应<strong>流</strong>交给渲染进程；<strong>渲染进程</strong>从首字节开始解析 HTML 构建 DOM（遇 CSS 阻塞渲染、同步 JS 阻塞解析），走渲染流水线，合成线程把首帧上屏。<br><br>
+  <strong>加分点</strong>：preconnect/preload 的并行化原理；站点隔离；TTFB 与 FCP 分别卡在哪个进程。</p>
+
+  <p><strong>Q2：重排、重绘、合成的区别？哪些属性只触发合成？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>重排</strong>——改几何属性（width/height/margin/padding/font-size/position），受影响子树全部重算几何，最贵；<strong>重绘</strong>——改非几何视觉属性（color/background），跳过布局但主线程仍要生成绘制指令；<strong>合成</strong>——改 transform/opacity，只由合成线程重拼图层位图，不占主线程。<strong>易错</strong>：读 offsetWidth/scrollTop 会强制同步布局（此前有未生效改动时）；浏览器批量布局会被"读写交替"反复打断（Layout Thrashing）。<br><br>
+  <strong>工程推论</strong>：动画只动 transform/opacity；高频回调里读写分离。</p>
+
+  <p><strong>Q3：Core Web Vitals 哪三个指标？口径与优化方向分别是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>LCP</strong>（最大内容绘制，≤2.5s 良好）——首屏主内容出现时间，优化关键渲染路径（CSS/JS 不阻塞、预加载 LCP 元素、SSR）；<strong>INP</strong>（交互到下一次绘制，≤200ms）——交互响应性，优化长任务拆分、减少主线程占用；<strong>CLS</strong>（累积布局偏移，≤0.1）——视觉稳定性，给图片/广告占位、避免动态插入内容。别拿 DOMContentLoaded/load 混着当"首屏"——那是资源加载口径，不是用户感知口径。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四大进程各干什么？页面卡顿先怀疑哪个？</li>
+    <li>defer 与 async 的区别？CSS 为什么阻塞渲染？</li>
+    <li>触发强制同步布局的操作？Layout Thrashing 的解？</li>
+    <li>60Hz 与 120Hz 下每帧预算各是多少？</li>
+    <li>内存泄漏三种来源与排查方法？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>MDN 渲染性能与关键渲染路径：<a href="https://developer.mozilla.org/zh-CN/docs/Web/Performance" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/Performance</a></li>
@@ -881,9 +862,14 @@ requestAnimationFrame(render);</code></pre>
   </ul>
   <h3>书籍与课程</h3>
   <ul>
-    <li>《浏览器工作原理与实践》（李兵，极客时间专栏）——目前中文圈最系统的浏览器机制讲解，多进程、导航、渲染、网络全覆盖：<a href="https://time.geekbang.org/" rel="noopener">time.geekbang.org</a> 内搜索专栏名。</li>
-    <li>《Web 性能权威指南》（Ilya Grigorik，人民邮电出版社）——网络层（HTTP/TCP/TLS）的经典，适合把"链路"讲透。</li>
+    <li>《浏览器工作原理与实践》（李兵，极客时间专栏）——中文圈最系统的浏览器机制讲解：<a href="https://time.geekbang.org/" rel="noopener">time.geekbang.org</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>复现第 6 章 Demo，完成四条 Performance 取证；</li>
+    <li>故意写一段 Layout Thrashing 循环，录制并用两段式修复对比；</li>
+    <li>给自己项目接入 web-vitals 上报，跑一周看 LCP/INP 分布。</li>
+  </ol>
 </section>
 
 </main>

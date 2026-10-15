@@ -542,27 +542,157 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../01_前端基础/04_浏览器原理与渲染机制【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/07_响应式布局_Flex与Grid【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../01_前端基础/06_TypeScript【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：HTTP（超文本传输协议）是客户端与服务端之间的"请求-响应"协议：浏览器发一个请求方法（GET/POST/PUT/DELETE）+ 路径 + 头 + 体，服务端回一个状态码 + 头 + 体。<strong>跨域</strong>则是浏览器的同源策略（Same-Origin Policy）带来的限制：页面源（协议+域名+端口）与接口源不一致时，默认禁止 JS 读取响应。CORS（跨源资源共享）是官方放行机制。</p>
-  <p><strong>解决什么问题</strong>：同源策略本是安全防线（防止 A 站偷读 B 站的数据），但前后端分离后，前端跑在 <code>localhost:5173</code>、后端在 <code>:8080</code>，天生不同源，必须靠 CORS 或代理放行。理解这套机制，就知道"为什么 Postman 能调通、浏览器却报跨域"。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>HTTP 是客户端与服务端之间的"请求-响应"协议</strong>：浏览器发方法+路径+头+体，服务端回状态码+头+体。<strong>跨域是同源策略（Same-Origin Policy）带来的限制</strong>：页面源（协议+域名+端口）与接口源不一致时，浏览器默认禁止 JS 读取响应；<strong>CORS 是官方放行机制</strong>。前后端分离后（前端 :5173、后端 :8080）天生不同源，必须靠 CORS 或代理——理解这套机制，就知道"为什么 Postman 能调通、浏览器却报跨域"。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>"OPTIONS 404/405"看不懂——<strong>预检失败被当成接口错误</strong>；</li>
+    <li>带 Cookie 跨域怎么配都不生效——<strong>三件套缺一</strong>；</li>
+    <li>跨域报错笼统看不到真实响应——<strong>不知道先绕开浏览器验证后端</strong>。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>同源策略的本质</strong>：拦截点在读不在发——"发得出去、读不回来"；</li>
+    <li>分清<strong>简单请求与非简单请求</strong>，会排查 OPTIONS 预检失败；</li>
+    <li>掌握三种跨域方案选型（CORS 头 / Vite proxy / Nginx 反代）；</li>
+    <li>落地 axios 拦截器统一鉴权（Bearer Token + 401 跳登录）；</li>
+    <li>避开五条高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：04 篇导航时序（DNS/TCP/TLS 在哪发生）。<strong>难度</strong>：★★★☆☆。<strong>务必动手</strong>：第 6 章 Demo——本地跑通一次带预检的跨域请求。<strong>本篇不涉及</strong>：HTTP/2·3 特性细节、WebSocket（04 模块）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>报文结构</strong>（Header 是元信息通道）→ <strong>状态码五类</strong>（拦截器的分支依据）→ <strong>同源策略</strong>（跨域的本质）→ <strong>CORS 与预检</strong>（放行机制）。</p>
+
+  <h3>2.1 报文结构：起始行 + 头 + 空行 + 体</h3>
+  <p><strong>请求四块</strong>：请求行（方法+路径+版本）、请求头（Host/Content-Type/Authorization/Cookie）、空行、请求体（POST/PUT 数据，GET 一般没有）；响应同理。<span class="tag-point">要点</span>：鉴权令牌放 <code>Authorization</code>，跨域放行也靠响应头——<strong>Header 是这两件事的关键通道</strong>。</p>
+
+  <h3>2.2 状态码：按首位分五类</h3>
+  <ul>
+    <li><strong>2xx 成功</strong>：200 OK、201 Created、204 无返回体；</li>
+    <li><strong>3xx 重定向</strong>：301 永久、302 临时、304 走缓存；</li>
+    <li><strong>4xx 客户端错</strong>：400 参数错、401 未认证、403 无权限、404 不存在；</li>
+    <li><strong>5xx 服务端错</strong>：500 内部错、502/504 网关/超时。</li>
+  </ul>
+  <p><span class="tag-point">工程落点</span>：axios 拦截器按 401 跳登录、5xx 提示服务异常——状态码分类是前端错误处理骨架。</p>
+
+  <h3>2.3 同源策略：拦截点在读不在发</h3>
+  <p>同源要求<strong>协议+域名+端口三者一致</strong>。跨域时<strong>请求真到了后端，但浏览器拦截 JS 读响应</strong>——目的是防恶意站偷读已登录站点的数据。<strong>例外</strong>：img/script/link 标签天然跨域加载资源（JSONP 的原理）。<span class="tag-key">本质</span>：跨域错误 = <strong>你发得出去、读不回来</strong>。这也解释了"Postman 能调通、浏览器报跨域"——Postman 没有浏览器这道拦截。</p>
+
+  <h3>2.4 CORS 与预检：简单 vs 非简单请求</h3>
+  <ul>
+    <li><strong>放行头</strong>：<code>Access-Control-Allow-Origin</code> 指明允许哪个源；</li>
+    <li><strong>简单请求</strong>：GET/POST 且只用安全头、Content-Type 仅 text/plain 等——直接发，浏览器看响应头放行；</li>
+    <li><strong>非简单请求</strong>：PUT/DELETE、自定义头（Authorization）、JSON body——先发 <code>OPTIONS</code> 预检，同意后才发真正请求；</li>
+    <li><span class="tag-pit">坑</span>：带 Authorization 或 application/json 的接口几乎都是非简单请求——本地联调报跨域，<strong>先看 OPTIONS 预检有没有放行</strong>。</li>
+  </ul>
+
+  <h3>2.5 凭证与自定义响应头</h3>
+  <p><strong>Cookie 跨域</strong>：默认不带；要带需三件套——前端 <code>credentials:'include'</code>、后端 <code>Access-Control-Allow-Credentials:true</code>、<strong>Allow-Origin 必须具体源不能写 *</strong>。<strong>读自定义响应头</strong>：跨域时 JS 默认只能读少数简单响应头，要读 <code>X-Total-Count</code> 这类自定义头，后端必须回 <code>Access-Control-Expose-Headers</code>——否则 <code>resp.headers.get()</code> 拿到 null。<span class="tag-point">实践</span>：业务系统用 Bearer Token 放 Authorization 头，不依赖 Cookie，绕开这层。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：fetch 带鉴权头</h3>
+<pre class="code" data-lang="js"><code>const res = await fetch('/api/requirements', {
+  headers: {
+    'Authorization': 'Bearer ' + getToken(),   // Token 放自定义头
+    'Content-Type': 'application/json'          // 这个头会触发预检
+  }
+});
+if (!res.ok) throw new Error('HTTP ' + res.status);
+const data = await res.json();</code></pre>
+
+  <h3>3.2 场景二：Vite 开发代理（开发态最常用）</h3>
+<pre class="code" data-lang="js"><code>// vite.config.ts：/api 开头的请求转发到后端，浏览器看到的是同源
+export default {
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,          // 改 Host 头为目标地址
+      }
+    }
+  }
+};</code></pre>
+
+  <h3>3.3 场景三：axios 拦截器统一鉴权</h3>
+<pre class="code" data-lang="js"><code>// 请求拦截器：统一注入 Token
+api.interceptors.request.use((config) =&gt; {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = 'Bearer ' + token;
+  return config;
+});
+// 响应拦截器：401 统一跳登录
+api.interceptors.response.use(
+  (res) =&gt; res.data,
+  (err) =&gt; {
+    if (err.response?.status === 401) location.href = '/login';
+    return Promise.reject(err);
+  }
+);</code></pre>
+
+  <h3>3.4 场景四：三种跨域方案选型</h3>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>方案</th><th>原理</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td>CORS 头</td><td>后端回放行头，浏览器允许跨源读取</td><td>前后端分离、后端可控</td></tr>
+      <tr><td>Vite/Webpack proxy</td><td>开发服务器中转，浏览器看是同源</td><td>本地开发</td></tr>
+      <tr><td>Nginx/网关反代</td><td>生产环境同域反代到后端</td><td>线上部署，最干净</td></tr>
+    </tbody>
+  </table>
+  <p><strong>选型判断</strong>：<strong>代理优于开 CORS</strong>——同源从源头消灭跨域，省掉一堆 CORS 调试；生产同域反代（衔接 09 模块 Nginx 篇）是最终形态。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：CORS 三种方案已跑通。</p>
+
+  <h3>4.1 HTTP 缓存：强缓存与协商缓存</h3>
+  <p><strong>强缓存</strong>：<code>Cache-Control: max-age=3600</code>——期内直接用本地副本不发请求；<strong>协商缓存</strong>：<code>ETag/If-None-Match</code> 或 <code>Last-Modified/If-Modified-Since</code>——发请求问服务器变没变，没变回 304 用本地。策略与静态资源 hash 长缓存一脉相承（衔接 09 模块 Nginx 篇缓存分层）。</p>
+
+  <h3>4.2 HTTP/1.1 队头阻塞与 HTTP/2</h3>
+  <p>HTTP/1.1 同一 TCP 连接上请求串行（队头阻塞），浏览器用多个并发连接绕（同域 6 个）；<strong>HTTP/2 二进制分帧+多路复用</strong>——一条连接并行多请求，消除 HTTP 层队头阻塞（TCP 层仍在）。前端动作：升级 HTTPS 后开 h2，合并雪碧图等"减少请求数"优化在 h2 下不再必要。</p>
+
+  <h3>4.3 OPTIONS 预检缓存</h3>
+  <p>预检有开销（多一个往返），后端可回 <code>Access-Control-Max-Age: 86400</code>——预检结果缓存一天，期间同请求不再预检。<strong>联调时改了 CORS 配置却"不生效"</strong>，先清这个缓存（浏览器强刷或等过期）。</p>
+
+  <h3>4.4 Token 放哪：Authorization vs Cookie</h3>
+  <p>两派取舍：<strong>Authorization 头 + Bearer Token</strong>——不依赖 Cookie（绕开 credentials 三件套）、天然适配跨域与 App；代价是 Token 存储要防 XSS（localStorage 可被脚本读）。<strong>Cookie + HttpOnly</strong>——脚本读不到（防 XSS 偷）、CSRF 要另防（SameSite/CSRF Token）。业务系统选了 Bearer Token 是"跨域友好优先"。</p>
+
+  <h3>4.5 控制面/数据面分离</h3>
+  <p>WebRTC 播放器的协议分层：信令（SDP/ICE 协商）走 HTTP/WS——低频、可靠、JSON 友好；媒体流走 SRTP/UDP——高频、大带宽、容忍丢包。<strong>控制面与数据面选型不同是常态，混为一谈延迟和带宽都不对</strong>。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="浏览器同源策略与跨域请求放行机制示意图">
       <defs>
@@ -588,55 +718,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 同源策略与三种跨域放行方式（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 请求与响应报文结构（Message）</h3>
-  <p class="lead"><b>一句话定位</b>：HTTP 报文 = 起始行 + 头 + 空行 + 体；Header 是元信息通道。</p>
-  <ul>
-    <li><strong>请求四块</strong>：请求行（方法+路径+版本）、请求头（Host/Content-Type/Authorization/Cookie）、空行、请求体（POST/PUT 数据，GET 一般没有）。</li>
-    <li><strong>响应同理</strong>：状态行（状态码+短语）、响应头、空行、响应体。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>鉴权令牌放 <code>Authorization</code>，跨域放行也靠响应头——Header 是这两件事的关键通道。</p>
-  <h3>2.2 常见状态码（Status Code）</h3>
-  <p class="lead"><b>一句话定位</b>：状态码按首位分五类，前端拦截器就是基于这套分类做分支。</p>
-  <ul>
-    <li><strong>2xx 成功</strong>：200 OK、201 Created、204 无返回体。</li>
-    <li><strong>3xx 重定向</strong>：301 永久、302 临时、304 走缓存。</li>
-    <li><strong>4xx 客户端错</strong>：400 参数错、401 未认证、403 无权限、404 不存在。</li>
-    <li><strong>5xx 服务端错</strong>：500 内部错、502/504 网关/超时。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">工程落点</span>axios 拦截器按 401 跳登录、5xx 提示服务异常。</p>
-  <h3>2.3 同源策略（Same-Origin Policy）</h3>
-  <p class="lead"><b>一句话定位</b>：同源要求协议+域名+端口三者一致；跨域不是发不出去，而是浏览器不让 JS 读响应。</p>
-  <ul>
-    <li><strong>拦截点在读不在发</strong>：不同源时请求真到了后端，但浏览器拦截 JS 读取响应。</li>
-    <li><strong>目的</strong>：防止恶意站偷读已登录站点的数据。</li>
-    <li><strong>例外</strong>：img/script/link 标签天然跨域加载资源，这也是 JSONP 的原理。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-key">本质</span>"跨域错误"= 你发得出去、读不回来。</p>
-  <h3>2.4 CORS 与预检请求（Preflight）</h3>
-  <p class="lead"><b>一句话定位</b>：CORS 是后端用响应头主动放行；非简单请求会先发 OPTIONS 预检。</p>
-  <ul>
-    <li><strong>放行头</strong>：<code>Access-Control-Allow-Origin</code> 指明允许哪个源。</li>
-    <li><strong>读自定义响应头</strong>：跨域时 JS 默认只能读到少数简单响应头（Cache-Control、Content-Type 等），要读取自定义头（如分页 <code>X-Total-Count</code>），后端必须再回 <code>Access-Control-Expose-Headers: X-Total-Count</code>——否则前端 <code>resp.headers.get()</code> 拿到 null。</li>
-    <li><strong>简单请求</strong>：GET/POST 且只用安全头、Content-Type 仅 text/plain 等，直接发，浏览器看响应头放行。</li>
-    <li><strong>非简单请求</strong>：PUT/DELETE、自定义头（如 Authorization）、JSON body，先发 <code>OPTIONS</code> 预检，同意后才发真正请求。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>带 <code>Authorization</code> 或 <code>application/json</code> 的接口几乎都是非简单请求——本地联调报跨域，先看 OPTIONS 预检有没有放行。</p>
-  <h3>2.5 凭证与 Cookie（Credentials）</h3>
-  <p class="lead"><b>一句话定位</b>：跨域默认不带 Cookie；要带得前后端同时配置，且 Allow-Origin 不能写 *。</p>
-  <ul>
-    <li><strong>前端</strong>：<code>fetch(...,{credentials:'include'})</code> 或 axios <code>withCredentials:true</code>。</li>
-    <li><strong>后端</strong>：CORS 头要 <code>Access-Control-Allow-Credentials:true</code>，且 <code>Allow-Origin</code> 必须是具体源、不能写 <code>*</code>。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">实践</span>业务系统 用 Bearer Token 放 <code>Authorization</code> 头，不依赖 Cookie，绕开了这层。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一个带预检的跨域 POST 请求怎么走</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 290" role="img" aria-label="带预检的跨域 CORS 请求时序图">
       <defs>
@@ -662,47 +743,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 非简单请求的 CORS 预检时序（示意）</p>
   </div>
-  <ol>
-    <li><strong>预检</strong>：浏览器发现这是非简单请求（JSON body + 自定义头），先发 OPTIONS 探口风。</li>
-    <li><strong>应答</strong>：后端在预检响应里回 <code>Access-Control-Allow-Origin</code>、<code>Allow-Methods</code>、<code>Allow-Headers</code>。</li>
-    <li><strong>正式请求</strong>：预检通过，浏览器才发真正的 POST。</li>
-    <li><strong>放行读取</strong>：正式响应带 CORS 头，JS 才能拿到数据。</li>
-  </ol>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 fetch 带鉴权头</h3>
-<pre class="code" data-lang="js"><code>const res = await fetch('/api/requirements', {
-  headers: {
-    'Authorization': 'Bearer ' + getToken(),   // Token 放自定义头
-    'Content-Type': 'application/json'          // 这个头会触发预检
-  }
-});
-if (!res.ok) throw new Error('HTTP ' + res.status);
-const data = await res.json();</code></pre>
-  <h3>4.2 Vite 开发代理（开发态最常用）</h3>
-<pre class="code" data-lang="js"><code>// vite.config.ts：把 /api 开头的请求转发到后端，浏览器看到的是同源
-export default {
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,          // 改 Host 头为目标地址
-      }
-    }
-  }
-};</code></pre>
-  <h3>4.3 两种跨域方案对比</h3>
-  <table>
-    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
-    <thead><tr><th>方案</th><th>原理</th><th>适用场景</th></tr></thead>
-    <tbody>
-      <tr><td>CORS 头</td><td>后端回放行头，浏览器允许跨源读取</td><td>前后端分离、后端可控</td></tr>
-      <tr><td>Vite/Webpack proxy</td><td>开发服务器中转，浏览器看是同源</td><td>本地开发</td></tr>
-      <tr><td>Nginx/网关反代</td><td>生产环境同域反代到后端</td><td>线上部署，最干净</td></tr>
-    </tbody>
-  </table>
+  <p><strong>预检四步</strong>：①浏览器发现非简单请求（JSON body+自定义头）先发 OPTIONS 探路 → ②后端回 204+Allow-Origin/Methods/Headers → ③预检通过才发真正 POST → ④正式响应带 CORS 头 JS 才能读。<strong>排查口诀</strong>：控制台报跨域但后端日志没请求——预检就失败了，业务接口根本没收到。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 150" role="img" aria-label="三种跨域方案对比图">
       <defs>
@@ -712,139 +753,117 @@ export default {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">三种跨域放行方案（示意）</text>
 
-      <!-- CORS -->
       <rect x="20" y="45" width="240" height="90" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="140" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">CORS 头</text>
       <text x="140" y="92" text-anchor="middle" font-size="11" fill="#4f6348">后端回放行头放行</text>
       <text x="140" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">前后端分离、后端可控</text>
 
-      <!-- Vite proxy -->
       <rect x="280" y="45" width="240" height="90" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="400" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#4f8a63">Vite proxy</text>
       <text x="400" y="92" text-anchor="middle" font-size="11" fill="#4f6348">开发服务器中转</text>
       <text x="400" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#4f8a63">本地开发</text>
 
-      <!-- Nginx反代 -->
       <rect x="540" y="45" width="240" height="90" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="660" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">Nginx 反代</text>
       <text x="660" y="92" text-anchor="middle" font-size="11" fill="#4f6348">生产同域反代后端</text>
       <text x="660" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">线上最干净</text>
     </svg>
-    <p class="diagram-caption">图 1 三种跨域方案对比（示意）</p>
+    <p class="diagram-caption">图 3 三种跨域方案对比（示意）</p>
   </div>
 </section>
 
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：业务系统前后端分离联调实战——跨域 + Token 鉴权完整链路。</p>
 
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 前后端分离跨域联调 + Token 鉴权；以及 WebRTC 信令走 HTTP、媒体走 UDP 的分层。</p>
-  <ul>
-    <li><strong>业务系统</strong>：前端 Vite 跑 <code>localhost:5173</code>，后端 SpringBoot 在 <code>:8080</code>，跨域且需登录态。</li>
-    <li><strong>WebRTC 播放器</strong>：建连协商（SDP/ICE）走 HTTP，音视频媒体走 SRTP/UDP。</li>
-  </ul>
+  <h3>6.1 完整请求层（axios 封装）</h3>
+<pre class="code" data-lang="js"><code>import axios from 'axios';
 
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责本地联调代理、鉴权拦截与请求封装。</li>
-    <li><strong>团队与分工</strong>：前端与后端 Java 团队联调，我定前端请求层，与后端对 CORS/Token 方案。</li>
-  </ul>
+const api = axios.create({ baseURL: '/api', timeout: 10000 });
 
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Vue3 + Vite + axios + SpringBoot；生产 Nginx 反代；WebRTC（信令 HTTP/WS，媒体 UDP）。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>开发态代理</strong>：Vite proxy 把 <code>/api</code> 代理到 <code>:8080</code>，浏览器侧同源。</li>
-    <li><strong>统一鉴权</strong>：axios 请求拦截器注入 <code>Authorization: Bearer &lt;token&gt;</code>，响应拦截器遇 401 跳登录。</li>
-    <li><strong>生产同源</strong>：Nginx 把前端静态与 <code>/api</code> 反代到同域名。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// axios 请求拦截器：统一注入 Token
 api.interceptors.request.use((config) =&gt; {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = 'Bearer ' + token;
   return config;
 });
-// 响应拦截器：401 统一跳登录
 api.interceptors.response.use(
   (res) =&gt; res.data,
   (err) =&gt; {
     if (err.response?.status === 401) location.href = '/login';
     return Promise.reject(err);
   }
-);</code></pre>
+);
+export default api;</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><strong>预检没放行</strong>：后端起初没配 CORS，OPTIONS 预检 404——请求根本没到业务接口；补 CORS 后正常。</li>
-    <li><strong>credentials 与 * 冲突</strong>：曾用 <code>credentials:include</code> 配 Cookie，后端 CORS 写 <code>*</code> 被浏览器拒；改用 Bearer Token 头绕开。</li>
-    <li><strong>信令/媒体分层混淆</strong>：误以为媒体也走 HTTP，实际信令走 HTTP/WS、媒体走 SRTP/UDP，混了延迟和带宽都不对。</li>
-  </ul>
+  <h3>6.2 环境配置</h3>
+<pre class="code" data-lang="js"><code>// 开发态：vite.config.ts 代理（3.2）；生产态：Nginx 同域反代
+// 后端 CORS（如直连）：
+// Access-Control-Allow-Origin: http://localhost:5173
+// Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS
+// Access-Control-Allow-Headers: Content-Type,Authorization</code></pre>
 
-  <h3>5.7 量化成果</h3>
+  <h3>6.3 逐段解析与踩坑记录</h3>
   <ul>
-    <li>本地联调无跨域报错，鉴权全局统一，401 自动跳登录。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端约定 Token 放 Authorization 头、401 即跳登录。</li>
-    <li><strong>联调协商</strong>：预检 404 与 CORS * 冲突问题和后端一起定位，最终定 Bearer Token 方案。</li>
+    <li><strong>baseURL '/api'</strong>：请求走同源路径，代理/反代转发——前端代码零跨域感知；</li>
+    <li><strong>预检没放行</strong>：后端起初没配 CORS，OPTIONS 预检 404——请求根本没到业务接口；补 CORS 后正常；</li>
+    <li><strong>credentials 与 * 冲突</strong>：曾用 credentials:include 配 Cookie，后端 Allow-Origin 写 * 被浏览器拒；改用 Bearer Token 头绕开；</li>
+    <li><strong>契约先行</strong>：与后端约定 Token 放 Authorization 头、401 即跳登录——拦截器是这份契约的执行者。</li>
   </ul>
 
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>代理优于开 CORS</strong>：开发态用 Vite proxy 从源头避免跨域，省掉一堆 CORS 调试。</li>
-    <li><strong>credentials 不能配 *</strong>：带 Cookie 的跨域，源必须显式列出。</li>
-    <li><strong>分清控制面/数据面</strong>：信令是控制面（HTTP/WS），媒体是数据面（UDP），选型别混。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用 Vite proxy + axios 拦截器统一解决 业务系统 跨域与 Token 鉴权，并讲清 WebRTC 信令走 HTTP、媒体走 UDP 的分层。</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 OPTIONS 预检失败被当成接口错误</h3>
-  <p class="lead"><b>一句话定位</b>：非简单请求的 OPTIONS 预检被拒，真正请求根本没发出。</p>
-  <ul>
-    <li><strong>现象</strong>：控制台跨域报错，但后端日志没看到请求。</li>
-    <li><strong>正解</strong>：看 Network 里 OPTIONS 的响应，配好后端 CORS 头。</li>
-  </ul>
-  <h3>6.2 带 Cookie 跨域不生效</h3>
-  <p class="lead"><b>一句话定位</b>：withCredentials 三件套缺一不可，且 Allow-Origin 不能为 *。</p>
-  <ul>
-    <li><strong>现象</strong>：设了 withCredentials，Cookie 还是没带上。</li>
-    <li><strong>原因</strong>：前端 withCredentials、后端 Allow-Credentials、Allow-Origin 不能为 *，三者缺一不可。</li>
-    <li><strong>正解</strong>：逐项核对；或干脆用 Bearer Token。</li>
-  </ul>
-  <h3>6.3 跨域错误被浏览器"吞掉"</h3>
-  <p class="lead"><b>一句话定位</b>：跨域响应被拦截，JS 拿不到真实内容——先绕开浏览器验证后端。</p>
-  <ul>
-    <li><strong>现象</strong>：报错信息笼统，看不到真实响应。</li>
-    <li><strong>正解</strong>：用 Postman/curl 直接打后端确认接口本身正常，再排查 CORS。</li>
-  </ul>
-  <h3>6.4 GET 误带 body、Content-Type 错</h3>
-  <p class="lead"><b>一句话定位</b>：GET 用 query，POST 发 JSON 必须设 Content-Type。</p>
-  <ul>
-    <li><strong>现象</strong>：GET 请求带了 JSON body，或 Content-Type 与实际不符。</li>
-    <li><strong>正解</strong>：GET 用 query；POST 发 JSON 记得设 <code>Content-Type: application/json</code>（否则后端收不到）。</li>
-  </ul>
-  <h3>6.5 304 与缓存误判</h3>
-  <p class="lead"><b>一句话定位</b>：改了接口却拿到旧数据，多半是 GET 响应被缓存了。</p>
-  <ul>
-    <li><strong>现象</strong>：改了接口但前端拿到旧数据。</li>
-    <li><strong>原因</strong>：浏览器/中间层缓存了 GET 响应。</li>
-    <li><strong>正解</strong>：响应头合理设置 Cache-Control，或对查询参数加时间戳。</li>
-  </ul>
+  <h3>6.4 验证清单</h3>
+  <ol>
+    <li>本地联调无跨域报错（Network 里预检 204、正式请求 200）；</li>
+    <li>Token 过期后任意请求触发 401 → 自动跳登录；</li>
+    <li>自定义分页头（X-Total-Count）能读到（后端已配 Expose-Headers）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 OPTIONS 预检失败被当成接口错误</h3>
+  <p><strong>现象</strong>：控制台跨域报错，但后端日志没看到请求。<strong>根因</strong>：非简单请求的预检被拒，真正请求根本没发出。<strong>正解</strong>：看 Network 里 OPTIONS 的响应，配好后端 CORS 头（含 Max-Age 缓存排查，4.3）。</p>
+
+  <h3>7.2 带 Cookie 跨域不生效</h3>
+  <p><strong>现象</strong>：设了 withCredentials，Cookie 还是没带上。<strong>根因</strong>：前端 withCredentials、后端 Allow-Credentials:true、Allow-Origin 具体源（不能 *）——<strong>三件套缺一不可</strong>。<strong>正解</strong>：逐项核对；或干脆用 Bearer Token。</p>
+
+  <h3>7.3 跨域错误被浏览器"吞掉"</h3>
+  <p><strong>现象</strong>：报错信息笼统，看不到真实响应。<strong>根因</strong>：跨域响应被拦截，JS 拿不到真实内容。<strong>正解</strong>：用 Postman/curl 直接打后端确认接口本身正常，再排查 CORS——<strong>先绕开浏览器定位问题归属</strong>。</p>
+
+  <h3>7.4 GET 误带 body、Content-Type 错</h3>
+  <p><strong>现象</strong>：GET 带 JSON body，或 POST JSON 忘设 Content-Type。<strong>正解</strong>：GET 用 query；POST JSON 必须设 <code>Content-Type: application/json</code>（否则后端收不到）。</p>
+
+  <h3>7.5 304 与缓存误判</h3>
+  <p><strong>现象</strong>：改了接口前端拿到旧数据。<strong>根因</strong>：GET 响应被浏览器/中间层缓存。<strong>正解</strong>：合理设置 Cache-Control，或查询参数加时间戳。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：什么是同源策略？为什么"Postman 能调通、浏览器报跨域"？</strong></p>
+  <p class="note"><strong>参考答案</strong>：同源策略要求<strong>协议+域名+端口</strong>三者一致才允许 JS 读取响应，目的是防恶意站偷读用户已登录站点的数据。关键：<strong>拦截点在读不在发</strong>——跨域请求其实到达了后端并执行，只是浏览器不让 JS 读响应（控制台看到的报错是读取被拒）。Postman/curl 没有浏览器这道安全模型，所以能调通——这也正是排查跨域问题"先绕开浏览器验证后端"的依据。<br><br>
+  <strong>加分点</strong>：img/script/link 标签天然跨域（JSONP 原理）；CORS 是服务端用响应头主动放行。</p>
+
+  <p><strong>Q2：简单请求与非简单请求的区别？OPTIONS 预检失败怎么排查？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>简单请求</strong>——GET/POST 且只用安全头、Content-Type 限于 text/plain 等少数几种，直接发、看响应头放行；<strong>非简单请求</strong>——PUT/DELETE、自定义头（Authorization）、application/json 等，浏览器先发 OPTIONS 预检问"允许这个源用这些方法这些头吗"，通过才发真正请求。<strong>排查</strong>：控制台跨域报错先看 Network 里 OPTIONS 的响应——404/405 说明后端没处理预检，204 但缺 Allow-Origin/Headers 说明配置不全；改配置后注意 Max-Age 预检缓存。<br><br>
+  <strong>经验</strong>：带鉴权头或 JSON 的接口几乎都是非简单请求。</p>
+
+  <p><strong>Q3：跨域的三种解法怎么选？带 Cookie 的跨域要注意什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>CORS 头</strong>（后端放行，前后端分离且后端可控）、<strong>开发代理</strong>（Vite proxy，开发态同源）、<strong>Nginx 反代</strong>（生产同域，最干净）。<strong>选型原则：代理优于开 CORS</strong>——同源从源头消灭跨域问题。<strong>带 Cookie 跨域三件套缺一不可</strong>：前端 credentials:'include'、后端 Allow-Credentials:true、Allow-Origin 必须是具体源（* 与 credentials 冲突会被浏览器拒绝）。实践上更推荐 Bearer Token 放 Authorization 头，绕开整层。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>同源三要素？跨域请求后端到底收没收到？</li>
+    <li>哪些情况触发预检？预检在 Network 里长什么样？</li>
+    <li>401 与 403 的区别？拦截器各做什么？</li>
+    <li>credentials 与 Allow-Origin * 为什么冲突？</li>
+    <li>读自定义响应头（X-Total-Count）需要后端配什么？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>MDN HTTP 概述与 CORS 详解：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/HTTP/CORS</a></li>
@@ -853,9 +872,15 @@ api.interceptors.response.use(
   </ul>
   <h3>书籍与文章</h3>
   <ul>
-    <li>《HTTP 权威指南》（David Gourley 等，O'Reilly）——报文、缓存、认证的系统书。</li>
+    <li>《HTTP 权威指南》（David Gourley 等）——报文、缓存、认证的系统书。</li>
     <li>web.dev CORS 指南：<a href="https://web.dev/articles/cors" rel="noopener">web.dev/articles/cors</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>复现第 6 章 Demo：故意不配后端 CORS，观察 OPTIONS 预检失败全貌再修复；</li>
+    <li>用 curl 验证预检（-X OPTIONS -i），对照浏览器 Network 行为；</li>
+    <li>给请求层加 Expose-Headers 场景：分页接口读 X-Total-Count。</li>
+  </ol>
 </section>
 
 </main>
@@ -863,7 +888,7 @@ api.interceptors.response.use(
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../01_前端基础/04_浏览器原理与渲染机制【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/07_响应式布局_Flex与Grid【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../01_前端基础/06_TypeScript【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · HTTP与跨域请求【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
