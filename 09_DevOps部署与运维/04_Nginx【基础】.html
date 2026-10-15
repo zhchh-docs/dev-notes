@@ -534,13 +534,13 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Nginx</h1>
     <div class="meta-row">
       <span class="badge basic">基础</span>
-      <span class="meta">定位：Web 服务器入门——静态托管、反向代理、gzip 与缓存</span>
+      <span class="meta">定位：try_files 回退 / 反代跨域 / 缓存分层</span>
     </div>
-    <p class="hero-desc">Nginx 是前端部署最常打交道的服务器：构建产物扔给它托管、接口请求经它转发、它还顺手做压缩与缓存。本页入门讲清它作为"静态服务器 + 反向代理"的两个核心职责，并用大屏/平台项目的真实部署配置收尾。</p>
+    <p class="hero-desc">Nginx 一台机器干三件事：托管静态资源、反向代理 /api（同源自然不跨域）、gzip 与缓存分层。本篇讲透 SPA 部署三件套——try_files 回退（刷新 404 的原理与救法）、反代跨域的因果本质、hash 资源长缓存 + index.html 不缓存的分层策略，并给 nginx -t 先行等四条高频坑的工程对策。配 10 分钟本地部署 Demo 与四项验证清单。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/09_Prometheus与Grafana监控【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/03_Xshell与WinSCP远程管理【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/05_Docker容器化【基础】.html">下一篇 →</a>
 </nav>
@@ -548,30 +548,141 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心配置与命令要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Nginx 是一个高性能的 Web 服务器 / 反向代理：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>Nginx 是高性能的 Web 服务器 / 反向代理</strong>——前端部署绕不开的一层：构建出的 HTML/JS/CSS 没法"直接放网上"，要靠 Nginx <strong>托管静态资源</strong>；前端调后端有跨域，要靠 Nginx <strong>反向代理 /api</strong>；加载慢，靠它 <strong>gzip 压缩与缓存分层</strong>。一台 Nginx 同时干这三件事，是前端部署的最小完整架构。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>静态托管</strong>：前端 build 出的 HTML/JS/CSS 自己不能被浏览器直接访问，需要 Nginx 把它们"托管"出来。</li>
-    <li><strong>反向代理</strong>：把 <code>/api</code> 请求转发给后端，让前端同源访问、不跨域。</li>
+    <li>SPA 刷新二级路由就 404——<strong>前端路由不是服务器文件</strong>，Nginx 找不到对应文件；</li>
+    <li>发版后用户还是旧版——<strong>缓存策略配反了</strong>（index.html 被长缓存）；</li>
+    <li>写了 <code>gzip on;</code> 却没效果——Nginx 默认只压 HTML。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：没有 Nginx，静态文件没地方放、前端调后端跨域、每个请求直连后端会拖垮它。Nginx 一台机器同时干三件事：</p>
-  <ul>
-    <li><strong>托管静态资源</strong>；</li>
-    <li><strong>反向代理接口</strong>；</li>
-    <li><strong>gzip 压缩与缓存提速</strong>。</li>
-  </ul>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要把 Vue/React SPA 部署到服务器（托管+反代+缓存）</td><td>容器化部署 → 本模块 05/06 篇</td></tr>
+    <tr><td>排查"刷新 404/发版不更新/跨域"三类问题</td><td>负载均衡架构深耕 → 运维方向</td></tr>
+    <tr><td>面试（try_files/反向代理跨域/缓存分层是高频题）</td><td>Windows 服务器 → 本篇不涉及</td></tr>
+  </table>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>写出一份<strong>最小可用的 SPA 部署配置</strong>（托管 + try_files 回退 + 反代 + gzip）；</li>
+    <li>讲清 <strong>try_files 回退原理</strong>（为什么刷新会 404、回退怎么救）；</li>
+    <li>落地<strong>缓存分层策略</strong>（index.html 不缓存、hash 资源长缓存）；</li>
+    <li>掌握四条高频坑（404、gzip_types、缓存反置、改配置不校验）。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：HTTP 基础（01 模块）；Linux 命令（本模块 01 篇）；知道 SPA 是什么。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（配置直观，缓存与代理细节是重点）。</p>
+  <p><strong>路线</strong>：第一次部署按顺序读 → 已部署的直查第 7 章坑清单。<strong>务必动手</strong>：第 6 章 Demo——本地起 Nginx 部署一次 dist。</p>
+  <p><strong>本篇不涉及</strong>：HTTPS 证书申请（材料多，按官方指南走）；高可用集群（keepalived 等运维话题）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>三个核心模型：<strong>反向代理</strong>（跨域的解）→ <strong>SPA 回退</strong>（404 的解）→ <strong>缓存分层</strong>（加载慢与发版不及时的共同解）。</p>
+
+  <h3>2.1 反向代理：浏览器只认 Nginx 一个地址</h3>
+  <p>浏览器只跟 Nginx 一个地址对话，Nginx 把 <code>/api/xxx</code> 悄悄转发给内网后端、再把结果带回浏览器。<strong>"反向"的含义</strong>：对外只暴露 Nginx，后端藏在后面——后端可换可扩容，前端无感知。<br><br>
+  <strong>它为什么"顺便"解决了跨域</strong>：页面从 Nginx 来，<code>/api</code> 也在 Nginx 上——<strong>同源了自然不跨域</strong>，后端连 CORS 都不用配。这是"反向代理解决跨域"的原理本质：不是 Nginx 会绕过同源策略，而是请求根本没跨源。</p>
+
+  <h3>2.2 静态托管与 SPA 回退：try_files 是 SPA 的命根</h3>
+  <p><code>root</code> 指定静态目录，访问 <code>/</code> 返回 <code>index.html</code>。<strong>坑在 SPA</strong>：前端路由（/login）只存在于 JS 里，服务器上根本没有这个文件——用户刷新 /login，Nginx 找文件找不到就 404。解法：<code>try_files $uri $uri/ /index.html;</code>——找不到文件就回退 index.html，让前端路由接管（原理见图 2，第 5 章）。</p>
+
+  <h3>2.3 缓存分层：快与新的两全</h3>
+  <p><strong>gzip</strong>：把 JS/CSS 压缩后再发，体积小加载快——<span class="tag-pit">坑</span>Nginx 默认只压 <code>text/html</code>，<strong>必须显式声明 <code>gzip_types text/css application/javascript application/json;</code></strong> 才压 JS/CSS。<strong>缓存</strong>：给带 hash 的资源（<code>app.abc123.js</code>）设长缓存——文件名随内容变，可放心缓存一年；<strong>index.html 设 no-cache</strong>（每次问服务器）——发版即更新。两层搭配：入口保鲜、资源提速（原理见图 3，第 5 章）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：一份最小可用的 SPA 部署配置</h3>
+<pre class="code" data-lang="nginx"><code>server {
+  listen 80;
+  root /usr/share/nginx/html;        # 前端 dist 拷贝到这里
+
+  location / {
+    try_files $uri $uri/ /index.html;   # SPA 回退到 index.html
+  }
+
+  location /api/ {
+    proxy_pass http://127.0.0.1:8080/;  # 接口转发给后端
+  }
+
+  gzip on;                            # ⚠️ 见 3.3：还要配 gzip_types
+}</code></pre>
+  <div class="note">上面 <code>gzip on;</code> 默认只压 <code>text/html</code>；要压 JS/CSS/JSON，必须再加 <code>gzip_types text/css application/javascript application/json;</code>，否则拿不到 JS/CSS 的压缩收益。</div>
+
+  <h3>3.2 场景二：加缓存分层（完整生产形态）</h3>
+<pre class="code" data-lang="nginx"><code># 带 hash 的静态资源：长缓存（文件名随内容变，可放心缓存）
+location /assets/ {
+  add_header Cache-Control "public, max-age=31536000, immutable";
+}
+# 入口与数据类请求：不缓存
+location = /index.html {
+  add_header Cache-Control "no-cache";
+}
+# 压缩（放 http/server 级）
+gzip on;
+gzip_types text/css application/javascript application/json;
+gzip_min_length 1k;</code></pre>
+
+  <h3>3.3 场景三：常用命令（三步纪律）</h3>
+<pre class="code" data-lang="bash"><code>nginx -t                # 检查配置语法（改完先测，必做）
+nginx -s reload         # 平滑重载配置（不断现有连接）
+systemctl restart nginx # 重启（配置大改/起不来时）</code></pre>
+  <p><strong>纪律</strong>：<strong>改配置永远先 <code>nginx -t</code> 再 reload</strong>——语法错误直接 reload 可能让服务挂掉（衔接 01 篇坑 4）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：SPA 部署三件套已跑通。</p>
+
+  <h3>4.1 proxy 转发头：让后端知道真实来访者</h3>
+  <p>反代后默认后端看到的所有请求都来自 Nginx——要补两个头：<code>proxy_set_header X-Real-IP $remote_addr;</code>（真实客户端 IP，日志与限流依赖它）、<code>proxy_set_header Host $host;</code>（原始域名，后端多域名路由依赖它）。<strong>忘了配，后端日志里全是 Nginx 的 IP</strong>——排查用户问题时两眼一抹黑。</p>
+
+  <h3>4.2 upstream：为扩容预留负载均衡</h3>
+  <pre class="code" data-lang="nginx"><code>upstream backend {
+  server 127.0.0.1:8080;
+  server 127.0.0.1:8081;    # 加一个实例就是负载均衡
+}
+location /api/ { proxy_pass http://backend/; }</code></pre>
+  <p>单实例时 proxy_pass 直写地址；<strong>后端扩到多实例时改成 upstream 块</strong>——Nginx 自动轮询分发。前端视角的价值：知道"后端加机器不用改我任何东西"。</p>
+
+  <h3>4.3 多站点与 server_name</h3>
+  <p>一台 Nginx 托管多个前端项目：<strong>不同域名不同 server 块</strong>（<code>server_name a.com</code> / <code>b.com</code>）；同域名下多项目用 <code>location /app2/</code> 前缀区分（注意前端构建的 <code>base</code>/publicPath 要对齐前缀）。<strong>SPA 部署在子路径时</strong>：try_files 的回退目标与 base 配置必须一致，否则子路径刷新又 404。</p>
+
+  <h3>4.4 history 路由 vs hash 路由：部署视角的选择</h3>
+  <table>
+    <tr><th></th><th>history 模式</th><th>hash 模式（/#/login）</th></tr>
+    <tr><td>URL 观感</td><td>干净（/login）</td><td>带 # 号</td></tr>
+    <tr><td>服务器要求</td><td><strong>必须配 try_files 回退</strong></td><td>无要求（# 后不发给服务器）</td></tr>
+    <tr><td>取舍</td><td>正式产品首选</td><td>静态托管受限（OSS 直挂等）时的兜底</td></tr>
+  </table>
+  <p><strong>部署视角结论</strong>：能控制服务器就 history + try_files；部署在纯静态托管（改不了服务器配置）才退而求其次用 hash。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="Nginx 静态托管与反向代理示意图">
       <defs>
@@ -599,23 +710,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Nginx 静态托管与反向代理（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 反向代理（Reverse Proxy）</h3>
-  <p class="lead"><b>一句话定位</b>：浏览器只跟 Nginx 一个地址对话，Nginx 把 /api 悄悄转发给内网后端。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>机制</strong>：Nginx 把 <code>/api/xxx</code> 转发给内网后端，再把结果返回浏览器。</li>
-    <li><strong>好处</strong>：前端不用管后端地址、不跨域、后端可换/扩容而前端无感知。</li>
-    <li><strong>"反向"含义</strong>：对外只暴露 Nginx，后端藏在后面。</li>
-  </ul>
-  <h3>2.2 静态资源托管与 root / index</h3>
-  <p class="lead"><b>一句话定位</b>：root 指静态文件目录，SPA 还要配 try_files 回退 index.html。</p>
-  <ul>
-    <li><strong>root/index</strong>：<code>root</code> 指定静态目录，访问 <code>/</code> 返回 <code>index.html</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>SPA 回退</strong>：前端路由在 JS 里，要配 <code>try_files</code> 让找不到的路径都回退 index.html——否则刷新二级路由就 404。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="SPA try_files回退原理图">
       <defs>
@@ -625,7 +719,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">为什么 SPA 刷新会 404？try_files 怎么救？</text>
 
-      <!-- 没配try_files -->
       <rect x="30" y="45" width="350" height="170" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">没配 try_files</text>
 
@@ -641,7 +734,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="205" y="165" text-anchor="middle" font-size="11" fill="#b91c1c">没有 /login 这个文件 → 返回 404</text>
       <text x="205" y="195" text-anchor="middle" font-size="11" fill="#7a8a70">/login 是前端路由，不是服务器文件</text>
 
-      <!-- 配了try_files -->
       <rect x="420" y="45" width="350" height="170" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">配了 try_files $uri $uri/ /index.html;</text>
 
@@ -654,18 +746,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="675" y="107" text-anchor="middle" font-size="11" fill="#047857">找不到 /login 文件</text>
 
       <text x="595" y="145" text-anchor="middle" font-size="11" fill="#4f6348">回退到第三个参数：/index.html</text>
-      <text x="595" y="165" text-anchor="middle" font-size="11" fill="#047857">返回 index.html → 前端路由接管</text>
+      <text x="595" y="165" text-anchor="middle" font-size="11" fill="#4f6348">返回 index.html → 前端路由接管</text>
       <text x="595" y="195" text-anchor="middle" font-size="11" fill="#7a8a70">浏览器加载 JS，路由匹配 /login 页面</text>
     </svg>
     <p class="diagram-caption">图 2 SPA try_files 回退原理（示意）</p>
   </div>
-  <h3>2.3 gzip 与缓存</h3>
-  <p class="lead"><b>一句话定位</b>：gzip 压缩 JS/CSS 加速；带 hash 的资源设长缓存、index.html 不缓存。</p>
-  <ul>
-    <li><strong>gzip</strong>：把 JS/CSS 压缩后再发，体积小、加载快。<span class="tag-pit">坑</span>注意：Nginx 默认只对 <code>text/html</code> 做 gzip，单独写 <code>gzip on;</code> 并不会压缩 JS/CSS，必须显式声明 <code>gzip_types text/css application/javascript application/json;</code> 才真正生效。</li>
-    <li><strong>长缓存</strong>：给带 hash 的资源（如 <code>app.abc123.js</code>）设长缓存——文件名随内容变，可放心长期缓存。</li>
-    <li><strong>搭配</strong>：index.html 不缓存，兼顾"快"与"更新及时"。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="Nginx缓存分层策略图">
       <defs>
@@ -675,7 +760,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">缓存为什么要分两层？（示意）</text>
 
-      <!-- index.html -->
       <rect x="60" y="55" width="300" height="130" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="210" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">index.html（入口）</text>
       <text x="80" y="105" font-size="11.5" fill="#4f6348">文件名固定，不带 hash</text>
@@ -683,7 +767,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="80" y="150" font-size="11.5" font-weight="600" fill="#b45309">→ 设为 no-cache（每次问服务器）</text>
       <text x="80" y="172" font-size="11" fill="#7a8a70">用户打开时总能拿到最新版</text>
 
-      <!-- hash资源 -->
       <rect x="440" y="55" width="300" height="130" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="590" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">app.abc123.js / style.def456.css</text>
       <text x="460" y="105" font-size="11.5" fill="#4f6348">文件名带内容 hash</text>
@@ -691,128 +774,153 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="460" y="150" font-size="11.5" font-weight="600" fill="#047857">→ 设长缓存（1年）</text>
       <text x="460" y="172" font-size="11" fill="#7a8a70">内容不变就不用重新下，加载快</text>
 
-      <!-- 中间关系 -->
       <text x="400" y="205" text-anchor="middle" font-size="12" fill="#4f6348">index.html 里引用的是带 hash 的文件名；新版发布时 index.html 更新、hash 也变，自然加载新资源</text>
     </svg>
     <p class="diagram-caption">图 3 缓存分层策略（示意）</p>
   </div>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>结合图 1：浏览器请求到 Nginx 后，Nginx 按路径分发——静态资源请求（<code>/assets/*.js</code>、<code>/</code>）直接从 dist 目录读文件返回（可压缩、可缓存）；<code>/api/</code> 开头的请求则通过 <code>proxy_pass</code> 转发给后端。改完配置后要 <code>nginx -s reload</code> 平滑重载，不中断现有连接。</p>
-  <div class="note">SPA 部署必配 <code>try_files $uri $uri/ /index.html;</code>——否则用户刷新 <code>/login</code> 这种前端路由，Nginx 找对应文件找不到就 404。这是部署 SPA 最常见的坑。</div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心配置与命令要点</h2>
-  <h3>4.1 一份最小可用配置</h3>
-<pre class="code" data-lang="nginx"><code>server {
-  listen 80;
-  root /usr/share/nginx/html;        # 前端 dist 拷贝到这里
-
-  location / {
-    try_files $uri $uri/ /index.html;   # SPA 回退到 index.html
-  }
-
-  location /api/ {
-    proxy_pass http://127.0.0.1:8080/;  # 接口转发给后端
-  }
-
-  gzip on;                            # 开启压缩
-}</code></pre>
-  <div class="note">上面配置里的 <code>gzip on;</code> 默认只压 <code>text/html</code>；要压 JS/CSS/JSON，必须再加一行 <code>gzip_types text/css application/javascript application/json;</code>，否则照搬拿不到 JS/CSS 的压缩收益。</div>
-  <h3>4.2 常用命令</h3>
-<pre class="code" data-lang="bash"><code>nginx -t                # 检查配置语法（改完先测）
-nginx -s reload         # 平滑重载配置
-systemctl restart nginx # 重启</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：大屏与平台的前端部署</h3>
-  <p class="lead"><b>一句话定位</b>：Vue SPA 构建产物要部署到服务器供内网访问，同时前端要调后端接口。</p>
-  <ul><li><strong>项目</strong>：电力大屏、低代码平台等 Vue SPA，内网用户访问。</li></ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责前端构建产物的 Nginx 部署配置（静态托管/反代/缓存），与后端运维配合。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Nginx 反向代理 + 静态托管；前端 Vue SPA；后端 SpringBoot。</li></ul>
-
-  <h3>5.4 落地设计：托管 + SPA 回退 + 反代 + 压缩缓存</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>静态托管</strong>：dist 拷到 Nginx root。</li>
-    <li><strong>SPA 回退</strong>：<code>try_files ... /index.html</code>，刷新任意路由不 404。</li>
-    <li><strong>反向代理</strong>：<code>/api/</code> 转后端，解决跨域。</li>
-    <li><strong>gzip+缓存</strong>：JS/CSS 开 gzip；带 hash 资源长缓存，index.html 不缓存。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="nginx"><code>location / {
-  root /usr/share/nginx/html;
-  try_files $uri $uri/ /index.html;      # SPA 回退
-}
-location /api/ {
-  proxy_pass http://backend:8080/;       # 反代后端，同源不跨域
-}
-# 带 hash 的静态资源长缓存；index.html 设 no-cache</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>刷新二级路由 404</strong>：忘配 try_files。</li>
-    <li><span class="tag-pit">坑</span><strong>改配置没 nginx -t 就 reload</strong>：语法错误导致服务挂——先 -t 再 reload。</li>
-    <li><span class="tag-pit">坑</span><strong>index.html 被长缓存</strong>：发版后用户看旧版——index.html 不缓存、hash 资源才长缓存。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>gzip 后资源体积明显减小、页面加载变快；接口同源不再跨域；发版后用户能拿到新版。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul><li><strong>流程</strong>：<code>npm run build</code> → 拷 dist → <code>nginx -t && reload</code>；与后端对齐 <code>/api/</code> 前缀。</li></ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>SPA 必配 try_files 回退</strong>。</li>
-    <li><span class="tag-point">要点</span><strong>缓存分层</strong>：index.html 不缓存、hash 资源长缓存。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："实践中常采用 Nginx 部署多个 Vue SPA 项目，配 try_files 解决刷新 404、/api 反代后端避跨域、gzip 压缩加 hash 资源长缓存，踩过 index.html 被长缓存导致发版不更新的坑。"</p>
+  <p><strong>读图要点</strong>：①路径分发是 Nginx 的骨架——静态走 root、/api 走 proxy_pass；②try_files 的本质是"把前端路由认成 index.html"——404 与救场是同一件事的两面；③缓存分层的钥匙是 <strong>hash 机制</strong>：内容变→文件名变→缓存天然失效，所以 hash 资源敢缓存一年、index.html 必须 no-cache。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 SPA 刷新 404</h3>
-  <p class="lead"><b>一句话定位</b>：没配 try_files 回退 index.html，刷新二级路由就 404。</p>
-  <p class="pit-sentence">正解：SPA 必须配 <code>try_files $uri $uri/ /index.html;</code>。</p>
-  <h3>6.2 直接 reload 不校验</h3>
-  <p class="lead"><b>一句话定位</b>：改完配置不先测语法就 reload，配错可能让 Nginx 起不来。</p>
-  <p class="key-sentence">先 <code>nginx -t</code> 验证语法，再 reload。</p>
-  <h3>6.3 缓存策略弄反</h3>
-  <p class="lead"><b>一句话定位</b>：index.html 不该长缓存，带 hash 的资源才该长缓存。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>10 分钟本地完成一次完整 SPA 部署（本机 Nginx 或 Docker 里的 nginx 均可）：</p>
+
+  <h3>6.1 完整配置（nginx.conf 站点段）</h3>
+<pre class="code" data-lang="nginx"><code>server {
+  listen 8080;
+  root /usr/share/nginx/html;
+
+  location / {
+    try_files $uri $uri/ /index.html;              # SPA 回退
+  }
+  location /api/ {
+    proxy_pass http://127.0.0.1:3000/;             # 本地 mock 后端
+    proxy_set_header X-Real-IP $remote_addr;       # 真实 IP（4.1）
+    proxy_set_header Host $host;
+  }
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+  location = /index.html {
+    add_header Cache-Control "no-cache";
+  }
+  gzip on;
+  gzip_types text/css application/javascript application/json;
+  gzip_min_length 1k;
+}</code></pre>
+
+  <h3>6.2 部署与验证</h3>
+<pre class="code" data-lang="bash"><code>npm run build                       # 本地产出 dist
+cp -r dist/* /usr/share/nginx/html/
+nginx -t &amp;&amp; nginx -s reload         # ⭐ 先校验再重载
+
+# 验证清单（四项全过才算部署完成）
+curl -I localhost:8080              # ① index.html 200，无 Cache-Control 长缓存
+curl -I localhost:8080/login        # ② 刷新路由也 200（try_files 生效）
+curl -I localhost:8080/assets/*.js  # ③ 带 hash 资源有 max-age=31536000
+curl -I -H "Accept-Encoding: gzip" localhost:8080/assets/*.js
+                                    # ④ 响应头出现 Content-Encoding: gzip</code></pre>
+
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>后果</strong>：index.html 长缓存→发版不更新；带 hash 资源不长缓存→每次都重新下。</li>
+    <li><strong>四项验证对应四个坑</strong>：入口/回退/缓存/压缩——每项都是一类线上事故的"体检项"；</li>
+    <li><strong>proxy_set_header</strong>：反代补真实 IP 头，本地可省、生产必配（4.1）；</li>
+    <li><strong>nginx -t 在 reload 前</strong>：语法错误拦在加载前——这条纪律能救整站。</li>
   </ul>
-  <h3>6.4 反向代理跨域</h3>
-  <p class="lead"><b>一句话定位</b>：前端同源访问 /api，就不需要后端再配 CORS。</p>
-  <p class="key-sentence">同源了自然不跨域——这就是反向代理解决跨域的原理。</p>
+
+  <h3>6.4 生产改造扩展方向</h3>
+  <ol>
+    <li>多站点：再加一个 server 块托管第二个项目（4.3）；</li>
+    <li>后端多实例：proxy_pass 改 upstream 块（4.2）；</li>
+    <li>整段配置容器化：塞进 nginx:alpine 镜像，衔接 05 篇前端容器化。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：SPA 刷新二级路由 404</h3>
+  <ul>
+    <li><strong>现象</strong>：首页正常，刷新 /login 就 404；</li>
+    <li><strong>根因</strong>：前端路由不是服务器文件，没配回退；</li>
+    <li><strong>复现</strong>：删掉 try_files 对照；</li>
+    <li><strong>修复</strong>：<code>try_files $uri $uri/ /index.html;</code>（子路径部署注意回退目标与 base 一致，4.3）；</li>
+    <li><strong>规避</strong>：SPA 部署配置模板里 try_files 是默认项；或退而用 hash 路由（4.4）。</li>
+  </ul>
+  <h3>7.2 坑 2：gzip on 了但 JS/CSS 没压缩</h3>
+  <ul>
+    <li><strong>现象</strong>：配置写了 gzip on，Network 面板里 JS 还是几百 KB 原样；</li>
+    <li><strong>根因</strong>：Nginx 默认只压 text/html——gzip_types 没配；</li>
+    <li><strong>复现</strong>：curl -H "Accept-Encoding: gzip" -I 看响应头有无 Content-Encoding；</li>
+    <li><strong>修复</strong>：<code>gzip_types text/css application/javascript application/json;</code>；</li>
+    <li><strong>规避</strong>：部署验证清单固定"压缩检查"一项（6.2 第④项）。</li>
+  </ul>
+  <h3>7.3 坑 3：缓存策略配反，发版不更新</h3>
+  <ul>
+    <li><strong>现象</strong>：发版后用户还是旧版，强刷才更新；</li>
+    <li><strong>根因</strong>：index.html 被长缓存（入口旧→引用旧 hash→永远旧版）；</li>
+    <li><strong>修复</strong>：index.html 设 no-cache，带 hash 的资源才设长缓存；</li>
+    <li><strong>规避</strong>：记住分层钥匙——<strong>hash 资源缓存一年、入口不缓存</strong>（图 3）。</li>
+  </ul>
+  <h3>7.4 坑 4：改配置不校验就 reload</h3>
+  <ul>
+    <li><strong>现象</strong>：reload 后 Nginx 挂了，整站不可用；</li>
+    <li><strong>根因</strong>：配置语法错误未拦截；</li>
+    <li><strong>修复</strong>：先 <code>nginx -t</code> 校验再 reload；</li>
+    <li><strong>规避</strong>：部署脚本固定 "nginx -t &amp;&amp; nginx -s reload"——校验不过不执行（衔接 01 篇坑 4）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Nginx 反向代理为什么能解决跨域？</strong></p>
+  <p class="note"><strong>参考答案</strong>：跨域是<strong>浏览器</strong>的同源策略行为——页面源与请求源不同就拦。Nginx 反代把 /api 挂在与页面<strong>同一域名端口</strong>下，浏览器看到的请求同源，根本不触发跨域；Nginx 在服务端把请求转给真实后端（服务器之间没有同源策略）。<strong>后端因此连 CORS 都不用配</strong>。注意因果：不是"绕过"同源策略，而是"不跨源"。<br><br>
+  <strong>加分点</strong>：补充"反向"的含义——对外只暴露 Nginx，后端可换可扩容前端无感知；顺带 proxy_set_header 传真实 IP（4.1）。</p>
+
+  <p><strong>Q2：SPA 部署为什么刷新会 404？怎么解决？</strong></p>
+  <p class="note"><strong>参考答案</strong>：history 模式下 /login 只是前端 JS 路由，<strong>服务器上没有这个文件</strong>——刷新时浏览器直接向 Nginx 要 /login 这个"文件"，找不到就 404。解法 <code>try_files $uri $uri/ /index.html;</code>：先找真实文件（$uri），找不到回退 index.html，让 JS 加载后由前端路由接管。<br><br>
+  <strong>延伸</strong>：hash 模式（/#/login）把路由放 # 后——# 后不发给服务器，所以无此问题；代价是 URL 带井号。<strong>能控制服务器就 history+try_files，静态托管受限才用 hash</strong>（4.4）。</p>
+
+  <p><strong>Q3：前端静态资源的缓存策略怎么设计？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>分层两极</strong>——①<strong>带 hash 的资源</strong>（构建产物 JS/CSS/图片）：文件名含内容 hash，内容变则名变，设 <code>max-age=31536000, immutable</code> 一年长缓存；②<strong>index.html 入口</strong>：文件名固定、每次发版内容变，设 <code>no-cache</code>（协商缓存，每次问服务器有没有新版）。<br><br>
+  <strong>原理一句话</strong>：hash 让"内容版本"编码进"文件名"，缓存失效由文件名变化天然完成——入口保鲜、资源提速两全。<strong>反例后果</strong>：index.html 长缓存 = 发版用户看不到新版。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>try_files 的三个参数各是什么含义？回退为什么能救 SPA？</li>
+    <li>gzip 默认压什么？JS/CSS 要生效还差什么配置？</li>
+    <li>hash 资源为什么敢缓存一年？index.html 为什么必须 no-cache？</li>
+    <li>反代后后端日志全是 Nginx IP，怎么解决？</li>
+    <li>改 Nginx 配置的三步纪律？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
   <ul>
     <li>Nginx 官方文档：<a href="https://nginx.org/en/docs/" rel="noopener">nginx.org/en/docs</a></li>
     <li>Nginx 中文社区文档：<a href="https://www.nginx.cn/doc/" rel="noopener">nginx.cn/doc</a></li>
   </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>Nginx 官方_beginner's guide（配置结构 mental model）</li>
+    <li>MDN Cache-Control（缓存头的标准语义）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo，四项验证全过；</li>
+    <li>故意删掉 gzip_types 复现"压缩不生效"，用 curl 定位并修复；</li>
+    <li>把本配置容器化（nginx:alpine + COPY 配置），与 05 篇前端容器化打通。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/09_Prometheus与Grafana监控【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/03_Xshell与WinSCP远程管理【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/05_Docker容器化【基础】.html">下一篇 →</a>
 </nav>

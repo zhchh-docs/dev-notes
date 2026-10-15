@@ -534,41 +534,138 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>CI/CD：Jenkins 与流水线</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：持续集成/部署理念——一条流水线把构建-测试-部署自动化</span>
+      <span class="meta">定位：三档位 / 制品化 / 门禁与通知</span>
     </div>
-    <p class="hero-desc">CI/CD 让"提交代码"自动触发"构建 → 测试 → 打包 → 部署"，靠流水线（Pipeline）把这些步骤串起来、失败即拦截。本页讲清 CI 与 CD 的区别、流水线分阶段设计、环境门禁与通知，并用一条构建-测试-部署流水线的实践收尾（Jenkins 在我项目系列里更多是配合使用，如实说明深度）。</p>
+    <p class="hero-desc">CI/CD 把"拉代码→构建→测试→打包→部署"固化成失败即停的自动化链。本篇讲透三个核心模型：CI/持续交付/持续部署三档位（前端通常停在持续交付）、流水线即代码（Jenkinsfile 进版本管理）、制品化铁律"构建一次、到处部署"；配本地 Jenkins 五阶段 Demo 与五条高频坑（lockfile/每环境重构建/无通知等）。（说明：Jenkins 在我项目里以配合使用为主，如实说明深度。）</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/07_Kubernetes【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/01_Linux基础与常用命令【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/09_Prometheus与Grafana监控【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与配置要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：CI/CD 与流水线是一条自动化链：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>CI/CD 是把"拉代码→安装→构建→测试→打包→部署"固化成一条自动化链</strong>：<strong>CI（持续集成）</strong>每次合入自动构建+测试，尽早暴露"改 A 坏 B"；<strong>CD（持续部署/交付）</strong>验证过的产物自动部署到环境。<strong>Jenkins</strong> 是最经典的引擎（同类 GitLab CI、GitHub Actions，理念一致）。它终结的是手工部署时代："本地打包、手动传服务器、人肉跑测试——上次手动发的，谁知道发了啥"。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><span class="tag-key">关键</span><strong>CI（持续集成）</strong>：每次合入主干自动跑构建与测试，尽早发现"改 A 坏 B"。</li>
-    <li><strong>CD（持续部署/交付）</strong>：测试通过后自动把产物部署到环境。</li>
-    <li><strong>流水线（Pipeline）</strong>：把"拉代码→安装→构建→测试→打包→部署"写成一条自动化链；Jenkins 是最经典的引擎（同类 GitLab CI、GitHub Actions）。</li>
+    <li>手工部署慢且易错、不可审计（"发的什么版本？"没人说得清）；</li>
+    <li>CI 装出和本地不同的依赖——"我本地能过 CI 挂"；</li>
+    <li>流水线红灯挂半天没人发现——失败没通知。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：手工部署——本地打包、手动传服务器、人肉跑测试，慢且易错（"上次手动发的，谁知道发了啥"）。流水线把这套固化成可重复、可审计、失败即停的自动化流程。</p>
-  <p class="pit-sentence">说明：在实践中项目里主要是前端配合流水线产物，Jenkins 配置由后端/运维主导，下面是通用流水线设计实践。</p>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要为前端项目搭/参与维护 CI 流水线</td><td>部署目标环境本身 → 04 Nginx / 05 Docker</td></tr>
+    <tr><td>面试（构建一次到处部署/lockfile/门禁是高频）</td><td>Jenkins 服务器运维 → 运维方向</td></tr>
+    <tr><td>排查"CI 与本地不一致/产物不一致"</td><td>lint/测试本身 → 06 工程化模块</td></tr>
+  </table>
+  <p class="note"><strong>诚实声明</strong>：真实项目里 Jenkins 由后端/运维主导，我以前端视角配合（提供 build/test 命令与产物路径）；本篇含自建流水线 demo，如实呈现深度。</p>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>区分 <strong>CI / 持续交付 / 持续部署</strong>三档位，知道前端项目通常停在哪；</li>
+    <li>写出分阶段、带门禁与失败通知的 <strong>Jenkinsfile</strong>；</li>
+    <li>理解并落地铁律<strong>"构建一次、到处部署"</strong>（制品化）；</li>
+    <li>避开五条高频坑（lockfile、每环境重构建、无通知、无门禁、钩子过重）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：Git 分支与合并（衔接 10 模块 03 篇评审流程——CI 是评审的门禁引擎）；npm scripts。<strong>难度</strong>：★★☆☆☆。<strong>务必动手</strong>：第 6 章 Demo——本地 Jenkins 跑通一条完整流水线。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>CI 与 CD 的档位</strong>（自动化到哪一步）→ <strong>流水线即代码</strong>（工程形态）→ <strong>Stage 与门禁</strong>（执行结构）→ <strong>制品化</strong>（本篇最重要的纪律）。</p>
+
+  <h3>2.1 CI → 持续交付 → 持续部署：自动化到哪一步</h3>
+  <p>三个档位（图 2 见第 5 章）：<strong>CI 持续集成</strong>——每次提交自动构建+跑测试；<strong>持续交付</strong>——自动到测试/预发，<strong>上生产人工点一下</strong>；<strong>持续部署</strong>——全自动上生产，要求测试覆盖极高。<strong>前端项目通常停在持续交付</strong>：测试环境自动上、生产走人工审批——平衡速度与风险。</p>
+
+  <h3>2.2 流水线即代码（Pipeline as Code）</h3>
+  <p>流水线写成文件（<strong>Jenkinsfile</strong> / .gitlab-ci.yml）跟代码一起进版本管理——<strong>不是在 Jenkins 界面上点点点配</strong>。收益：流水线改动也能 code review、可追溯（谁改的为什么改）、可复制（新项目拷模板）。这是现代 CI/CD 的标准形态。</p>
+
+  <h3>2.3 Stage 与门禁：失败即停</h3>
+  <p>流水线分 stage（拉代码/构建/测试/部署），<strong>stage 间串行</strong>（构建不过不测试——下游永远不碰不合格产物），<strong>stage 内可并行</strong>（多平台测试同时跑）。<strong>CI 门禁</strong>是质量杠杆的引擎：lint+单测作为独立 stage，红了即停、通知责任人——不污染下游环境（衔接 10 模块 03 篇质量杠杆全景）。</p>
+
+  <h3>2.4 制品化：构建一次、到处部署</h3>
+  <p class="key-sentence"><strong>构建一次产物，测试/预发/生产都用同一个制品</strong>——如果每个环境重新 build，测试过的和生产上的就不是同一份代码，"环境一致性"从根上就不成立。制品要有归宿：archiveArtifacts 归档或推制品仓库（Nexus/Harbor），后续环境<strong>拉同一个包</strong>部署（图 3 见第 5 章）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最小 Jenkinsfile（前端流水线）</h3>
+<pre class="code" data-lang="groovy"><code>pipeline {
+  agent any
+  stages {
+    stage('install') { steps { sh 'pnpm install --frozen-lockfile' } }
+    stage('build')   { steps { sh 'pnpm build' } }
+    stage('test')    { steps { sh 'pnpm lint &amp;&amp; pnpm test' } }  // CI 门禁
+    stage('deploy-test') { steps { sh 'deploy.sh dist' } }
+  }
+  post { failure { echo '发通知给开发' } }
+}</code></pre>
+
+  <h3>3.2 场景二：关键声明式块</h3>
+<pre class="code" data-lang="groovy"><code>environment {
+  NODE_ENV = 'production'
+  DEPLOY_KEY = credentials('deploy-key')      // 凭据引用，不写明文进库
+}
+stage('deploy') {
+  when { branch 'main' }                      // 只 main 分支才部署
+  steps { sh 'deploy.sh dist' }
+}
+options { buildDiscarder(logRotator(numToKeepStr: '10')) }  // 只留最近 10 次构建</code></pre>
+  <p><strong>三件套</strong>：<code>environment + credentials()</code> 管密钥（<strong>账号/密钥永不写明文进库</strong>）；<code>when</code> 控制分支条件；<code>buildDiscarder</code> 管构建历史膨胀。</p>
+
+  <h3>3.3 场景三：制品落地</h3>
+<pre class="code" data-lang="groovy"><code>stage('package') {
+  steps {
+    archiveArtifacts 'dist/**'        // 归档产物（简单版）
+    // 或 stash/unstash 在 stage 间传递；规范版推 Nexus/Harbor
+  }
+}</code></pre>
+  <p><strong>对照</strong>：GitLab CI / GitHub Actions 用 YAML 写同样的 stage 逻辑，理念一致——"提交触发 → 分阶段跑 → 失败告警"。会一种，另外两种半天上手。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：流水线已跑通。</p>
+
+  <h3>4.1 依赖安装的确定性：--frozen-lockfile</h3>
+  <p>CI 必须严格按 lockfile 安装（<code>pnpm install --frozen-lockfile</code> / <code>npm ci</code>）——裸 install 会按 semver 拉新版本，<strong>CI 装出和本地不同的依赖树</strong>，"我本地能过 CI 挂"的经典来源。lockfile 冲突时在本地解决后提交，绝不让 CI "自由发挥"。</p>
+
+  <h3>4.2 缓存与提速</h3>
+  <p>CI 构建慢的主因是每次全量装依赖：用 CI 的缓存机制（Jenkins workspace 保留 / GitLab CI cache / actions/cache）缓存 pnpm store / node_modules——依赖未变时秒装。<strong>配合分层思想</strong>（衔接 05 篇镜像分层）：依赖层稳定才值得缓存。</p>
+
+  <h3>4.3 触发机制：webhook 与定时</h3>
+  <p>主流触发是 <strong>webhook</strong>：Git 服务器在 push/merge 时回调 Jenkins（或平台内置触发）；另有 cron 定时（夜间全量回归）。<strong>触发范围要收敛</strong>：不是所有分支都触发全量流水线——feature 分支跑轻量（lint+相关测试），main 跑全量+部署。</p>
+
+  <h3>4.4 环境分级与晋级</h3>
+  <p>标准三级：<strong>dev（自动）→ test/staging（自动）→ prod（审批门禁）</strong>。晋级的是<strong>同一个制品</strong>（2.4），环境差异只体现在配置（环境变量/ConfigMap，衔接 07 篇）。前端多项目可加矩阵并行（多浏览器/多 Node 版本同时测）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="CI/CD 流水线分阶段示意图">
       <defs>
@@ -600,18 +697,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 CI/CD 流水线分阶段（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 CI vs CD</h3>
-  <p class="lead"><b>一句话定位</b>：CI 是每次提交自动构建+测试尽早暴露问题；CD 是把验证过的产物自动部署。</p>
-  <ul>
-    <li><strong>CI</strong>：每次提交自动构建+测试，核心是尽早暴露集成问题。</li>
-    <li><strong>持续交付</strong>：自动到预发、人工点一下上生产。</li>
-    <li><strong>持续部署</strong>：全自动到生产。</li>
-    <li><strong>前端常见档位</strong>：自动部署测试环境、生产走人工/审批。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="CI vs CD区别图">
       <defs>
@@ -621,7 +706,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">CI → 持续交付 → 持续部署：自动化到哪一步？</text>
 
-      <!-- CI -->
       <rect x="40" y="60" width="160" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="120" y="85" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">CI 持续集成</text>
       <text x="120" y="108" text-anchor="middle" font-size="11" fill="#4f6348">每次提交自动</text>
@@ -630,7 +714,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
 
       <line x1="200" y1="110" x2="250" y2="110" stroke="#7a8a70" marker-end="url(#arr)"/>
 
-      <!-- 持续交付 -->
       <rect x="255" y="60" width="200" height="100" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="355" y="85" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">持续交付</text>
       <text x="355" y="108" text-anchor="middle" font-size="11" fill="#4f6348">自动部署到测试/预发</text>
@@ -639,35 +722,16 @@ p, li, h1, h2, h3, h4, h5, h6 {
 
       <line x1="455" y1="110" x2="505" y2="110" stroke="#7a8a70" marker-end="url(#arr)"/>
 
-      <!-- 持续部署 -->
       <rect x="510" y="60" width="250" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="635" y="85" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">持续部署</text>
       <text x="635" y="108" text-anchor="middle" font-size="11" fill="#4f6348">测试全过后</text>
       <text x="635" y="126" text-anchor="middle" font-size="11" fill="#4f6348">全自动上生产，无人值守</text>
       <text x="635" y="150" text-anchor="middle" font-size="10.5" fill="#7a8a70">要求测试覆盖极高</text>
 
-      <text x="400" y="195" text-anchor="middle" font-size="12" fill="#7a8a70">前端项目通常停在"持续交付"：测试环境自动上，生产走人工审批——平衡速度与风险</text>
+      <text x="400" y="195" text-anchor="middle" font-size="12" fill="#4f6348">前端项目通常停在"持续交付"：测试环境自动上，生产走人工审批——平衡速度与风险</text>
     </svg>
     <p class="diagram-caption">图 2 CI → 持续交付 → 持续部署（示意）</p>
   </div>
-  <h3>2.2 流水线即代码（Pipeline as Code）</h3>
-  <p class="lead"><b>一句话定位</b>：流水线写成文件（Jenkinsfile / .gitlab-ci.yml）跟代码一起进版本管理。</p>
-  <ul>
-    <li><strong>好处</strong>：流水线改动也能 code review、可追溯、可复制。</li>
-  </ul>
-  <p class="key-sentence">这是现代 CI/CD 的标准做法——不是在 Jenkins 界面上点点点配。</p>
-  <h3>2.3 阶段（Stage）与并行</h3>
-  <p class="lead"><b>一句话定位</b>：流水线分若干 stage，stage 间默认串行、stage 内可并行，失败即中断。</p>
-  <ul>
-    <li><strong>结构</strong>：一条流水线分 stage（拉代码/构建/测试/部署），每个 stage 由若干 step 组成。</li>
-    <li><strong>串行/并行</strong>：stage 间串行（构建不过不测试），stage 内可并行（多平台测试同时跑）。</li>
-  </ul>
-  <h3>2.4 制品（Artifact）与环境门禁</h3>
-  <p class="lead"><b>一句话定位</b>：构建一次产物，测试/预发/生产都用同一个制品。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>纪律</strong>：构建一次产物，后续环境都用同一个——不要每环境重新构建（否则环境不一致）。</li>
-    <li><strong>环境门禁</strong>：测试环境自动上，生产环境要审批/手动触发。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="构建一次到处部署流程图">
       <defs>
@@ -677,19 +741,16 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">"构建一次、到处部署"（示意）</text>
 
-      <!-- 构建 -->
       <rect x="40" y="60" width="150" height="60" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="115" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">构建一次</text>
       <text x="115" y="105" text-anchor="middle" font-size="11" fill="#4f6348">dist-v1.2.3.tar.gz</text>
 
       <line x1="190" y1="90" x2="250" y2="90" stroke="#7a8a70" marker-end="url(#arr2)"/>
 
-      <!-- 制品仓库 -->
       <rect x="255" y="60" width="160" height="60" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="335" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#4f8a63">制品仓库</text>
       <text x="335" y="105" text-anchor="middle" font-size="11" fill="#4f6348">存档这个版本</text>
 
-      <!-- 三个环境 -->
       <line x1="415" y1="75" x2="500" y2="55" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <line x1="415" y1="90" x2="500" y2="90" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <line x1="415" y1="105" x2="500" y2="125" stroke="#7a8a70" marker-end="url(#arr2)"/>
@@ -706,118 +767,146 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="680" y="90" font-size="11" fill="#7a8a70">同一个制品</text>
       <text x="680" y="108" font-size="11" fill="#7a8a70">逐层部署</text>
 
-      <!-- 对比 -->
       <rect x="40" y="155" width="720" height="60" rx="8" fill="#f8faf0" stroke="#d8e2cc"/>
       <text x="60" y="180" font-size="11.5" fill="#b91c1c">反模式：每个环境重新 build → 测试过的和生产上的不是同一份代码，"我这边好好的"就崩了</text>
       <text x="60" y="202" font-size="11.5" fill="#047857">正确：构建一次存制品，三个环境拉同一个包部署——环境一致性才有保证</text>
     </svg>
     <p class="diagram-caption">图 3 构建一次到处部署（示意）</p>
   </div>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>结合图 1：代码 push/合并触发流水线 → 拉代码 → 安装依赖 → 构建 → 跑 lint + 单测（CI 门禁，不过即停）→ 打包成制品 → 自动部署到测试环境、发通知；生产环境走人工审批后部署。整条链无人值守，失败立即告警。这正是前面 ESLint（CI 门禁）、Jest（流水线里跑测试）这些页的"最终落点"。</p>
-  <div class="note">流水线设计铁律：<strong>构建一次、到处部署</strong>——测试环境验证的那个制品，就是生产环境要上的那个。如果每个环境重新 build，就违背了 CI/CD"环境一致"的初衷。</div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与配置要点</h2>
-  <h3>4.1 Jenkinsfile（声明式流水线片段）</h3>
-<pre class="code" data-lang="groovy"><code>pipeline {
-  agent any
-  stages {
-    stage('build') {
-      steps { sh 'pnpm install && pnpm build' }
-    }
-    stage('test') {
-      steps { sh 'pnpm lint && pnpm test' }
-    }
-    stage('deploy-test') {
-      steps { sh 'echo 部署到测试环境' }
-    }
-  }
-  post {
-    failure { echo '通知责任人' }
-  }
-}</code></pre>
-  <div class="note">对照看：GitLab CI / GitHub Actions 用 YAML 写同样的 stage 逻辑，理念一致——都是"提交触发 → 分阶段跑 → 失败告警"。</div>
-  <div class="note"><strong>常用声明式块</strong>：<code>environment {}</code> 统一定义变量，用 <code>credentials()</code> 引用 Jenkins 凭据（账号/密钥不写明文进库）；<code>when { branch 'main' }</code> 控制某 stage 只在特定分支跑（如只 main 分支才部署）；<code>options { buildDiscarder(logRotator(numToKeepStr: '10')) }</code> 只保留最近 10 次构建。<strong>制品怎么落地</strong>：构建完用 <code>archiveArtifacts 'dist/**'</code> 归档产物，或 <code>stash</code>/<code>unstash</code> 在 stage 间传递；更规范是推到制品仓库（Nexus/Harbor），后续环境拉同一个制品部署——这才真正兑现"构建一次到处部署"。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-  <div class="warn-box"><strong>说明</strong>：本节是自学 + 自建 Demo，非生产环境项目。真实项目里 Jenkins 流水线由后端/运维主导，我主要是前端侧配合；下面是我自己搭的一条 build→test→deploy 流水线 demo。</div>
-
-  <h3>5.1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"提交代码后自动验证、自动发到测试环境"的流水线实操缺口。</p>
-  <ul><li><strong>缺口</strong>：真实项目有 CI，但以前端视角只提供 build/test 命令，没独立写过 Jenkinsfile。</li></ul>
-
-  <h3>5.2 搭建的 Demo 是什么</h3>
-  <ul>
-    <li><strong>功能</strong>：一条分阶段流水线——install → build → lint+test → deploy-test。</li>
-    <li><strong>技术栈</strong>：Jenkins Declarative Pipeline（Jenkinsfile），前端命令用 pnpm。</li>
-  </ul>
-
-  <h3>5.3 落地步骤（含关键代码）</h3>
-  <pre class="code" data-lang="groovy"><code>pipeline {
-  agent any
-  stages {
-    stage('install') { steps { sh 'pnpm install --frozen-lockfile' } }
-    stage('build')   { steps { sh 'pnpm build' } }
-    stage('test')    { steps { sh 'pnpm lint &amp;&amp; pnpm test' } }  // CI 门禁
-    stage('deploy-test') { steps { sh 'deploy.sh dist' } }
-  }
-  post { failure { echo '发通知给开发' } }
-}</code></pre>
-
-  <h3>5.4 自学遇到的坑与解决</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>没用 --frozen-lockfile</strong>：CI 装出和本地不同的依赖——按 lockfile 装。</li>
-    <li><span class="tag-pit">坑</span><strong>每环境重新 build</strong>：测试过的和上生产的不是同一份——构建一次存制品。</li>
-    <li><span class="tag-pit">坑</span><strong>失败没配通知</strong>：红灯挂半天没人发现——post.failure 配通知。</li>
-  </ul>
-
-  <h3>5.5 成果（可验证能力）</h3>
-  <ul><li><span class="tag-point">要点</span>能写出分阶段、带门禁与失败通知的 Jenkinsfile；理解"构建一次到处部署"；可复现：本地 Jenkins 跑 Jenkinsfile，看 install→build→test→deploy 四阶段。</li></ul>
-
-  <h3>5.6 与真实项目的差异（诚实说明）</h3>
-  <p>真实项目的 Jenkins 配置由后端/运维主导，我主要提供前端 build/test 命令与产物路径，没独立维护 Jenkins 的深度；本 demo 是单机流水线，无多环境审批流、无制品仓库、无并行矩阵。</p>
-
-  <h3>5.7 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："我自学写过一条 build→lint+test→deploy 的 Jenkins Declarative Pipeline，踩过没 --frozen-lockfile 导致 CI 依赖不一致、没存 artifact 重复构建的坑；真实项目里流水线是后端/运维主导，我配合前端命令。"</p>
+  <p><strong>读图要点</strong>：①图 1 的"测试+lint"是门禁引擎——ESLint/Jest 等工具在这里"最终落点"为质量杠杆；②图 2 的档位选择是风险决策：自动化越深、对测试覆盖要求越高，前端通常停在持续交付；③图 3 是全篇灵魂——<strong>同一个制品逐层晋级</strong>，环境差异只体现在配置。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 每环境重新构建</h3>
-  <p class="lead"><b>一句话定位</b>：测试验证的产物和生产上的不是同一份，违背"构建一次到处部署"。</p>
-  <p class="key-sentence">正解：构建一次存制品，各环境复用。</p>
-  <h3>6.2 CI 不装 lockfile</h3>
-  <p class="lead"><b>一句话定位</b>：没用 --frozen-lockfile，CI 装出不同版本依赖，"我本地能过 CI 挂"。</p>
-  <p class="key-sentence">正解：CI 严格按 lockfile 安装。</p>
-  <h3>6.3 失败无通知</h3>
-  <p class="lead"><b>一句话定位</b>：流水线红了没人知道，红灯挂半天。</p>
-  <p class="key-sentence">正解：配 failure 通知（邮件 / IM 机器人）。</p>
-  <h3>6.4 测试环境自动上生产</h3>
-  <p class="lead"><b>一句话定位</b>：环境没分级，一改代码直接上生产。</p>
-  <p class="pit-sentence">正解：测试环境自动部署，生产走审批 / 手动门禁。</p>
-  <h3>6.5 大构建跑在 git hook</h3>
-  <p class="lead"><b>一句话定位</b>：把完整构建塞进提交钩子，本地提交巨慢。</p>
-  <p class="key-sentence">正解：提交钩子只做轻量检查（lint-staged），重构建/全量测试交给 CI。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：自学自建 demo（本地 Jenkins），非生产；诚实呈现深度。</p>
+
+  <h3>6.1 完整 Jenkinsfile</h3>
+<pre class="code" data-lang="groovy"><code>pipeline {
+  agent any
+  options { buildDiscarder(logRotator(numToKeepStr: '10')) }
+  stages {
+    stage('install') { steps { sh 'pnpm install --frozen-lockfile' } }
+    stage('build')   { steps { sh 'pnpm build' } }
+    stage('test')    { steps { sh 'pnpm lint &amp;&amp; pnpm test' } }   // CI 门禁
+    stage('package') { steps { archiveArtifacts 'dist/**' } }    // 制品归档
+    stage('deploy-test') {
+      when { branch 'main' }
+      steps { sh './deploy.sh dist' }                            // 测试环境自动上
+    }
+  }
+  post {
+    failure { echo '流水线失败，通知开发（邮件/IM 机器人）' }
+    success { echo '部署完成，通知测试验收' }
+  }
+}</code></pre>
+
+  <h3>6.2 跑通步骤</h3>
+<pre class="code" data-lang="bash"><code># 本地起 Jenkins（Docker 单机）
+docker run -d -p 8080:8080 -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts
+# Jenkinsfile 提交到仓库根目录 → Jenkins 建流水线任务指向仓库 → push 触发
+# 观察：install → build → test → package → deploy-test 五阶段依次亮绿</code></pre>
+
+  <h3>6.3 逐段解析</h3>
+  <ul>
+    <li><strong>--frozen-lockfile</strong>：CI 依赖确定性的第一道闸（坑 2）；</li>
+    <li><strong>test 在 build 后</strong>：lint+单测做门禁，红了即停不进部署；</li>
+    <li><strong>archiveArtifacts</strong>：制品归档——为"构建一次到处部署"铺路；</li>
+    <li><strong>when branch main</strong>：部署只发生在 main——feature 分支只验证不上环境。</li>
+  </ul>
+
+  <h3>6.4 与真实项目的差异（诚实说明）</h3>
+  <p>真实项目流水线由后端/运维主导，我提供前端命令与产物路径；本 demo 单机、无多环境审批流、无制品仓库、无并行矩阵——面试如实定位："独立写过流水线，生产多环境编排是配合视角。"</p>
+
+  <h3>6.5 生产改造扩展方向</h3>
+  <ol>
+    <li>制品推 Nexus/Harbor，生产 stage 拉同一制品（兑现图 3）；</li>
+    <li>加依赖缓存（4.2）与矩阵并行测试；</li>
+    <li>部署后自动探活（curl /health），失败自动回滚到上一制品。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：每环境重新构建</h3>
   <ul>
-    <li>Jenkins 官方文档（Pipeline）：<a href="https://www.jenkins.io/doc/book/pipeline/" rel="noopener">jenkins.io/doc/book/pipeline</a></li>
+    <li><strong>现象</strong>：测试环境验证过，上生产就出问题；</li>
+    <li><strong>根因</strong>：每个环境重新 build——产物不一致，违背"构建一次到处部署"；</li>
+    <li><strong>修复</strong>：构建一次存制品，各环境拉同一个包部署（图 3）；</li>
+    <li><strong>规避</strong>：流水线评审必问"生产上的是不是测试过的那个制品"。</li>
+  </ul>
+  <h3>7.2 坑 2：CI 不按 lockfile 安装</h3>
+  <ul>
+    <li><strong>现象</strong>：本地能过 CI 挂，报的错跟依赖版本有关；</li>
+    <li><strong>根因</strong>：裸 install 按 semver 拉新版本，CI 与本地依赖树不同；</li>
+    <li><strong>修复</strong>：<code>pnpm install --frozen-lockfile</code> / <code>npm ci</code>（4.1）；</li>
+    <li><strong>规避</strong>：前端项目流水线模板写死确定性安装。</li>
+  </ul>
+  <h3>7.3 坑 3：失败无通知</h3>
+  <ul>
+    <li><strong>现象</strong>：流水线红了半天没人发现，测试环境一直旧版；</li>
+    <li><strong>根因</strong>：没配 post.failure 通知；</li>
+    <li><strong>修复</strong>：failure 通知（邮件/IM 机器人）；</li>
+    <li><strong>规避</strong>：通知与门禁同为一期流水线的标配。</li>
+  </ul>
+  <h3>7.4 坑 4：环境不分级，直接上生产</h3>
+  <ul>
+    <li><strong>现象</strong>：一改代码直接上生产，出事没有缓冲；</li>
+    <li><strong>根因</strong>：没有环境分级与门禁；</li>
+    <li><strong>修复</strong>：测试自动、生产审批（持续交付档位，图 2）；</li>
+    <li><strong>规避</strong>：生产部署永远是"按钮"而不是"自动"（除非测试覆盖极高）。</li>
+  </ul>
+  <h3>7.5 坑 5：重构建塞进 git hook</h3>
+  <ul>
+    <li><strong>现象</strong>：本地提交巨慢，每次 commit 卡几十秒；</li>
+    <li><strong>根因</strong>：把完整构建/全量测试塞进提交钩子；</li>
+    <li><strong>修复</strong>：钩子只做轻量检查（lint-staged），重活交给 CI；</li>
+    <li><strong>规避</strong>：分工口诀——<strong>钩子管秒级反馈，CI 管分钟级门禁</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：CI 和 CD 的区别？前端项目应该做到哪个档位？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>CI</strong>——每次提交自动构建+测试，尽早暴露集成问题；<strong>CD</strong> 分两档——<strong>持续交付</strong>（自动到测试/预发，生产人工审批）与<strong>持续部署</strong>（全自动上生产）。<strong>前端通常停在持续交付</strong>：前端发版风险高（直接面对用户）、自动化验证手段相对弱（UI 测试覆盖有限），生产留人工门禁平衡速度与风险；测试覆盖极高、发布节奏极快的团队才进持续部署。<br><br>
+  <strong>考察点</strong>：知道档位是风险决策，不是越自动越好。</p>
+
+  <p><strong>Q2：什么是"构建一次、到处部署"？为什么重要？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>构建一次产物（制品），测试/预发/生产拉同一个包部署</strong>——环境差异只体现在配置。重要性：如果每环境重新 build，测试验证的和生产上线的不是同一份代码（依赖解析时点、构建参数都可能不同），"测试通过"就失去了对生产的担保力——环境一致性是 CI/CD 的初衷本身。<br><br>
+  <strong>落地</strong>：archiveArtifacts/制品仓库存档 + 环境晋级机制；与 K8s 的镜像 tag 不可变（05 篇）同理同源。</p>
+
+  <p><strong>Q3：为什么 CI 要用 --frozen-lockfile？</strong></p>
+  <p class="note"><strong>参考答案</strong>：CI 的使命是<strong>确定性</strong>——同一份代码必须装出同一棵依赖树。裸 install 按 semver 拉新版本（依赖作者发了新版就变），CI 与本地、上一次与这一次的构建环境都在漂移，构建结果不可复现。<code>--frozen-lockfile</code>/npm ci 严格按 lockfile 装，lockfile 冲突回本地解决后提交。<strong>一句话</strong>：lockfile 是依赖的"契约"，CI 是契约的执法者。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>CI/持续交付/持续部署三档的边界？前端通常停在哪、为什么？</li>
+    <li>流水线即代码带来什么好处？反模式是什么？</li>
+    <li>stage 间串行的意义？门禁红了会发生什么？</li>
+    <li>"构建一次到处部署"的反模式是什么形态？</li>
+    <li>git hook 与 CI 的分工口诀？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Jenkins 官方 Pipeline 文档：<a href="https://www.jenkins.io/doc/book/pipeline/" rel="noopener">jenkins.io/doc/book/pipeline</a></li>
     <li>GitHub Actions 文档（理念一致，YAML 更轻量）：<a href="https://docs.github.com/actions" rel="noopener">docs.github.com/actions</a></li>
   </ul>
   <h3>理念</h3>
   <ul>
     <li>Continuous Delivery（CI/CD 理念权威出处）：<a href="https://continuousdelivery.com/" rel="noopener">continuousdelivery.com</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>Docker 起本地 Jenkins，跑通第 6 章五阶段流水线；</li>
+    <li>故意改 lockfile 外的依赖版本复现"本地能过 CI 挂"，用 --frozen-lockfile 修复；</li>
+    <li>给团队前端项目补流水线：门禁 + 制品归档 + 失败通知三件套。</li>
+  </ol>
 </section>
 
 </main>
@@ -825,7 +914,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../09_DevOps部署与运维/07_Kubernetes【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../09_DevOps部署与运维/01_Linux基础与常用命令【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../09_DevOps部署与运维/09_Prometheus与Grafana监控【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · CI_CD_Jenkins与流水线【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
