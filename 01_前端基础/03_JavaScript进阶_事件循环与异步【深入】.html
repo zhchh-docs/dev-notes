@@ -542,29 +542,202 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../01_前端基础/02_JavaScript核心【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/06_TypeScript【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../01_前端基础/04_浏览器原理与渲染机制【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p>事件循环（Event Loop）是浏览器协调"单线程 JS 执行"与"海量异步事件"的调度机制：JS 主线程从上到下跑完同步代码，遇到异步操作（定时器、网络请求、事件回调）就把它交给浏览器的对应模块（定时器线程、网络线程）去跑，自己继续往下；等异步结果就绪，浏览器把对应的<strong>回调函数推进任务队列</strong>，主线程把当前栈清空后，再依次从队列取出回调执行。这套"栈空了再取任务"的循环就是 Event Loop。ES 规范（HTML 标准里定义浏览器版 Event Loop）规定了它的精确步骤，核心是<strong>宏任务（macrotask）与微任务（microtask）两类队列的优先级</strong>。</p>
-  <h3>解决什么问题</h3>
-  <p>没有这套机制，JS 只能同步阻塞：发个 HTTP 请求页面就冻住直到响应回来。事件循环让"等待 IO 的时间"被用来干别的，页面保持响应。对工程而言，理解它的价值是<strong>预测执行顺序</strong>：为什么改了数据视图没立刻更新、为什么 await 之后代码像"暂停"了、为什么 Promise.then 总比 setTimeout 先跑——这些都不是玄学，而是队列优先级。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>事件循环（Event Loop）是浏览器协调"单线程 JS 执行"与"海量异步事件"的调度机制</strong>：主线程跑完同步代码，异步操作（定时器/网络/事件）交给浏览器对应线程，就绪后回调进任务队列，栈空了再取——这个循环就是 Event Loop，核心是<strong>宏任务与微任务两类队列的优先级</strong>。对工程而言，理解它的价值是<strong>预测执行顺序</strong>：为什么 Promise.then 总比 setTimeout 先跑、为什么 await 之后像"暂停"、为什么改了数据视图没立刻更新——都不是玄学，是队列优先级。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>输出顺序题靠背不靠懂——<strong>没建立"一轮循环"的心智模型</strong>；</li>
+    <li>高频数据推送打爆主线程——<strong>数据频率与渲染频率没解耦</strong>；</li>
+    <li>复杂异步时序写成回调地狱——<strong>不会把事件 Promise 化</strong>。</li>
+  </ul>
+
+  <h3>1.3 横向对比：异步方案三代演进</h3>
+  <ul>
+    <li><strong>回调 vs Promise</strong>：回调嵌套三层即"回调地狱"，错误处理逐层传参、无法 return/catch；Promise 把异步包成状态对象，链式 .then + 统一 .catch；</li>
+    <li><strong>Promise 链 vs async/await</strong>：await 是语法糖，本质仍是 Promise（<code>await x()</code> ≈ <code>x().then(...)</code>），只是消除嵌套、可 try/catch；</li>
+    <li><strong>宏任务 vs 微任务</strong>：微任务每轮清空优先级极高，宏任务等下一轮——所有时序差异的根源。</li>
+  </ul>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>背下<strong>一轮 Event Loop 四步</strong>：取一个宏任务 → 跑完同步 → 清空微任务 → 渲染；</li>
+    <li>口算<strong>输出顺序题</strong>（同步 → 微任务 → 宏任务三段式）；</li>
+    <li>会用四个<strong>并发组合器</strong>与 <strong>AbortController</strong>；</li>
+    <li>掌握 <strong>rAF + 脏标记</strong>与<strong>事件 Promise 化</strong>两个实战模式；</li>
+    <li>避开六条高频坑（setTimeout(0)/forEach await/all 失败/漏 await 等）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：02 篇 JS 核心（闭包/this）。<strong>难度</strong>：★★★★☆（前端面试最深水区）。<strong>务必动手</strong>：第 6 章 Demo 全部跑一遍。<strong>本篇不涉及</strong>：浏览器渲染（04 篇）、WebSocket 细节（04 模块）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>单线程与事件循环</strong>（总纲）→ <strong>宏任务/微任务</strong>（两类队列）→ <strong>Promise 状态机</strong>→ <strong>async/await</strong>（语法糖本质）→ <strong>并发原语</strong>（组合器）。</p>
+
+  <h3>2.1 单线程与事件循环：主线程是唯一执行者</h3>
+  <p>JS 单线程是为<strong>避免多线程操作 DOM 的竞态</strong>；代价是"不能阻塞"——一段同步代码跑太久（&gt;50ms 长任务），渲染与事件回调全排队，页面卡死。Event Loop 的补救：耗时异步交给浏览器其他线程（网络/定时器/GPU），主线程只负责调度回调。<span class="tag-point">要点</span><strong>主线程是唯一执行者，其他线程只是"把回调推回队列"——理解一切前端性能问题的前提。</strong></p>
+
+  <h3>2.2 宏任务：每轮只取一个</h3>
+  <p><strong>来源</strong>：setTimeout/setInterval、I/O、UI 事件（点击/滚动）、&lt;script&gt; 整体、MessageChannel/postMessage（早年用作"近乎 0ms 的宏任务"，不受 setTimeout 嵌套 clamp 4ms 限制）。<strong>取法</strong>：每轮循环只取<strong>一个</strong>，然后清空微任务、再渲染。<span class="tag-pit">坑</span>：setTimeout(fn,0) 也要等"当前同步代码 + 已有微任务"跑完，并非立即执行。</p>
+
+  <h3>2.3 微任务：整批清空</h3>
+  <p><strong>来源</strong>：Promise.then/catch/finally、queueMicrotask()、MutationObserver、Node 的 process.nextTick。<strong>整批清空</strong>：执行期间新入队的微任务也本轮跑完，直到清空才渲染。<span class="tag-key">结论</span>：这就是 <code>Promise.resolve().then(f)</code> 总排在 <code>setTimeout(f,0)</code> 之前的原因。</p>
+
+  <h3>2.4 Promise 状态机与 async/await</h3>
+  <p><strong>三态</strong>：pending → fulfilled/rejected，<strong>落定即不可逆</strong>；.then 回调落定后进微任务队列，.then 返回新 Promise 可链式。<span class="tag-pit">坑</span>：Promise 创建即执行构造函数里的<strong>同步代码</strong>，只是 .then 回调延迟到微任务——"为什么 new Promise 里的 log 先打印"。<strong>async/await</strong>：async 函数总返回 Promise；遇 await 把其后代码当 .then 回调挂起、让出主线程——<strong>不阻塞线程，而是注册微任务</strong>；错误用 try/catch——错误处理范式的根本改善。</p>
+
+  <h3>2.5 并发原语：四个组合器定"等谁、怎么算成功"</h3>
+  <ul>
+    <li><strong>Promise.all</strong>：全成功才成功，一个失败整体 reject（快速失败）；</li>
+    <li><strong>Promise.allSettled</strong>：等全部落定不管成败（批量上报必用）；</li>
+    <li><strong>Promise.race</strong>：取最先落定的（超时竞速）；</li>
+    <li><strong>Promise.any</strong>：取最先成功的。</li>
+  </ul>
+  <p>取消请求用 <strong>AbortController</strong>：signal 传给 <code>fetch(url,{signal})</code>，配合 Promise.race 做"超时即 abort"，避免过期响应污染状态。</p>
+
+  <h3>2.6 定时器为何不准（Timer Throttling）</h3>
+  <p>setTimeout 不是精确计时：<code>setTimeout(fn,0)</code> 嵌套 5 层后规范 clamp 到 <strong>4ms</strong>，且必须等当前宏任务与微任务清空；后台标签页节流到 <strong>1 秒一次</strong>。<span class="tag-pit">坑</span>：用 setTimeout 做动画帧是错的——动画必须用 <code>requestAnimationFrame</code>，它与浏览器渲染节奏对齐。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：输出顺序题——先在脑子里跑一遍 Event Loop</h3>
+<pre class="code" data-lang="js"><code>console.log('1');
+setTimeout(() => console.log('2'), 0);        // 宏任务
+Promise.resolve().then(() => console.log('3')); // 微任务
+console.log('4');
+// 输出顺序：1 4 3 2
+// 同步先跑 1、4 → 栈空清空微任务 3 → 下一轮宏任务跑 2</code></pre>
+
+  <h3>3.2 场景二：async/await 与并发控制</h3>
+<pre class="code" data-lang="js"><code>// 有依赖：必须串行
+async function load() {
+  const a = await (await fetch('/api/a')).json();
+  const b = await (await fetch('/api/b?id=' + a.id)).json();
+  return b;
+}
+// 无依赖：先一起发起，再等结果（比顺序 await 快一倍）
+async function loadAll() {
+  const p1 = fetch('/api/a');   // 立刻发起请求
+  const p2 = fetch('/api/b');
+  const [a, b] = await Promise.all([p1, p2].map(p => p.then(r => r.json())));
+}</code></pre>
+  <p><strong>判断依据</strong>：下一个请求是否依赖上一个的结果——依赖串行、无依赖并发。串行写法把"发起"也推迟了，是常见性能损失。</p>
+
+  <h3>3.3 场景三：并发池——限制同时在跑的请求数</h3>
+<pre class="code" data-lang="js"><code>// 批量查 50 个节点元数据，并发太高会压垮后端
+async function poolLimit(urls, limit, fn) {
+  const results = [];
+  const executing = new Set();
+  for (const url of urls) {
+    const p = Promise.resolve().then(() => fn(url));
+    results.push(p); executing.add(p);
+    const done = p.then(() => executing.delete(p));
+    if (executing.size >= limit) await Promise.race(executing);  // 一个完成才补下一个
+    await done;
+  }
+  return Promise.all(results);
+}</code></pre>
+
+  <h3>3.4 场景四：防抖与节流</h3>
+<pre class="code" data-lang="js"><code>// 防抖 debounce：连续触发只在停下后执行一次（搜索输入）
+function debounce(fn, wait) {
+  let t; return function (...args) {
+    clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+// 节流 throttle：固定频率执行，中间丢弃触发（滚动、高频数据刷新）
+function throttle(fn, interval) {
+  let last = 0; return function (...args) {
+    const now = Date.now();
+    if (now - last >= interval) { last = now; fn.apply(this, args); }
+  };
+}</code></pre>
+  <p><strong>选择依据</strong>：要"最终态"用防抖（搜索），要"稳定频率"用节流（滚动/高频刷新）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：输出顺序题已口算自如。</p>
+
+  <h3>4.1 手写 Promise：状态机 + 微任务</h3>
+<pre class="code" data-lang="js"><code>function MyPromise(executor) {
+  let state = 'pending', value = null;
+  const onFns = [], onRns = [];
+  const resolve = (v) => {
+    if (state !== 'pending') return;          // 落定不可逆
+    state = 'fulfilled'; value = v;
+    queueMicrotask(() => onFns.forEach(f => f(v)));   // 回调走微任务
+  };
+  const reject = (e) => { state = 'rejected'; value = e;
+    queueMicrotask(() => onRns.forEach(f => f(e))); };
+  executor(resolve, reject);
+  return {
+    then(onF, onR) {
+      if (state === 'fulfilled') onF(value);
+      else if (state === 'rejected') onR(value);
+      else { onFns.push(onF); onRns.push(onR); }
+      return this;   // 最简版链式，省略穿透与返回值处理
+    }
+  };
+}</code></pre>
+  <p>面试版手写考察三件事：<strong>状态不可逆</strong>（resolve 里判 pending）、<strong>回调进微任务</strong>（queueMicrotask）、<strong>then 可注册可执行</strong>（三分支）。</p>
+
+  <h3>4.2 事件 Promise 化：把回调时序线性化</h3>
+  <pre class="code" data-lang="js"><code>function whenTrack(pc) {
+  return new Promise(resolve => pc.addEventListener('track', resolve, { once: true }));
+}
+const e = await whenTrack(pc);   // 事件回调变成可 await 的一步</code></pre>
+  <p><strong>价值</strong>：复杂异步时序（信令/媒体/超时）用 await 线性表达，才不会写成嵌套回调。<code>{once:true}</code> 保证事件只触发一次即解绑——Promise 化的标配。</p>
+
+  <h3>4.3 AbortController 与超时模式</h3>
+  <pre class="code" data-lang="js"><code>function fetchWithTimeout(url, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}</code></pre>
+  <p>比 Promise.race 竞速更彻底：abort 后请求真的取消，不浪费带宽与后端资源。</p>
+
+  <h3>4.4 渲染节流模式：rAF + 脏标记</h3>
+  <pre class="code" data-lang="js"><code>let dirty = false, latest = null;
+function onData(data) { latest = data; dirty = true; }   // 数据快进快出，只留最新
+function renderLoop() {
+  if (dirty) {
+    dirty = false;
+    const w = chartBox.clientWidth;                      // 读：帧开头统一读
+    chart.setOption(buildOption(latest, w), { notMerge: false }); // 写：局部 merge
+  }
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);</code></pre>
+  <p><strong>核心思想</strong>：把"数据频率"与"渲染频率"解耦——数据可以很快，渲染只跟屏幕走。<strong>读写分离</strong>：布局读集中在帧开头，避免"写→读→写"的强制同步布局（衔接 04 篇）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="事件循环：主线程栈、任务队列与浏览器异步模块关系示意图">
       <defs>
@@ -591,80 +764,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 事件循环：主线程、微任务与宏任务队列（示意）</p>
   </div>
-  <h3>横向对比：异步方案的三代演进</h3>
-  <ul>
-    <li><strong>回调函数（Callback）vs Promise</strong>：回调能跑，但嵌套三层就是"回调地狱"（callback hell），错误处理要逐层传参、无法 <code>return</code> 也无法 <code>catch</code>。Promise 把异步包成状态对象，支持链式 <code>.then</code> 与统一 <code>.catch</code>。</li>
-    <li><strong>Promise 链 vs async/await</strong>：await 是"让异步代码读起来像同步"的语法糖，它本质仍然是 Promise——<code>await x()</code> 等价于 <code>x().then(...)。两者完全可互相转换，await 只是消除了 .then 嵌套。</li>
-    <li><strong>宏任务 vs 微任务</strong>：微任务（Promise）每轮循环清空，优先级极高；宏任务（setTimeout）要等下一轮。WebRTC 的媒体回调、setTimeout 的时序差异，本质就是这条优先级线。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 单线程与事件循环（Single-threaded Event Loop）</h3>
-  <p class="lead"><b>一句话定位</b>：JS 同一时刻只跑一段代码，Event Loop 是让它"边等异步边不空等"的调度机制。</p>
-  <ul>
-    <li><strong>单线程的理由</strong>：避免多线程同时操作 DOM 的竞态；代价是"不能阻塞"——一段同步代码跑太久（&gt;50ms 长任务），后续渲染与事件回调全得排队，页面就卡。</li>
-    <li><strong>Event Loop 的补救</strong>：把耗时的异步操作交给浏览器其他线程（网络、定时器、GPU），主线程只负责调度回调。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>主线程是唯一执行者，其他线程只是"把回调推回队列"——这是理解一切前端性能问题的前提。</p>
-  <h3>2.2 宏任务（Macrotask / Task）</h3>
-  <p class="lead"><b>一句话定位</b>：Event Loop 每轮只取一个宏任务执行，是异步任务的"大块"。</p>
-  <ul>
-    <li><strong>常见来源</strong>：<code>setTimeout/setInterval</code> 回调、I/O、UI 事件（点击、滚动）、&lt;script&gt; 整体、MessageChannel/MessagePort 消息。注：MessageChannel 消息与 window.postMessage 同为 task，早年被用作"近乎 0ms 的宏任务调度"，优势是不受 setTimeout 嵌套 5 层后 clamp 到 4ms 的限制。</li>
-    <li><strong>取法</strong>：每轮循环只从宏任务队列取一个任务，然后去清空微任务、再渲染。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>setTimeout(fn,0) 也要排队等"当前同步代码 + 已有微任务"全部跑完，并非立即执行。</p>
-  <h3>2.3 微任务（Microtask）</h3>
-  <p class="lead"><b>一句话定位</b>：当前宏任务结束后立即整批执行，优先级高于下一个宏任务。</p>
-  <ul>
-    <li><strong>来源</strong>：<code>Promise.prototype.then/<wbr>catch/<wbr>finally</code> 回调、<code>queueMicrotask()</code>、<code>MutationObserver</code>、Node 的 <code>process.nextTick</code>。</li>
-    <li><strong>整批清空</strong>：微任务执行期间新入队的微任务也在本轮一起跑完，直到队列清空才进入渲染。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-key">结论</span>这就是为什么 <code>Promise.resolve().then(f)</code> 总排在 <code>setTimeout(f,0)</code> 之前。</p>
-  <h3>2.4 一轮 Event Loop 的精确步骤</h3>
-  <p class="lead"><b>一句话定位</b>：所有异步时序题，答案都藏在"一个宏任务 → 清空微任务 → 渲染"这个循环里。</p>
-  <ol>
-    <li>从宏任务队列取<strong>一个</strong>任务执行。</li>
-    <li>栈清空后，<strong>把整个微任务队列清空</strong>（期间新产生的微任务也加入本轮）。</li>
-    <li>尝试渲染（更新视图、处理 resize/scroll、rAF 回调）。</li>
-    <li>页面无交互需要时，进入空闲回调（requestIdleCallback）。</li>
-  </ol>
-  <h3>2.5 Promise 状态机（Promise State Machine）</h3>
-  <p class="lead"><b>一句话定位</b>：Promise 是三态对象，状态落定即不可逆，then 回调进微任务队列。</p>
-  <ul>
-    <li><strong>三态</strong>：<code>pending</code>（进行中）→ <code>fulfilled</code>（成功，不可变）或 <code>rejected</code>（失败，不可变），一旦落定不可逆。</li>
-    <li><strong>链式</strong>：<code>.then</code> 注册的回调在状态落定后被推入微任务队列；<code>.then</code> 又返回新 Promise，可链式串联。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>Promise 一旦创建就立即执行构造函数里的同步代码，只是 <code>.then</code> 回调延迟到微任务阶段——这是"为什么 new Promise 里的 log 先打印"。</p>
-  <h3>2.6 async / await（语法糖）</h3>
-  <p class="lead"><b>一句话定位</b>：用同步的书写顺序表达异步逻辑，本质是把后续代码注册成微任务。</p>
-  <ul>
-    <li><strong>行为</strong>：<code>async function</code> 总是返回 Promise；函数内遇 <code>await</code>，把其后代码当 <code>.then</code> 回调挂起，让出主线程，等 Promise 落定再从暂停处继续。</li>
-    <li><strong>不是阻塞</strong>：await 不阻塞线程，而是"把后续代码注册成微任务"。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>错误用 try/catch 捕获——相比回调嵌套，这是错误处理范式的根本改善。</p>
-  <h3>2.7 并发原语（Promise Combinators）</h3>
-  <p class="lead"><b>一句话定位</b>：多个异步任务并发时，用四个组合器决定"等谁、怎么算成功"。</p>
-  <ul>
-    <li><strong>Promise.all</strong>：全成功才成功，一个失败整体 reject（快速失败）。</li>
-    <li><strong>Promise.allSettled</strong>：等全部落定不管成败，适合批量上报、不希望一个失败拖垮全部。</li>
-    <li><strong>Promise.race</strong>：取最先落定的（常用于超时竞速）。</li>
-    <li><strong>Promise.any</strong>：取最先成功的（一个成功即成功）。</li>
-  </ul>
-  <p>大屏批量拉设备状态、数据编排平台批量查节点元数据，就是这些组合器的典型场景。取消请求则用 <code>AbortController</code>：把 <code>signal</code> 传给 <code>fetch(url,{signal})</code>，再配合 <code>Promise.race</code> 与定时器做"超时即 abort"，避免过期响应污染状态。</p>
-  <h3>2.8 定时器为何不准（Timer Throttling）</h3>
-  <p class="lead"><b>一句话定位</b>：setTimeout 不是精确计时，浏览器为省电会主动拉长后台页的回调间隔。</p>
-  <ul>
-    <li><strong>最小延迟</strong>：<code>setTimeout(fn,0)</code> 不是 0ms——嵌套 5 层后规范 clamp 到 4ms，且必须等当前宏任务与微任务清空。</li>
-    <li><strong>后台节流</strong>：后台标签页里定时器被节流到 1 秒一次；嵌套 iframe、未激活页面进一步拉长延迟。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>用 setTimeout 做动画帧是错的——动画必须用 <code>requestAnimationFrame</code>，它与浏览器渲染节奏对齐。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一轮 Event Loop 的完整时序</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 330" role="img" aria-label="一轮事件循环从宏任务到渲染的完整流程图">
       <defs>
@@ -695,13 +794,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 一轮 Event Loop 的完整步骤（示意）</p>
   </div>
-  <ol>
-    <li><strong>取一个宏任务</strong>：整段 &lt;script&gt; 就是第一个宏任务。它把所有同步代码跑完。</li>
-    <li><strong>同步期间的 Promise</strong>：<code>new Promise(fn)</code> 的 fn 同步执行，但 <code>.then</code> 的回调只被登记，等栈空后进微任务队列。</li>
-    <li><strong>清空微任务</strong>：栈一空，引擎优先把微任务队列跑完，包括这期间新塞进队列的微任务。</li>
-    <li><strong>渲染</strong>：微任务清空后才有渲染机会，然后循环回顶部取下一个宏任务（比如那个 setTimeout 回调）。</li>
-  </ol>
-  <h3>3.2 高频刷新为什么要 rAF + 节流</h3>
+  <p><strong>四步精确时序</strong>：①整段 &lt;script&gt; 是第一个宏任务，同步代码全跑完；②<code>new Promise(fn)</code> 的 fn 同步执行，.then 只登记等栈空入微任务队列；③栈一空，<strong>优先清空微任务</strong>（含新入队的）；④微任务清空后才有渲染机会，循环回顶部取下一个宏任务。<strong>所有输出顺序题都从这张图推出来，不用背题。</strong></p>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="setInterval 高频推送与 rAF 节流渲染的时序对比图">
       <defs>
@@ -723,132 +816,20 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 输出顺序题：先在脑子里跑一遍 Event Loop</h3>
-<pre class="code" data-lang="js"><code>console.log('1');
-setTimeout(() => console.log('2'), 0);        // 宏任务
-Promise.resolve().then(() => console.log('3')); // 微任务
-console.log('4');
-// 输出顺序：1 4 3 2
-// 同步先跑 1、4 → 栈空清空微任务 3 → 下一轮宏任务跑 2</code></pre>
-  <h3>4.2 async/await 与 Promise 链对照</h3>
-<pre class="code" data-lang="js"><code>// 写法一：Promise 链
-function load() {
-  return fetch('/api/a').then(r => r.json())
-    .then(a => fetch('/api/b?id=' + a.id))
-    .then(r => r.json());
-}
-// 写法二：async/await（等价，读起来像同步）
-async function load() {
-  const a = await (await fetch('/api/a')).json();
-  const b = await (await fetch('/api/b?id=' + a.id)).json();  // 有依赖，必须串行
-  return b;
-}
-// 无依赖的并发：先一起 await 发起，再等结果
-async function loadAll() {
-  const p1 = fetch('/api/a');   // 立刻发起请求
-  const p2 = fetch('/api/b');
-  const [a, b] = await Promise.all([p1, p2].map(p => p.then(r => r.json())));
-}</code></pre>
-  <h3>4.3 手写 Promise 最简版</h3>
-<pre class="code" data-lang="js"><code>function MyPromise(executor) {
-  let state = 'pending', value = null;
-  const onFns = [], onRns = [];
-  const resolve = (v) => {
-    if (state !== 'pending') return;
-    state = 'fulfilled'; value = v;
-    queueMicrotask(() => onFns.forEach(f => f(v)));   // 回调走微任务
-  };
-  const reject = (e) => { state = 'rejected'; value = e;
-    queueMicrotask(() => onRns.forEach(f => f(e))); };
-  executor(resolve, reject);
-  return {
-    then(onF, onR) {
-      if (state === 'fulfilled') onF(value);
-      else if (state === 'rejected') onR(value);
-      else { onFns.push(onF); onRns.push(onR); }
-      return this;   // 最简版链式，省略穿透与返回值处理
-    }
-  };
-}</code></pre>
-  <h3>4.4 并发池：限制同时在跑的请求数</h3>
-<pre class="code" data-lang="js"><code>// 数据编排平台要批量查 50 个节点元数据，但并发太高会压垮后端
-async function poolLimit(urls, limit, fn) {
-  const results = [];
-  const executing = new Set();
-  for (const url of urls) {
-    const p = Promise.resolve().then(() => fn(url));
-    results.push(p); executing.add(p);
-    const done = p.then(() => executing.delete(p));
-    if (executing.size >= limit) await Promise.race(executing);  // 一个完成才补下一个
-    await done;
-  }
-  return Promise.all(results);
-}</code></pre>
-  <h3>4.5 防抖与节流</h3>
-<pre class="code" data-lang="js"><code>// 防抖 debounce：连续触发只在停下后执行一次（搜索输入）
-function debounce(fn, wait) {
-  let t; return function (...args) {
-    clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait);
-  };
-}
-// 节流 throttle：固定频率执行，中间丢弃触发（滚动、高频数据刷新）
-function throttle(fn, interval) {
-  let last = 0; return function (...args) {
-    const now = Date.now();
-    if (now - last >= interval) { last = now; fn.apply(this, args); }
-  };
-}</code></pre>
-</section>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：两个真实场景正面撞上事件循环——大屏高频遥测刷新、WebRTC 播放器信令/媒体异步时序。</p>
 
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：两个真实场景正面撞上事件循环——大屏高频遥测刷新，和 WebRTC 播放器的信令/媒体异步时序。</p>
+  <h3>6.1 场景一：大屏 rAF + 脏标记（第 4 章完整代码）</h3>
+  <p><strong>踩坑记录</strong>：</p>
   <ul>
-    <li><strong>场景一</strong>：电力大屏负荷/告警面板经 WebSocket 或 2s 轮询持续收遥测，初版"每来一条就重绘"导致掉帧。</li>
-    <li><strong>场景二</strong>：WebRTC 无插件播放器（Vue2+Janus）启动是一段严格异步时序，顺序错就黑屏。</li>
+    <li><strong>渲染频率失控</strong>：初版每条数据重绘一次，峰值长任务 120ms+；改脏标记+rAF 后每帧一次、16ms 内（估算）；</li>
+    <li><strong>rAF 不是解药</strong>：只加 rAF 没去掉"每帧读 clientWidth"仍卡——rAF 是节奏对齐，<strong>必须配读写分离</strong>；</li>
+    <li><strong>动画插值叠加</strong>：ECharts 默认开系列动画，高频 setOption 每帧都在插值，必须 <code>animation:false</code>。</li>
   </ul>
 
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责大屏实时渲染节流与播放器启动时序。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算），实践中通常做渲染调度与信令时序，后端/媒体服务同学对 Janus 信令接口。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>大屏</strong>：Vue2 + ECharts + WebSocket/轮询。</li>
-    <li><strong>播放器</strong>：Vue2 + Janus + WebRTC（信令 HTTP、媒体 UDP）。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>脏标记 + rAF</strong>：数据到达只存最新值打 <code>dirty</code>，渲染循环每帧与刷新率对齐重绘一次。</li>
-    <li><strong>读写分离</strong>：clientWidth 等布局读集中在帧开头，setOption 写在后，避免强制同步布局。</li>
-    <li><strong>事件 Promise 化</strong>：<code>ontrack</code> 用 <code>{once:true}</code> 包装成可 await 的 Promise，并入信令流程。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>let dirty = false, latest = null;
-function onData(data) { latest = data; dirty = true; }   // 数据快进快出，只留最新
-
-function renderLoop() {
-  if (dirty) {
-    dirty = false;
-    const w = chartBox.clientWidth;                      // 读：帧开头统一读
-    chart.setOption(buildOption(latest, w), { notMerge: false }); // 写：局部 merge
-  }
-  requestAnimationFrame(renderLoop);                     // 与渲染帧对齐
-}
-requestAnimationFrame(renderLoop);</code></pre>
-  <pre class="code" data-lang="js"><code>// 把 ontrack 事件包装成可 await 的 Promise
-function whenTrack(pc) {
-  return new Promise(resolve => pc.addEventListener('track', resolve, { once: true }));
-}
-async function startPlay(streamId) {
+  <h3>6.2 场景二：WebRTC 启动时序 Promise 化</h3>
+<pre class="code" data-lang="js"><code>async function startPlay(streamId) {
   const session = await httpPost('/janus/attach', { streamId });  // 信令走 HTTP
   const pc = createPeerConnection(session);
   pc.addTransceiver('video', { direction: 'recvonly' });
@@ -859,103 +840,99 @@ async function startPlay(streamId) {
   videoEl.srcObject = e.streams[0];
   await videoEl.play();                                           // 浏览器要求用户手势后才能 play
 }</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
+  <p><strong>踩坑记录</strong>：</p>
   <ul>
-    <li><strong>渲染频率失控</strong>：初版每条数据重绘一次，峰值长任务 120ms+；改脏标记+rAF 后降到每帧一次、16ms 内（估算）。</li>
-    <li><strong>rAF 不是解药</strong>：只加 rAF 没去掉"每帧读 clientWidth"仍卡——rAF 是节奏对齐，必须配读写分离。</li>
-    <li><strong>动画插值叠加</strong>：ECharts 默认开系列动画，高频 setOption 每帧都在插值，必须 <code>animation:false</code>。</li>
-    <li><strong>超时与媒体竞速</strong>：用 <code>Promise.race</code> 做"媒体到达或超时二选一"，不假定信令必成功。</li>
-    <li><strong>play() 需用户手势</strong>：无手势时 <code>video.play()</code> 被拦截抛 rejection，必须 catch 并引导用户点播放。</li>
+    <li><strong>超时与媒体竞速</strong>：用 <code>Promise.race</code> 做"媒体到达或超时二选一"，不假定信令必成功；</li>
+    <li><strong>play() 需用户手势</strong>：无手势时 <code>video.play()</code> 被拦截抛 rejection，必须 catch 并引导用户点播放；</li>
     <li><strong>ICE 边到边加</strong>：曾错误 await"收齐"candidate 致建连超时，正确做法是边到边 <code>addIceCandidate</code>。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li>大屏面板渲染从"每数据一次"降到"每帧一次"，峰值长任务 120ms+ → 16ms 内（估算），切屏不再卡。</li>
-    <li>播放器信令/媒体时序理顺后黑屏率明显下降（估算）。</li>
+    <li><strong>whenTrack + {once:true}</strong>：事件回调 Promise 化，await 线性化时序（4.2）；</li>
+    <li><strong>先注册 trackPromise 再发 offer</strong>：媒体可能在 offer 响应前就到——先挂监听才不丢事件；</li>
+    <li><strong>race 超时</strong>：任何一步都可能有失败路径，异步时序设计里"等不到"必须有出口。</li>
   </ul>
 
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与媒体服务同学定 Janus attach/offer 信令字段与 candidate 推送方式。</li>
-    <li><strong>联调协商</strong>：黑屏问题和后端一起复现，定位到"等 ICE 收齐"的前端假设错误。</li>
-    <li><strong>排期</strong>：先修大屏掉帧（高频刷新），再做播放器启动时序治理。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>高频更新统一走 rAF + 脏标记</strong>：数据快、渲染慢时，中间必须有"只留最新"的闸门。</li>
-    <li><strong>异步时序用 async/await 线性化</strong>：把事件回调 Promise 化，复杂时序才不写成回调地狱。</li>
-    <li><strong>竞速问题用 Promise.race</strong>：超时与成功路径要显式二选一。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用 rAF + 脏标记把大屏高频渲染压到每帧一次，并用 async/await + Promise.race 理顺了 WebRTC 信令与媒体的异步竞速。</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 setTimeout(fn, 0) 不是立即执行</h3>
-  <p class="lead"><b>一句话定位</b>：它是宏任务，必须等当前同步代码 + 微任务队列清空才轮到。</p>
-  <ul>
-    <li><strong>现象</strong>：以为设 0ms 就马上跑。</li>
-    <li><strong>原因</strong>：规范还有 4ms 最小嵌套延迟，后台页更会被节流到 1s。</li>
-    <li><strong>正解</strong>：想"当前代码后尽快执行"用 <code>queueMicrotask</code> 或 <code>Promise.then</code>；想与渲染帧对齐用 rAF。</li>
-  </ul>
-  <h3>6.2 Promise.then 插队到 setTimeout 前</h3>
-  <p class="lead"><b>一句话定位</b>：微任务在每轮宏任务后整批清空，优先级高于下一个宏任务。</p>
-  <ul>
-    <li><strong>考点</strong>：输出顺序题。</li>
-    <li><strong>正解</strong>：记住"同步 → 微任务清空 → 下一个宏任务"三段式。</li>
-  </ul>
-  <h3>6.3 forEach 里 await 不等待</h3>
-  <p class="lead"><b>一句话定位</b>：forEach 不 await 回调返回的 Promise，所以"以为串行实际并发"。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>arr.forEach(async x =&gt; await fn(x))</code> 以为串行，实际并发跑完。</li>
-    <li><strong>正解</strong>：串行用 <code>for...of</code> + await；并发用 <code>Promise.all(arr.map(fn))</code>。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">真坑</span>这是数据编排平台批量查节点时踩过的。</p>
-  <h3>6.4 Promise.all 一个失败全挂</h3>
-  <p class="lead"><b>一句话定位</b>：批量上报一条失败就整体 reject，成功结果也拿不到——该用 allSettled。</p>
-  <ul>
-    <li><strong>现象</strong>：批量上报里一条请求失败，<code>Promise.all</code> 整体 reject，其余成功的结果也拿不到。</li>
-    <li><strong>正解</strong>：这种"一条失败不影响其他"的场景用 <code>Promise.allSettled</code>，再自行过滤成功/失败。</li>
-  </ul>
-  <h3>6.5 async 函数里漏 await</h3>
-  <p class="lead"><b>一句话定位</b>：漏 await 时函数立即 resolve，内部异步仍在跑，调用方等了个寂寞。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>async function f(){ fetch('/a'); }</code> 忘了 await，调用方等它返回时请求可能还没发出。</li>
-    <li><strong>原因</strong>：不 await 时函数立即 resolve，内部异步仍在跑。</li>
-    <li><strong>正解</strong>：ESLint <code>no-floating-promises</code> 兜底，需要等结果就必须 await。</li>
-  </ul>
-  <h3>6.6 unhandledrejection：没人 catch 的 Promise</h3>
-  <p class="lead"><b>一句话定位</b>：rejected 的 Promise 没人 catch，错误被吞、页面静默。</p>
-  <ul>
-    <li><strong>现象</strong>：接口失败却没有任何报错提示，页面静默无响应。</li>
-    <li><strong>原因</strong>：rejected 的 Promise 全程没有 <code>.catch</code> 或 try/catch，错误被吞。</li>
-    <li><strong>正解</strong>：全局挂 <code>window.onunhandledrejection</code> 统一上报，每个 async 都要有错误处理路径。</li>
-  </ul>
+  <h3>6.4 复盘与可复用经验</h3>
+  <ol>
+    <li>高频更新统一走 rAF + 脏标记——数据快渲染慢时，中间必须有"只留最新"的闸门；</li>
+    <li>异步时序用 async/await 线性化，事件回调 Promise 化；</li>
+    <li>竞速问题用 Promise.race——超时与成功路径显式二选一。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 setTimeout(fn, 0) 不是立即执行</h3>
+  <p><strong>根因</strong>：它是宏任务，要等当前同步代码+微任务清空；规范还有 4ms 最小嵌套延迟，后台页节流到 1s。<strong>正解</strong>：想"当前代码后尽快执行"用 queueMicrotask/Promise.then；想与渲染帧对齐用 rAF。</p>
+
+  <h3>7.2 Promise.then 插队到 setTimeout 前</h3>
+  <p><strong>考点</strong>：输出顺序题。<strong>正解</strong>：记住"同步 → 微任务清空 → 下一个宏任务"三段式，从图 2 推导而非背题。</p>
+
+  <h3>7.3 forEach 里 await 不等待（真坑：数据编排平台踩过）</h3>
+  <p><strong>现象</strong>：<code>arr.forEach(async x =&gt; await fn(x))</code> 以为串行，实际并发跑完。<strong>根因</strong>：forEach 不 await 回调返回的 Promise。<strong>正解</strong>：串行用 <code>for...of</code> + await；并发用 <code>Promise.all(arr.map(fn))</code>。</p>
+
+  <h3>7.4 Promise.all 一个失败全挂</h3>
+  <p><strong>现象</strong>：批量上报一条失败整体 reject，成功结果也拿不到。<strong>正解</strong>："一条失败不影响其他"的场景用 <code>Promise.allSettled</code>，再自行过滤成功/失败。</p>
+
+  <h3>7.5 async 函数里漏 await</h3>
+  <p><strong>现象</strong>：<code>async function f(){ fetch('/a'); }</code> 忘 await，调用方等它返回时请求可能还没发出。<strong>根因</strong>：不 await 时函数立即 resolve，内部异步仍在跑。<strong>正解</strong>：ESLint <code>no-floating-promises</code> 兜底。</p>
+
+  <h3>7.6 unhandledrejection：没人 catch 的 Promise</h3>
+  <p><strong>现象</strong>：接口失败却没有任何报错，页面静默。<strong>根因</strong>：rejected 的 Promise 全程没有 .catch，错误被吞。<strong>正解</strong>：全局挂 <code>window.onunhandledrejection</code> 统一上报，每个 async 都要有错误处理路径。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：说出一次完整 Event Loop 的步骤。为什么 Promise.then 比 setTimeout(fn,0) 先执行？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四步——①从宏任务队列取<strong>一个</strong>任务执行（整段 script 是第一个）；②跑完同步代码直至栈空（new Promise 的 fn 同步执行，.then 只登记）；③<strong>清空整个微任务队列</strong>（期间新入队的微任务也本轮跑完）；④渲染（rAF 回调、重排重绘合成），循环回顶部。<strong>原因</strong>：微任务在每轮宏任务后整批清空、优先级高于下一个宏任务——then 的回调进微任务队列，setTimeout 回调进宏任务队列，即使 0ms 也要等下一轮。<br><br>
+  <strong>加分点</strong>：setTimeout 4ms clamp、后台节流 1s；queueMicrotask 与 Promise.then 同级。</p>
+
+  <p><strong>Q2：async/await 的本质是什么？await 会阻塞主线程吗？</strong></p>
+  <p class="note"><strong>参考答案</strong>：本质是 Promise 的语法糖——<code>await x()</code> 约等于 <code>x().then(后续代码)</code>：函数在 await 处"挂起"，把其后代码注册成<strong>微任务</strong>，让出主线程，Promise 落定后从暂停处继续。<strong>不阻塞线程</strong>——阻塞的语义只存在于"这个 async 函数的后续代码"层面，主线程照常跑别的任务。错误处理从逐层回调变成 try/catch，这是范式改善。<br><br>
+  <strong>常见追问</strong>：多个 await 串行 vs 先发起再 Promise.all——无依赖时后者快（3.2 判断依据）。</p>
+
+  <p><strong>Q3：数据推送频率比屏幕刷新率高，怎么保证页面不卡？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>把数据频率与渲染频率解耦</strong>——数据到达只存最新值打脏标记（快进快出，中间值直接丢弃）；rAF 循环每帧检查脏标记、有脏才渲染一次，渲染次数等于屏幕刷新率而非数据频率。要点三条：①脏标记是"只留最新"的闸门；②帧内读写分离（布局读集中帧开头，避免强制同步布局）；③图表关掉自带动画（animation:false），否则每帧 setOption 都在插值。实战效果：长任务从 120ms+ 降到 16ms 内。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>一轮 Event Loop 四步？微任务清空时机？</li>
+    <li>输出顺序题口算：sync → setTimeout → Promise.then → sync？</li>
+    <li>四个并发组合器各自的语义与场景？</li>
+    <li>forEach + await 为什么不等待？串行/并发分别怎么写？</li>
+    <li>rAF + 脏标记方案中，为什么 rAF 单独不够？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档与规范</h3>
   <ul>
-    <li>MDN 并发模型与事件循环（中文，本页核心机制的权威讲解）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Event_loop" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/JavaScript/Event_loop</a></li>
-    <li>MDN Promise 参考：<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise</a></li>
+    <li>MDN 并发模型与事件循环（中文）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Event_loop" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/JavaScript/Event_loop</a></li>
+    <li>MDN Promise 参考：<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise" rel="noopener">MDN · Promise</a></li>
     <li>HTML 标准中的 Event Loop 章节（WhatWG，读精确步骤时查）：<a href="https://html.spec.whatwg.org/" rel="noopener">html.spec.whatwg.org</a></li>
   </ul>
   <h3>书籍</h3>
   <ul>
-    <li>《你不知道的 JavaScript（异步与性能）》（Kyle Simpson）——专门讲事件循环、回调、Promise，本页时序题的思想源头。</li>
-    <li>《现代 JavaScript 教程》异步章节（javascript.info）：<a href="https://zh.javascript.info/async" rel="noopener">zh.javascript.info/async</a></li>
+    <li>《你不知道的 JavaScript（异步与性能）》（Kyle Simpson）——事件循环、回调、Promise 的思想源头。</li>
+    <li>《现代 JavaScript 教程》异步章节：<a href="https://zh.javascript.info/async" rel="noopener">zh.javascript.info/async</a></li>
   </ul>
-  <h3>实战文章</h3>
+  <h3>实战 / 文章</h3>
   <ul>
-    <li>Jake Archibald：深入事件循环（ tasks / microtasks / queues / schedules，经典长文）：<a href="https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/" rel="noopener">jakearchibald.com/2015/tasks-microtasks-queues-and-schedules</a></li>
+    <li>Jake Archibald：tasks / microtasks / queues / schedules（经典长文）：<a href="https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/" rel="noopener">jakearchibald.com/2015/…</a></li>
     <li>web.dev 渲染性能与 rAF 指南：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 3.1 输出顺序题，并自己设计三道变体口算验证；</li>
+    <li>复现第 6 章 rAF+脏标记 Demo，用 Performance 面板对比"每条重绘"与"每帧一次"的长任务；</li>
+    <li>给 4.4 手写 Promise 补上 then 值穿透与返回 Promise 的处理。</li>
+  </ol>
 </section>
 
 </main>
@@ -963,7 +940,7 @@ async function startPlay(streamId) {
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../01_前端基础/02_JavaScript核心【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/06_TypeScript【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../01_前端基础/04_浏览器原理与渲染机制【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · JavaScript进阶：事件循环与异步【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
