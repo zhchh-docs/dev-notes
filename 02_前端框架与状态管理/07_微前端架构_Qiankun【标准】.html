@@ -540,29 +540,139 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/05_React与Hooks【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/08_Nuxt3与SSR_SSG【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：微前端是一种架构风格——把大型前端应用按业务拆成若干个<strong>能独立开发、独立部署、独立运行</strong>的小应用，再由一个"基座"把它们按路由组合成一个完整产品。Qiankun 是其主流实现：基座注册子应用列表，路由匹配到哪个就加载哪个的 JS/CSS，在沙箱里渲染，切走时卸载清理。</p>
-  <p><strong>解决什么问题</strong>：巨石应用的发版耦合（改一个小功能要整站回归）、团队协作冲突（同仓库抢分支）、技术栈升级难（老项目无法换技术栈）。微前端让每个子应用按自己节奏走，独立部署。可视化大屏系统 正是把多个独立开发的业务模块整合成一个统一平台。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>微前端是一种架构风格</strong>：把大型前端应用按业务拆成若干<strong>独立开发、独立部署、独立运行</strong>的小应用，由一个"基座"按路由组合成完整产品。<strong>Qiankun 是主流实现</strong>：基座注册子应用列表，路由匹配到哪个就加载它的 JS/CSS、在沙箱里渲染、切走时卸载清理。它解决巨石应用三痛点：<strong>发版耦合</strong>（改小功能整站回归）、<strong>协作冲突</strong>（同仓库抢分支）、<strong>技术栈升级难</strong>（老项目换不动栈）——可视化大屏系统正是用 Qiankun 把 5+ 独立部署的模块整合成统一平台。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>子应用资源路径写死——部署子路径就 404；</li>
+    <li>多个子应用互相污染全局变量与样式；</li>
+    <li>切走没卸载——WebRTC 连接泄漏。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清基座/子应用分工与<strong>激活生命周期四步</strong>（匹配→加载→bootstrap→mount）；</li>
+    <li>理解 <strong>JS 沙箱与两种样式隔离</strong>的机制差异；</li>
+    <li>落地子应用改造<strong>三件套</strong>（生命周期导出 + 运行时 publicPath + 卸载清理）；</li>
+    <li>避开五条高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：03 篇组件通信、路由基础。<strong>难度</strong>：★★★★☆（架构层概念多）。<strong>本篇不涉及</strong>：Module Federation / 无界 micro-app 等其他方案（思想相通）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>基座与子应用</strong>→ <strong>路由劫持与动态加载</strong>→ <strong>沙箱与样式隔离</strong>→ <strong>主子通信与公共依赖</strong>。</p>
+
+  <h3>2.1 基座与子应用：平台与插件的关系</h3>
+  <p><strong>基座</strong>第一个加载：统一布局、登录态、菜单路由，注册所有子应用；<strong>子应用</strong>是独立工程（自带 html/js/css），被基座在匹配路由时动态加载到指定容器。<strong>关系类比</strong>：基座是"平台"，子应用是"插件"——插件按契约接入，平台不感知插件内部实现。</p>
+
+  <h3>2.2 路由劫持与动态加载</h3>
+  <p>Qiankun 监听路由变化，按 <code>activeRule</code> 决定激活哪个子应用 → fetch 子应用入口 HTML → 执行其 JS → 渲染结果塞进基座容器 → <strong>切走时调 unmount 卸载清理</strong>。子应用必须导出 <strong>bootstrap/mount/unmount</strong> 三个生命周期钩子（图 2）。</p>
+
+  <h3>2.3 JS 沙箱与样式隔离：防互相污染</h3>
+  <ul>
+    <li><strong>JS 沙箱</strong>：用 Proxy 模拟 window——子应用全局变量互不可见，切走时沙箱销毁不留痕（默认开启）；</li>
+    <li><strong>样式隔离两种</strong>：<code>strictStyleIsolation</code> 把容器转成 <strong>Shadow DOM 强隔离</strong>；<code>experimentalStyleIsolation</code> 运行时给子应用样式选择器<strong>加前缀</strong>（scoped 化）——名字相近、机制不同，按需开启；</li>
+    <li><span class="tag-pit">坑</span>：慎用全局 reset——它会无差别覆盖所有子应用。</li>
+  </ul>
+
+  <h3>2.4 主子通信与公共依赖</h3>
+  <p><strong>通信</strong>：<code>initGlobalState</code> 共享全局状态（登录态/主题），或 props 传参。<strong>公共依赖</strong>：Vue/axios 由基座 externals 提供——子应用不重复打包，减体积、<strong>避免多实例</strong>（两份 Vue 实例状态不通）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：基座注册子应用</h3>
+<pre class="code" data-lang="js"><code>import { registerMicroApps, start, initGlobalState } from 'qiankun';
+
+registerMicroApps([
+  {
+    name: 'sub-webrtc',                  // 子应用名
+    entry: '//localhost:7101',           // 子应用入口
+    container: '#subapp-viewport',        // 挂载容器
+    activeRule: '/webrtc'                // 路由激活规则
+  }
+]);
+start({ sandbox: { strictStyleIsolation: false } });  // 开启 JS 沙箱</code></pre>
+
+  <h3>3.2 场景二：子应用导出生命周期</h3>
+<pre class="code" data-lang="js"><code>// 子应用入口 main.js
+let instance = null;
+export async function bootstrap() {}              // 只调一次
+export async function mount(props) {               // 每次挂载
+  instance = render(props.container);
+}
+export async function unmount() {                  // 卸载清理
+  instance.$destroy?.();
+  instance = null;
+}
+// 独立运行时也要能自渲染
+if (!window.__POWERED_BY_QIANKUN__) {
+  render(document.getElementById('app'));
+}</code></pre>
+  <p><strong>关键</strong>：<code>__POWERED_BY_QIANKUN__</code> 判断让子应用"既能被基座加载、也能独立跑"——渐进接入的前提。</p>
+
+  <h3>3.3 场景三：主子通信（全局状态）</h3>
+<pre class="code" data-lang="js"><code>// 基座
+export const { onGlobalStateChange, setGlobalState } = initGlobalState({ user: null });
+// 子应用 mount(props) 里
+props.onGlobalStateChange((state) =&gt; console.log('收到登录态', state));</code></pre>
+
+  <h3>3.4 场景四：运行时 publicPath 适配</h3>
+<pre class="code" data-lang="js"><code>// 子应用 webpack/vite 运行时 publicPath 适配
+if (window.__POWERED_BY_QIANKUN__) {
+  __webpack_public_path__ = window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__;
+}</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：基座与一个子应用已接通。</p>
+
+  <h3>4.1 公共依赖的加载策略</h3>
+  <p>externals（CDN/基座提供）之外还有 <strong>loadMicroApp 手动加载 + 共享依赖对象传递</strong>；Webpack5 的 <strong>Module Federation</strong> 是更现代的方案（构建期声明共享依赖、运行时协商版本）。取舍：externals 简单但版本强耦合基座；MF 灵活但构建配置复杂。</p>
+
+  <h3>4.2 预加载与切换体验</h3>
+  <p><code>start({ prefetch: true })</code> 空闲时预取子应用资源，首次切换不白屏；配合 <strong>loading 过渡</strong>（基座容器内骨架屏）与 <strong>keep-alive 式保活</strong>（loadMicroApp 不卸载、仅显示隐藏）优化高频切换——保活换内存，权衡使用。</p>
+
+  <h3>4.3 路由设计约定</h3>
+  <p>activeRule 按前缀划分（/sub-a/**），<strong>基座路由与子应用路由必须互不重叠</strong>；子应用内部路由建议挂在其前缀下（history 模式 base 对齐，衔接 01 模块 04 篇 Nginx 子路径 try_files）。</p>
+
+  <h3>4.4 契约治理：多团队协作的规范</h3>
+  <p>微前端的成本在协作：需约定<strong>生命周期接口、publicPath 规范、全局变量黑名单、样式类名前缀、通信协议</strong>——写成接入文档，新子应用按 checklist 接入。<strong>架构问题最终是治理问题</strong>。</p>
+
+  <h3>4.5 什么时候不要用微前端</h3>
+  <p>微前端有复杂度税（沙箱/隔离/通信/部署链路）。<strong>单团队、技术栈统一、发布节奏一致的项目</strong>用 Monorepo + 按路由拆分更简单（06 工程化篇）——微前端是"多团队多栈异构"场景的解，不是默认架构。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 260" role="img" aria-label="微前端基座与子应用架构示意图">
       <defs>
@@ -593,65 +703,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 微前端基座与子应用架构（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 基座（Main）与子应用（Sub）</h3>
-  <p class="lead"><b>一句话定位</b>：基座负责布局/登录/菜单并注册子应用；子应用是独立工程，被动态加载进基座容器。</p>
-  <ul>
-    <li><strong>基座</strong>：第一个加载，负责整体布局、登录态、菜单路由，注册所有子应用。</li>
-    <li><strong>子应用</strong>：独立工程，自带 html/js/css，被基座在匹配路由时动态加载到指定容器。</li>
-  </ul>
-  <h3>2.2 路由劫持与动态加载</h3>
-  <p class="lead"><b>一句话定位</b>：Qiankun 监听路由，按 activeRule 决定激活哪个子应用，切走时卸载。</p>
-  <ol>
-    <li>监听浏览器路由变化，按 <code>activeRule</code> 判断该激活哪个子应用。</li>
-    <li>请求子应用入口资源（HTML）、执行其 JS、把渲染结果塞进基座容器。</li>
-    <li>切走时调用子应用 unmount 卸载清理。</li>
-  </ol>
-  <h3>2.3 JS 沙箱与样式隔离</h3>
-  <p class="lead"><b>一句话定位</b>：多子应用共存会互相污染全局变量与 CSS，靠沙箱与样式隔离隔开。</p>
-  <ul>
-    <li><strong>JS 沙箱</strong>：用 proxy 隔离 window，让子应用全局变量互不可见。</li>
-    <li><strong>样式隔离</strong>：<code>strictStyleIsolation: true</code> 把子应用容器转成 Shadow DOM 做强隔离；<code>experimentalStyleIsolation: true</code> 在运行时给子应用样式选择器加前缀（scoped CSS）——两者名字相近、机制不同，按需开启，避免 A 应用样式覆盖 B。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 160" role="img" aria-label="JS沙箱与样式隔离对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">微前端怎么防止子应用互相污染？（示意）</text>
-
-      <!-- JS沙箱 -->
-      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">JS 沙箱（隔离全局变量）</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">用 Proxy 模拟 window，子应用互不可见</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">切走时沙箱销毁，全局变量不留痕</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">默认开启，解决 JS 全局污染</text>
-
-      <!-- 样式隔离 -->
-      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">样式隔离（防 CSS 互相覆盖）</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">strictStyleIsolation：Shadow DOM 强隔离</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">experimentalStyleIsolation：选择器加前缀</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">按需开启，避免样式串扰</text>
-    </svg>
-    <p class="diagram-caption">图 1 JS 沙箱 vs 样式隔离（示意）</p>
-  </div>
-  <h3>2.4 主子通信与公共依赖</h3>
-  <p class="lead"><b>一句话定位</b>：主子用 initGlobalState 共享状态；公共依赖由基座 externals 提供，避免多实例。</p>
-  <ul>
-    <li><strong>通信</strong>：<code>initGlobalState</code> 共享全局状态（登录态、主题），或 props 传参。</li>
-    <li><strong>公共依赖</strong>：Vue/React/axios 由基座 externals 提供，子应用不重复打包，减小体积、避免多实例。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Qiankun 激活一个子应用的完整流程</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="Qiankun 子应用激活与生命周期流程图">
       <defs>
@@ -680,145 +731,106 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Qiankun 子应用生命周期（示意）</p>
   </div>
-</section>
+  <div class="diagram">
+    <svg viewBox="0 0 800 160" role="img" aria-label="JS沙箱与样式隔离对比图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">微前端怎么防止子应用互相污染？（示意）</text>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 基座注册子应用</h3>
-<pre class="code" data-lang="js"><code>import { registerMicroApps, start, initGlobalState } from 'qiankun';
+      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">JS 沙箱（隔离全局变量）</text>
+      <text x="50" y="95" font-size="11" fill="#4f6348">用 Proxy 模拟 window，子应用互不可见</text>
+      <text x="50" y="117" font-size="11" fill="#4f6348">切走时沙箱销毁，全局变量不留痕</text>
+      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">默认开启，解决 JS 全局污染</text>
 
-registerMicroApps([
-  {
-    name: 'sub-webrtc',                  // 子应用名
-    entry: '//localhost:7101',           // 子应用入口
-    container: '#subapp-viewport',        // 挂载容器
-    activeRule: '/webrtc'                // 路由激活规则
-  }
-]);
-start({ sandbox: { strictStyleIsolation: false } });  // 开启 JS 沙箱</code></pre>
-  <h3>4.2 子应用导出生命周期</h3>
-<pre class="code" data-lang="js"><code>// 子应用入口 main.js
-let instance = null;
-export async function bootstrap() {}              // 只调一次
-export async function mount(props) {               // 每次挂载
-  instance = render(props.container);
-}
-export async function unmount() {                  // 卸载清理
-  instance.$destroy?.();
-  instance = null;
-}
-// 独立运行时也要能自渲染
-if (!window.__POWERED_BY_QIANKUN__) {
-  render(document.getElementById('app'));
-}</code></pre>
-  <h3>4.3 主子通信（全局状态）</h3>
-<pre class="code" data-lang="js"><code>// 基座
-export const { onGlobalStateChange, setGlobalState } = initGlobalState({ user: null });
-// 子应用 mount(props) 里
-props.onGlobalStateChange((state) =&gt; console.log('收到登录态', state));</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：可视化大屏系统 用 Qiankun 把多个不同时期、不同小团队开发的模块整合成统一运维平台，并把 WebRTC 播放器封装成可复用子应用。</p>
-  <ul>
-    <li><strong>业务场景</strong>：5+ 子应用各自独立部署、技术栈略异，需统一登录/菜单/布局。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责基座接入、子应用改造与 WebRTC 播放器子应用化。</li>
-    <li><strong>团队与分工</strong>：多个小团队各自维护子应用；我负责基座与接入规范。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Qiankun + Vue 基座 + 各 Vue2/Vue3 子应用 + WebRTC(Janus)；JS 沙箱 + scoped 样式隔离。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>基座分发</strong>：基座统一登录/菜单/布局，按路由 <code>activeRule</code> 分发子应用。</li>
-    <li><strong>子应用改造</strong>：导出 bootstrap/mount/unmount，publicPath 改运行时。</li>
-    <li><strong>隔离</strong>：JS 沙箱隔离 window，样式 scoped；登录态经 initGlobalState 下发。</li>
-    <li><strong>播放器子应用化</strong>：WebRTC 播放器作独立子应用，其他模块经路由/消息唤起。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 子应用 webpack/vite 运行时 publicPath 适配
-if (window.__POWERED_BY_QIANKUN__) {
-  __webpack_public_path__ = window.__INJECTED_PUBLIC_PATH_BY_QIANKUN__;
-}</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><strong>publicPath 写死</strong>：子应用静态资源路径写死，部署子路径后 404；改运行时 publicPath 解决。</li>
-    <li><strong>全局污染</strong>：两个子应用都用全局 <code>$</code> 或同名组件互染；JS 沙箱 + 不污染 window。</li>
-    <li><strong>连接未 dispose</strong>：WebRTC 子应用切走时 PeerConnection/定时器没在 unmount 清理，切回后多路连接泄漏；unmount 完整 dispose。</li>
-    <li><strong>dev 跨域</strong>：子应用 dev 端口跨域被 CORS 拦；dev server 配允许跨域响应头。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>5+ 子应用独立发版、互不阻塞；播放器能力被子应用复用。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与各子应用团队约定 mount/unmount 生命周期、publicPath、全局变量黑名单。</li>
-    <li><strong>联调协商</strong>：dev 跨域与全局污染问题逐对子应用联调定位。</li>
-    <li><strong>排期</strong>：先接一个子应用跑通基座，再批量改造其余。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>子应用三件套</strong>：生命周期导出 + 运行时 publicPath + 卸载清理，缺一不可。</li>
-    <li><strong>全局命名要管控</strong>：微前端下 window 是共享战场，必须沙箱 + 黑名单。</li>
-    <li><strong>资源在 unmount 全释放</strong>：连接/定时器/监听随子应用卸载而销毁。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>用 Qiankun 把 5+ 独立部署子应用接入统一基座，踩平了 publicPath 写死、全局污染与 WebRTC 连接在 unmount 未 dispose 这几个微前端经典坑。</p>
+      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">样式隔离（防 CSS 互相覆盖）</text>
+      <text x="440" y="95" font-size="11" fill="#4f6348">strictStyleIsolation：Shadow DOM 强隔离</text>
+      <text x="440" y="117" font-size="11" fill="#4f6348">experimentalStyleIsolation：选择器加前缀</text>
+      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">按需开启，避免样式串扰</text>
+    </svg>
+    <p class="diagram-caption">图 3 JS 沙箱 vs 样式隔离（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 的架构灵魂是"平台与插件"——基座管全局，子应用管自己；②图 2 生命周期四步中 <strong>unmount 与 mount 同等重要</strong>——不清理就是连接泄漏；③图 3 两种隔离机制不同层：沙箱管 JS 全局、样式隔离管 CSS——两个维度都要考虑。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 样式隔离失效/全局污染</h3>
-  <p class="lead"><b>一句话定位</b>：不隔离就互相污染——优先 scoped，必要时 ShadowDOM。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：可视化大屏系统真实落地——Qiankun 把多个不同时期、不同小团队开发的模块整合成统一运维平台，WebRTC 播放器封装成可复用子应用（5+ 子应用独立部署）。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>正解</strong>：优先 scoped CSS，必要时开 strictStyleIsolation（ShadowDOM）。</li>
+    <li><strong>基座分发</strong>：统一登录/菜单/布局，按路由 activeRule 分发子应用；</li>
+    <li><strong>子应用改造</strong>：导出 bootstrap/mount/unmount，publicPath 改运行时；</li>
+    <li><strong>隔离</strong>：JS 沙箱隔离 window，样式 scoped；登录态经 initGlobalState 下发；</li>
+    <li><strong>播放器子应用化</strong>：WebRTC 播放器独立子应用，其他模块经路由/消息唤起。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>慎用全局 reset，它会无差别覆盖所有子应用。</p>
-  <h3>6.2 子应用 publicPath 写死</h3>
-  <p class="lead"><b>一句话定位</b>：资源路径写死，部署到子路径后就 404。</p>
+
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>现象</strong>：部署到子路径后资源 404。</li>
-    <li><strong>正解</strong>：用 <code>__INJECTED_<wbr>PUBLIC_PATH_<wbr>BY_<wbr>QIANKUN__</code> 运行时指定。</li>
+    <li><strong>publicPath 写死</strong>：静态资源路径写死，部署子路径后 404——改运行时 publicPath（3.4）；</li>
+    <li><strong>全局污染</strong>：两个子应用都用全局 $ 或同名组件互染——JS 沙箱 + 不污染 window；</li>
+    <li><strong>连接未 dispose</strong>：WebRTC 子应用切走时 PeerConnection/定时器没在 unmount 清理，切回后多路连接泄漏——unmount 完整 dispose；</li>
+    <li><strong>dev 跨域</strong>：子应用 dev 端口被 CORS 拦——dev server 配允许跨域响应头。</li>
   </ul>
-  <h3>6.3 卸载不彻底导致内存泄漏</h3>
-  <p class="lead"><b>一句话定位</b>：切走子应用时没清理定时器/事件/实例，泄漏累积。</p>
-  <ul>
-    <li><strong>正解</strong>：unmount 里清定时器、解绑事件、dispose 图表/连接实例。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">真坑</span>WebRTC 子应用切走时 PeerConnection 没 dispose，切回后多路连接泄漏。</p>
-  <h3>6.4 公共依赖多实例</h3>
-  <p class="lead"><b>一句话定位</b>：基座和子应用各打一份 Vue，就出现两份实例、状态不通。</p>
-  <ul>
-    <li><strong>现象</strong>：两份 Vue 实例、状态不通。</li>
-    <li><strong>正解</strong>：Vue/React 等核心库 externals 由基座提供。</li>
-  </ul>
-  <h3>6.5 跨域与资源加载</h3>
-  <p class="lead"><b>一句话定位</b>：基座要 fetch 子应用入口，子应用必须放行跨域。</p>
-  <ul>
-    <li><strong>正解</strong>：子应用 dev/部署都要允许基座跨域 fetch 入口 HTML 与资源。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>子应用 dev server 配允许跨域响应头，否则基座 fetch 入口被 CORS 拦。</p>
+
+  <h3>6.3 复盘与可复用经验</h3>
+  <ol>
+    <li><strong>子应用三件套</strong>：生命周期导出 + 运行时 publicPath + 卸载清理，缺一不可；</li>
+    <li><strong>全局命名要管控</strong>：微前端下 window 是共享战场，必须沙箱 + 黑名单；</li>
+    <li><strong>资源在 unmount 全释放</strong>：连接/定时器/监听随子应用卸载而销毁；</li>
+    <li><strong>协作</strong>：与各子应用团队约定生命周期/publicPath/全局变量黑名单契约，先接一个跑通再批量改造。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 样式隔离失效/全局污染</h3>
+  <p><strong>正解</strong>：优先 scoped CSS，必要时开 strictStyleIsolation（ShadowDOM）。<span class="tag-pit">坑</span>：慎用全局 reset——无差别覆盖所有子应用。</p>
+
+  <h3>7.2 子应用 publicPath 写死</h3>
+  <p><strong>现象</strong>：部署到子路径后资源 404。<strong>正解</strong>：<code>__INJECTED_PUBLIC_PATH_BY_QIANKUN__</code> 运行时指定。</p>
+
+  <h3>7.3 卸载不彻底导致内存泄漏</h3>
+  <p><strong>现象</strong>：切走没清理定时器/事件/实例，泄漏累积。<strong>正解</strong>：unmount 里清定时器、解绑事件、dispose 图表/连接实例。<span class="tag-pit">真坑</span>：WebRTC PeerConnection 未 dispose，切回后多路连接泄漏。</p>
+
+  <h3>7.4 公共依赖多实例</h3>
+  <p><strong>现象</strong>：基座和子应用各打一份 Vue——两份实例、状态不通。<strong>正解</strong>：Vue/React 等核心库 externals 由基座提供。</p>
+
+  <h3>7.5 跨域与资源加载</h3>
+  <p><strong>根因</strong>：基座要 fetch 子应用入口 HTML。<strong>正解</strong>：子应用 dev/部署都放行基座跨域 fetch 入口与资源。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：微前端解决什么问题？什么时候该用/不该用？</strong></p>
+  <p class="note"><strong>参考答案</strong>：解决巨石应用三痛点——<strong>发版耦合</strong>（改小功能整站回归）、<strong>团队协作冲突</strong>（同仓库抢分支）、<strong>技术栈升级难</strong>（老项目换不动栈）：每个子应用独立开发/部署/运行、按自己节奏发版。<strong>该用</strong>：多团队、多技术栈异构、需要渐进迁移老系统的平台型产品（实战：5+ 子应用统一平台）。<strong>不该用</strong>：单团队、栈统一、发布节奏一致——Monorepo + 路由拆分更简单，微前端的沙箱/隔离/通信/治理复杂度税不值得。<br><br>
+  <strong>加分点</strong>：一句话——微前端是多团队协作的架构解，不是技术炫技。</p>
+
+  <p><strong>Q2：Qiankun 的 JS 沙箱和样式隔离是怎么工作的？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>JS 沙箱</strong>——Proxy 代理 window 做fake 环境：子应用的全局赋值写到代理上互不可见，切走时沙箱销毁、全局变量不留痕（默认开启）。<strong>样式隔离两种机制</strong>：strictStyleIsolation 用 <strong>Shadow DOM</strong> 把子应用容器变成独立样式作用域（强隔离，但弹窗挂 body 的组件会失效）；experimentalStyleIsolation 运行时给样式选择器<strong>加前缀</strong>（scoped 化，兼容性好）。<strong>工程建议</strong>：样式优先 scoped CSS + 类名前缀约定，隔离开关按需开，全局 reset 慎用。</p>
+
+  <p><strong>Q3：子应用接入基座要做什么改造？"三件套"指什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三件套——①<strong>生命周期导出</strong>：bootstrap（首次初始化）/mount（每次挂载渲染进容器）/unmount（卸载清理），独立运行用 <code>__POWERED_BY_QIANKUN__</code> 判断自渲染；②<strong>运行时 publicPath</strong>：<code>__INJECTED_PUBLIC_PATH_BY_QIANKUN__</code>，否则部署子路径资源 404；③<strong>卸载彻底清理</strong>：unmount 里销毁实例、清定时器、解绑监听、dispose 图表与连接（实战：WebRTC PeerConnection 不清理则切回多路泄漏）。再加一条工程配套：<strong>dev/部署放行跨域</strong>（基座要 fetch 入口 HTML）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>微前端三痛点？什么场景不该用微前端？</li>
+    <li>激活生命周期四步？子应用必须导出哪三个钩子？</li>
+    <li>两种样式隔离的机制差异与选型？</li>
+    <li>公共依赖多实例的症状与解法？</li>
+    <li>主子通信的两种方式？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Qiankun 官方文档（蚂蚁开源）：<a href="https://qiankun.umijs.org/zh/" rel="noopener">qiankun.umijs.org/zh</a></li>
@@ -827,14 +839,20 @@ if (window.__POWERED_BY_QIANKUN__) {
   <ul>
     <li>微前端概念起源 Micro Frontends：<a href="https://micro-frontends.org/" rel="noopener">micro-frontends.org</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>建一个最小基座 + 一个 Vue 子应用，跑通三件套接入与切换；</li>
+    <li>两个子应用各写 window.xxx 全局变量，验证沙箱隔离；</li>
+    <li>给子应用加 setInterval，故意不清理，观察切走切回后的重复执行，再修复。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/05_React与Hooks【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/08_Nuxt3与SSR_SSG【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 微前端架构Qiankun【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
