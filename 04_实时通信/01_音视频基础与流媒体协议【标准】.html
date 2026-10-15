@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../04_实时通信/06_Janus网关【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/00_实时通信模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../04_实时通信/02_WebSocket通用实时通信【基础】.html">下一篇 →</a>
 </nav>
@@ -548,65 +548,136 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与配置要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：音视频技术栈是一套分层协议族——"压缩 + 打包 + 传输 + 加密"的组合，而非单一技术：</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>编码层</strong>：H.264/H.265 视频、Opus/AAC 音频，把原始像素/采样压成码流。</li>
-    <li><strong>封装层</strong>：MP4/FLV 把音视频轨道混装成文件；RTP 把码流拆成适合实时传输的包。</li>
-    <li><strong>传输层</strong>：RTP/RTCP 在 UDP 上实时传包与反馈，或 HLS 基于 HTTP 传分片。</li>
-    <li><strong>安全层</strong>：WebRTC 用 DTLS 协商密钥、SRTP 加密媒体包。</li>
-  </ul>
-  <p><strong>解决什么问题</strong>：原始 1080p@30fps 不压缩每秒上百 MB、网络传不动；用 TCP 传实时流又因"一个丢包阻塞后面所有包"越等越卡。音视频栈同时解决这两件：</p>
-  <ul>
-    <li><strong>压缩</strong>：编码器把数据压到可传输的码率。</li>
-    <li><strong>低延迟传输</strong>：面向 UDP 的实时协议保证延迟可控。</li>
-    <li><strong>同步组织</strong>：封装格式把音视频同步地组织起来。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 170" role="img" aria-label="三种流媒体协议对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">三种流媒体协议选型（示意）</text>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
 
-      <!-- WebRTC -->
-      <rect x="20" y="45" width="240" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="140" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">WebRTC</text>
-      <text x="140" y="92" text-anchor="middle" font-size="11" fill="#4f6348">UDP + SRTP，全双工</text>
-      <text x="140" y="115" text-anchor="middle" font-size="11" fill="#4f6348">延迟 200-500ms</text>
-      <text x="140" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">实时监控/视频会议</text>
+  <h3>1.1 定位：分层协议族，而非单一技术</h3>
+  <p>音视频技术栈 = <strong>"压缩 + 打包 + 传输 + 加密"的分层组合</strong>：<strong>编码层</strong>（H.264/H.265 视频、Opus/AAC 音频——把原始像素/采样压成码流）→ <strong>封装层</strong>（MP4/FLV 混装轨道成文件；RTP 把码流拆成实时传输的包）→ <strong>传输层</strong>（RTP/RTCP over UDP 实时传包与反馈，或 HLS over HTTP 传分片）→ <strong>安全层</strong>（DTLS 协商密钥、SRTP 加密媒体包）。它同时解决两件事：<strong>压缩</strong>（1080p 原始每秒上百 MB 传不动）与<strong>低延迟传输</strong>（TCP 队头阻塞越等越卡）。</p>
 
-      <!-- RTMP -->
-      <rect x="280" y="45" width="240" height="110" rx="8" fill="#fefce8" stroke="#d97706"/>
-      <text x="400" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">RTMP / HTTP-FLV</text>
-      <text x="400" y="92" text-anchor="middle" font-size="11" fill="#4f6348">TCP 推流，直播推拉流</text>
-      <text x="400" y="115" text-anchor="middle" font-size="11" fill="#4f6348">延迟 1-3s</text>
-      <text x="400" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#b45309">直播推流/低延迟直播</text>
+  <h3>1.2 横向对比：三种流媒体路线选型</h3>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:24%"><col style="width:24%"><col style="width:34%"></colgroup>
+    <thead><tr><th>协议</th><th>承载</th><th>延迟量级</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td>WebRTC</td><td>SRTP over UDP</td><td>200-500ms</td><td>实时监控、视频会议、互动直播</td></tr>
+      <tr><td>HTTP-FLV</td><td>FLV over HTTP</td><td>1-3s</td><td>网页直播（flv.js），抗弱网</td></tr>
+      <tr><td>HLS</td><td>TS 分片 over HTTP</td><td>3-30s</td><td>点播、回看、大规模 CDN 分发</td></tr>
+      <tr><td>RTSP</td><td>RTP over UDP/TCP</td><td>低，但浏览器不原生支持</td><td>摄像头设备侧</td></tr>
+    </tbody>
+  </table>
+  <p><strong>口径</strong>：实时监控/会议选 WebRTC，直播推流选 RTMP/HTTP-FLV，点播回看与大规模分发选 HLS。</p>
 
-      <!-- HLS -->
-      <rect x="540" y="45" width="240" height="110" rx="8" fill="#fee2e2" stroke="#dc2626"/>
-      <text x="660" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">HLS</text>
-      <text x="660" y="92" text-anchor="middle" font-size="11" fill="#4f6348">HTTP 分片，CDN 分发</text>
-      <text x="660" y="115" text-anchor="middle" font-size="11" fill="#4f6348">延迟 3-30s</text>
-      <text x="660" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#b91c1c">点播/回看/大规模分发</text>
-    </svg>
-    <p class="diagram-caption">图 1 WebRTC vs RTMP vs HLS（示意）</p>
-  </div>
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>分清<strong>编码 vs 封装</strong>（正交的两件事）；</li>
+    <li>理解 <strong>I/P/B 帧与 GOP</strong>——花屏自愈的钥匙；</li>
+    <li>讲清<strong>为什么实时用 UDP</strong>（队头阻塞）；</li>
+    <li>会拆<strong>端到端延迟构成</strong>（选型的核心问题）；</li>
+    <li>能读懂 SDP 里的编码协商行。</li>
+  </ol>
+  <p><strong>前置知识</strong>：无（本模块地基篇）。<strong>难度</strong>：★★★☆☆。<strong>本篇不涉及</strong>：WebRTC 连接建立细节（05 篇展开）、Janus 服务端（06 篇）。</p>
+</section>
 
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>视频编码</strong>（总纲）→ <strong>音频编码</strong>→ <strong>RTP/RTCP</strong>→ <strong>封装格式</strong>→ <strong>SRTP/DTLS/ICE</strong>。</p>
+
+  <h3>2.1 视频编码：H.264 与 I/P/B 帧</h3>
+  <p>视频编码的本质是<strong>时间与空间冗余压缩</strong>：<span class="tag-key">关键</span><strong>I 帧</strong>（自包含可独立解码，体积最大）、<strong>P 帧</strong>（只存与前面帧的差值）、<strong>B 帧</strong>（双向预测）；<strong>GOP</strong> = 两个 I 帧的间隔。<span class="tag-pit">坑</span>丢一个 P 帧（参考帧）会<strong>花屏直到下一个 I 帧</strong>——这就是前端要能主动发 PLI/FIR 让编码器立刻出 I 帧的原因（06 篇实战）。</p>
+
+  <h3>2.2 音频编码：Opus</h3>
+  <p>原始数据量 = 采样率 × 位深 × 声道数；<strong>Opus（WebRTC 默认）</strong>：6-510kbps 可调，融合 SILK（语音）+CELT（音乐），抗丢包低延迟；AAC 偏点播/音乐消费。参数配在 SDP 的 m=audio 行。</p>
+
+  <h3>2.3 RTP 与 RTCP：数据面与控制面</h3>
+  <p><strong>RTP</strong>：把 H.264/Opus 切成带<strong>序列号与时间戳</strong>的包跑在 UDP 上——序列号查丢包乱序，时间戳做唇形同步；<strong>RTCP</strong>：周期性互发报告（丢包率/抖动/RTT），供拥塞控制与码率自适应。<span class="tag-key">Why UDP</span>：TCP 丢包重传阻塞后续所有包（<strong>队头阻塞</strong>），实时场景宁可丢几帧也不能越等越卡——"丢了怎么办"交给上层（请求关键帧/NACK）。</p>
+
+  <h3>2.4 封装格式：MP4/FLV vs RTP</h3>
+  <p><strong>编码解决"怎么压"，封装解决"怎么装"，两者正交</strong>。MP4 是点播容器（moov 元信息头或尾）；FLV 为 HTTP-FLV 直播流式设计；<strong>实时场景不用文件容器</strong>——直接把 NALU 拆进 RTP 包（RFC 6184），省掉整段封装等待，这正是 WebRTC 低延迟的一部分。flv.js 解的是 FLV 容器，把 H.264 喂给 MSE，真正解码的是浏览器。</p>
+
+  <h3>2.5 SRTP/DTLS 与 ICE：安全与找路</h3>
+  <p><strong>DTLS</strong> 握手期协商密钥 → <strong>SRTP</strong> 用这把密钥加密后续 RTP 包 → <strong>ICE</strong> 在 NAT 后找一条能通的链路（host/srflx/relay 候选 + STUN 打洞）——三者构成传输/加密层（05 篇展开）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：读懂 SDP 编码协商行</h3>
+<pre class="code" data-lang="text"><code>m=video 9 UDP/TLS/RTP/SAVPF 96 97       ; 视频媒体行：端口/传输/负载类型
+a=rtpmap:96 H264/90000                   ; pt=96 对应 H.264，90kHz 时钟
+a=fmtp:96 profile-level-id=42e01f;packetization-mode=1
+a=rtpmap:97 rtx/90000                    ; 重传负载（NACK）
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+a=rtpmap:111 opus/48000/2                ; pt=111 对应 Opus，48kHz 双声道
+a=fingerprint:sha-256 AB:CD:...           ; DTLS 证书指纹
+a=setup:actpass                          ; 本端既可做 DTLS client 也可做 server</code></pre>
+  <p>排查"协商出了什么编码"的基本功：m= 行列支持的 payload type，a=rtpmap 映射到编码与时钟，a=fmtp 给编码参数（<code>profile-level-id=42e01f</code> 是 Constrained Baseline，兼容性最好）。</p>
+
+  <h3>3.2 场景二：协商时限定编码</h3>
+<pre class="code" data-lang="js"><code>// 用 setCodecPreferences 把 H.264 排到首选，避免协商出兼容性差的编码
+var sender = pc.getSenders()[0];
+var codecs = RTCRtpSender.getCapabilities('video').codecs;
+var h264 = codecs.find(function (c) { return c.mimeType === 'video/H264'; });
+if (h264) sender.setCodecPreferences([h264].concat(codecs));
+// 注：纯接收场景由对端 offer 决定，这里用于本端需要约束编码的情况</code></pre>
+
+  <h3>3.3 场景三：编码器侧参数（前端需理解）</h3>
+<pre class="code" data-lang="text"><code># ffmpeg 把 RTSP 转 WebRTC 喂 Janus 时的常见参数（理解用）
+# -c:v libx264        用 H.264 软编码
+# -profile:v baseline 选兼容性最好的 profile，老浏览器/硬解都支持
+# -g 30               GOP=30：每 30 帧一个关键帧（1s@30fps），花屏恢复快
+# -preset ultrafast   降低编码延迟（牺牲压缩率）
+# -tune zerolatency   专为低延迟直播调优</code></pre>
+
+  <h3>3.4 场景四：前端连接配置（与后端契约）</h3>
+<pre class="code" data-lang="js"><code>var pc = new RTCPeerConnection({
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'turn:turn.example.com:3478', username: 'u', credential: 'p' }
+  ]
+  // 不传 iceTransportPolicy=relay：优先直连，失败再中继
+});
+// 打印协商出的实际编码，便于排查
+pc.addEventListener('track', function () {
+  var r = pc.getReceivers()[0];
+  if (r &amp;&amp; r.getParameters().codecs) console.log('协商编码:', r.getParameters().codecs[0].mimeType);
+});</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：I/P/B 帧与 UDP 之问已清楚。</p>
+
+  <h3>4.1 NACK / PLI / FIR：丢包恢复三件套</h3>
+  <p><strong>NACK</strong>：丢包后按序列号点名重传（毫秒级，适合偶发丢包）；<strong>PLI/FIR</strong>：请求编码器立刻出新 I 帧（代价大，适合参考帧丢失/新加入者）；<strong>FEC</strong>：前向纠错冗余包，丢一部分可自行恢复（带宽换恢复速度）。三者是 WebRTC 抗丢包的完整拼图，与"花屏自愈"直接挂钩。</p>
+
+  <h3>4.2 码率自适应（GCC 拥塞控制）</h3>
+  <p>RTCP 报告的丢包率/RTT + Transport-CC 反馈 → 带宽估计 → 编码器动态调码率/分辨率/帧率。弱网下先降帧率再降分辨率（人眼对帧率敏感度高于分辨率）——这是 WebRTC "越弱网越糊但不断"的原因。</p>
+
+  <h3>4.3 LL-HLS 与 WebRTC 的中间地带</h3>
+  <p>HLS 走分片路线延迟下限受切片时长约束；LL-HLS 用更短分片（2s）+ 部分分片 + 阻塞式播放列表刷新压到 2-5s——但复杂度陡增。<strong>选型再平衡</strong>：亚秒级只有 WebRTC/SRT 路线；2-5s 用 LL-HLS；普通分发 HLS 最省。</p>
+
+  <h3>4.4 MSE 与 MediaSource 扩展</h3>
+  <p>浏览器原生 video 只吃 MP4/WebM 容器；MSE 允许 JS 把媒体段（fMP4/TS）喂进 SourceBuffer 实现流式播放——flv.js/hls.js/dash.js 的共同地基（01 模块 HTML5 媒体篇呼应）。<strong>排错基本功</strong>：SourceBuffer 的 updateend 事件与 buffered ranges。</p>
+
+  <h3>4.5 转码与协议网关的位置</h3>
+  <p>摄像头出 RTSP → 流媒体服务器（ZLMediaKit/SRS）协议转换 → 浏览器吃 WebRTC/HTTP-FLV/HLS；跨协议需转封装（快、无损）或转码（慢、有损）。<strong>架构口径</strong>：设备侧 RTSP 不会消失，浏览器侧只认 HTTP/WebRTC——网关是必然存在的中间层（06 篇 Janus 展开）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 280" role="img" aria-label="音视频技术栈分层与数据流向示意图">
       <defs>
@@ -639,53 +710,35 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 音视频技术栈分层与数据流（示意）</p>
   </div>
-</section>
+  <div class="diagram">
+    <svg viewBox="0 0 800 170" role="img" aria-label="三种流媒体协议对比图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">三种流媒体协议选型（示意）</text>
 
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 视频编码：H.264 与 I/P/B 帧</h3>
-  <p class="lead"><b>一句话定位</b>：视频编码的本质是时间与空间冗余压缩，H.264 把帧分三类、靠帧间预测省码率。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>I 帧（关键帧）</strong>：自包含、不依赖其他帧，可独立解码，体积最大。</li>
-    <li><strong>P 帧（前向预测）</strong>：只存与前面帧的差值，体积小。</li>
-    <li><strong>B 帧（双向预测）</strong>：参考前后帧。</li>
-    <li><strong>GOP</strong>：两个 I 帧之间隔多少帧。</li>
-  </ul>
-  <p class="pit-sentence">丢一个 P 帧会花屏直到下一个 I 帧——后续帧都依赖那个参考帧。这就是前端要能主动请求 PLI/FIR 让编码器立刻出 I 帧的原因。</p>
-  <h3>2.2 音频编码：Opus 与采样</h3>
-  <p class="lead"><b>一句话定位</b>：音频数据量由采样率/位深/声道决定，WebRTC 事实标准是 Opus。</p>
-  <ul>
-    <li><strong>原始数据量</strong>：采样率（如 48kHz）× 位深 × 声道数。</li>
-    <li><strong>Opus（WebRTC 默认）</strong>：6-510kbps 可调，融合 SILK（语音优化）+ CELT（音乐优化），抗丢包、低延迟好。</li>
-    <li><strong>对比</strong>：AAC 更偏点播/音乐消费。本项目监控流视频为主、音频为辅，Opus 参数配在 SDP 的 <code>m=audio</code> 行。</li>
-  </ul>
-  <h3>2.3 RTP 与 RTCP（实时传输与控制协议）</h3>
-  <p class="lead"><b>一句话定位</b>：RTP 负责带序列号/时间戳的包传输，RTCP 是它的控制面，跑在 UDP 上。</p>
-  <ul>
-    <li><strong>RTP</strong>：把 H.264/Opus 切成带序列号与时间戳的包，在 UDP 上传——序列号查丢包乱序，时间戳做唇形同步。</li>
-    <li><strong>RTCP</strong>：周期性互发报告，统计丢包率/抖动/往返时间，供拥塞控制与码率自适应。</li>
-  </ul>
-  <p class="key-sentence">为什么实时用 UDP 而非 TCP：TCP 丢包会重传并阻塞后续包（队头阻塞），实时场景宁可丢几帧也不能越等越卡；"丢了怎么办"交给上层（请求关键帧）。</p>
-  <h3>2.4 封装格式：MP4/FLV vs RTP</h3>
-  <p class="lead"><b>一句话定位</b>：编码解决"怎么压"，封装解决"怎么装"，两者正交。</p>
-  <ul>
-    <li><strong>MP4</strong>：点播文件容器，moov 元信息在头部或尾部。</li>
-    <li><strong>FLV</strong>：为 HTTP-FLV 直播设计的流式容器。</li>
-    <li><strong>实时场景</strong>：不用文件容器，直接把编码后的 NALU 拆进 RTP 包（RFC 6184 规定 H.264 怎么拆），省掉整段封装等待——这正是 WebRTC 低延迟的一部分。</li>
-  </ul>
-  <h3>2.5 SRTP/DTLS 与 ICE（安全与打洞，承接前两页）</h3>
-  <p class="lead"><b>一句话定位</b>：DTLS 协商密钥、SRTP 加密媒体、ICE 找路，三者共同构成"传输/加密层"。</p>
-  <ul>
-    <li><strong>DTLS</strong>：握手期协商密钥（详见 WebRTC 页 2.6）。</li>
-    <li><strong>SRTP</strong>：用这把密钥加密后续 RTP 包。</li>
-    <li><strong>ICE</strong>：NAT 后找一条能通的链路（host/srflx/relay 候选 + STUN 打洞）。</li>
-  </ul>
-</section>
+      <rect x="20" y="45" width="240" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="140" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">WebRTC</text>
+      <text x="140" y="92" text-anchor="middle" font-size="11" fill="#4f6348">UDP + SRTP，全双工</text>
+      <text x="140" y="115" text-anchor="middle" font-size="11" fill="#4f6348">延迟 200-500ms</text>
+      <text x="140" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">实时监控/视频会议</text>
 
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 端到端延迟到底从哪来</h3>
-  <p>这是流媒体选型的核心问题。一路实时视频的总延迟，是下面几段的累加；理解每一段在哪、能不能压，是判断"为什么 HLS 慢而 WebRTC 快"的钥匙。</p>
+      <rect x="280" y="45" width="240" height="110" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">RTMP / HTTP-FLV</text>
+      <text x="400" y="92" text-anchor="middle" font-size="11" fill="#4f6348">TCP 推流，直播推拉流</text>
+      <text x="400" y="115" text-anchor="middle" font-size="11" fill="#4f6348">延迟 1-3s</text>
+      <text x="400" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#b45309">直播推流/低延迟直播</text>
+
+      <rect x="540" y="45" width="240" height="110" rx="8" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="660" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">HLS</text>
+      <text x="660" y="92" text-anchor="middle" font-size="11" fill="#4f6348">HTTP 分片，CDN 分发</text>
+      <text x="660" y="115" text-anchor="middle" font-size="11" fill="#4f6348">延迟 3-30s</text>
+      <text x="660" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#b91c1c">点播/回看/大规模分发</text>
+    </svg>
+    <p class="diagram-caption">图 2 WebRTC vs RTMP vs HLS（示意）</p>
+  </div>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="端到端音视频延迟构成示意图">
       <defs>
@@ -709,10 +762,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <rect x="560" y="55" width="120" height="50" rx="7" fill="#f0fdf4" stroke="#047857"/>
       <text x="620" y="76" text-anchor="middle" font-size="12" fill="#047857">渲染上屏</text>
       <text x="620" y="93" text-anchor="middle" font-size="11" fill="#4f6348">显示帧同步</text>
-      <line x1="150" y1="80" x2="156" y2="80" stroke="#7a8a70"/>
-      <line x1="280" y1="80" x2="286" y2="80" stroke="#7a8a70"/>
-      <line x1="420" y1="80" x2="426" y2="80" stroke="#7a8a70"/>
-      <line x1="550" y1="80" x2="556" y2="80" stroke="#7a8a70"/>
       <text x="90" y="140" text-anchor="middle" font-size="11.5" fill="#4f6348">WebRTC: ~几十ms</text>
       <text x="220" y="140" text-anchor="middle" font-size="11.5" fill="#4f6348">看链路/中继</text>
       <text x="355" y="140" text-anchor="middle" font-size="11.5" fill="#b45309">可大可小（延迟主因）</text>
@@ -722,176 +771,102 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="184" text-anchor="middle" font-size="12.5" fill="#354835">HLS 额外加：分片切片时长(≥6s) + CDN 缓存 + 播放器缓冲 → 轻松 3-30s</text>
       <text x="400" y="201" text-anchor="middle" font-size="12.5" fill="#354835">WebRTC 额外加：DTLS 握手一次 + ICE 打洞，稳态后只剩缓冲与网络延迟 → 200-500ms</text>
     </svg>
-    <p class="diagram-caption">图 2 端到端延迟的构成（示意，数值为量级参考）</p>
+    <p class="diagram-caption">图 3 端到端延迟的构成（示意，数值为量级参考）</p>
   </div>
-  <ol>
-    <li><strong>采集+编码</strong>：摄像头采样、编码器按帧出流，取决于帧率与 GOP 策略。</li>
-    <li><strong>网络传输</strong>：包从源到服务器、再到浏览器的往返。走直连(srflx)低，走 TURN 中继(relay)高。</li>
-    <li><strong>抖动缓冲（延迟最大且最可调的一段）</strong>：网络会抖动，接收端缓存若干包再按时间戳平滑播放。缓冲越大越抗抖，但延迟越大——这是"延迟 vs 流畅"的直接权衡，WebRTC 的 JitterBuffer 会动态调它。</li>
-    <li><strong>解码与渲染</strong>：硬解码快，软解码慢且吃 CPU；渲染按显示器帧节奏上屏。</li>
-    <li><strong>HLS 的额外延迟</strong>：切片要凑满一个分片时长（常见 6 秒），还要经 CDN 缓存与播放器缓冲，这就是它做不了实时监控的根本原因。</li>
-  </ol>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与配置要点</h2>
-  <h3>4.1 SDP 里和编码相关的关键行（读懂它）</h3>
-<pre class="code" data-lang="text"><code>m=video 9 UDP/TLS/RTP/SAVPF 96 97       ; 视频媒体行：端口/传输/负载类型
-a=rtpmap:96 H264/90000                   ; pt=96 对应 H.264，90kHz 时钟
-a=fmtp:96 profile-level-id=42e01f;packetization-mode=1
-a=rtpmap:97 rtx/90000                    ; 重传负载（NACK）
-m=audio 9 UDP/TLS/RTP/SAVPF 111
-a=rtpmap:111 opus/48000/2                ; pt=111 对应 Opus，48kHz 双声道
-a=fingerprint:sha-256 AB:CD:...           ; DTLS 证书指纹
-a=setup:actpass                          ; 本端既可做 DTLS client 也可做 server</code></pre>
-  <p>读懂 SDP 是排查"协商出了什么编码"的基本功：<code>m=</code> 行列出本端支持的 payload type，<code>a=rtpmap</code> 映射到具体编码与时钟，<code>a=fmtp</code> 给该编码的参数（H.264 的 <code>profile-level-id=42e01f</code> 是 Baseline/Constrained 类，兼容性最好）。</p>
-  <h3>4.2 协商时限定编码（本例不常用，但面试会问）</h3>
-<pre class="code" data-lang="js"><code>// 用 setCodecPreferences 把 H.264 排到首选，避免协商出兼容性差的编码
-var sender = pc.getSenders()[0];
-var codecs = RTCRtpSender.getCapabilities('video').codecs;
-var h264 = codecs.find(function (c) { return c.mimeType === 'video/H264'; });
-if (h264) sender.setCodecPreferences([h264].concat(codecs));   // 实例方法：sender.setCodecPreferences(codecs)
-// 注：纯接收场景由对端 offer 决定，这里主要用于本端需要约束编码的情况</code></pre>
-  <h3>4.3 编码器侧常见参数（服务端/源端，前端需理解）</h3>
-<pre class="code" data-lang="text"><code># 以 ffmpeg 把 RTSP 转 WebRTC 喂 Janus 时的常见参数（理解用）
-# -c:v libx264   用 H.264 软编码
-# -profile:v baseline  选兼容性最好的 profile，老浏览器/硬解都支持
-# -g 30           GOP=30：每 30 帧一个关键帧（1s@30fps），花屏恢复更快但码率略高
-# -preset ultrafast  降低编码延迟（牺牲压缩率）
-# -tune zerolatency  专为低延迟直播调优</code></pre>
-  <h3>4.4 传输协议对照速查</h3>
-  <table>
-    <colgroup><col style="width:18%"><col style="width:24%"><col style="width:24%"><col style="width:34%"></colgroup>
-    <thead><tr><th>协议</th><th>承载</th><th>延迟量级</th><th>典型用途</th></tr></thead>
-    <tbody>
-      <tr><td>WebRTC</td><td>SRTP over UDP</td><td>200-500ms</td><td>实时监控、视频会议、互动直播</td></tr>
-      <tr><td>HTTP-FLV</td><td>FLV over HTTP</td><td>1-3s</td><td>网页直播（flv.js），抗弱网</td></tr>
-      <tr><td>HLS</td><td>TS 分片 over HTTP</td><td>3-30s</td><td>点播、回放、大规模 CDN 分发</td></tr>
-      <tr><td>RTSP</td><td>RTP over UDP/TCP</td><td>低，但浏览器不原生支持</td><td>摄像头设备侧</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：无插件播放器的编码/加密/连接落地</h3>
-  <p class="lead"><b>一句话定位</b>：前端不直接做编码，但要和后端把"用什么编码、加密怎么配、连接怎么打"约定清楚，否则要么协商不出来、要么老机器解不动。</p>
-  <ul>
-    <li><strong>业务场景</strong>：WebRTC 无插件播放器（2020-2022），变电站摄像头流在浏览器低延迟播放。</li>
-    <li><strong>关键约束</strong>：值班现场有内核较旧的机器，编码兼容性是硬指标。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>分工</strong>：后端/网关侧负责编码参数与加密开关；我负责前端 <code>RTCPeerConnection</code> 连接配置、SDP 协商结果验证、按现场网络调打洞策略。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>编码</strong>：H.264 baseline + Opus；<strong>加密</strong>：DTLS-SRTP；<strong>传输</strong>：ICE（STUN/TURN）。</li>
-  </ul>
-
-  <h3>5.4 落地设计：编码参数与连接流程的关键取舍</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>选 H.264 baseline</strong>：兼容现场老硬解机器；High profile 在老机器上解不动会花屏。</li>
-    <li><strong>GOP 约 1 秒</strong>：丢参考帧后恢复快。</li>
-    <li><strong>加密</strong>：Janus 开 DTLS/SRTP，SDP 带 fingerprint，前端用默认加密模式（WebRTC 本就不允许明文）。</li>
-    <li><strong>打洞顺序</strong>：ICE→DTLS→SRTP；<code>iceServers</code> 配 STUN+TURN，不强制 relay，优先直连。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 前端只配连接与加密，编码由 SDP 协商结果决定
-var pc = new RTCPeerConnection({
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'turn:turn.example.com:3478', username: 'u', credential: 'p' }
-  ]
-  // 不传 iceTransportPolicy=relay：优先直连，失败再中继
-});
-// 拿到 Janus 的 offer 后打印协商出的实际编码，便于排查
-pc.addEventListener('track', function () {
-  var r = pc.getReceivers()[0];
-  if (r &amp;&amp; r.getParameters().codecs) console.log('协商编码:', r.getParameters().codecs[0].mimeType);
-});</code></pre>
-
-  <h3>5.6 真实问题与解法（含量化对比）</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>profile 与解码端能力不匹配</strong>：后端最初用 High profile，现场几台老机器解码失败花屏——统一降到 baseline 后解决。</li>
-    <li><span class="tag-pit">坑</span><strong>现场封 UDP</strong>：ICE 全部失败，补 TURN 后才通。</li>
-    <li><span class="tag-pit">坑</span><strong>GOP 设太长</strong>：5 秒一个 I 帧时丢参考帧要等很久才恢复花屏；<strong>前后对比</strong>：改成约 1 秒 GOP 后花屏自愈明显变快。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>端到端延迟稳定约 <strong>300-500ms（估算）</strong>；老机器兼容播放；偶发花屏靠 PLI + 短 GOP 自愈。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端定编码 profile、GOP、加密开关、STUN/TURN 地址，再联调。</li>
-    <li><strong>联调协商点</strong>：老机器花屏时，一起比对协商出的 mimeType 与现场解码能力，定位到 profile。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>兼容性优先选 baseline</strong>：监控这类有老机器的场景，别盲目上 High profile。</li>
-    <li><span class="tag-point">要点</span><strong>短 GOP + PLI</strong>：实时低延迟场景，缩短关键帧间隔是花屏自愈的关键旋钮。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中无插件播放器里和后端对齐了 H.264 baseline + 1 秒 GOP + DTLS-SRTP，解决了老机器 High profile 花屏，并用短 GOP 把丢帧后的花屏恢复时间从秒级压到亚秒级。"</p>
+  <p><strong>读图要点</strong>：①图 1 分层总纲——一帧画面过四层，对端 JitterBuffer 是"抗抖 vs 延迟"的权衡点；②图 2 三路线选型——延迟量级决定用途；③图 3 是"为什么 HLS 慢而 WebRTC 快"的答案——<strong>抖动缓冲是最大且最可调的一段，HLS 的切片+缓存是不可压的结构性延迟</strong>。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 编码与封装分不清</h3>
-  <p class="lead"><b>一句话定位</b>：H.264 是编码（怎么压），MP4 是封装（怎么装），两者正交。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——WebRTC 无插件播放器（2020-2022），变电站摄像头流在浏览器低延迟播放；值班现场有内核较旧的机器，编码兼容性是硬指标。</p>
+
+  <h3>6.1 角色与落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>误区</strong>：把 MP4 当成"一种视频编码"。</li>
-    <li><strong>flv.js 在解什么</strong>：解的是 FLV 封装容器，把里面的 H.264 喂给 MSE，真正解码的是浏览器。</li>
+    <li><strong>分工</strong>：后端/网关侧管编码参数与加密开关；前端管 RTCPeerConnection 配置、SDP 协商结果验证、打洞策略；</li>
+    <li><span class="tag-key">关键取舍</span>：<strong>选 H.264 baseline</strong>（兼容现场老硬解机器，High profile 老机器解不动花屏）；<strong>GOP 约 1 秒</strong>（丢参考帧后恢复快）；DTLS-SRTP 加密；ICE 优先直连不强制 relay。</li>
   </ul>
-  <h3>6.2 为什么实时传输用 UDP 不用 TCP</h3>
-  <p class="lead"><b>一句话定位</b>：TCP 可靠但有队头阻塞，实时流宁可丢帧也不等重传。</p>
+
+  <h3>6.2 踩坑记录（含量化对比）</h3>
   <ul>
-    <li><span class="tag-point">要点</span><strong>TCP 队头阻塞</strong>：丢一个包，后面所有包都要等它重传，实时流越堵越延迟。</li>
-    <li><strong>UDP</strong>：不保证可靠，但把丢包恢复（请求关键帧、NACK）交给应用层——RTP 正跑在 UDP 上。</li>
+    <li><span class="tag-pit">坑</span><strong>profile 与解码端能力不匹配</strong>：后端最初用 High profile，现场几台老机器解码失败花屏——统一降到 baseline 解决；</li>
+    <li><span class="tag-pit">坑</span><strong>现场封 UDP</strong>：ICE 全部失败——补 TURN 后才通；</li>
+    <li><span class="tag-pit">坑</span><strong>GOP 设太长</strong>：5 秒一个 I 帧时丢参考帧要等很久才恢复；<strong>前后对比</strong>：改约 1 秒 GOP 后花屏自愈明显变快。</li>
   </ul>
-  <h3>6.3 花屏 = 丢参考帧，不是"网络卡"</h3>
-  <p class="lead"><b>一句话定位</b>：P/B 帧依赖参考帧，丢参考帧就绿条/马赛克，直到下一个 I 帧。</p>
-  <p class="pit-sentence">正解：主动发 PLI/FIR 让对端立刻出关键帧；同时控制 GOP 长度，缩短自愈等待。</p>
-  <h3>6.4 HLS 为什么做不了实时</h3>
-  <p class="lead"><b>一句话定位</b>：HLS 要先切满一个分片再下发，延迟=切片+缓存+缓冲累加。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：用 HLS 做监控，永远慢现场好几秒。</li>
-    <li><strong>原因</strong>：先切完整分片（≥6s）再 HTTP 下发，经 CDN 缓存与播放器缓冲。</li>
-    <li><strong>正解</strong>：实时监控选 WebRTC（或 LL-HLS），HLS 留给回放与大规模分发。</li>
-  </ul>
-  <h3>6.5 JitterBuffer 越长越好吗</h3>
-  <p class="lead"><b>一句话定位</b>：缓冲是"抗抖动"与"低延迟"的权衡，不是越长越好。</p>
-  <p class="key-sentence">缓冲大→弱网不卡但延迟高；缓冲小→延迟低但一抖就卡/花屏。WebRTC 的 JitterBuffer 动态自适应，不要手动把它压死。</p>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：端到端延迟稳定约 300-500ms（估算）；老机器兼容播放；偶发花屏靠 PLI + 短 GOP 自愈；</li>
+    <li><strong>契约先行</strong>：与后端定编码 profile/GOP/加密开关/STUN-TURN 地址再联调；老机器花屏时比对协商 mimeType 与解码能力定位到 profile；</li>
+    <li><strong>可复用经验</strong>：兼容性优先 baseline（有老机器的场景别盲目上 High profile）；<strong>短 GOP + PLI 是花屏自愈的关键旋钮</strong>。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 编码与封装分不清</h3>
+  <p><strong>误区</strong>：把 MP4 当成"一种视频编码"。<strong>正解</strong>：H.264 是编码（怎么压），MP4 是封装（怎么装），两者正交。</p>
+
+  <h3>7.2 为什么实时传输用 UDP 不用 TCP</h3>
+  <p><strong>TCP 队头阻塞</strong>：丢一个包，后面所有包都要等它重传，实时流越堵越延迟；<strong>UDP</strong> 把丢包恢复（请求关键帧/NACK）交给应用层——RTP 正跑在 UDP 上。</p>
+
+  <h3>7.3 花屏 = 丢参考帧，不是"网络卡"</h3>
+  <p><strong>正解</strong>：主动发 PLI/FIR 让对端立刻出关键帧；同时控制 GOP 长度缩短自愈等待。</p>
+
+  <h3>7.4 HLS 为什么做不了实时</h3>
+  <p><strong>原因</strong>：先切完整分片（≥6s）再 HTTP 下发，经 CDN 缓存与播放器缓冲。<strong>正解</strong>：实时监控选 WebRTC（或 LL-HLS），HLS 留给回放与大规模分发。</p>
+
+  <h3>7.5 JitterBuffer 越长越好吗</h3>
+  <p><strong>不是</strong>：缓冲大→弱网不卡但延迟高；缓冲小→延迟低但一抖就卡/花屏。WebRTC 的 JitterBuffer 动态自适应，不要手动压死。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：音视频技术栈分几层？各自的代表技术是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四层——①<strong>编码层</strong>：H.264/H.265 视频、Opus/AAC 音频，解决"原始数据压到可传输的码率"（时间/空间冗余压缩）；②<strong>封装层</strong>：MP4/FLV 把轨道混装成文件，实时场景不用文件容器直接 RTP 拆包；③<strong>传输层</strong>：RTP/RTCP over UDP（序列号查丢包、时间戳做同步、RTCP 报告供码率自适应），或 HLS over HTTP；④<strong>安全层</strong>：DTLS 协商密钥 + SRTP 加密 + ICE 找路。<strong>关键认知</strong>：编码与封装正交；编码决定"画质 vs 码率"，传输协议决定"延迟 vs 抗丢包"。</p>
+
+  <p><strong>Q2：为什么实时音视频用 UDP 而不是 TCP？花屏是怎么产生的、怎么自愈？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>UDP 的理由</strong>——TCP 保证可靠但有<strong>队头阻塞</strong>：丢一个包，后面所有包都要等它重传，实时流越堵越延迟；实时场景宁可丢几帧也不能等，把恢复交给应用层（NACK 点名重传/PLI 请求关键帧/FEC 冗余）。<strong>花屏的因果</strong>：视频帧分 I（自包含）/P/B（依赖参考帧），<strong>丢了参考帧，后续帧全部解不出来，直到下一个 I 帧才恢复</strong>——所以自愈两旋钮：①主动发 PLI/FIR 让编码器立刻出新 I 帧；②控制 GOP 长度（实战从 5s 压到 1s，花屏恢复从秒级到亚秒级）。</p>
+
+  <p><strong>Q3：端到端延迟由哪几段构成？为什么 HLS 做不了实时监控？</strong></p>
+  <p class="note"><strong>参考答案</strong>：五段累加——采集编码（帧间隔/GOP 策略）→ 网络传输（直连低、TURN 中继高）→ <strong>抖动缓冲（最大且最可调的一段，"抗抖 vs 延迟"的权衡）</strong>→ 解码（硬解快）→ 渲染上屏。<strong>HLS 慢的结构性原因</strong>：必须先切满一个完整分片（≥6s）再 HTTP 下发，加 CDN 缓存与播放器缓冲，轻松 3-30s——这是协议设计决定的，不是调优能解决的；所以实时监控选 WebRTC（稳态 200-500ms：一次 DTLS 握手+ICE 打洞后只剩缓冲与网络延迟），HLS 留给点播回看与大规模 CDN 分发，中间地带用 LL-HLS（2-5s）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四层各管什么？编码与封装为什么正交？</li>
+    <li>I/P/B 帧与 GOP？花屏的因果与两个自愈旋钮？</li>
+    <li>RTP 与 RTCP 各干什么？为什么跑 UDP？</li>
+    <li>JitterBuffer 的权衡是什么？为什么别手动压死？</li>
+    <li>WebRTC/HTTP-FLV/HLS 的延迟量级与选型边界？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档与规范</h3>
   <ul>
     <li>MDN WebRTC API 与媒体格式：<a href="https://developer.mozilla.org/zh-CN/docs/Web/Media" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/Media</a></li>
-    <li>RFC 6184（H.264 用 RTP 负载格式）：<a href="https://www.rfc-editor.org/rfc/rfc6184" rel="noopener">rfc-editor.org/rfc/rfc6184</a></li>
-    <li>RFC 3550（RTP/RTCP 核心规范）：<a href="https://www.rfc-editor.org/rfc/rfc3550" rel="noopener">rfc-editor.org/rfc/rfc3550</a></li>
-    <li>Opus 编码官方资料（IETF RFC 6716）：<a href="https://opus-codec.org/" rel="noopener">opus-codec.org</a></li>
+    <li>RFC 6184（H.264 RTP 负载格式）；RFC 3550（RTP/RTCP 核心规范）；Opus RFC 6716：<a href="https://opus-codec.org/" rel="noopener">opus-codec.org</a></li>
   </ul>
   <h3>书籍与课程</h3>
   <ul>
-    <li>《WebRTC 实时音视频入门到实践》——结合本项目实战理解协议分层；以及 WebRTC For The Curious（图文讲透 RTP/SRTP/抖动缓冲）：<a href="https://webrtcforthecurious.com/" rel="noopener">webrtcforthecurious.com</a></li>
-    <li>FFmpeg 官方文档（理解编码参数 preset/tune/gop）：<a href="https://ffmpeg.org/documentation.html" rel="noopener">ffmpeg.org/documentation.html</a></li>
+    <li>《WebRTC 实时音视频入门到实践》；WebRTC For The Curious：<a href="https://webrtcforthecurious.com/" rel="noopener">webrtcforthecurious.com</a></li>
+    <li>FFmpeg 官方文档（preset/tune/gop 参数）：<a href="https://ffmpeg.org/documentation.html" rel="noopener">ffmpeg.org/documentation.html</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>建立一条本地 WebRTC 回环（getUserMedia + RTCPeerConnection 本地两端），打印 SDP 读 m=/rtpmap 行；</li>
+    <li>用 chrome://webrtc-internals 观察 NACK/PLI 计数与 JitterBuffer 延迟；</li>
+    <li>用 hls.js 播一个公开 HLS 流，实测延迟量级，与 WebRTC 回环对比。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../04_实时通信/06_Janus网关【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/00_实时通信模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../04_实时通信/02_WebSocket通用实时通信【基础】.html">下一篇 →</a>
 </nav>
