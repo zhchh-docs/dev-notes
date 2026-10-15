@@ -534,48 +534,197 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>VueUse 组合式工具库</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：Vue 组合式 API 的通用 hooks 集合</span>
+      <span class="meta">定位：自动清理的 hooks 工具箱 / 三层分工 / useTable 组合样板</span>
     </div>
-    <p class="hero-desc">VueUse（Vue Composition Utils）是 Anthony Fu 等维护的 Vue 官方生态工具集，把常见的响应式状态、DOM 监听、计时器、存储、网络、动画等横切逻辑封装成几百个 <code>useXxx()</code> 组合式函数。它不替代 Vue 本身，而是站在组合式 API 之上，让业务 composable 不必重复造轮子。本页讲清它的心智模型、与手写 composable 的分工，以及在 Vue3+TS 项目里的真实用法。</p>
+    <p class="hero-desc">VueUse 把每个项目都在手写的响应式横切逻辑（防抖、存储同步、事件监听、懒加载观察）封装成几百个 useXxx()，且自动清理——副作用与组件生命周期强绑定，卸载即释放。本篇讲透三个核心模型（composable 复用/自动清理原理/三层分工：VueUse vs 业务 composable vs Pinia），配 useTable 组合样板，并给出五条高频坑的工程对策。</p>
   </div>
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/10_vue_draggable与v-code-diff【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/03_Axios【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/05_文件上传与图片处理【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：VueUse 是组合式 API 层之上的「现成 hooks 工具箱」，几百个 <code>useXxx()</code> 函数开箱即用。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>VueUse 是组合式 API 之上的"现成 hooks 工具箱"</strong>：几百个 <code>useXxx()</code> 函数开箱即用——<code>useMouse()</code>、<code>useStorage()</code>、<code>useDebounceFn()</code>、<code>useIntersectionObserver()</code>、<code>useEventListener()</code>。它不是框架、不是状态管理库，而是一组<strong>与 Vue 响应式系统无缝配合的工具函数集合</strong>。本篇讲清它的心智模型、与手写 composable 的分工边界，以及在 Vue3+TS 项目里的真实用法。</p>
+
+  <h3>1.2 痛点：这些逻辑你每个项目都在手写</h3>
   <ul>
-    <li><strong>定位</strong>：VueUse 本身不是框架、不是状态管理库，而是一组与 Vue 响应式系统无缝配合的工具函数集合。</li>
-    <li><strong>形态</strong>：每个能力一个函数，如 <code>useMouse()</code>、<code>useStorage()</code>、<code>useDebounceFn()</code>、<code>useIntersectionObserver()</code>、<code>useEventListener()</code>。</li>
-    <li><strong>版本</strong>：Vue 2/3 共用同一个 <code>@vueuse/core</code>（底层 <code>vue-demi</code> 自动适配，并不存在 <code>@vueuse/vue2</code> 包）；自 v12.0 起弃用 Vue 2，需支持 Vue 2 请固定 v11.x。</li>
+    <li>监听 <code>resize</code>、防抖、本地存储同步、页面可见性、剪贴板——每个都要管<strong>挂载/卸载与清理</strong>，手写易漏清理导致内存泄漏；</li>
+    <li>团队每人一套 <code>useXxx</code> 风格，命名与行为不一致，复用性差；</li>
+    <li>想要"按需引入"——整包引入的工具库体积不可接受。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：把每个项目都要重复写的「响应式副作用逻辑」标准化、可测试、可按需引入。</p>
-  <ul>
-    <li><strong>手写成本</strong>：监听 <code>resize</code>、防抖、本地存储同步、页面可见性、剪贴板——每个都要管挂载/卸载与清理，手写易漏清理导致内存泄漏。</li>
-    <li><strong>一致性</strong>：团队统一用 VueUse 的命名与约定，避免每人一套 <code>useXxx</code> 风格不一。</li>
-    <li><strong>按需</strong>：ESM 树摇，只打包用到的函数，不整包引入。</li>
-  </ul>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>Vue3 项目想收敛重复的响应式横切逻辑</td><td>组合式 API 基础（ref/watch 语义）→ 02 模块 Vue 篇</td></tr>
+    <tr><td>要为团队设计 composable 分层规范</td><td>全局状态管理 → Pinia 相关篇</td></tr>
+    <tr><td>面试（自动清理原理/与 Pinia 分工是高频题）</td><td>React Hooks 生态（本篇是 Vue 语境）</td></tr>
+  </table>
+  <p class="note"><strong>版本注意</strong>：Vue 2/3 共用同一个 <code>@vueuse/core</code>（底层 <code>vue-demi</code> 自动适配，不存在 <code>@vueuse/vue2</code> 包）；<strong>自 v12.0 起弃用 Vue 2</strong>，需支持 Vue 2 请固定 v11.x。</p>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>说清 <strong>composable 的复用模型</strong>与 VueUse 的<strong>自动清理机制</strong>（tryOnScopeDispose）；</li>
+    <li>按场景正确选用高频函数（防抖/存储/事件监听/懒加载观察器）；</li>
+    <li>划清 <strong>VueUse 与业务 composable 与 Pinia</strong> 的三层分工；</li>
+    <li>识别五类典型坑（setup 外调用、整包引入、误当状态管理、SSR、职责混淆）。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：Vue3 组合式 API（setup/ref/watch/生命周期）；写过至少一个 <code>useXxx</code> 更佳。</p>
+  <p><strong>难度等级</strong>：★★☆☆☆（API 直观，难点在分层心智）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>第一次用</td><td>按顺序读第 2、3 章 → 跑第 6 章 Demo</td></tr>
+    <tr><td>已在用</td><td>第 4 章进阶（SSR/序列化器/衍生函数）→ 第 7 章坑自查</td></tr>
+    <tr><td>面试准备</td><td>第 2.2 节（清理原理）→ 第 8 章</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶知识点。<strong>务必动手</strong>：第 6 章 useTable Demo——它同时演示"业务 composable 怎么组合 VueUse"。</p>
+  <p><strong>本篇不涉及</strong>：Pinia 的用法本身；<code>@vueuse/motion</code> 等周边包。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>三个核心模型按依赖顺序：<strong>组合式函数</strong>是什么（2.1）→ <strong>自动清理</strong>怎么做到（2.2，本篇最重要的原理）→ <strong>三层分工</strong>（2.5，工程落地的关键判断）。</p>
+
+  <h3>2.1 组合式函数（Composable）：取代 mixin 的复用单位</h3>
+  <p>以 <code>use</code> 开头、<strong>封装响应式状态与副作用、可在 setup 中复用</strong>的函数。本质是普通函数：内部用 <code>ref/reactive/computed/watch</code> 建立状态，返回状态与方法，组件调用即获得逻辑——<code>const { x, y } = useMouse()</code> 直接用。<br><br>
+  <strong>为什么取代 mixin</strong>：mixin 有命名冲突、来源不透明、类型难推导三大病；composable 复用单位是函数——来源清晰（import 即所见）、无冲突（解构重命名）、TS 类型天然可推。这是组合式 API 时代逻辑复用的根基，VueUse 是这套模型的最大规模实践。</p>
+
+  <h3>2.2 自动清理：副作用与生命周期强绑定</h3>
+  <p><strong>VueUse 函数把副作用绑到当前组件生命周期，卸载时自动移除监听/定时器</strong>。机制：内部基于 <code>tryOnScopeDispose</code>/<code>onUnmounted</code> 注册清理回调——组件销毁即释放。<br><br>
+  这解释了"手写 vs VueUse"差距的本质：<strong>手写版本的清理契约靠人记，VueUse 的清理契约是库自带的</strong>。这也是组合式 API 时代"逻辑复用比 mixin 安全"的根本——每个 composable 自带清理契约（图 2 见第 5 章）。</p>
+
+  <h3>2.3 响应式引用：返回的就是 ref</h3>
+  <p>VueUse 返回的多是 <code>ref</code> 或可读写的 <code>writableComputed</code>，<strong>不引入新的响应式原语</strong>——与 Vue 响应式无缝衔接。代表性设计是<strong>读写对称</strong>：<code>useStorage('key', init)</code> 返回一个 ref，<strong>读它=从 localStorage 取，改它=自动写回并跨标签页同步</strong>。"把外部世界（存储/传感器/DOM）包装成响应式 ref"是 VueUse 的统一心智。</p>
+
+  <h3>2.4 按需引入与树摇</h3>
+  <p>从 <code>@vueuse/core</code> <strong>具名导入</strong>，未用的函数不进产物（ESM 树摇）。包结构：<code>@vueuse/core</code> 通用；<code>@vueuse/components</code> 组件版；SSR 友好。<strong>勿整包 <code>import *</code></strong>——破坏树摇（坑 2）。</p>
+
+  <h3>2.5 三层分工：VueUse / 业务 composable / Pinia</h3>
+  <p class="key-sentence"><strong>VueUse 解决"通用横切"，业务 composable 解决"领域逻辑"，两者是组合关系而非竞争</strong>；跨组件全局状态归 Pinia。边界划分：<strong>防抖、存储、DOM、传感器 → VueUse；分页表格、表单校验、业务状态流转 → 自写 <code>useTable/useForm</code></strong>（内部组合 VueUse，如 useTable 里用 <code>useDebounceFn</code> 做搜索防抖）；<strong>多组件共享的全局状态 → Pinia</strong>（VueUse 的 useXxx 默认是组件级实例，不是全局单例——坑 3）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 高频函数速览</h3>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:44%"><col style="width:30%"></colgroup>
+    <thead><tr><th>函数</th><th>作用</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>useDebounceFn</code></td><td>给函数加防抖（自动清理）</td><td>搜索框输入延迟请求</td></tr>
+      <tr><td><code>useStorage</code></td><td>ref 与 localStorage 双向同步</td><td>主题/草稿/筛选条件持久化</td></tr>
+      <tr><td><code>useEventListener</code></td><td>自动解绑的事件监听</td><td>窗口 resize / keydown</td></tr>
+      <tr><td><code>useMouse</code></td><td>鼠标位置响应式</td><td>跟随视效、自定义拖拽</td></tr>
+      <tr><td><code>useIntersectionObserver</code></td><td>元素进入视口回调</td><td>懒加载 / 无限滚动</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 场景一：防抖搜索——手写 vs VueUse</h3>
+  <p><strong>手写（要自己管 timer 与清理）</strong>：</p>
+<pre class="code" data-lang="ts"><code>let timer: number | undefined
+function onInput(v: string) {
+  clearTimeout(timer)
+  timer = window.setTimeout(() =&gt; fetchList(v), 300)
+}
+onUnmounted(() =&gt; clearTimeout(timer)) // 漏写就泄漏</code></pre>
+  <p><strong>VueUse（自动清理）</strong>：</p>
+<pre class="code" data-lang="ts"><code>import { useDebounceFn } from '@vueuse/core'
+const debouncedFetch = useDebounceFn((v: string) =&gt; fetchList(v), 300)
+// 模板里 @input="debouncedFetch"，卸载自动清 timer</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 160" role="img" aria-label="手写防抖与VueUse防抖对比图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">防抖：手写 vs VueUse（示意）</text>
+
+      <rect x="30" y="45" width="350" height="100" rx="8" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">手写 setTimeout</text>
+      <text x="50" y="95" font-size="11" fill="#4f6348">自己声明 timer、clearTimeout、setTimeout</text>
+      <text x="50" y="117" font-size="11" fill="#4f6348">还要在 onUnmounted 里 clear 清理</text>
+      <text x="50" y="137" font-size="11" font-weight="600" fill="#b91c1c">漏写清理 → 内存泄漏</text>
+
+      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">useDebounceFn</text>
+      <text x="440" y="95" font-size="11" fill="#4f6348">一行调用，自动管理 timer</text>
+      <text x="440" y="117" font-size="11" fill="#4f6348">组件卸载时自动清理，无需手写</text>
+      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">安全、简洁、一致</text>
+    </svg>
+    <p class="diagram-caption">图 1 手写防抖 vs VueUse 防抖（示意）</p>
+  </div>
+
+  <h3>3.3 场景二：状态持久化 useStorage</h3>
+<pre class="code" data-lang="ts"><code>import { useStorage } from '@vueuse/core'
+
+// 主题持久化：改 ref 自动写 localStorage，刷新后仍在
+const theme = useStorage('app:theme', 'light')
+theme.value = 'dark'          // 已写回存储
+
+// 筛选条件存 sessionStorage（会话级，刷新仍在、关标签页清掉）
+const keyword = useStorage('list:kw', '', sessionStorage)</code></pre>
+  <p><strong>注意</strong>：存对象须可 JSON 序列化——Map/function 存进去会丢（坑 4）。</p>
+
+  <h3>3.4 场景三：懒加载与无限滚动</h3>
+<pre class="code" data-lang="ts"><code>import { useIntersectionObserver } from '@vueuse/core'
+
+const sentinel = ref&lt;HTMLElement | null&gt;(null)
+const { stop } = useIntersectionObserver(
+  sentinel,
+  ([entry]) =&gt; {
+    if (entry.isIntersecting) { loadMore(); /* 触底加载 */ }
+  },
+  { rootMargin: '200px' }     // 提前 200px 预加载
+)
+// 条件满足后 stop() 停止观察，避免重复触发</code></pre>
+  <div class="note"><strong>三场景的取舍总结</strong>：所有"把外部世界变成响应式"的需求先查 VueUse 有没有现成的（官方文档按类目索引）——有的用库，没有的自己写 composable 并照它的约定（use 前缀 + 自动清理）。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：已在项目中使用第 3 章函数。</p>
+
+  <h3>4.1 SSR 守卫：它怎么处理 window 不存在</h3>
+  <p>依赖浏览器 API 的函数多数<strong>自带 SSR 守卫</strong>（服务端跳过浏览器副作用、客户端再初始化）。自写 composable 借鉴两个手法：<code>onMounted</code> 里读取浏览器值、或用 <code>useSupported()</code> 判断能力后再启用功能。纯 CSR 项目（Vite SPA）无此问题。</p>
+
+  <h3>4.2 useStorage 的序列化器</h3>
+  <p><code>useStorage</code> 默认 JSON 序列化，存储非 JSON 类型需要自定义 <code>serializer</code>（如存 Date 存时间戳、存二进制走 base64）。<strong>原则：存储层只放可序列化的plain数据</strong>，复杂对象在业务层转换——存储里存"形状"而不是"引用"。</p>
+
+  <h3>4.3 watch 系衍生函数：声明式的横切</h3>
+  <p>VueUse 有大量 watch 衍生：<code>watchDebounced</code>（防抖的 watch）、<code>watchThrottled</code>、<code>whenever</code>（条件为真执行一次）、<code>watchAtMost</code>（限次）。<strong>心智转变</strong>：从"函数加防抖"升级到"监听关系本身带节奏"——<code>watchDebounced(keyword, search, {debounce: 300})</code> 比 ref + debounceFn 更声明式。按团队口味二选一并保持一致。</p>
+
+  <h3>4.4 自写 composable 的规范：向 VueUse 看齐</h3>
+  <p>团队自写 composable 的四条约定（与 VueUse 一致）：①<code>use</code> 前缀；②入参支持 ref 或普通值（<code>toValue()</code> 归一）；③副作用注册到当前 scope（<code>tryOnScopeDispose</code>）；④返回纯 ref 与方法，不返回 reactive 大对象。照此约定写的业务 composable，与 VueUse 函数在调用侧无差别——<strong>统一的心智是分层规范的价值所在</strong>。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <p>分层位置与执行/清理原理两张图：</p>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="VueUse 在组合式分层中的位置示意图">
       <defs>
@@ -599,46 +748,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 VueUse 在组合式分层中的位置（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 组合式函数（Composable）</h3>
-  <p class="lead"><b>一句话定位</b>：以 <code>use</code> 开头、封装响应式状态与副作用、可在 setup 中复用的函数。</p>
-  <ul>
-    <li><strong>本质</strong>：一个普通函数，内部用 <code>ref/reactive/computed/watch</code> 建立状态，返回状态与方法，组件调用即获得逻辑。</li>
-    <li><strong>复用单位</strong>：取代 Vue2 的 mixin——无命名冲突、来源清晰、可 TS 类型推导。</li>
-    <li><strong>典型</strong>：<code>useMouse()</code> 返回 <code>{ x, y }</code>，组件里 <code>const { x, y } = useMouse()</code> 直接用。</li>
-  </ul>
-  <h3>2.2 自动清理与作用域绑定</h3>
-  <p class="lead"><b>一句话定位</b>：VueUse 函数把副作用绑到当前组件生命周期，卸载时自动移除监听/定时器。</p>
-  <ul>
-    <li><strong>机制</strong>：内部基于 <code>tryOnScopeDispose</code>/<code>onUnmounted</code> 注册清理，组件销毁即释放。</li>
-    <li><strong>收益</strong>：比手写 <code>addEventListener</code> 再 <code>removeEventListener</code> 安全，不漏清理。</li>
-  </ul>
-  <h3>2.3 响应式引用与可写状态</h3>
-  <p class="lead"><b>一句话定位</b>：VueUse 返回的多是 <code>ref</code> 或可读写的 <code>writableComputed</code>，与 Vue 响应式无缝衔接。</p>
-  <ul>
-    <li><strong>读写对称</strong>：如 <code>useStorage('key', init)</code> 返回一个 ref，改它自动写回 localStorage 并同步标签页。</li>
-    <li><strong>无侵入</strong>：不引入新的响应式原语，就是 <code>ref/reactive</code>。</li>
-  </ul>
-  <h3>2.4 按需引入与树摇</h3>
-  <p class="lead"><b>一句话定位</b>：从 <code>@vueuse/core</code> 具名导入，未用的函数不进产物。</p>
-  <ul>
-    <li><strong>包结构</strong>：<code>@vueuse/core</code> 通用；<code>@vueuse/components</code> 组件版；<code>@vueuse/motion</code> 动画；SSR 友好。</li>
-    <li><strong>体积</strong>：具名导入 + Vite 预构建，单函数体积很小，勿整包 <code>import *</code>。</li>
-  </ul>
-  <h3>2.5 与业务 composable 的分工</h3>
-  <p class="lead"><b>一句话定位</b>：VueUse 解决「通用横切」，业务 composable 解决「领域逻辑」，两者是组合关系而非竞争。</p>
-  <ul>
-    <li><strong>边界</strong>：防抖、存储、DOM、网络用 VueUse；分页表格、表单校验、业务状态用自写 <code>useTable/useForm</code>。</li>
-    <li><strong>组合</strong>：业务 composable 内部调 VueUse，如 <code>useTable</code> 里用 <code>useDebounceFn</code> 做搜索防抖。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一个 VueUse 函数的执行与清理原理</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="VueUse 函数在组件生命周期中的执行与清理原理图">
       <defs>
@@ -671,107 +780,23 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 VueUse 函数的执行与自动清理原理（示意）</p>
   </div>
-  <ul>
-    <li><strong>1 调用即建状态</strong>：在 <code>setup()</code> 中调用 <code>useXxx()</code>，函数内部立即创建 <code>ref</code> 并建立副作用。</li>
-    <li><strong>2 绑定当前作用域</strong>：它拿到的是「当前组件实例的 effect scope」，副作用挂在这个 scope 上。</li>
-    <li><strong>3 注册 dispose</strong>：内部把「移除监听/清定时器」注册到 scope，而非让调用方记着清理。</li>
-    <li><strong>4 卸载自动释放</strong>：组件卸载时 scope 统一 dispose，杜绝手写 <code>removeEventListener</code> 漏写导致的泄漏。</li>
-  </ul>
-  <p class="key-sentence"><span class="tag-point">要点</span>Why 这样设计：副作用与组件生命周期强绑定，是组合式 API 时代「逻辑复用」比 mixin 安全的根本——每个 composable 自带清理契约。</p>
+  <p><strong>读图要点</strong>：①调用即建状态——<code>useXxx()</code> 内部立即创建 ref 并建立副作用；②绑定当前作用域——拿到的是当前组件实例的 effect scope；③注册 dispose——清理回调交给 scope 而不是调用方记忆；④卸载统一释放——scope dispose 一次性清空所有副作用。这就是 2.2 "清理契约自带"的完整机制。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 常用函数速览</h3>
-  <table>
-    <colgroup><col style="width:26%"><col style="width:44%"><col style="width:30%"></colgroup>
-    <thead><tr><th>函数</th><th>作用</th><th>典型场景</th></tr></thead>
-    <tbody>
-      <tr><td><code>useDebounceFn</code></td><td>给函数加防抖</td><td>搜索框输入延迟请求</td></tr>
-      <tr><td><code>useStorage</code></td><td>ref 与 localStorage 双向同步</td><td>主题/草稿持久化</td></tr>
-      <tr><td><code>useEventListener</code></td><td>自动解绑的事件监听</td><td>窗口 resize / keydown</td></tr>
-      <tr><td><code>useMouse</code></td><td>鼠标位置响应式</td><td>跟随视效</td></tr>
-      <tr><td><code>useIntersectionObserver</code></td><td>元素进入视口回调</td><td>懒加载 / 无限滚动</td></tr>
-    </tbody>
-  </table>
-  <h3>4.2 防抖搜索的两种写法对比</h3>
-  <p class="lead"><b>一句话定位</b>：手写 <code>setTimeout</code> 要自己管 timer 与清理；<code>useDebounceFn</code> 一行搞定且自动随组件卸载清理。</p>
-  <div class="diagram">
-    <svg viewBox="0 0 800 160" role="img" aria-label="手写防抖与VueUse防抖对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">防抖：手写 vs VueUse（示意）</text>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个真实场景串起本篇：<strong>列表页的 useTable 业务 composable</strong>——防抖搜索、筛选持久化、触底加载，全部基于 VueUse 组合。</p>
 
-      <!-- 手写 -->
-      <rect x="30" y="45" width="350" height="100" rx="8" fill="#fee2e2" stroke="#dc2626"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">手写 setTimeout</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">自己声明 timer、clearTimeout、setTimeout</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">还要在 onUnmounted 里 clear 清理</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#b91c1c">漏写清理 → 内存泄漏</text>
-
-      <!-- VueUse -->
-      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">useDebounceFn</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">一行调用，自动管理 timer</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">组件卸载时自动清理，无需手写</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">安全、简洁、一致</text>
-    </svg>
-    <p class="diagram-caption">图 1 手写防抖 vs VueUse 防抖（示意）</p>
-  </div>
-  <p><strong>手写（要自己管 timer）</strong>：</p>
-<pre class="code" data-lang="ts"><code>let timer: number | undefined
-function onInput(v: string) {
-  clearTimeout(timer)
-  timer = window.setTimeout(() =&gt; fetchList(v), 300)
-}
-onUnmounted(() =&gt; clearTimeout(timer)) // 漏写就泄漏</code></pre>
-  <p><strong>VueUse（自动清理）</strong>：</p>
-<pre class="code" data-lang="ts"><code>import { useDebounceFn } from '@vueuse/core'
-const debouncedFetch = useDebounceFn((v: string) =&gt; fetchList(v), 300)
-// 模板里 @input="debouncedFetch"，卸载自动清 timer</code></pre>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>对比结论：手写版必须记得在 <code>onUnmounted</code> 里 <code>clearTimeout</code>，否则快速切换页面后定时器仍触发；VueUse 版省去这一步。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 多个列表页重复"防抖请求+筛选条件持久化"逻辑。</p>
-  <ul>
-    <li><strong>场景</strong>：Vue3+TS+Vite+Pinia+ElementPlus 多列表页，横切逻辑散落各页。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：在公共包（shared）封装 composable，收敛横切逻辑。</p>
-  <ul>
-    <li><strong>分工</strong>：自写业务 <code>useTable</code>，底层横切能力用 VueUse。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>栈</strong>：Vue3 + TS + Vite + Pinia + ElementPlus + pnpm workspace；<strong>工具</strong>：@vueuse/core。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：业务 composable 自己写，防抖/持久化横切交给 VueUse。</p>
-  <ul>
-    <li><strong>防抖</strong>：<code>useDebounceFn</code> 包查询函数，停顿 300ms 才发请求。</li>
-    <li><strong>持久化</strong>：<code>useStorage(session,...)</code> 存筛选关键字。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-<pre class="code" data-lang="ts"><code>// shared/composables/useTable.ts（示意，按项目真实结构裁剪）
+  <h3>6.1 业务 composable：useTable</h3>
+<pre class="code" data-lang="ts"><code>// shared/composables/useTable.ts
 import { ref } from 'vue'
-import { useDebounceFn, useStorage } from '@vueuse/core'
+import { useDebounceFn, useStorage, useIntersectionObserver } from '@vueuse/core'
 
 export function useTable&lt;T&gt;(fetcher: (kw: string) =&gt; Promise&lt;T[]&gt;) {
   const list = ref&lt;T[]&gt;([]) as { value: T[] }
   const loading = ref(false)
   // 关键字持久化到 sessionStorage，刷新后仍在
-  const keyword = useStorage('rmp:list:kw', '', sessionStorage)
+  const keyword = useStorage('list:kw', '', sessionStorage)
 
   async function load() {
     loading.value = true
@@ -780,84 +805,128 @@ export function useTable&lt;T&gt;(fetcher: (kw: string) =&gt; Promise&lt;T[]&gt;
   }
   // 输入停顿 300ms 再请求，自动随组件卸载清理
   const onSearch = useDebounceFn(load, 300)
+
   return { list, loading, keyword, onSearch, reload: load }
 }</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.2 组件内使用</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup lang="ts"&gt;
+import { useTable } from '@/shared/composables/useTable'
+import { fetchOrders } from '@/api'
+
+const { list, loading, keyword, onSearch, reload } = useTable(fetchOrders)
+// 模板：&lt;input v-model="keyword" @input="onSearch"&gt; + v-for="o in list"
+&lt;/script&gt;</code></pre>
+
+  <h3>6.3 逐段解析</h3>
   <ul>
-    <li><span class="tag-point">要点</span><strong>复用</strong>：列表页收敛为一行 <code>useTable()</code>，横切逻辑只维护一处。</li>
-    <li><span class="tag-pit">坑</span><strong>useStorage 序列化</strong>：存对象须可 JSON 序列化，存 Map/function 会丢。</li>
-    <li><span class="tag-pit">坑</span><strong>过度抽象</strong>：一次性、与业务强绑的状态直接写组件里更清晰。</li>
+    <li><strong>useStorage 存筛选</strong>：keyword 是普通 ref 的用法，但自动持久化——用户刷新页面筛选还在；</li>
+    <li><strong>useDebounceFn 包 load</strong>：手写版的 timer 声明/clearTimeout/onUnmounted 清理三件套全部消失；</li>
+    <li><strong>组合关系</strong>：useTable（领域逻辑：列表加载）内部组合 VueUse（横切能力：防抖/持久化）——2.5 三层分工的落地样板；</li>
+    <li><strong>复用</strong>：任何列表页一行 <code>useTable(fetcher)</code>，横切逻辑全项目只维护一处。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>复用</strong>：多列表页复用同一 useTable，重复逻辑消除。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：在 shared 公共包统一封装，多应用复用。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>业务 composable 自写、横切用 VueUse</strong>：分工清晰。</li>
-    <li><span class="tag-point">要点</span><strong>避免为用而用</strong>。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「业务系统 列表页重复的防抖与筛选持久化，我自写 useTable 业务 composable，底层用 useDebounceFn/useStorage，一行复用、横切只维护一处。」</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 在 setup 外调用 useXxx</h3>
-  <ul>
-    <li><strong>现象</strong>：报「cannot get current instance」之类的运行时错误。</li>
-    <li><strong>原因</strong>：VueUse 函数依赖当前组件实例/effect scope 来自动清理。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：只在 <code>setup()</code> 或 composable 顶层调用，不要放进普通事件回调/异步回调里。</p>
-  <h3>6.2 整包引入导致体积膨胀</h3>
-  <ul>
-    <li><strong>现象</strong>：打包体积莫名变大。</li>
-    <li><strong>原因</strong>：写成 <code>import * as VueUse from '@vueuse/core'</code> 破坏树摇。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：始终具名导入用到的函数，让 Vite/webpack 按需摇树。</p>
-  <h3>6.3 误以为 VueUse 是状态管理</h3>
-  <ul>
-    <li><strong>误区</strong>：用它跨大量组件共享全局状态。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：跨组件全局状态仍用 Pinia；VueUse 的 <code>useXxx</code> 默认是组件级实例，不是全局单例。</p>
-  <h3>6.4 SSR 下访问浏览器 API 报错</h3>
-  <ul>
-    <li><strong>现象</strong>：服务端渲染时 <code>window is not defined</code>。</li>
-    <li><strong>原因</strong>：<code>useMouse/useStorage</code> 等依赖浏览器全局对象。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：依赖浏览器 API 的函数多数已自带 SSR 守卫，真实做法是在 <code>onMounted</code> 里读取浏览器值、或用 <code>useSupported</code> 判断能力后再用；纯 CSR 项目（本项目 Vite SPA）无此问题。</p>
-  <h3>6.5 业务 composable 与 VueUse 职责混淆</h3>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：横切通用能力（防抖/存储/监听）用 VueUse，领域逻辑（表格分页/表单校验）自写 composable 并内部组合 VueUse。</p>
+  <h3>6.4 生产改造扩展方向</h3>
+  <ol>
+    <li>加触底加载：组件里用 <code>useIntersectionObserver</code> 观察 sentinel，调 loadMore；</li>
+    <li>加请求竞态防护：衔接《Axios》篇的 AbortController，切换关键字时取消旧请求；</li>
+    <li>按 4.4 的四条约定审计团队已有 composable，统一风格。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：在 setup 外调用 useXxx</h3>
   <ul>
-    <li>VueUse 官方文档（含全部函数索引与示例）：<a href="https://vueuse.org/" rel="noopener">vueuse.org</a></li>
-    <li>GitHub 仓库：<a href="https://github.com/vueuse/vueuse" rel="noopener">github.com/vueuse/vueuse</a></li>
+    <li><strong>现象</strong>：报"cannot get current instance"之类运行时错误，或自动清理失效；</li>
+    <li><strong>根因</strong>：VueUse 函数依赖<strong>当前组件实例/effect scope</strong> 来绑定清理——异步回调/事件回调里调用时 scope 已丢失；</li>
+    <li><strong>复现</strong>：在 setTimeout 回调里调 useStorage；</li>
+    <li><strong>修复</strong>：只在 setup 或 composable 顶层调用；确需延迟建立的副作用，把状态创建放顶层、副作用内容放回调；</li>
+    <li><strong>规避</strong>：约定"composable 只在 setup 同步作用域出现"写进团队规范。</li>
   </ul>
-  <h3>延伸阅读</h3>
+  <h3>7.2 坑 2：整包引入导致体积膨胀</h3>
   <ul>
-    <li>组合式函数官方指引（Composables）：<a href="https://cn.vuejs.org/guide/reusability/composables.html" rel="noopener">cn.vuejs.org/guide/reusability/composables.html</a></li>
+    <li><strong>现象</strong>：打包体积莫名变大几十 KB；</li>
+    <li><strong>根因</strong>：<code>import * as VueUse from '@vueuse/core'</code> 破坏树摇；</li>
+    <li><strong>修复</strong>：始终具名导入用到的函数，让 Vite/webpack 按需摇树；</li>
+    <li><strong>规避</strong>：ESLint 禁止 namespace 导入；CI 体积预算兜底。</li>
   </ul>
+  <h3>7.3 坑 3：误以为 VueUse 是状态管理</h3>
+  <ul>
+    <li><strong>现象</strong>：两个组件各自 useStorage/useMouse，发现"状态不共享"，以为 bug；</li>
+    <li><strong>根因</strong>：<code>useXxx</code> 默认是<strong>组件级实例</strong>——每次调用创建独立状态；</li>
+    <li><strong>修复</strong>：跨组件全局状态用 Pinia；确实要"模块级单例"的 VueUse 状态，把它提到模块顶层调用一次再导出；</li>
+    <li><strong>规避</strong>：分层规则先答"这个状态谁拥有"——组件级/模块级/全局级，再选工具。</li>
+  </ul>
+  <h3>7.4 坑 4：useStorage 存了不可序列化的东西</h3>
+  <ul>
+    <li><strong>现象</strong>：刷新后存的 Map/function/类实例变成空对象或丢方法；</li>
+    <li><strong>根因</strong>：localStorage 只有字符串，默认 JSON 序列化丢掉不可序列化部分；</li>
+    <li><strong>修复</strong>：存储只放 plain data，复杂对象业务层转换（或自定义 serializer，4.2）；</li>
+    <li><strong>规避</strong>：把存储值当"数据快照"而不是"活对象"。</li>
+  </ul>
+  <h3>7.5 坑 5：职责混淆——该自写的用了库 / 该用库的硬手写</h3>
+  <ul>
+    <li><strong>现象 A</strong>：把"分页表格"包装进 useXxx 强行用 VueUse 名义（它根本没有这种函数）；<strong>现象 B</strong>：防抖/存储/监听继续全手写；</li>
+    <li><strong>根因</strong>：2.5 的三层分工没建立——横切与领域、库与自写的边界模糊；</li>
+    <li><strong>修复</strong>：按口诀收敛——<strong>防抖/存储/DOM/传感器查 VueUse；分页/表单/业务流转自写 composable（内部组合 VueUse）；多组件全局状态 Pinia</strong>；</li>
+    <li><strong>规避</strong>：新 composable 评审时对照 4.4 的四条约定。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：VueUse 的自动清理是怎么实现的？为什么说它比手写安全？</strong></p>
+  <p class="note"><strong>参考答案</strong>：VueUse 函数在内部通过 <code>tryOnScopeDispose</code>（或在组件上下文用 <code>onUnmounted</code>）把清理回调注册到<strong>当前组件的 effect scope</strong>——组件卸载时 scope 统一 dispose，监听/定时器一次性释放。<strong>安全性的本质</strong>：手写版本的清理契约靠开发者记忆（addEventListener 配对 removeEventListener、timer 配对 clearTimeout），任何一处遗漏就是内存泄漏；库版本把清理契约内置——<strong>调用方不可能忘记他们从没被要求做的事</strong>。<br><br>
+  <strong>延伸</strong>：这也是 composable 取代 mixin 的安全性来源——每个复用单位自带完整生命周期契约。</p>
+
+  <p><strong>Q2：VueUse、自写 composable、Pinia 怎么分工？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层各管一段——<strong>VueUse</strong>：通用横切能力（防抖、存储、DOM/传感器监听、可见性），特征是"与业务无关、人人都要"；<strong>自写 composable</strong>：领域逻辑（useTable/useForm），特征是"带业务语义"，内部<strong>组合</strong> VueUse；<strong>Pinia</strong>：跨组件共享的全局状态。<br><br>
+  <strong>判断顺序</strong>：状态谁拥有（组件级→useXxx；全局→Pinia）→ 逻辑是否业务相关（否→查 VueUse；是→自写并组合库）。<strong>常见误区</strong>：把 VueUse 当状态管理（它的 useXxx 默认是组件级实例）。</p>
+
+  <p><strong>Q3：useStorage 的原理是什么？有什么限制？</strong></p>
+  <p class="note"><strong>参考答案</strong>：返回一个<strong>可写的 computed 风格 ref</strong>：读=从 localStorage 反序列化，写=JSON 序列化写回（并监听 storage 事件同步跨标签页）。<strong>限制</strong>：①只能存可 JSON 序列化的数据——Map/function/类实例会丢（需要自定义 serializer）；②存储是字符串世界——存进去的是"快照"不是活对象；③容量约 5MB，大数据走 IndexedDB（VueUse 也有 useIDBKeyval 等方案）。<br><br>
+  <strong>适合</strong>：主题、语言、草稿、筛选条件等小体积用户偏好。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>composable 取代 mixin 的三个理由？</li>
+    <li>tryOnScopeDispose 解决什么问题？调用时序要求是什么？</li>
+    <li>useStorage 读写两端各发生什么？什么类型存不了？</li>
+    <li>"这个状态放哪"的三层判断顺序？</li>
+    <li>为什么整包 import * 会破坏树摇？规范做法是什么？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>VueUse 官方文档（全部函数索引与在线 Demo）：<a href="https://vueuse.org/" rel="noopener">vueuse.org</a></li>
+    <li>Vue 官方组合式函数指引：<a href="https://cn.vuejs.org/guide/reusability/composables.html" rel="noopener">cn.vuejs.org/guide/reusability/composables.html</a></li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>VueUse GitHub 仓库（阅读 useDebounceFn/useStorage 源码看守卫与清理写法）：<a href="https://github.com/vueuse/vueuse" rel="noopener">github.com/vueuse/vueuse</a></li>
+    <li>Anthony Fu 的 composable 规范文章（VueUse 设计约定的出处）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>照第 6 章实现团队 useTable（防抖 + 持久化），替换一个真实列表页；</li>
+    <li>手写一个带自动清理的 useInterval（tryOnScopeDispose 版），与 VueUse 的 useIntervalFn 对比；</li>
+    <li>审计项目：找出所有"手写 addEventListener/setTimeout 未清理"的位置，收敛到 useEventListener/useDebounceFn。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/10_vue_draggable与v-code-diff【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/03_Axios【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/05_文件上传与图片处理【标准】.html">下一篇 →</a>
 </nav>
 
 <footer>全栈技术知识库 · VueUse组合式工具库【标准】 · 基于实战经验编写</footer>

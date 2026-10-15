@@ -484,347 +484,423 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>文件上传与图片处理</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：分片上传/图片压缩/预览</span>
+      <span class="meta">定位：校验分层 / Canvas 压缩 / 分片与断点续传</span>
     </div>
-    <p class="hero-desc">本文系统讲解 文件上传与图片处理 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">从"能用的上传"到"可靠的上传"隔着一条完整工程链路：校验分层（前端体验、后端魔数兜底）→ 预览与 Canvas 压缩（尺寸/质量两变量）→ 带进度与并发控制的上传 → 大文件分片、断点续传与预签名直传。本篇按链路全景展开，配头像上传 Demo 与六条高频坑（伪装文件、重复上传、objectURL 泄漏、并发占满连接等）。</p>
   </div>
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/04_VueUse组合式工具库【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/06_vxe_table表格【深入】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">上传链路全景图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>文件上传与图片处理</strong> 是现代开发中广泛使用的技术方案之一，用于解决 文件上传与图片处理 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 文件上传与图片处理 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇讲的是文件上传与图片处理的完整前端工程链路</strong>：从用户选文件（校验类型大小）→ 预览 → 压缩 → 上传（进度/并发控制）→ 大文件分片/断点续传。这条链路几乎每个业务系统都要做一遍，但坑密度极高——本篇把"能用的上传"到"可靠的上传"之间的差距讲透。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
+    <li>用户传 50MB 文件卡死页面、超时失败后只能从头再传；</li>
+    <li>上传没有进度反馈，用户狂点按钮触发 N 个重复请求；</li>
+    <li>手机拍的 8MB 原图直接上传，流量与存储双浪费——<strong>其实 200KB 的压缩图就够展示用</strong>；</li>
+    <li>校验只信前端（改后缀就能绕过），后端裸奔。</li>
   </ul>
-  
-  <p>文件上传与图片处理 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">文件上传与图片处理 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">文件上传与图片处理 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
-  <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>文件上传与图片处理</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+
+  <h3>1.3 适用 / 不适用场景</h3>
+  <table>
+    <tr><th>适合读本篇</th><th>不适合（看别的）</th></tr>
+    <tr><td>要做头像/附件/大文件上传功能</td><td>WebSocket 文件传输 → 04 实时通信</td></tr>
+    <tr><td>排查"上传卡顿/无进度/重复上传"类问题</td><td>对象存储服务端配置 → 09 模块 DevOps</td></tr>
+    <tr><td>面试（分片续传原理/压缩实现是高频题）</td><td>Canvas 绘图教学 → 03 模块可视化</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+
+  <h3>1.4 学习目标：读完本篇你能</h3>
+  <ol>
+    <li>实现带<strong>类型/大小校验、预览、进度、并发控制</strong>的可靠上传；</li>
+    <li>用 <strong>Canvas 压缩</strong>把图片压到目标体积，理解质量与尺寸两个变量；</li>
+    <li>实现<strong>大文件分片上传</strong>与<strong>断点续传</strong>，说出 hash 计算的三档方案取舍；</li>
+    <li>守住安全边界：前端校验是体验优化，<strong>真正的校验必须后端做</strong>。</li>
+  </ol>
+
+  <h3>1.5 本篇阅读指引</h3>
+  <p><strong>前置知识</strong>：FormData 与 HTTP（01 模块）；Axios 拦截器与 onUploadProgress（本模块 03 篇）；File/Blob API 基本概念（用到时查 MDN）。</p>
+  <p><strong>难度等级</strong>：★★★☆☆（基础上传简单，分片续传有并发与状态管理深度）。</p>
+  <table>
+    <tr><th>读者</th><th>建议路线</th></tr>
+    <tr><td>做普通上传</td><td>第 2、3.1~3.3 节 → 第 6 章 Demo 前半</td></tr>
+    <tr><td>做大文件上传</td><td>第 4 章进阶全读 → 第 6 章 Demo 全部</td></tr>
+    <tr><td>面试准备</td><td>第 4 章 → 第 8 章重点讲解</td></tr>
+  </table>
+  <p class="note"><strong>第一遍可跳过</strong>：第 4 章进阶（分片/续传/hash）。<strong>务必动手</strong>：第 6 章 Demo——压缩与分片不亲手跑一遍，细节全是纸面。</p>
+  <p><strong>本篇不涉及</strong>：服务端接收与存储实现；特定 UI 组件库上传组件的用法（原理相通）。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 文件上传与图片处理 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>文件上传与图片处理 的架构通常分为几层：</p>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>上传链路的四个核心模型：<strong>文件对象模型</strong>（2.1）、<strong>校验分层</strong>（2.2）、<strong>压缩两变量</strong>（2.3）、<strong>上传策略分级</strong>（2.4）。</p>
+
+  <h3>2.1 文件对象模型：File / Blob / FormData / URL.createObjectURL</h3>
   <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
+    <li><strong>File</strong>：用户选中的文件（继承自 Blob），有 name/size/type——校验的依据；</li>
+    <li><strong>Blob</strong>：二进制数据的通用容器，<code>file.slice()</code> 切片是分片上传的基础；</li>
+    <li><strong>FormData</strong>：multipart/form-data 的载体——文件上传的标准编码（后端按 multipart 解析）；</li>
+    <li><strong>URL.createObjectURL(file)</strong>：给本地文件生成临时 URL 用于预览（用完 <code>revokeObjectURL</code> 释放）；或用 FileReader 读成 dataURL（base64，体积 +33%，适合小图缩略）。</li>
   </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+
+  <h3>2.2 校验分层：前端是体验，后端是底线</h3>
+  <table>
+    <tr><th>层</th><th>校验什么</th><th>性质</th></tr>
+    <tr><td>前端（选文件后立刻）</td><td>类型（type/后缀）、大小上限、数量</td><td><strong>体验优化</strong>——免得用户传完才被告知失败</td></tr>
+    <tr><td>前端（上传前）</td><td>图片解码校验（能否真的画进 canvas）</td><td>拦截改后缀的伪装文件</td></tr>
+    <tr><td>后端（必须）</td><td>类型（魔数/MIME）、大小、数量、权限、病毒扫描</td><td><strong>安全底线</strong>——前端一切校验都可绕过</td></tr>
+  </table>
+  <p class="key-sentence">前端校验的价值是<strong>快速反馈</strong>（秒拒不合格文件），不是安全——<strong>改个后缀就能绕过 MIME 检查</strong>。安全底线永远在后端：按文件头魔数（如 JPEG 的 FF D8）判断真实类型，而非信任扩展名。</p>
+
+  <h3>2.3 压缩的两个变量：尺寸与质量</h3>
+  <p>Canvas 压缩两条路，通常组合使用：<strong>①降尺寸</strong>——把图片 draw 到限宽的 canvas 再导出（长边 ≤ 1920 之类）；<strong>②降质量</strong>——<code>canvas.toBlob(cb, 'image/jpeg', 0.7)</code> 的质量参数。实践算法：<strong>先降尺寸到目标长边，再从 0.9 质量起步逐次降 0.1 直到体积达标或下限</strong>。PNG 转 JPEG 通常体积骤降（代价是失去透明通道——透明图保留 PNG）。</p>
+
+  <h3>2.4 上传策略分级：按文件大小选方案</h3>
+  <table>
+    <tr><th>文件规模</th><th>策略</th><th>要点</th></tr>
+    <tr><td>小文件（&lt; 5MB）</td><td>整体单请求</td><td>进度条 + 防重复点击即可</td></tr>
+    <tr><td>中文件（5~50MB）</td><td>压缩后单请求 / 直传对象存储</td><td>预签名 URL 直传，绕开业务服务器带宽</td></tr>
+    <tr><td>大文件（&gt; 50MB）</td><td><strong>分片 + 并发 + 断点续传</strong></td><td>hash 标识文件、切片并行传、失败只补传</td></tr>
+  </table>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>文件上传与图片处理 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：基础上传（校验 + 预览 + 进度 + 防重复）</h3>
+<pre class="code" data-lang="ts"><code>const input = document.querySelector&lt;HTMLInputElement&gt;('#file')!
+input.onchange = async () =&gt; {
+  const file = input.files![0]
+  // ① 校验：类型 + 大小（前端体验层）
+  const okType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+  if (!okType || file.size &gt; 5 * 1024 * 1024) return alert('仅支持 5MB 内图片')
+
+  // ② 预览：createObjectURL（记得 revoke）
+  const url = URL.createObjectURL(file)
+  previewImg.src = url
+
+  // ③ 上传：FormData + 进度
+  const fd = new FormData()
+  fd.append('file', file)
+  uploading.value = true                              // 防重复点击
+  try {
+    await http.post('/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: e =&gt; {
+        progress.value = Math.round((e.loaded / e.total!) * 100)
+      },
+    })
+  } finally {
+    uploading.value = false
+    URL.revokeObjectURL(url)                          // 释放内存
+  }
+}</code></pre>
+
+  <h3>3.2 场景二：图片压缩（Canvas 两步法）</h3>
+<pre class="code" data-lang="ts"><code>async function compressImage(file: File, maxLen = 1920, targetKB = 300): Promise&lt;Blob&gt; {
+  // 1) 解码成 Image
+  const img = await createImageBitmap(file)
+  // 2) 降尺寸：长边不超 maxLen
+  const scale = Math.min(1, maxLen / Math.max(img.width, img.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width * scale
+  canvas.height = img.height * scale
+  canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+  // 3) 降质量：从 0.9 逐档降到达标
+  for (let q = 0.9; q &gt;= 0.5; q -= 0.1) {
+    const blob: Blob = await new Promise(r =&gt;
+      canvas.toBlob(b =&gt; r(b!), 'image/jpeg', q))
+    if (blob.size &lt;= targetKB * 1024 || q === 0.5) return blob
+  }
+  throw new Error('unreachable')
+}</code></pre>
+  <p><strong>注意</strong>：<code>createImageBitmap</code> 同时是"真图校验"——伪装成 .jpg 的文本文件在这里解码失败，直接拒绝。</p>
+
+  <h3>3.3 场景三：并发控制（多文件上传）</h3>
+<pre class="code" data-lang="ts"><code>// 最多同时 3 个上传，完成一个补一个（衔接 Axios 篇的取消能力）
+async function uploadAll(files: File[], limit = 3) {
+  const queue = [...files]
+  const workers = Array.from({ length: limit }, async () =&gt; {
+    while (queue.length) {
+      const f = queue.shift()!
+      await uploadOne(f)          // 单文件上传 + 状态更新
+    }
+  })
+  await Promise.all(workers)      // 全部跑完才整体结束
+}</code></pre>
+  <p><strong>为什么限制并发</strong>：浏览器对同域名 HTTP/1.1 有 6 个连接限制，占满了会阻塞页面其他请求；且带宽被打满时每个请求都变慢——<strong>3 并发通常比 10 并发总耗时更短</strong>。</p>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】：大文件分片与断点续传</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：基础上传已跑通。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
+  <h3>4.1 分片上传流程</h3>
+  <ol>
+    <li><strong>计算文件 hash</strong>（作为文件唯一标识，用于秒传与续传）；</li>
+    <li>请求 <code>/upload/verify</code>：服务端查该 hash——<strong>已存在 → 秒传</strong>（直接返回 URL）；<strong>部分存在 → 返回已传分片索引</strong>；都不存在 → 全新上传；</li>
+    <li><code>file.slice(start, end)</code> 切成 5MB 分片，<strong>并发 3~6 个</strong>上传（每片带 hash + index）；</li>
+    <li>全部分片完成 → 请求 <code>/upload/merge</code>，服务端按序合并。</li>
+  </ol>
+
+  <h3>4.2 hash 计算的三档方案</h3>
+  <table>
+    <tr><th>方案</th><th>优点</th><th>缺点</th><th>适用</th></tr>
+    <tr><td>全量 MD5（spark-md5）</td><td>准确</td><td>大文件计算慢（秒级~十秒级）</td><td>后台/低频</td></tr>
+    <tr><td><strong>抽样 hash</strong></td><td>快（只算首/尾/中间若干块）</td><td>极小概率碰撞</td><td><strong>前端常规选择</strong></td></tr>
+    <tr><td>Web Worker 计算</td><td>不阻塞主线程</td><td>实现稍复杂</td><td>配合前两者使用</td></tr>
   </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <p><strong>hash 的三个用途</strong>：秒传判断、断点续传的文件标识、服务端去重。抽样 hash 的碰撞由"大小+修改时间"辅助字段兜底。</p>
+
+  <h3>4.3 断点续传：状态在服务端，不再从头来</h3>
+  <p>续传的关键是<strong>已传分片记录存服务端</strong>（localStorage 不可靠：多设备/清缓存）。刷新页面后重新 verify，服务端返回已传分片列表，前端<strong>只补传缺失分片</strong>。配合 Axios 的 AbortController：用户点暂停 → abort 所有在途分片请求 → 已完成的分片不丢，恢复时从 verify 接着传。</p>
+
+  <h3>4.4 直传对象存储：让文件绕开业务服务器</h3>
+  <p>生产架构的标配：<strong>前端向后端要预签名 URL（Presigned URL）→ 用 PUT 直传 OSS/S3 → 回传文件 key 给后端入库</strong>。收益：文件流量不经过业务服务器（带宽/内存友好）、天然支持分片与续传（存储服务原生能力）。前端改动很小：把 axios 的 baseURL 换成签名 URL，方法从 POST 换 PUT。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>上传链路全景图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="文件上传链路全景图">
+      <defs>
+        <marker id="arru" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">文件上传链路全景（示意）</text>
+      <rect x="30" y="55" width="120" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="90" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">选择文件</text>
+      <text x="90" y="95" text-anchor="middle" font-size="10.5" fill="#4f6348">File 对象</text>
+      <line x1="150" y1="80" x2="185" y2="80" stroke="#7a8a70" marker-end="url(#arru)"/>
+      <rect x="189" y="55" width="120" height="50" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="249" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">前端校验</text>
+      <text x="249" y="95" text-anchor="middle" font-size="10.5" fill="#115e59">类型/大小/真图解码</text>
+      <line x1="309" y1="80" x2="344" y2="80" stroke="#7a8a70" marker-end="url(#arru)"/>
+      <rect x="348" y="55" width="120" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="408" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">预览/压缩</text>
+      <text x="408" y="95" text-anchor="middle" font-size="10.5" fill="#92400e">createObjectURL/Canvas</text>
+      <line x1="468" y1="80" x2="503" y2="80" stroke="#7a8a70" marker-end="url(#arru)"/>
+      <rect x="507" y="55" width="120" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="567" y="78" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">策略分支</text>
+      <text x="567" y="95" text-anchor="middle" font-size="10.5" fill="#92400e">按大小选方案</text>
+      <line x1="627" y1="80" x2="662" y2="80" stroke="#7a8a70" marker-end="url(#arru)"/>
+      <rect x="666" y="30" width="110" height="42" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="721" y="50" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">小：整体传</text>
+      <text x="721" y="66" text-anchor="middle" font-size="10" fill="#047857">进度+防重复</text>
+      <rect x="666" y="82" width="110" height="42" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="721" y="102" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">大：分片并发</text>
+      <text x="721" y="118" text-anchor="middle" font-size="10" fill="#047857">hash/续传/merge</text>
+      <line x1="721" y1="124" x2="721" y2="155" stroke="#7a8a70" marker-end="url(#arru)"/>
+      <rect x="600" y="158" width="180" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="690" y="178" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">后端/对象存储</text>
+      <text x="690" y="195" text-anchor="middle" font-size="10.5" fill="#4f6348">魔数校验/去重/合并</text>
+      <line x1="600" y1="181" x2="560" y2="181" stroke="#7a8a70" marker-end="url(#arru)"/>
+      <rect x="420" y="158" width="136" height="46" rx="8" fill="#f0fdf4" stroke="#047857" stroke-width="2"/>
+      <text x="488" y="178" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">返回 URL 入库</text>
+      <text x="488" y="195" text-anchor="middle" font-size="10.5" fill="#047857">业务只存文件 key</text>
+      <line x1="420" y1="181" x2="90" y2="181" stroke="#b91c1c" stroke-dasharray="4 3" marker-end="url(#arru)"/>
+      <text x="250" y="172" text-anchor="middle" font-size="11" fill="#b91c1c">失败？分片续传只补缺失，不从头来</text>
+      <text x="400" y="245" text-anchor="middle" font-size="12.5" fill="#7a8a70">前端校验是体验层；安全底线在后端（魔数判断真实类型）。</text>
+      <text x="400" y="268" text-anchor="middle" font-size="12.5" fill="#b45309">大文件生产标配：预签名 URL 直传对象存储，文件流量绕开业务服务器。</text>
+    </svg>
+    <p class="diagram-caption">图 1 文件上传链路全景（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①校验在前端最早发生（秒拒），安全在后端兜底（魔数）；②"策略分支"按文件大小分流——不是所有文件都要分片；③失败回路指向"续传"而非重试整体——这是分片方案的灵魂。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
-  <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
-  </ul>
-</section>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个完整的头像上传组件：<strong>校验 → 压缩 → 带进度上传 → 失败重试</strong>，30 行核心逻辑（Vue3）。</p>
 
-<section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
+  <h3>6.1 组件代码</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup lang="ts"&gt;
+import { ref } from 'vue'
+import http from '@/utils/request'          // 衔接 Axios 篇的请求模块
+
+const progress = ref(0)
+const uploading = ref(false)
+const preview = ref('')
+const input = ref&lt;HTMLInputElement&gt;()
+
+async function onPick(e: Event) {
+  const file = (e.target as HTMLInputElement).files![0]
+  // ① 校验：类型 + 大小 + 真图（三关）
+  const ok = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+  if (!ok || file.size &gt; 10 * 1024 * 1024) return alert('仅支持 10MB 内图片')
+
+  // ② 压缩：长边 1080，目标 300KB（复用 3.2 的 compressImage）
+  const blob = await compressImage(file, 1080, 300)
+  preview.value = URL.createObjectURL(blob)
+
+  // ③ 上传：FormData + 进度 + 防重复
+  const fd = new FormData()
+  fd.append('file', blob, `avatar_${Date.now()}.jpg`)
+  uploading.value = true
+  try {
+    const { url } = await http.post('/upload/avatar', fd, {
+      onUploadProgress: e =&gt; (progress.value = Math.round(e.loaded / e.total! * 100)),
+    })
+    console.log('上传成功:', url)
+  } finally {
+    uploading.value = false
+    URL.revokeObjectURL(preview.value)
+  }
+}
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;input ref="input" type="file" accept="image/*" :disabled="uploading" @change="onPick"&gt;
+  &lt;img v-if="preview" :src="preview" style="max-width:200px"&gt;
+  &lt;progress v-if="uploading" :value="progress" max="100"&gt;&lt;/progress&gt;
+&lt;/template&gt;</code></pre>
+
+  <h3>6.2 逐段解析</h3>
   <ul>
-    <li>文件上传与图片处理 官方文档：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/transloadit/uppy" rel="noopener">https://github.com/transloadit/uppy</a></li>
-    <li>官方示例项目：<a href="https://github.com/nextcloud/user_music" rel="noopener">https://github.com/nextcloud/user_music</a></li>
+    <li><strong>accept + JS 双重类型校验</strong>：accept 只过滤文件选择器，JS 校验拦截拖拽进来的；</li>
+    <li><strong>压缩在前、上传在后</strong>：8MB 原图 → 300KB JPEG，上传时间从秒级降到亚秒级（用户无感）；</li>
+    <li><strong>progress 由 onUploadProgress 驱动</strong>：Axios 原生支持，无需轮询；</li>
+    <li><strong>finally 兜底</strong>：uploading 复位与 revoke 无论成败都执行——防重复点击的锁不会死锁。</li>
   </ul>
-  <h3>学习建议</h3>
+
+  <h3>6.3 生产改造扩展方向</h3>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>大附件场景升级为分片 + 断点续传（第 4 章），配 Web Worker 算 hash；</li>
+    <li>接入预签名 URL 直传对象存储（4.4），业务服务器只发签名与入库；</li>
+    <li>多文件场景加 3 并发队列（3.3）与全局失败清单（哪几个失败了一键重传）。</li>
   </ol>
 </section>
 
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>按"校验 → 上传 → 大文件"分组，每条五要素。</p>
 
+  <h3>7.1 校验阶段</h3>
+  <p><strong>坑 1：只信 MIME/后缀，伪装文件入库</strong></p>
+  <ul>
+    <li><strong>现象</strong>：用户把 .exe 改名 .jpg 传上去，前端全绿通过；</li>
+    <li><strong>根因</strong>：file.type 取自文件名推断，可任意伪造；</li>
+    <li><strong>复现</strong>：任意文件改后缀再选入；</li>
+    <li><strong>修复</strong>：前端加"真图解码"（createImageBitmap 失败即拒）；后端按<strong>魔数</strong>判真实类型（FF D8=JPEG、89 50=PNG）；</li>
+    <li><strong>规避</strong>：把"前端校验只是体验层"写进团队共识，后端校验是安全底线。</li>
+  </ul>
+
+  <h3>7.2 上传阶段</h3>
+  <p><strong>坑 2：上传无防重复，狂点多请求</strong></p>
+  <ul>
+    <li><strong>现象</strong>：慢网络下用户连点上传按钮，同一文件传了 5 份；</li>
+    <li><strong>根因</strong>：按钮未禁用/无进行中标志；</li>
+    <li><strong>修复</strong>：uploading 标志 + 按钮禁用 + finally 兜底复位（6.1）；</li>
+    <li><strong>规避</strong>：上传类按钮统一走封装的上传 hook，内建防重。</li>
+  </ul>
+  <p><strong>坑 3：createObjectURL 不 revoke，内存缓慢上涨</strong></p>
+  <ul>
+    <li><strong>现象</strong>：长时间使用的页面越用越卡；</li>
+    <li><strong>根因</strong>：每个 objectURL 都持有文件引用，不手动释放不回收；</li>
+    <li><strong>修复</strong>：预览结束（或替换预览）时 <code>URL.revokeObjectURL(oldUrl)</code>；</li>
+    <li><strong>规避</strong>：封装 createPreview 工具函数，创建与释放配对。</li>
+  </ul>
+  <p><strong>坑 4：压缩把透明 PNG 压成黑底</strong></p>
+  <ul>
+    <li><strong>现象</strong>：带透明通道的 logo 压缩后透明区域变黑色；</li>
+    <li><strong>根因</strong>：toBlob 导出 'image/jpeg' 无透明通道，canvas 默认透明底被填黑；</li>
+    <li><strong>修复</strong>：透明图保留 PNG（或先垫白底再转 JPEG）；按 <code>file.type</code> 分支处理；</li>
+    <li><strong>规避</strong>：压缩函数入参带"允许的目标格式"，透明图跳过 JPEG 分支。</li>
+  </ul>
+
+  <h3>7.3 大文件阶段</h3>
+  <p><strong>坑 5：分片全量并发，页面请求被占满</strong></p>
+  <ul>
+    <li><strong>现象</strong>：100 个分片同时发，浏览器连接池被占满，页面其他请求全卡；</li>
+    <li><strong>根因</strong>：无并发限制（HTTP/1.1 同域 6 连接限制）；</li>
+    <li><strong>修复</strong>：并发池限 3~6 个，完成一个补一个（3.3）；</li>
+    <li><strong>规避</strong>：所有批量请求场景默认走并发池。</li>
+  </ul>
+  <p><strong>坑 6：续传状态存 localStorage</strong></p>
+  <ul>
+    <li><strong>现象</strong>：换设备/清缓存后"续传"又从头传；</li>
+    <li><strong>根因</strong>：已传分片记录放本地——状态应该以服务端为准；</li>
+    <li><strong>修复</strong>：verify 接口以文件 hash 查询服务端已存分片，前端只补缺（4.3）；</li>
+    <li><strong>规避</strong>：断点续传的状态权威永远是服务端。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：大文件为什么要分片？讲一下完整流程。</strong></p>
+  <p class="note"><strong>参考答案</strong>：不分片的三个死穴——<strong>超时</strong>（单请求传 1GB 必超时）、<strong>不可恢复</strong>（失败从头再来）、<strong>无法秒传/去重</strong>。分片方案四步：<strong>①hash</strong> 计算文件唯一标识（抽样 hash + Worker）；<strong>②verify</strong>——服务端查 hash：已存在秒传、部分存在返回已传分片；<strong>③分片并发上传</strong>（slice 切 5MB，并发池 3~6）；<strong>④merge</strong>——服务端按序合并。<br><br>
+  <strong>追问：断点续传怎么实现？</strong>——已传分片记录在服务端，重传前先 verify 拿缺失列表只补缺；暂停用 AbortController abort 在途请求，恢复从 verify 接续。</p>
+
+  <p><strong>Q2：前端图片压缩怎么实现？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Canvas 两步法——<strong>①降尺寸</strong>：createImageBitmap 解码后按目标长边缩放画到 canvas；<strong>②降质量</strong>：toBlob('image/jpeg', q) 从 0.9 逐档降到达标体积。<strong>注意</strong>：透明图保留 PNG（JPEG 无透明通道会黑底）；createImageBitmap 顺带完成"真图校验"（伪装文件解码失败）。<br><br>
+  <strong>追问：为什么不直接压完就传？</strong>——要区分场景：头像/展示图压缩（有损可接受）；凭证/原始证据文件必须传原图，压缩会破坏法律效力。<strong>压缩策略是业务决策，不是技术默认。</strong></p>
+
+  <p><strong>Q3：上传的安全校验应该怎么做？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>分层观点</strong>——前端校验（类型/大小/真图解码）是<strong>体验优化</strong>：秒拒不合格文件省用户流量等待；<strong>安全底线在后端</strong>：按文件头魔数判断真实类型（不信扩展名与 MIME）、限制大小与数量、鉴权与隔离存储路径、必要时病毒扫描。前端一切校验都可绕过（改后缀/直接 curl 接口），所以后端校验不是"双保险"而是"唯一保险"。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>File/Blob/FormData/createObjectURL 四者各自的角色？</li>
+    <li>压缩的两个变量是什么？PNG 透明图要注意什么？</li>
+    <li>抽样 hash 为什么够用？hash 的三个用途？</li>
+    <li>并发池为什么限 3~6？不限会怎样？</li>
+    <li>预签名直传的流程？它解决了什么问题？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>MDN File / Blob / FormData 参考（对象模型权威）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/File" rel="noopener">developer.mozilla.org</a></li>
+    <li>MDN AbortController 与 Axios onUploadProgress（衔接本模块 03 篇）</li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>spark-md5 仓库（分片增量 hash 的实现）：<a href="https://github.com/satazor/js-spark-md5" rel="noopener">github.com/satazor/js-spark-md5</a></li>
+    <li>阿里云 OSS / AWS S3 预签名 URL 文档（直传架构的服务端配合）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章头像上传 Demo，实测 8MB 原图压缩前后上传耗时对比；</li>
+    <li>给 Demo 加 3 并发多文件队列与失败重试清单；</li>
+    <li>实现分片上传的最小版：hash（抽样）+ verify + 并发分片 + merge，用 100MB 文件测断网续传。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/04_VueUse组合式工具库【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/06_vxe_table表格【深入】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考
