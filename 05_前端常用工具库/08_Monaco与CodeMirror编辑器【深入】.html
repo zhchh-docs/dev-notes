@@ -540,39 +540,160 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/09_JsPlumb连线【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/07_ZTree树组件【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/07_ZTree树组件【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/09_JsPlumb连线【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：在网页里提供"写代码"输入体验——Monaco 重、CodeMirror 轻。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>本篇讲的是让网页里的"写代码"体验接近 IDE 的两个编辑器</strong>：<strong>Monaco</strong>（VS Code 浏览器版内核——高亮/补全/错误标记/DiffEditor 全，重）与 <strong>CodeMirror 6</strong>（轻量可扩展嵌入式编辑器——extension 组合能力，轻）。本篇的核心命题是<strong>选型与集成</strong>：什么场景用哪个、Monaco 的 worker 怎么配、两个编辑器各自的"必知坑"。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>Monaco</strong>：VS Code 浏览器版内核，高亮/补全/错误标记/Diff 全，体积大含 worker。</li>
-    <li><strong>CodeMirror</strong>：轻量可扩展嵌入式编辑器，用 extension 组织高亮/补全，体积小易定制。</li>
+    <li>普通 textarea 写 SQL/脚本：没有高亮、补全、行号、缩进——可用性差；</li>
+    <li>Monaco 引入后高亮失效/控制台报 worker 加载失败——<strong>worker 配置是集成第一关</strong>；</li>
+    <li>轻量的表达式输入框也上 Monaco——包体积白白多几 MB。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：让配置脚本/SQL/表达式的输入体验接近 IDE。</p>
-  <ul>
-    <li><strong>痛点</strong>：普通 textarea 写代码没有高亮、补全、行号、缩进。</li>
-    <li><strong>收益</strong>：语法高亮、自动补全、格式校验、版本对比（Diff）。</li>
-  </ul>
+
+  <h3>1.3 选型：Monaco vs CodeMirror</h3>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
+    <thead><tr><th>维度</th><th>Monaco</th><th>CodeMirror</th></tr></thead>
+    <tbody>
+      <tr><td>能力</td><td>高亮/补全/Diff/错误标记全</td><td>高亮为主，补全需扩展自接</td></tr>
+      <tr><td>体积</td><td>大（含 web worker）</td><td>小，按需扩展</td></tr>
+      <tr><td>Diff</td><td>内置 DiffEditor</td><td>需配合第三方 Diff 视图</td></tr>
+      <tr><td>取舍</td><td>重度脚本/SQL 编辑</td><td>轻量配置/表达式输入</td></tr>
+    </tbody>
+  </table>
+  <p><strong>判断口诀</strong>：重脚本（SQL/转换脚本/大 JSON）选 Monaco——要的是完整 IDE 体验；轻配置（表达式/小片段）选 CodeMirror——要的是体积与定制自由。<strong>同一项目两者并存很正常</strong>（按编辑场景分工）。</p>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>为项目做出正确的<strong>编辑器选型</strong>，并说出理由；</li>
+    <li>完成 Monaco 的 <strong>Vite worker 配置</strong>（MonacoEnvironment），让高亮补全真正工作；</li>
+    <li>用 <code>registerCompletionItemProvider</code> 接入<strong>业务词表补全</strong>（字段名/变量名）；</li>
+    <li>守住两个生命周期纪律：<strong>dispose 成对</strong>、大文档 <strong>applyEdits 增量</strong>。</li>
+  </ol>
+  <p><strong>前置知识</strong>：Web Worker 概念（10 模块）；Vite 构建。<strong>难度</strong>：★★★☆☆（API 简单，worker 与工程化配置是难点）。<strong>务必动手</strong>：第 6 章 Demo——worker 不亲手配一遍，坑记不住。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>Monaco 侧四个核心模型（Model/语言/补全/Worker），CodeMirror 侧一个（extension 体系）。</p>
+
+  <h3>2.1 Model：内容与编辑器分离</h3>
+  <p>Monaco 把文本内容放在 <strong>Model</strong> 里（文本 + 语言 + uri），编辑器只是 Model 的视图——<strong>多个编辑器可共享同一 model</strong>（如同时打开的编辑与 diff 视图）。基本操作：<code>monaco.editor.create(dom, options)</code> 创建；<code>setValue/getValue</code> 读写；<code>onDidChangeModelContent</code> 监听变化（接自动保存/校验）。</p>
+
+  <h3>2.2 语言与主题：内置 + 自定义</h3>
+  <p>Monaco 内置主流语言（SQL/JS/JSON/HTML…）的高亮与基础语言服务；<strong>自定义语言用 Monarch 定义 token 规则</strong>（正则式的词法描述）。主题：<code>monaco.editor.defineTheme('my-dark', {...})</code> 定义品牌主题，<code>theme</code> 选项启用。CodeMirror 对应物是 language package 与 theme extension。</p>
+
+  <h3>2.3 补全 Provider：业务词表的注入点</h3>
+  <p><code>monaco.languages.registerCompletionItemProvider('sql', {...})</code>——配置编辑器的补全<strong>本质是接业务数据</strong>：字段名、变量名、函数名从接口/上下文取，在 provideCompletionItems 里返回 suggestions。<strong>这是配置型编辑器的灵魂能力</strong>：用户不用背字段，光标处 Ctrl+Space 弹业务词表。</p>
+
+  <h3>2.4 Worker：语言服务在后台线程</h3>
+  <p>Monaco 的校验、部分补全、tokenize 放在 <strong>web worker</strong> 里跑（不卡主线程）——这也是它"重"的原因。<strong>Vite 集成两步</strong>：①worker 文件引入（<code>?worker&inline</code> 或 vite-plugin-monaco-editor）；②设置 <code>self.MonacoEnvironment = { getWorker(_, label) {...} }</code> 按语言 label 返回对应 worker——<strong>漏了第二步运行时照样报 worker 加载失败</strong>（坑 1）。</p>
+
+  <h3>2.5 CodeMirror 6 的 extension 体系</h3>
+  <p>CodeMirror 6 的一切能力都是 <strong>extension</strong>：语言（<code>@codemirror/lang-javascript</code>）、主题、自动补全、lint……<code>new EditorView({ extensions: [basicSetup, javascript(), myTheme], parent: el })</code> 组合挂载。<strong>轻且可裁</strong>——只用到的进产物，与 Monaco 的"全家桶 + worker"形成鲜明对照。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Monaco 最小嵌入（SQL 编辑器）</h3>
+<pre class="code" data-lang="js"><code>import * as monaco from 'monaco-editor';
+const editor = monaco.editor.create(el, {
+  value: 'SELECT * FROM t',
+  language: 'sql',
+  theme: 'vs-dark',
+  automaticLayout: true,          // 容器尺寸变化自适应（坑 3）
+  minimap: { enabled: false }
+});
+editor.onDidChangeModelContent(() =&gt; save(editor.getValue()));</code></pre>
+
+  <h3>3.2 场景二：CodeMirror 轻量嵌入（表达式输入）</h3>
+<pre class="code" data-lang="js"><code>import { EditorView, basicSetup } from 'codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+new EditorView({
+  extensions: [basicSetup, javascript()],
+  parent: el
+});</code></pre>
+
+  <h3>3.3 场景三：业务词表补全（配置编辑器的灵魂）</h3>
+<pre class="code" data-lang="js"><code>monaco.languages.registerCompletionItemProvider('sql', {
+  provideCompletionItems: (model, position) =&gt; ({
+    suggestions: tableFields.map(f =&gt; ({
+      label: f,
+      kind: monaco.languages.CompletionItemKind.Field,
+      insertText: f
+    }))
+  })
+});</code></pre>
+  <p><strong>进阶</strong>：词表按光标上下文动态给（如表别名后的字段）——在 provider 里解析 model 已有文本判断上下文，返回过滤后的建议。</p>
+
+  <h3>3.4 场景四：Diff 编辑器（版本对比）</h3>
+<pre class="code" data-lang="js"><code>const diff = monaco.editor.createDiffEditor(el);
+diff.setModel({
+  original: monaco.editor.createModel(oldText, 'json'),
+  modified: monaco.editor.createModel(newText, 'json')
+});</code></pre>
+  <p><strong>与 v-code-diff 的分工</strong>（衔接本模块 10 篇）：只读展示用 v-code-diff（轻）；<strong>要可编辑的对比合并</strong>（解决冲突）用 Monaco DiffEditor（重）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：Monaco 已跑通（worker 配好）。</p>
+
+  <h3>4.1 Vite 集成 Monaco 的完整配方</h3>
+<pre class="code" data-lang="js"><code>// main.js：worker 环境（两步缺一不可）
+import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker&inline'
+import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker&inline'
+import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker&inline'
+import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker&inline'
+import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker&inline'
+self.MonacoEnvironment = {
+  getWorker(_, label) {
+    if (label === 'json') return new jsonWorker()
+    if (label === 'css' || label === 'scss' || label === 'less') return new cssWorker()
+    if (label === 'html') return new htmlWorker()
+    if (label === 'typescript' || label === 'javascript') return new tsWorker()
+    return new editorWorker()
+  }
+}</code></pre>
+  <p><strong>体积优化</strong>：默认引入全语言——按需 <code>monaco-editor/esm/vs/...</code> 只引需要的语言特性；worker 同理只配用到的。</p>
+
+  <h3>4.2 大文档的性能纪律：增量编辑</h3>
+  <p>外部变更同步到编辑器时，<code>setValue(全文)</code> 会重置光标与撤销栈、大文档卡顿——用 <code>model.applyEdits()</code> <strong>按变更区间增量替换</strong>（配合 onDidChangeModelContent 的 change 事件做双向同步）。<strong>双向同步的经典架构</strong>：外部状态 → applyEdits；编辑器 → change 事件回写——注意防循环（同步标志位）。</p>
+
+  <h3>4.3 生命周期纪律：dispose 与多实例</h3>
+  <p>组件卸载必须 <code>editor.dispose()</code>（同时 dispose 自建 model）；弹窗/Tab 复用场景尤其容易漏——每开一次泄漏一个实例。批量创建（列表页 N 个小编辑器）要评估：多个 Monaco 实例共享 worker 但各有渲染成本——<strong>超过 3~5 个就考虑 CodeMirror 或懒创建</strong>（滚动到可视区再 init）。</p>
+
+  <h3>4.4 自定义语言的 Monarch 入门</h3>
+  <p>业务 DSL（规则表达式、模板语法）高亮：<code>monaco.languages.register({ id: 'mydsl' })</code> + <code>monaco.languages.setMonarchTokensProvider('mydsl', { tokenizer: {...} })</code>——正则定义关键字/字符串/注释的 token 规则即可获得高亮；配合 completion provider + 校验 worker 可做成完整的"业务脚本 IDE"。CodeMirror 侧对应 Lezer 语法包（门槛更高但类型安全）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="Monaco 与 CodeMirror 适用场景示意图">
       <defs>
@@ -590,71 +711,10 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="590" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#4f8a63">CodeMirror（轻）</text>
       <text x="460" y="106" font-size="12" fill="#115e59">· 轻量嵌入/扩展定制</text>
       <text x="460" y="130" font-size="12" fill="#115e59">· 组件配置/表达式编辑</text>
-      <text x="460" y="154" font-size="12" fill="#115e59">· 代价：补全需自接</text>
+      <text x="460" y="154" font-size="12" fill="#255a36">· 代价：补全需自接</text>
     </svg>
     <p class="diagram-caption">图 1 Monaco 与 CodeMirror 的定位分工（示意）</p>
   </div>
-  <h3>横向对比：Monaco vs CodeMirror</h3>
-  <table>
-    <colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
-    <thead><tr><th>维度</th><th>Monaco</th><th>CodeMirror</th></tr></thead>
-    <tbody>
-      <tr><td>能力</td><td>高亮/补全/Diff/错误标记全</td><td>高亮为主，补全需扩展自接</td></tr>
-      <tr><td>体积</td><td>大（含 web worker）</td><td>小，按需扩展</td></tr>
-      <tr><td>Diff</td><td>内置 DiffEditor</td><td>需配合第三方 Diff 视图</td></tr>
-      <tr><td>取舍</td><td>重度脚本/SQL 编辑</td><td>轻量配置/表达式输入</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 编辑器实例与模式（Model）</h3>
-  <p class="lead"><b>一句话定位</b>：内容放在 model 里，多个编辑器可共享同一 model。</p>
-  <ul>
-    <li><strong>写法</strong>：<code>monaco.editor.create(dom, options)</code>；<code>setValue/getValue</code> 读写，<code>onDidChangeModelContent</code> 监听变化。</li>
-  </ul>
-  <h3>2.2 语言与语法高亮（Language &amp; Tokenization）</h3>
-  <p class="lead"><b>一句话定位</b>：Monaco 内置主流语言，自定义语言用 Monarch 定义 token 规则。</p>
-  <ul>
-    <li><strong>CodeMirror</strong>：用 language extension 提供解析与高亮。</li>
-  </ul>
-  <h3>2.3 主题（Theme）</h3>
-  <p class="lead"><b>一句话定位</b>：按项目品牌定制明暗主题。</p>
-  <ul>
-    <li><strong>Monaco</strong>：<code>monaco.editor.defineTheme</code>；<strong>CodeMirror</strong>：theme extension。</li>
-  </ul>
-  <h3>2.4 智能补全（Completion Provider）</h3>
-  <p class="lead"><b>一句话定位</b>：配置编辑器里补全变量名/字段名靠它。</p>
-  <ul>
-    <li><strong>Monaco</strong>：<code>registerCompletionItemProvider</code>；<strong>CodeMirror</strong>：autocompletion extension。</li>
-  </ul>
-  <h3>2.5 Diff 编辑器（Diff Editor）</h3>
-  <p class="lead"><b>一句话定位</b>：并排展示新旧文本，标注增删改。</p>
-  <ul>
-    <li><strong>写法</strong>：<code>monaco.editor.createDiffEditor</code>——低代码平台版本对比即用它。</li>
-  </ul>
-  <h3>2.6 Worker 与异步（Web Worker）</h3>
-  <p class="lead"><b>一句话定位</b>：语言服务放 web worker 跑，避免卡主线程。</p>
-  <ul>
-    <li><strong>配置</strong>：Vite 用 <code>?worker</code> 或 vite-plugin-monaco-editor。</li>
-    <li><strong>必配</strong>：还需设 <code>self.MonacoEnvironment = { getWorker(_, label) {...} }</code>，按语言 label 返回对应 worker（配合 <code>?worker&inline</code>），否则运行时仍报 worker 加载失败。</li>
-  </ul>
-  <h3>2.7 CodeMirror 扩展体系（Extensions）</h3>
-  <p class="lead"><b>一句话定位</b>：语言/主题/补全/lint 都是 extension，按需挂载——轻且可裁。</p>
-  <ul>
-    <li><strong>CodeMirror 6</strong>：以扩展组合能力。</li>
-  </ul>
-  <h3>2.8 性能与销毁（Performance &amp; Dispose）</h3>
-  <p class="lead"><b>一句话定位</b>：组件卸载必须 dispose，否则内存泄漏。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><code>editor.dispose()</code> 释放实例；大文档用 model 增量替换，避免每次 setValue 全量重建。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Monaco 编辑器架构</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="Monaco 编辑器架构示意图">
       <defs>
@@ -684,140 +744,167 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Monaco 编辑器分层（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Monaco 最小嵌入</h3>
-<pre class="code" data-lang="js"><code>import * as monaco from 'monaco-editor';
-const editor = monaco.editor.create(el, {
-  value: 'SELECT * FROM t',
-  language: 'sql',
-  theme: 'vs-dark',
-  automaticLayout: true,
-  minimap: { enabled: false }
-});
-editor.onDidChangeModelContent(() => save(editor.getValue()));</code></pre>
-  <h3>4.2 写法对比：Monaco vs CodeMirror</h3>
-<pre class="code" data-lang="js"><code>// Monaco：开箱即用，重体验（脚本/SQL 编辑器）
-// CodeMirror 6：扩展组合，轻量（组件配置/表达式）
-import { EditorView, basicSetup } from 'codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-new EditorView({
-  extensions: [basicSetup, javascript()],
-  parent: el
-});</code></pre>
-  <div class="note"><strong>取舍</strong>：重脚本/SQL/Diff 选 Monaco；轻量配置/表达式选 CodeMirror。</div>
-  <h3>4.3 Diff 编辑器</h3>
-<pre class="code" data-lang="js"><code>const diff = monaco.editor.createDiffEditor(el);
-diff.setModel({
-  original: monaco.editor.createModel(oldText, 'json'),
-  modified: monaco.editor.createModel(newText, 'json')
-});</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：数据编排平台要编辑 SQL/转换脚本，低代码平台要轻量表达式配置。</p>
-  <ul>
-    <li><strong>数据编排平台</strong>：脚本编辑需高亮+补全+校验。</li>
-    <li><strong>低代码平台</strong>：组件配置项是表达式/小脚本，需轻量输入。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：编辑器层前端，负责选型、worker 配置与补全。</p>
-  <ul>
-    <li><strong>分工</strong>：重脚本用 Monaco，轻配置用 CodeMirror，按编辑器定位选型。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>重编辑</strong>：Monaco（Vite + worker）；<strong>轻编辑</strong>：CodeMirror 6 扩展体系。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：脚本编辑用 Monaco 语言服务，轻配置用 CodeMirror 扩展。</p>
-  <ul>
-    <li><strong>Monaco</strong>：配 SQL/JS 语言与自定义主题，注册补全 provider 补全字段名。</li>
-    <li><strong>CodeMirror</strong>：挂 language/theme/autocomplete 扩展。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-<pre class="code" data-lang="js"><code>monaco.languages.registerCompletionItemProvider('sql', {
-  provideCompletionItems: (model, position) =&gt; ({
-    suggestions: tableFields.map(f =&gt; ({
-      label: f, kind: monaco.languages.CompletionItemKind.Field, insertText: f
-    }))
-  })
-});</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>worker 未配</strong>：Vite 下 Monaco worker 未配置导致高亮失效——按官方 worker 方案配。</li>
-    <li><span class="tag-pit">坑</span><strong>未 dispose 泄漏</strong>：组件复用未 dispose——卸载前 <code>dispose()</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>容器不自适应</strong>：尺寸变化不自适应——<code>automaticLayout: true</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>全量 setValue 卡</strong>：大文档用 model 增量 <code>applyEdits</code>。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>体验</strong>：脚本编辑体验接近 IDE，轻配置输入流畅。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端确认脚本/表达式语法，配合补全词表。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>按编辑场景选型</strong>：重脚本 Monaco，轻配置 CodeMirror。</li>
-    <li><span class="tag-point">要点</span><strong>worker 与 dispose 成对</strong>。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「脚本编辑实践中常采用 Monaco 配 worker 与补全 provider，轻配置用 CodeMirror 扩展，解决了 Vite worker 加载与 dispose 泄漏问题。」</p>
+  <p><strong>读图要点</strong>：①Model 与渲染分离——同一份内容可挂多个视图（编辑 + diff）；②语言服务在 worker——大文档的校验补全不卡 UI，<strong>worker 配置失效则这些能力静默退化</strong>；③CodeMirror 没有独立 worker 层——所以轻，但大文档能力也弱于 Monaco。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 Monaco worker 未配置</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>一个"SQL 编辑器"组件（Vue3 封装）：worker 配置 + 业务词表补全 + 自动保存 + dispose。</p>
+
+  <h3>6.1 组件代码</h3>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;&lt;div ref="el" style="height:400px"&gt;&lt;/div&gt;&lt;/template&gt;
+
+&lt;script setup lang="ts"&gt;
+import { ref, onMounted, onUnmounted } from 'vue'
+import * as monaco from 'monaco-editor'
+import { getTableFields } from '@/api'
+
+const el = ref&lt;HTMLElement&gt;()
+let editor: monaco.editor.IStandaloneCodeEditor | null = null
+
+onMounted(async () =&gt; {
+  editor = monaco.editor.create(el.value!, {
+    value: 'SELECT * FROM orders',
+    language: 'sql',
+    theme: 'vs-dark',
+    automaticLayout: true,
+    minimap: { enabled: false },
+  })
+
+  // 业务词表补全：字段名从后端取
+  const fields = await getTableFields('orders')
+  monaco.languages.registerCompletionItemProvider('sql', {
+    provideCompletionItems: () =&gt; ({
+      suggestions: fields.map(f =&gt; ({
+        label: f.name,
+        kind: monaco.languages.CompletionItemKind.Field,
+        detail: f.comment,
+        insertText: f.name,
+      })),
+    }),
+  })
+
+  // 变化自动保存（防抖）
+  let t: any
+  editor.onDidChangeModelContent(() =&gt; {
+    clearTimeout(t)
+    t = setTimeout(() =&gt; save(editor!.getValue()), 800)
+  })
+})
+
+onUnmounted(() =&gt; editor?.dispose())    // ⭐ 生命周期纪律
+&lt;/script&gt;</code></pre>
+
+  <h3>6.2 逐段解析</h3>
   <ul>
-    <li><strong>现象</strong>：高亮/补全失效。</li>
+    <li><strong>automaticLayout: true</strong>：容器随弹窗/分栏变化自适应（省掉手动 layout）；</li>
+    <li><strong>补全接业务数据</strong>：字段名+注释来自后端——用户不用背 schema；</li>
+    <li><strong>自动保存走防抖</strong>：onDidChangeModelContent 高频触发，直接发请求是事故；</li>
+    <li><strong>onUnmounted dispose</strong>：弹窗反复开关也不泄漏（worker 配置在应用入口做一次，见 4.1）。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：Vite/打包器配好 worker 入口。</p>
-  <h3>6.2 忘记 dispose 导致内存泄漏</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：组件卸载调用 <code>editor.dispose()</code>。</p>
-  <h3>6.3 容器尺寸变化不自适应</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：开 <code>automaticLayout</code> 或手动 layout()。</p>
-  <h3>6.4 大文档全量 setValue 卡顿</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：用 <code>applyEdits</code> 增量替换。</p>
-  <h3>6.5 选型过重：轻量输入用了 Monaco</h3>
-  <p class="pit-sentence"><span class="tag-point">要点</span>正解：配置项/表达式这种轻输入用 CodeMirror，省体积。</p>
+
+  <h3>6.3 生产改造扩展方向</h3>
+  <ol>
+    <li>接入 SQL 语法校验（后端 explain 或 sqlparser，错误标到行上 marker API）；</li>
+    <li>只读对比场景挂 DiffEditor（3.4）；</li>
+    <li>按需引入裁体积（4.1），产物做 bundle 分析。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：Monaco worker 未配置</h3>
   <ul>
-    <li>Monaco Editor 官方文档：<a href="https://microsoft.github.io/monaco-editor/" rel="noopener">microsoft.github.io/monaco-editor</a></li>
-    <li>CodeMirror 官方文档：<a href="https://codemirror.net/docs/" rel="noopener">codemirror.net/docs</a></li>
+    <li><strong>现象</strong>：控制台报 worker 加载失败，高亮/校验/补全静默失效；</li>
+    <li><strong>根因</strong>：Vite/打包器没配 worker 入口，或只做了第一步（引入 worker）没做第二步（MonacoEnvironment.getWorker）；</li>
+    <li><strong>复现</strong>：删掉 MonacoEnvironment 配置重启；</li>
+    <li><strong>修复</strong>：按 4.1 完整配方两步都做；</li>
+    <li><strong>规避</strong>：Monaco 集成 checklist 第一项就是 worker——新项目先跑通 worker 再写业务。</li>
   </ul>
-  <h3>延伸</h3>
+  <h3>7.2 坑 2：忘记 dispose 导致内存泄漏</h3>
   <ul>
-    <li>Monaco GitHub：<a href="https://github.com/microsoft/monaco-editor" rel="noopener">github.com/microsoft/monaco-editor</a></li>
-    <li>CodeMirror GitHub：<a href="https://github.com/codemirror/codemirror6" rel="noopener">github.com/codemirror/codemirror6</a></li>
+    <li><strong>现象</strong>：弹窗反复开关后页面越来越卡；</li>
+    <li><strong>根因</strong>：编辑器实例持有 DOM 与 worker 通信通道，不 dispose 不释放；</li>
+    <li><strong>复现</strong>：Memory 面板对比开关前后快照；</li>
+    <li><strong>修复</strong>：卸载钩子里 <code>editor.dispose()</code>（自建 model 一并 dispose）；</li>
+    <li><strong>规避</strong>：封装组件内建生命周期（6.1 形态），业务层不裸调 create。</li>
   </ul>
+  <h3>7.3 坑 3：容器尺寸变化不自适应</h3>
+  <ul>
+    <li><strong>现象</strong>：窗口/分栏拖动后编辑器出现滚动条或留白；</li>
+    <li><strong>根因</strong>：Monaco 不自动感知容器尺寸；</li>
+    <li><strong>修复</strong>：<code>automaticLayout: true</code>，或手动监听 ResizeObserver 调 <code>editor.layout()</code>；</li>
+    <li><strong>规避</strong>：封装组件默认开 automaticLayout。</li>
+  </ul>
+  <h3>7.4 坑 4：大文档全量 setValue 卡顿</h3>
+  <ul>
+    <li><strong>现象</strong>：同步外部变更时编辑器卡顿、光标丢失、撤销栈清空；</li>
+    <li><strong>根因</strong>：setValue 全量重建内容；</li>
+    <li><strong>修复</strong>：<code>model.applyEdits()</code> 按变更区间增量替换（4.2）；</li>
+    <li><strong>规避</strong>：外部→编辑器的同步一律增量，setValue 只用于首次初始化。</li>
+  </ul>
+  <h3>7.5 坑 5：轻量输入用了 Monaco（选型过重）</h3>
+  <ul>
+    <li><strong>现象</strong>：页面有 10 个表达式输入框，全上 Monaco——首屏多几 MB、初始化慢；</li>
+    <li><strong>根因</strong>：没有按编辑场景分层选型；</li>
+    <li><strong>修复</strong>：重脚本（少而精）用 Monaco，轻配置（多而碎）用 CodeMirror 或富文本化的输入；</li>
+    <li><strong>规避</strong>：选型口诀（1.3）——按"数量 × 深度"定编辑器，评审时对照。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Monaco 和 CodeMirror 怎么选？两者并存冲突吗？</strong></p>
+  <p class="note"><strong>参考答案</strong>：按"编辑深度 × 实例数量"选——<strong>重度编辑</strong>（SQL/脚本/大 JSON，需要补全校验 Diff，实例少）选 Monaco；<strong>轻量嵌入</strong>（表达式/配置片段，实例多）选 CodeMirror（体积小、多实例成本低）。<strong>并存不冲突</strong>：同一项目按场景分工是常态——数据平台的脚本编辑用 Monaco、组件配置里的表达式用 CodeMirror。判断时再算两笔账：体积账（Monaco 几 MB + worker）与体验账（DiffEditor/错误标记是硬需求吗）。</p>
+
+  <p><strong>Q2：Monaco 为什么大？它的架构怎么支撑大文档？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>重的来源</strong>：完整语言服务体系 + 多语言 worker（每个语言的校验/tokenize 在独立 web worker）。<strong>架构三件</strong>：渲染层（虚拟滚动，大文档只渲染可视行）、Model 层（文本+语言+uri，与视图分离、可共享、增量变更事件）、语言服务 worker（不阻塞主线程）。<br><br>
+  <strong>追问：worker 配置失败的后果？</strong>——编辑器基本能打字，但校验、部分补全静默失效——这也是为什么 worker 配置必须作为集成 checklist 第一项，并用行为验证（造一个语法错误看有没有红线）而非只看 console。</p>
+
+  <p><strong>Q3：配置编辑器的"补全字段名"怎么实现？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>registerCompletionItemProvider</code> 注册语言级 provider，provideCompletionItems 返回 suggestions（label/kind/insertText/detail）。<strong>工程要点</strong>：①词表来自业务数据（接口/上下文），不是静态写死；②按光标上下文过滤（如表别名后只给该表字段）；③detail 给注释提升可用性；④词表变化时 provider 需重新注册或用可变引用。<br><br>
+  <strong>本质</strong>：编辑器能力 + 业务数据 = 配置体验——补全 provider 就是两者的注入点。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>Monaco 三层架构？语言服务为什么放 worker？</li>
+    <li>Vite 集成 Monaco 的两步 worker 配置？漏第二步的症状？</li>
+    <li>Model 与编辑器分离带来什么能力？</li>
+    <li>外部变更同步为什么要 applyEdits 而不是 setValue？</li>
+    <li>"编辑深度 × 实例数量"怎么决定选型？各举一例。</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>Monaco 官方文档与 Playground（在线试 API）：<a href="https://microsoft.github.io/monaco-editor/" rel="noopener">microsoft.github.io/monaco-editor</a></li>
+    <li>CodeMirror 6 官方文档与示例：<a href="https://codemirror.net/docs/" rel="noopener">codemirror.net/docs</a></li>
+  </ul>
+  <h3>进阶资料</h3>
+  <ul>
+    <li>Monaco GitHub（issue 区是 worker 集成问题的第一手资料）：<a href="https://github.com/microsoft/monaco-editor" rel="noopener">github.com/microsoft/monaco-editor</a></li>
+    <li>CodeMirror 6 GitHub：<a href="https://github.com/codemirror/codemirror6" rel="noopener">github.com/codemirror/codemirror6</a></li>
+    <li>vite-plugin-monaco-editor（worker 集成的社区方案）</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 SQL 编辑器组件（先配 worker，用语法错误红线验证生效）；</li>
+    <li>故意删掉 MonacoEnvironment 复现坑 1，记录症状后修复；</li>
+    <li>做一个业务 DSL 的 Monarch 高亮 + completion provider（以团队规则表达式为题材）。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/09_JsPlumb连线【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/07_ZTree树组件【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/07_ZTree树组件【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/09_JsPlumb连线【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Monaco与CodeMirror编辑器【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

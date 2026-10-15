@@ -534,45 +534,143 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>ZTree 树组件</h1>
     <div class="meta-row">
       <span class="badge deep">深入</span>
-      <span class="meta">定位：经典树形控件——id/pId 数据模型 + 异步懒加载 + 勾选联动</span>
+      <span class="meta">定位：扁平数据组装 / 懒加载链路 / 勾选联动方向</span>
     </div>
-    <p class="hero-desc">zTree 是国内长期广泛使用的 jQuery 树形组件，以"扁平节点数组（id/pId）"描述树，支持异步懒加载子节点、勾选联动、展开折叠与自定义图标。可视化大屏系统 项目用它承载组织/设备等大节点树的懒加载。本页讲透树数据模型、懒加载机制、勾选联动与性能。</p>
+    <p class="hero-desc">zTree 用扁平 id/pId 数组组装成树——后端 parent_id 表结构原样透传；用异步懒加载把大树性能与总节点数解耦——展开哪层请求哪层。本篇讲透懒加载链路（isParent 信号灯）、chkboxType 勾选联动方向、getChangeCheckedNodes 增量提交与局部更新 API，配设备树 Demo 与五个高频坑（isParent 标错、expandAll 请求风暴、整树重建丢状态等）。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/08_Monaco与CodeMirror编辑器【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/06_vxe_table表格【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/10_vue_draggable与v-code-diff【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/08_Monaco与CodeMirror编辑器【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：基于 jQuery 的树形控件，核心是扁平 id/pId 数组组装成树。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>zTree 是 jQuery 时代的经典树形控件，核心是"扁平 id/pId 数组组装成树"</strong>——每个节点 <code>{ id, pId, name }</code>，zTree 自己按 pId 组装层级。能力成熟：<strong>勾选框父子联动、异步懒加载子节点、展开折叠、自定义图标与编辑</strong>。本篇围绕大树场景展开：怎么让上千节点的树流畅、勾选联动怎么配对方向、更新怎么不丢状态。</p>
+
+  <h3>1.2 痛点</h3>
   <ul>
-    <li><strong>数据模型</strong>：每个节点 <code>{ id, pId, name }</code>，zTree 自己按 pId 组装成树。</li>
-    <li><strong>能力</strong>：勾选框联动、异步加载子节点、展开/折叠、自定义图标与编辑。</li>
+    <li>上千节点、层级深的树一次性全量加载——首屏卡死、流量浪费；</li>
+    <li>权限树勾选后保存，再打开时要<strong>回显半选状态</strong>——联动方向配错就回显错乱；</li>
+    <li>更新一个节点名就重新 init 整树——<strong>展开状态、勾选状态全部丢失</strong>。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：大树懒加载——展开父节点时才请求其子节点。</p>
-  <ul>
-    <li><strong>痛点</strong>：上千节点深层级一次性加载全树会卡。</li>
-    <li><strong>机制</strong>：zTree 的 async 异步加载正好做按需请求。</li>
-  </ul>
+
+  <h3>1.3 选型：zTree vs Element el-tree</h3>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
+    <thead><tr><th>维度</th><th>zTree</th><th>Element el-tree</th></tr></thead>
+    <tbody>
+      <tr><td>技术栈</td><td>jQuery 时代经典组件</td><td>Vue 原生组件</td></tr>
+      <tr><td>数据模型</td><td>扁平 id/pId 数组</td><td>嵌套 children 树</td></tr>
+      <tr><td>取舍</td><td>老项目/既有 jQuery 生态沿用</td><td>新项目 Vue 体系优先</td></tr>
+    </tbody>
+  </table>
+  <p><strong>判断口诀</strong>：既有项目（jQuery 生态）沿用 zTree——它的懒加载与勾选联动成熟可靠；新项目按技术栈选 el-tree。两者数据模型的差异（扁平 vs 嵌套）是理解各自 API 的钥匙。</p>
+
+  <h3>1.4 学习目标与阅读指引</h3>
+  <ol>
+    <li>用 <strong>simpleData 扁平数据</strong>直接对接后端 parent_id 表结构；</li>
+    <li>配出<strong>正确的异步懒加载</strong>（async + isParent 标记）并避开 expandAll 请求风暴；</li>
+    <li>用 <strong>chkboxType</strong> 精确控制父子勾选联动方向，用 <strong>getChangeCheckedNodes</strong> 做增量提交；</li>
+    <li>用 <strong>updateNode/addNode 局部更新</strong>保住展开与勾选状态。</li>
+  </ol>
+  <p><strong>前置知识</strong>：树形数据结构（01 模块递归）；有权限树/组织树业务经验更好。<strong>难度</strong>：★★☆☆☆。<strong>务必动手</strong>：第 6 章 Demo。<strong>本篇不涉及</strong>：el-tree 的详细用法（对照即可）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型按依赖顺序：<strong>扁平数据模型</strong>（一切的基础）→ <strong>异步懒加载</strong>（大树性能）→ <strong>勾选联动</strong>（交互核心）→ <strong>局部更新 API</strong>（状态保持）。</p>
+
+  <h3>2.1 扁平数据模型：与后端表结构天然对应</h3>
+  <p>zTree 的 <code>simpleData</code> 模式接受扁平数组：<code>{ id, pId, name, open, isParent }</code>，由 zTree 按 pId 组装成树。<strong>最大工程价值：后端的 parent_id 自关联表结构可以原样透传，不需要前端递归组装 children 树</strong>——数据契约最简单，接口直接返 list。<code>open</code> 控制初始展开，<code>isParent</code> 标记是否有未加载子级（懒加载的关键标记，标错展开箭头就错）。</p>
+
+  <h3>2.2 异步懒加载：展开哪层请求哪层</h3>
+  <p><code>async: { enable: true, url, autoParam: ['id'] }</code>——<strong>展开父节点时自动带着该节点 id 请求其子级</strong>，插入渲染。<strong>isParent 是懒加载的信号灯</strong>：为 true 显示展开箭头、展开时触发请求；为 false 是叶子。首屏只请求根层，可见节点始终压在少量——这是大树流畅的全部秘密。</p>
+
+  <h3>2.3 勾选联动：chkboxType 控制方向</h3>
+  <p><code>check: { enable: true, chkStyle: 'checkbox', chkboxType: { Y: 'ps', N: 'ps' } }</code>——Y/N 分别是勾选/取消勾选时的联动方向，<code>p</code>=影响父、<code>s</code>=影响子。<strong>'ps' 双向全联动</strong>（勾子全选父）；只要父不联动子用 <code>{ Y: '', N: '' }</code> 之类组合。<strong>半选（部分子勾选时父显示半选框）是自动回显的</strong>——权限树的"选中了一部分"就是靠它表达。</p>
+
+  <h3>2.4 局部更新 API：状态保住的关键</h3>
+  <p><code>getNodes / getCheckedNodes / addNodes / removeNode / updateNode</code>——<strong>所有变更走这些局部 API，永远不要重新 init 整树</strong>：init 会重建全部 DOM，展开状态、勾选状态、懒加载进度全部丢失。局部 API 只动目标节点，其他一切原样保留。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最小树（静态数据）</h3>
+<pre class="code" data-lang="js"><code>var setting = {
+  data: { simpleData: { enable: true, idKey: 'id', pIdKey: 'pId', rootPId: 0 } },
+  callback: { onClick: (e, treeNode) =&gt; onSelect(treeNode) }
+};
+var zNodes = [{ id: 1, pId: 0, name: '根节点' }, { id: 2, pId: 1, name: '子节点' }];
+$.fn.zTree.init($('#tree'), setting, zNodes);</code></pre>
+  <p><strong>取舍</strong>：小树（&lt; 几百节点）用静态一次性加载；大树用懒加载（3.2）。</p>
+
+  <h3>3.2 场景二：异步懒加载（大树）</h3>
+<pre class="code" data-lang="js"><code>var setting = {
+  async: {
+    enable: true,
+    url: '/api/tree/children',
+    autoParam: ['id'],                                    // 展开时自动带节点 id
+    dataFilter: (treeId, parentNode, response) =&gt; response.data  // 适配响应结构
+  },
+  data: { simpleData: { enable: true, pIdKey: 'pId', rootPId: 0 } }
+};</code></pre>
+  <p><strong>后端契约</strong>：子级接口按 parentId 返回扁平节点数组，<strong>每个节点标对 isParent</strong>（有子级 true / 叶子 false）。</p>
+
+  <h3>3.3 场景三：勾选与增量提交（权限树）</h3>
+<pre class="code" data-lang="js"><code>var treeObj = $.fn.zTree.getZTreeObj('tree');
+var checked = treeObj.getCheckedNodes(true);        // 全量已勾选
+var changed = treeObj.getChangeCheckedNodes();      // ⭐ 相比上次保存的变化项
+// 权限树保存：只提交 changed 的增量，避免全量回写</code></pre>
+  <p><strong>getChangeCheckedNodes</strong> 是权限树场景的利器：返回勾选状态相比上次调用 <code>getChangeCheckedNodes(false, true)</code> 重置基准后发生变化的节点——大权限树只提交 diff。</p>
+
+  <h3>3.4 场景四：局部更新节点</h3>
+<pre class="code" data-lang="js"><code>var node = treeObj.getNodeByParam('id', 42);
+node.name = '新名称';
+treeObj.updateNode(node);          // ⭐ 只更新这一个节点的显示
+treeObj.addNodes(parentNode, -1, newNode);   // 局部增节点
+treeObj.removeNode(node);                    // 局部删节点</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：懒加载与勾选已跑通。</p>
+
+  <h3>4.1 懒加载 + 勾选的组合陷阱：未加载子级的勾选语义</h3>
+  <p>懒加载树上勾选父节点时，<strong>子级还没加载，"全选子级"只作用于已加载部分</strong>——提交时要区分"显式勾选"与"未加载的隐含范围"。工程方案：权限树用<strong>全量加载</strong>（权限节点通常几百个，可接受）或提交时把父勾选展开为完整子树 id（后端展开）。<strong>懒加载适合浏览型树，慎用于勾选语义严格的树</strong>。</p>
+
+  <h3>4.2 expandAll 的请求风暴</h3>
+  <p>懒加载模式下 <code>expandAll(true)</code> 会<strong>级联触发每一层的异步请求</strong>——千节点树瞬间发出成百个请求。对策：<strong>按需展开</strong>（只展开第一层或用户上次浏览的路径）；确需"展开到某节点"用 <code>expandNode</code> 逐层并等待 onAsyncSuccess。原文示例里 <code>onAsyncSuccess: () =&gt; expandAll(false)</code> 的意图正是加载完成后收敛，注意别写成 true。</p>
+
+  <h3>4.3 搜索定位：getNodeByParam + expandNode 组合</h3>
+  <p>大树中"搜索节点并定位"的经典组合：按名称模糊匹配出目标节点（<code>getNodesByParamFuzzy</code>）→ 沿祖先链 <code>expandNode</code> 逐层展开 → <code>selectNode</code> 选中。懒加载树定位未加载的节点需要后端支持"按 id 反查祖先链"接口。</p>
+
+  <h3>4.4 jQuery 生态在 Vue 项目的共存</h3>
+  <p>老项目（如 qiankun 子应用）在 Vue 里用 zTree 的封装模式：<strong>包一层 Vue 组件</strong>——mounted 里 init、props 变化时走局部 API 同步、beforeDestroy 里 destroy。注意 zTree 的事件回调里拿不到 Vue 响应式上下文，需要在 init 时闭包捕获或用回调转发。<strong>这是"遗产组件资产化"的标准做法：包壳隔离，不混写。</strong></p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="ZTree 异步懒加载流程示意图">
       <defs>
@@ -601,96 +699,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 ZTree 异步懒加载流程（示意）</p>
   </div>
-  <h3>横向对比：zTree vs Element el-tree</h3>
-  <table>
-    <colgroup><col style="width:18%"><col style="width:41%"><col style="width:41%"></colgroup>
-    <thead><tr><th>维度</th><th>zTree</th><th>Element el-tree</th></tr></thead>
-    <tbody>
-      <tr><td>技术栈</td><td>jQuery 时代经典组件</td><td>Vue 原生组件</td></tr>
-      <tr><td>数据模型</td><td>扁平 id/pId 数组</td><td>嵌套 children 树</td></tr>
-      <tr><td>取舍</td><td>老项目/既有 jQuery 生态沿用</td><td>新项目 Vue 体系优先</td></tr>
-    </tbody>
-  </table>
-  <div class="diagram">
-    <svg viewBox="0 0 800 160" role="img" aria-label="zTree与el-tree对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">树形组件怎么选？（示意）</text>
-
-      <!-- zTree -->
-      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">zTree（jQuery 时代）</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">扁平 id/pId 数组数据模型</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">异步懒加载、勾选联动成熟</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">老项目 jQuery 生态沿用</text>
-
-      <!-- el-tree -->
-      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Element el-tree（Vue）</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">嵌套 children 树数据模型</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">Vue 原生组件、和 ElementUI 生态一致</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">新项目 Vue 体系优先</text>
-    </svg>
-    <p class="diagram-caption">图 1 zTree vs el-tree（示意）</p>
-  </div>
-  <p class="lead"><b>一句话定位</b>：既有项目沿用 zTree，新项目按技术栈选 el-tree。</p>
-  <ul>
-    <li><strong>沿用 zTree</strong>：可视化大屏系统 等既有 jQuery 生态项目。</li>
-    <li><strong>选 el-tree</strong>：新项目 Vue 体系优先。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 树数据模型（扁平 id/pId）</h3>
-  <p class="lead"><b>一句话定位</b>：扁平数组与后端自关联 parent_id 表结构天然对应，直接透传。</p>
-  <ul>
-    <li><strong>节点字段</strong>：<code>{ id, pId, name, open, isParent }</code>。</li>
-  </ul>
-  <h3>2.2 异步懒加载（Async）</h3>
-  <p class="lead"><b>一句话定位</b>：展开节点时自动请求子级，按需加载。</p>
-  <ul>
-    <li><strong>配置</strong>：<code>async: { enable, url, autoParam: ['id'] }</code>。</li>
-    <li><strong>标记</strong>：<code>isParent: true</code> 有子级待加载，<code>false</code> 是叶子。</li>
-  </ul>
-  <h3>2.3 勾选联动（Check）</h3>
-  <p class="lead"><b>一句话定位</b>：父子勾选联动，半选回显。</p>
-  <ul>
-    <li><strong>配置</strong>：开 <code>check</code>，<code>chkStyle: 'checkbox'</code>，<code>chkboxType</code> 控制父子联动方向。</li>
-  </ul>
-  <h3>2.4 展开折叠（Expand）</h3>
-  <p class="lead"><b>一句话定位</b>：open 控制初始展开，展开事件与懒加载联动。</p>
-  <ul>
-    <li><strong>做法</strong>：根层可默认展开第一层。</li>
-  </ul>
-  <h3>2.5 回调事件（Callbacks）</h3>
-  <p class="lead"><b>一句话定位</b>：在选中/勾选后同步业务，懒加载完成后做后置处理。</p>
-  <ul>
-    <li><strong>回调</strong>：<code>onClick/onCheck/onExpand/onAsyncSuccess</code>。</li>
-  </ul>
-  <h3>2.6 自定义图标与编辑（Custom）</h3>
-  <p class="lead"><b>一句话定位</b>：按节点类型显示不同图标。</p>
-  <ul>
-    <li><strong>做法</strong>：<code>icon</code> 自定义图标；<code>edit</code> 配置支持改名/删除按钮。</li>
-  </ul>
-  <h3>2.7 数据操作 API（TreeNodes API）</h3>
-  <p class="lead"><b>一句话定位</b>：局部增删改不重新整棵渲染——性能关键。</p>
-  <ul>
-    <li><strong>API</strong>：<code>getNodes/getCheckedNodes/addNode/removeNode/updateNode</code>。</li>
-  </ul>
-  <h3>2.8 性能（Performance）</h3>
-  <p class="lead"><b>一句话定位</b>：懒加载 + 局部 API，把可见节点压到少量。</p>
-  <ul>
-    <li><strong>原则</strong>：避免一次性渲染上千节点 DOM、避免整树重建。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 勾选联动机制</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="ZTree 勾选联动示意图">
       <defs>
@@ -711,146 +719,154 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 勾选联动方向（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 最小树</h3>
-<pre class="code" data-lang="js"><code>var setting = {
-  data: { simpleData: { enable: true, idKey: 'id', pIdKey: 'pId', rootPId: 0 } },
-  callback: { onClick: (e, treeNode) => onSelect(treeNode) }
-};
-var zNodes = [{ id: 1, pId: 0, name: '根节点' }, { id: 2, pId: 1, name: '子节点' }];
-$.fn.zTree.init($('#tree'), setting, zNodes);</code></pre>
-  <h3>4.2 写法对比：静态 vs 异步懒加载</h3>
-<pre class="code" data-lang="js"><code>// 写法 A：一次性静态数据（小树）
-// 写法 B：异步懒加载（大树）
-var setting = {
-  async: {
-    enable: true,
-    url: '/api/tree/children',
-    autoParam: ['id'],
-    dataFilter: (treeId, parentNode, response) => response.data
-  },
-  data: { simpleData: { enable: true, pIdKey: 'pId', rootPId: 0 } }
-};</code></pre>
-  <div class="note"><strong>取舍</strong>：小树用静态；大节点/深树用异步懒加载，展开哪层加载哪层。</div>
-  <h3>4.3 取勾选节点</h3>
-<pre class="code" data-lang="js"><code>var treeObj = $.fn.zTree.getZTreeObj('tree');
-var checked = treeObj.getCheckedNodes(true);</code></pre>
-  <p><code>getCheckedNodes(true)</code> 取全部当前勾选节点；若权限树只需增量提交变化项，用 <code>treeObj.getChangeCheckedNodes()</code>，它返回勾选状态相比上次保存发生改变的节点，避免全量回写。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景（业务量级/场景）</h3>
-  <p class="lead"><b>一句话定位</b>：可视化大屏系统 设备/组织树节点多、层级深，全量加载卡顿。</p>
-  <ul>
-    <li><strong>场景</strong>：设备树需懒加载 + 勾选联动选设备。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <p class="lead"><b>一句话定位</b>：树组件层前端，负责异步加载与勾选联动。</p>
-  <ul>
-    <li><strong>分工</strong>：在可视化大屏系统 子应用里封装 ZTree 懒加载树。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>前端</strong>：可视化大屏系统（Qiankun 5+ 子应用）+ ZTree。</li>
-  </ul>
-
-  <h3>5.4 落地设计（关键选型理由）</h3>
-  <p class="lead"><b>一句话定位</b>：simpleData 组装、async 展开加载、chkboxType 父子联动。</p>
-  <ul>
-    <li><strong>数据</strong>：后端按 parent_id 返扁平节点，<code>simpleData</code> 组装。</li>
-    <li><strong>性能</strong>：<code>async</code> 展开时请求子级，<code>updateNode/addNode</code> 局部更新。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-<pre class="code" data-lang="js"><code>var setting = {
-  async: { enable: true, url: '/api/device/children', autoParam: ['id'] },
-  check: { enable: true, chkboxType: { 'Y': 'ps', 'N': 'ps' } },
-  data: { simpleData: { enable: true, pIdKey: 'pId', rootPId: 0 } },
-  callback: {
-    onAsyncSuccess: () =&gt; treeObj.expandAll(false)
-  }
-};</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>isParent 标错</strong>：按后端是否有子级设对 isParent，否则展开箭头错。</li>
-    <li><span class="tag-pit">坑</span><strong>expandAll 请求风暴</strong>：懒加载完成整树 expandAll 级联请求——按需展开。</li>
-    <li><span class="tag-pit">坑</span><strong>勾选方向不符</strong>：按业务调 <code>chkboxType</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>更新误重新 init</strong>：用 <code>updateNode</code>，否则展开/勾选状态丢失。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>体验</strong>：大节点树展开流畅，不再首屏全量加载。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端约定 parent_id 扁平数据与子级接口。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>isParent 决定能否展开</strong>：数据准备时务必标对。</li>
-    <li><span class="tag-point">要点</span><strong>局部更新保状态</strong>：别整树重建。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-key">实战要点</span>「可视化大屏系统 大节点树全量加载卡，实践中常采用 ZTree simpleData+async 懒加载、chkboxType 父子联动、updateNode 局部更新，避免 expandAll 请求风暴。」</p>
+  <p><strong>读图要点</strong>：①懒加载链路的每一环都依赖数据标对——<strong>isParent 错一环全链路断</strong>（无箭头=无法展开=永远不请求）；②勾选联动是双向两路：父→子全选、子→父半选回显，chkboxType 决定哪些路通。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 isParent 标记错误</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p>设备树完整配置（懒加载 + 勾选联动 + 局部更新）：</p>
+
+  <h3>6.1 完整配置</h3>
+<pre class="code" data-lang="js"><code>var setting = {
+  async: {
+    enable: true,
+    url: '/api/device/children',
+    autoParam: ['id'],
+    dataFilter: (treeId, parentNode, res) =&gt; res.data
+  },
+  check: { enable: true, chkStyle: 'checkbox', chkboxType: { Y: 'ps', N: 'ps' } },
+  data: { simpleData: { enable: true, pIdKey: 'pId', rootPId: 0 } },
+  view: { selectedMulti: false },
+  callback: {
+    onCheck: (e, treeId, node) =&gt; console.log('勾选变化:', node.name, node.checked),
+    onAsyncError: (e, treeId, node) =&gt; console.error('子级加载失败', node)
+  }
+};
+// 首次：后端只返回根层节点（每个标好 isParent）
+var treeObj = $.fn.zTree.init($('#deviceTree'), setting, rootNodes);
+
+// 保存：只提交变化项
+function saveChecked() {
+  var changed = treeObj.getChangeCheckedNodes();
+  var ids = changed.map(n =&gt; n.id);
+  fetch('/api/device/perm', { method: 'POST', body: JSON.stringify({ ids }) });
+}
+
+// 改名：局部更新，不重建树
+function rename(id, newName) {
+  var node = treeObj.getNodeByParam('id', id);
+  node.name = newName;
+  treeObj.updateNode(node);
+}</code></pre>
+
+  <h3>6.2 逐段解析</h3>
   <ul>
-    <li><strong>现象</strong>：节点无展开箭头或重复请求。</li>
+    <li><strong>rootNodes 只有根层</strong>：首屏请求数 = 根节点数，展开才拉子级；</li>
+    <li><strong>chkboxType 'ps'</strong>：勾父全选子、勾子半选回显父——设备树"选整个部门"的标准语义；</li>
+    <li><strong>getChangeCheckedNodes 增量保存</strong>：千节点权限树只提交 diff；</li>
+    <li><strong>rename 走 updateNode</strong>：树的其他部分（展开/勾选/懒加载进度）分毫不动。</li>
   </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：按是否有子级正确设 isParent。</p>
-  <h3>6.2 懒加载后整树展开</h3>
-  <ul>
-    <li><strong>现象</strong>：级联请求风暴。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：按需展开，不一次性 expandAll。</p>
-  <h3>6.3 更新节点整树重建</h3>
-  <ul>
-    <li><strong>现象</strong>：展开/勾选状态丢失。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：用 updateNode/addNode 局部更新。</p>
-  <h3>6.4 chkboxType 联动方向不符预期</h3>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：按业务调父子联动方向。</p>
-  <h3>6.5 一次性渲染全树</h3>
-  <ul>
-    <li><strong>现象</strong>：大树卡顿。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span>正解：用异步懒加载，可见节点压到少量。</p>
+
+  <h3>6.3 生产改造扩展方向</h3>
+  <ol>
+    <li>加搜索定位：模糊匹配 + 祖先链展开 + 选中（4.3）；</li>
+    <li>勾选语义严格场景改全量加载并评估节点量（4.1）；</li>
+    <li>包装成 Vue 组件（props 进、事件出），与 qiankun 主应用通信（4.4）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑，每条五要素。</p>
+
+  <h3>7.1 坑 1：isParent 标记错误</h3>
   <ul>
-    <li>zTree 官方文档（数据模型/异步/勾选完整索引）：<a href="https://treejs.cn/" rel="noopener">treejs.cn</a></li>
-    <li>zTree GitHub：<a href="https://github.com/zTree/zTree_v3" rel="noopener">github.com/zTree/zTree_v3</a></li>
+    <li><strong>现象</strong>：有子级的节点没展开箭头（永远加载不了），或叶子节点有箭头（展开后空、白请求）；</li>
+    <li><strong>根因</strong>：isParent 是懒加载的信号灯，后端数据没标或标反；</li>
+    <li><strong>复现</strong>：把叶子节点 isParent 置 true 再展开；</li>
+    <li><strong>修复</strong>：后端按"是否有子级"正确输出 isParent（有 children 计数即可判断）；</li>
+    <li><strong>规避</strong>：接口契约写明 isParent 语义，联调时抽查三类节点（根/中间/叶）。</li>
   </ul>
-  <h3>对照</h3>
+  <h3>7.2 坑 2：懒加载后 expandAll 请求风暴</h3>
   <ul>
-    <li>Element Plus el-tree（Vue 体系对照）：<a href="https://element-plus.org/" rel="noopener">element-plus.org</a></li>
+    <li><strong>现象</strong>：一行 expandAll(true) 触发成百个请求，接口被打爆；</li>
+    <li><strong>根因</strong>：级联展开每一层都触发 async 请求；</li>
+    <li><strong>修复</strong>：按需展开——只展开第一层或用户浏览路径；确需展开到某节点逐层等待 onAsyncSuccess；</li>
+    <li><strong>规避</strong>：懒加载树禁用"一键展开全部"类功能（或先全量加载再允许）。</li>
   </ul>
+  <h3>7.3 坑 3：更新节点整树重建</h3>
+  <ul>
+    <li><strong>现象</strong>：改一个节点名，整树刷新——展开状态、勾选状态全丢；</li>
+    <li><strong>根因</strong>：重新调 init 重建（或直接换数据源重新渲染）；</li>
+    <li><strong>修复</strong>：一律走 updateNode/addNodes/removeNode 局部 API（2.4）；</li>
+    <li><strong>规避</strong>：把"禁 re-init"写进封装组件，内部只暴露局部操作。</li>
+  </ul>
+  <h3>7.4 坑 4：chkboxType 联动方向不符预期</h3>
+  <ul>
+    <li><strong>现象</strong>：勾父没带子，或勾子把父也勾上了（业务不允许）；</li>
+    <li><strong>根因</strong>：chkboxType 的 Y/N/p/s 语义没对上业务；</li>
+    <li><strong>修复</strong>：按业务定方向——父带子 'ps'，子不回父 <code>{ Y: 's', N: 's' }</code>，逐一试配；</li>
+    <li><strong>规避</strong>：需求评审时明确画出联动方向图（图 2），照图配。</li>
+  </ul>
+  <h3>7.5 坑 5：一次性渲染全树</h3>
+  <ul>
+    <li><strong>现象</strong>：千节点树首屏白屏数秒；</li>
+    <li><strong>根因</strong>：静态全量数据 + 全量 DOM；</li>
+    <li><strong>修复</strong>：改异步懒加载（3.2），可见节点压到少量；</li>
+    <li><strong>规避</strong>：树组件选型时就确定加载策略——数据量决定架构。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：zTree 的扁平数据模型为什么是优点？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层价值——<strong>①契约最简</strong>：后端 parent_id 自关联表原样透传，前端不需要递归组装 children 树；<strong>②传输友好</strong>：扁平数组天然分页/分批（配合懒加载只传一层）；<strong>③组装职责单一</strong>：树形结构的正确性由 zTree 统一保证（环检测、孤儿节点处理），业务代码零树算法。<br><br>
+  <strong>对照</strong>：el-tree 的嵌套 children 模型则与前端组件语义更贴合——两种模型没有优劣，是<strong>数据主权放在后端还是前端</strong>的取向。</p>
+
+  <p><strong>Q2：大树怎么做到流畅？讲清懒加载的完整链路。</strong></p>
+  <p class="note"><strong>参考答案</strong>：链路四环——<strong>①首屏只请求根层</strong>；②节点标 <strong>isParent</strong>（信号灯：true 有箭头可展开）；③展开触发 <strong>async 请求</strong>（autoParam 带节点 id）返回该层扁平子节点；④插入渲染。<strong>可见节点数恒定在少量</strong>，性能与总节点数解耦。<br><br>
+  <strong>两个纪律</strong>：isParent 必须标对（错一环全链路断）；禁止 expandAll（级联请求风暴）——展开永远按需。</p>
+
+  <p><strong>Q3：权限树保存怎么做增量提交？</strong></p>
+  <p class="note"><strong>参考答案</strong>：用 <strong>getChangeCheckedNodes</strong>——返回勾选状态相比基准（上次保存/上次调用重置）发生变化的节点集合，只提交这些节点的 id diff。对比两种方案：全量提交（getCheckedNodes）简单但大权限树回写重、并发覆盖风险大；增量提交体积小、可审计（只记录"这次改了什么"）。<br><br>
+  <strong>注意</strong>：懒加载树上未加载的子级不在勾选语义内——勾选语义严格的权限树建议全量加载或后端展开父勾选（4.1）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>simpleData 的五个常用节点字段各是什么？isParent 的作用？</li>
+    <li>懒加载链路四环？哪一环断了整棵树废掉？</li>
+    <li>chkboxType 的 Y/N/p/s 分别什么意思？"父带子但子不回父"怎么配？</li>
+    <li>为什么更新节点不能重新 init？该用什么？</li>
+    <li>懒加载树和勾选严格树为什么冲突？工程对策？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>入门资料</h3>
+  <ul>
+    <li>zTree 官方文档与 Demo 库（异步/勾选/编辑场景全覆盖）：<a href="https://treejs.cn/" rel="noopener">treejs.cn</a></li>
+    <li>zTree GitHub（v3 源码）：<a href="https://github.com/zTree/zTree_v3" rel="noopener">github.com/zTree/zTree_v3</a></li>
+  </ul>
+  <h3>对照资料</h3>
+  <ul>
+    <li>Element Plus el-tree（Vue 体系对照，lazy load 属性语义相通）：<a href="https://element-plus.org/" rel="noopener">element-plus.org</a></li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章设备树（后端可用 mock 分层返回），实测首屏请求数；</li>
+    <li>故意把某叶子 isParent 标 true，观察展开空态并修复；</li>
+    <li>实现"搜索定位"：模糊匹配 + 祖先链逐层展开 + selectNode。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../05_前端常用工具库/08_Monaco与CodeMirror编辑器【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/06_vxe_table表格【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../05_前端常用工具库/10_vue_draggable与v-code-diff【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../05_前端常用工具库/08_Monaco与CodeMirror编辑器【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · ZTree树组件【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
