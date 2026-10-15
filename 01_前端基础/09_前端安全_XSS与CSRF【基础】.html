@@ -540,29 +540,129 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../01_前端基础/07_响应式布局_Flex与Grid【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/08_Tailwind_CSS原子化【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../01_前端基础/08_Tailwind_CSS原子化【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../01_前端基础/10_Canvas与SVG【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（真实项目）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：<strong>XSS</strong>（Cross-Site Scripting，跨站脚本）是攻击者把恶意脚本注入到你的页面里、让其他用户的浏览器执行；<strong>CSRF</strong>（Cross-Site Request Forgery，跨站请求伪造）是攻击者诱导已登录用户的浏览器，以其身份发起非本人意愿的请求。两者都发生在浏览器这一端，但防御点不同。</p>
-  <p><strong>解决什么问题</strong>：凡页面会渲染"用户输入、第三方内容、富文本"，就有 XSS 面；凡接口靠 Cookie 自动带登录态，就有 CSRF 面。低代码平台让用户拖拽自定义组件、填配置、写富文本，是 XSS 的高危场景——本页案例就取自这里。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>XSS（跨站脚本）</strong>是攻击者把恶意脚本注入你的页面、在其他用户浏览器里执行；<strong>CSRF（跨站请求伪造）</strong>是攻击者诱导已登录用户的浏览器、以其身份发起非本人意愿的请求。两者都发生在浏览器端，但<strong>防御点不同</strong>：XSS 防"脚本注入"，CSRF 防"身份冒用"。凡页面渲染用户输入/第三方内容/富文本就有 XSS 面，凡接口靠 Cookie 自动带登录态就有 CSRF 面——低代码平台（拖组件/填配置/写富文本）是 XSS 高危场景。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>v-html 直接插用户内容——脚本执行、盗号；</li>
+    <li>只过滤 &lt;script&gt;——onerror/onclick 事件属性绕过；</li>
+    <li>以为前端校验就安全——可被绕过。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>分清 <strong>XSS 三型</strong>（存储/反射/DOM）与各自场景；</li>
+    <li>讲清 <strong>CSRF 原理</strong>（Cookie 自动带的代价）与防御三件套；</li>
+    <li>落地"默认转义 + 富文本白名单清洗 + CSP + HttpOnly"四层防线；</li>
+    <li>避开四条高频坑（v-html/漏事件属性/CSRF/前端校验当边界）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：05 篇 HTTP（Cookie/CORS 机制）。<strong>难度</strong>：★★☆☆☆。<strong>务必动手</strong>：第 6 章 Demo——亲手注入一次再防御。<strong>本篇不涉及</strong>：后端纵深（SQL 注入等见 07/08 模块）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>XSS 三型</strong>→ <strong>CSRF</strong>→ <strong>转义与清洗</strong>（两个不同动作）→ <strong>CSP 与 HttpOnly</strong>（纵深防御两道闸）。</p>
+
+  <h3>2.1 XSS 三型：按"存在哪、怎么进来"分</h3>
+  <ul>
+    <li><strong>存储型（危害最大）</strong>：脚本存进数据库，每个打开页面的用户都中招——评论区/配置文案常见，持久化影响面广；</li>
+    <li><strong>反射型（需钓鱼）</strong>：脚本在 URL 参数里、服务端"反射"回页面——需诱骗用户点特定链接，一次性不持久；</li>
+    <li><strong>DOM 型（前端自己作）</strong>：不经过服务端，前端 JS 把 location.hash 插进 DOM 就触发——服务端日志看不到，纯前端问题前端修。</li>
+  </ul>
+  <p class="key-sentence"><span class="tag-point">共同点</span>：都是"渲染不可信内容时没转义"——防御核心是<strong>渲染前先转义或清洗</strong>。</p>
+
+  <h3>2.2 CSRF：Cookie 自动带的代价</h3>
+  <p><strong>原理</strong>：用户访问恶意站，恶意站自动向你的后端发请求——<strong>浏览器自动带上该用户的 Cookie</strong>，后端分不清"本人点的"还是"被伪造的"。<strong>防御</strong>：①<code>SameSite</code> Cookie（禁止跨站带）；②关键操作加 CSRF Token 或二次确认；③状态变更用 POST 且校验自定义头。</p>
+
+  <h3>2.3 转义与清洗：两个不同动作</h3>
+  <p><strong>转义（escaping）</strong>：把 <code>&lt; &gt; &amp; " '</code> 五个字符换成 HTML 实体——浏览器当文本而非标签（<strong>单引号也必须转</strong>，否则落入单引号属性/JS 字符串上下文可逃逸）。<strong>清洗（sanitize）</strong>：富文本不能整个转义（加粗/链接就没了），用<strong>白名单</strong>只保留安全标签（p/b/a），剥离 script 与 onerror 事件属性。<span class="tag-pit">坑</span>：事件属性比 script 更隐蔽——用 DOMPurify 这类成熟库，别自己写正则。</p>
+
+  <h3>2.4 CSP 与 HttpOnly：纵深防御两道闸</h3>
+  <p><strong>CSP</strong>：响应头白名单规定页面能从哪加载脚本、能否执行内联脚本——<strong>即使漏了一处注入，也阻止恶意脚本执行</strong>（最后一道闸）。<strong>HttpOnly</strong>：会话 Cookie 设 HttpOnly（配 Secure）后 <code>document.cookie</code> 读不到——<strong>即便 XSS 被打穿，注入脚本也偷不走会话</strong>，是防"XSS 盗号"最关键兜底，需后端 Set-Cookie 时下发。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：输出转义——v-text 优于 v-html</h3>
+<pre class="code" data-lang="html"><code>&lt;!-- 安全：文本插值会自动转义，不会执行脚本 --&gt;
+&lt;p&gt;{{ userInput }}&lt;/p&gt;
+&lt;!-- 危险：v-html 把字符串当 HTML 解析，注入脚本直接执行 --&gt;
+&lt;div v-html="userInput"&gt;&lt;/div&gt;</code></pre>
+
+  <h3>3.2 场景二：简易转义函数</h3>
+<pre class="code" data-lang="js"><code>function escapeHtml(str) {
+  return String(str)
+    .replace(/&amp;/g, '&amp;amp;')
+    .replace(/&lt;/g, '&amp;lt;')
+    .replace(/&gt;/g, '&amp;gt;')
+    .replace(/"/g, '&amp;quot;')
+    .replace(/'/g, '&amp;#39;');
+}</code></pre>
+
+  <h3>3.3 场景三：富文本清洗与 CSP</h3>
+<pre class="code" data-lang="js"><code>// 富文本不能直接 v-html，先用白名单清洗库
+import DOMPurify from 'dompurify';
+const clean = DOMPurify.sanitize(userRichHtml);   // 剥离 script/事件属性，保留安全标签</code></pre>
+<pre class="code" data-lang="html"><code>&lt;!-- CSP：禁止内联脚本、只允许自有源 --&gt;
+&lt;meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"&gt;</code></pre>
+
+  <h3>3.4 场景四：CSRF 防御三件套</h3>
+  <ol>
+    <li><strong>SameSite Cookie</strong>：Set-Cookie 加 <code>SameSite=Lax/Strict</code>，跨站请求不带 Cookie（治本）；</li>
+    <li><strong>CSRF Token</strong>：后端下发随机 token，前端放请求头/隐藏域，后端校验——伪造者拿不到 token；</li>
+    <li><strong>状态变更纪律</strong>：改数据的操作一律 POST/PUT + 校验自定义头，不给 GET 触发机会。</li>
+  </ol>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：四层防线已配齐。</p>
+
+  <h3>4.1 上下文转义：不同出口不同转法</h3>
+  <p>HTML 正文、属性值、JS 字符串、URL、CSS 五种"出口"各有转义规则——进 JS 字符串上下文要转 <code>\</code> 与引号，进 URL 要 encodeURIComponent。<strong>没有"一转全防"</strong>：框架的默认插值已处理最常见出口，但要 <code>v-html</code>/拼 URL/内联事件时必须重新考虑上下文。</p>
+
+  <h3>4.2 CSP 的 report-only 与 nonce</h3>
+  <p>上线 CSP 先用 <code>Content-Security-Policy-Report-Only</code> 观察违规报告（不真拦截），逐步收紧；确实需要内联脚本时用 <strong>nonce</strong>（每次响应随机值）而不是放开 <code>'unsafe-inline'</code>——后者的存在几乎等于没有 CSP。</p>
+
+  <h3>4.3 子资源完整性与可信类型</h3>
+  <p><strong>SRI</strong>：引入第三方脚本时加 <code>integrity</code> hash，CDN 被篡改即拒绝执行；<strong>Trusted Types</strong>（Chrome 系）：强制所有 DOM 注入点显式过策略，从 API 层面消灭 innerHTML 误用——渐进启用是大型工程的前端安全加固方向。</p>
+
+  <h3>4.4 点击劫持（Clickjacking）</h3>
+  <p>恶意站用透明 iframe 叠在你的页面上诱导点击。<strong>防御</strong>：<code>X-Frame-Options: DENY/SAMEORIGIN</code> 或 CSP 的 <code>frame-ancestors</code> 指令——与 XSS/CSRF 同属浏览器端基础防线。</p>
+
+  <h3>4.5 幂等键与防重（ adjacent 话题）</h3>
+  <p>状态接口防"重复提交"（非攻击但同属输入治理）：POST 带幂等键（前端生成 UUID），后端按键去重；前端"提交中"按钮 loading 置灰。<strong>防重要前后端一起做</strong>——单靠任何一端都有窗口期。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="XSS 攻击与防御位置示意图">
       <defs>
@@ -588,17 +688,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 存储型 XSS 链路与防御点（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 XSS 三型（Stored / Reflected / DOM-based）</h3>
-  <p class="lead"><b>一句话定位</b>：按脚本"存在哪、怎么进来"分三型，共同点都是"渲染不可信内容时没转义"。</p>
-  <ul>
-    <li><strong>存储型</strong>：脚本存进数据库，每个打开页面的用户都中招——危害最大，评论区/配置文案常见。</li>
-    <li><strong>反射型</strong>：脚本在 URL 参数里，服务端"反射"回页面，需诱骗用户点特定链接。</li>
-    <li><strong>DOM 型</strong>：脚本不经过服务端，前端 JS 自己把 <code>location.hash</code> 或输入插进 DOM 就触发。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="XSS三种类型对比图">
       <defs>
@@ -608,7 +697,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">XSS 三型对比（示意）</text>
 
-      <!-- 存储型 -->
       <rect x="20" y="50" width="250" height="150" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="145" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">存储型（危害最大）</text>
       <text x="35" y="100" font-size="11" fill="#4f6348">脚本存进数据库</text>
@@ -617,7 +705,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="35" y="170" font-size="11" fill="#7a8a70">低代码配置文案</text>
       <text x="35" y="192" font-size="11" font-weight="600" fill="#b91c1c">持久化、影响面广</text>
 
-      <!-- 反射型 -->
       <rect x="280" y="50" width="240" height="150" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="400" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">反射型（需钓鱼）</text>
       <text x="295" y="100" font-size="11" fill="#4f6348">脚本在 URL 参数里</text>
@@ -626,7 +713,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="295" y="170" font-size="11" fill="#7a8a70">需诱骗用户点恶意链接</text>
       <text x="295" y="192" font-size="11" font-weight="600" fill="#b45309">一次性、不持久</text>
 
-      <!-- DOM型 -->
       <rect x="530" y="50" width="250" height="150" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="655" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">DOM 型（前端自己作）</text>
       <text x="545" y="100" font-size="11" fill="#4f6348">脚本不经过服务端</text>
@@ -637,13 +723,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 XSS 三型对比（示意）</p>
   </div>
-  <p class="key-sentence"><span class="tag-point">共同点</span>防御的核心是：渲染不可信内容前先转义或清洗。</p>
-  <h3>2.2 CSRF（跨站请求伪造）</h3>
-  <p class="lead"><b>一句话定位</b>：接口靠 Cookie 自动带登录态时，恶意站能冒用用户身份发请求。</p>
-  <ul>
-    <li><strong>原理</strong>：用户访问恶意站，恶意站自动向你的后端发请求——浏览器带上该用户的 Cookie，后端分不清"本人点的"还是"被伪造的"。</li>
-    <li><strong>防御</strong>：<code>SameSite</code> Cookie、关键操作加 CSRF Token 或二次确认、状态变更用 POST 且校验自定义头。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="CSRF攻击原理图">
       <defs>
@@ -653,13 +732,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">CSRF 怎么冒用用户身份？（示意）</text>
 
-      <!-- 用户 -->
       <rect x="40" y="70" width="150" height="80" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="115" y="100" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">用户浏览器</text>
       <text x="115" y="122" text-anchor="middle" font-size="11" fill="#4f6348">已登录银行站</text>
       <text x="115" y="140" text-anchor="middle" font-size="10.5" fill="#7a8a70">Cookie 里有登录态</text>
 
-      <!-- 恶意站 -->
       <rect x="280" y="70" width="180" height="80" rx="10" fill="#fef2f2" stroke="#dc2626"/>
       <text x="370" y="100" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">恶意网站</text>
       <text x="370" y="122" text-anchor="middle" font-size="11" fill="#4f6348">页面里藏一个自动表单</text>
@@ -668,7 +745,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <line x1="190" y1="110" x2="275" y2="110" stroke="#7a8a70" marker-end="url(#arr2)"/>
       <text x="232" y="100" text-anchor="middle" font-size="10.5" fill="#7a8a70">访问恶意站</text>
 
-      <!-- 银行后端 -->
       <rect x="530" y="70" width="220" height="80" rx="10" fill="#f0fdf4" stroke="#047857"/>
       <text x="640" y="100" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">银行后端</text>
       <text x="640" y="122" text-anchor="middle" font-size="11" fill="#4f6348">收到请求 + 自动带的 Cookie</text>
@@ -677,166 +753,111 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <line x1="460" y1="110" x2="525" y2="110" stroke="#dc2626" stroke-width="2" marker-end="url(#arr2)"/>
       <text x="492" y="100" text-anchor="middle" font-size="10.5" fill="#b91c1c">自动提交</text>
 
-      <!-- 防御 -->
       <rect x="100" y="170" width="600" height="35" rx="8" fill="#f8faf0" stroke="#d8e2cc"/>
       <text x="400" y="193" text-anchor="middle" font-size="12" fill="#4f6348">防御：SameSite Cookie 禁止跨站带 Cookie / CSRF Token 验证请求真实性 / 关键操作二次确认</text>
     </svg>
     <p class="diagram-caption">图 3 CSRF 攻击原理（示意）</p>
   </div>
-  <h3>2.3 输出转义与富文本清洗（Escaping &amp; Sanitization）</h3>
-  <p class="lead"><b>一句话定位</b>：普通内容用转义，富文本用白名单清洗——别拿正则自己过滤。</p>
-  <ul>
-    <li><strong>转义</strong>：把 <code>&lt; &gt; &amp; " '</code> 五个字符换成 HTML 实体，让浏览器当文本而非标签（单引号也必须转，否则落入单引号属性或 JS 字符串上下文时可逃逸）。</li>
-    <li><strong>清洗（sanitize）</strong>：富文本不能整个转义（加粗/链接就没了），用白名单只保留安全标签（<code>&lt;p&gt;&lt;b&gt;&lt;a&gt;</code>），剥离 <code>&lt;script&gt;</code> 与 <code>onerror</code> 事件属性。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span><code>onerror/onclick</code> 事件属性比 <code>&lt;script&gt;</code> 更隐蔽，清洗库必须连事件属性一起剥——用 DOMPurify 这类成熟库，别自己写正则。</p>
-  <h3>2.4 内容安全策略（CSP）</h3>
-  <p class="lead"><b>一句话定位</b>：CSP 是纵深防御的最后一道闸——即使漏了一处注入，也能阻止恶意脚本执行。</p>
-  <ul>
-    <li><strong>机制</strong>：响应头/meta 白名单规定页面能从哪加载脚本、能否执行内联脚本。</li>
-    <li><strong>生产实践</strong>：配合 <code>Content-Security-Policy</code> 头是标准做法。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>以最危险的存储型 XSS 为例（见上图）：攻击者在输入框填 <code>&lt;script&gt;偷cookie&lt;/script&gt;</code> → 后端原样存库 → 其他用户打开页面，前端把这段内容 <code>innerHTML</code> 进去 → 浏览器当成真实脚本执行 → 盗号。防御的关键位置在"<strong>渲染到页面前</strong>"：要么转义成纯文本，要么用白名单清洗富文本，再加 CSP 兜底。理解这一点，就明白为什么"用 <code>v-text</code> 而非 <code>v-html</code>"、为什么富文本必须走清洗库。</p>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 输出转义：v-text 优于 v-html</h3>
-<pre class="code" data-lang="html"><code>&lt;!-- 安全：文本插值会自动转义，不会执行脚本 --&gt;
-&lt;p&gt;{{ userInput }}&lt;/p&gt;
-&lt;!-- 危险：v-html 把字符串当 HTML 解析，注入脚本直接执行 --&gt;
-&lt;div v-html="userInput"&gt;&lt;/div&gt;</code></pre>
-  <h3>4.2 简易 HTML 转义函数</h3>
-<pre class="code" data-lang="js"><code>function escapeHtml(str) {
-  return String(str)
-    .replace(/&amp;/g, '&amp;amp;')
-    .replace(/&lt;/g, '&amp;lt;')
-    .replace(/&gt;/g, '&amp;gt;')
-    .replace(/"/g, '&amp;quot;')
-    .replace(/'/g, '&amp;#39;');
-}</code></pre>
-  <h3>4.3 富文本清洗与 CSP</h3>
-<pre class="code" data-lang="js"><code>// 富文本不能直接 v-html，先用白名单清洗库（如 DOMPurify）
-import DOMPurify from 'dompurify';
-const clean = DOMPurify.sanitize(userRichHtml);   // 剥离 script/事件属性，保留安全标签</code></pre>
-<pre class="code" data-lang="html"><code>&lt;!-- CSP：禁止内联脚本、只允许自有源 --&gt;
-&lt;meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'"&gt;</code></pre>
-  <p class="key-sentence"><span class="tag-point">会话兜底</span>即便 XSS 被打穿，给会话 Cookie 设 <code>HttpOnly</code>（并配合 <code>Secure</code>）后，<code>document.cookie</code> 读不到它，注入脚本偷不走会话——这是防"XSS 盗号"最关键的一道兜底，需后端在 Set-Cookie 时下发。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：低代码开发平台（Vue2+ElementUI，2021）让用户拖拽组件、填配置、写富文本——典型 XSS 高危 + 状态接口 CSRF 场景。</p>
-  <ul>
-    <li><strong>业务场景</strong>：用户内容最终渲染到预览页，攻击者可在配置/富文本里塞脚本。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端开发，负责物料渲染安全与提交接口防重。</li>
-    <li><strong>团队与分工</strong>：前端若干（估算），实践中通常做前端清洗与提交防抖，后端对幂等键。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li>Vue2 + ElementUI + DOMPurify 富文本清洗 + POST 幂等键。</li>
-  </ul>
-
-  <h3>5.4 落地设计</h3>
-  <ul>
-    <li><strong>默认转义</strong>：普通配置文本一律文本插值，不用 <code>v-html</code>。</li>
-    <li><strong>富文本白名单清洗</strong>：确需富文本的字段经 DOMPurify 清洗后再渲染。</li>
-    <li><strong>状态接口防重</strong>：状态变更用 POST + 幂等键，前端提交中按钮置灰。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="html"><code>&lt;!-- 组件渲染容器：普通配置项安全渲染 --&gt;
-&lt;component :is="comp.type" :config="comp.config"&gt;
-  &lt;!-- 富文本字段先清洗 --&gt;
-  &lt;div v-html="sanitize(comp.config.description)"&gt;&lt;/div&gt;
-&lt;/component&gt;</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><strong>v-html 未清洗</strong>：早期为"富文本好看"直接 v-html 未清洗，测试塞 <code>&lt;img onerror=...&gt;</code> 真触发脚本，立刻补 DOMPurify。</li>
-    <li><strong>事件属性更隐蔽</strong>：<code>onerror/onclick</code> 比 <code>&lt;script&gt;</code> 更隐蔽，清洗库必须连事件属性一起剥。</li>
-    <li><strong>幂等键未配按钮置灰</strong>：忘了"提交中"置灰，用户连点致重复创建记录；加按钮 loading 防重。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>注入 <code>&lt;script&gt;</code>/<code>onerror</code> 的配置不再执行，重复提交被幂等键 + loading 拦住。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：与后端定幂等键生成与校验规则。</li>
-    <li><strong>联调协商</strong>：XSS 问题由安全测试同学复现，前端补清洗库、后端补 CSP。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>默认转义、显式富文本</strong>：v-html 是高危口，能不用就不用。</li>
-    <li><strong>清洗要剥事件属性</strong>：只去 <code>&lt;script&gt;</code> 不够，onerror 这类才是真攻击面。</li>
-    <li><strong>防重要前后端一起做</strong>：前端 loading + 后端幂等键双保险。</li>
-  </ul>
-
-  <h3>5.10 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>在低代码物料渲染里用"默认转义 + DOMPurify 白名单"堵掉 v-html 的 XSS，并以幂等键 + 按钮 loading 双保险防重复提交。</p>
+  <p><strong>读图要点</strong>：①图 1 的防御点全在"<strong>渲染到页面前</strong>"——转义/清洗/CSP；②图 2 三型的差别只在"脚本怎么进来"，防御动作相同；③图 3 CSRF 的关键是"Cookie 自动带"这一浏览器默认行为——攻击者不需要拿到 Cookie，只需要让你的浏览器"替他带上"。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 v-html / innerHTML 直接插用户内容</h3>
-  <p class="lead"><b>一句话定位</b>：直接插用户内容进 v-html/innerHTML，脚本会被执行。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：低代码平台（Vue2+ElementUI，2021）真实落地——用户拖组件/填配置/写富文本，典型 XSS 高危 + 状态接口防重场景。</p>
+
+  <h3>6.1 完整防御代码</h3>
+<pre class="code" data-lang="html"><code>&lt;!-- 物料渲染容器：普通配置项安全渲染 --&gt;
+&lt;component :is="comp.type" :config="comp.config"&gt;
+  &lt;!-- 富文本字段先清洗再 v-html --&gt;
+  &lt;div v-html="sanitize(comp.config.description)"&gt;&lt;/div&gt;
+&lt;/component&gt;</code></pre>
+
+  <h3>6.2 踩坑记录（真实问题与解法）</h3>
   <ul>
-    <li><strong>现象</strong>：用户输入含脚本被执行。</li>
-    <li><strong>正解</strong>：默认转义；必须富文本时白名单清洗。</li>
+    <li><strong>v-html 未清洗</strong>：早期为"富文本好看"直接 v-html，测试塞 <code>&lt;img onerror=...&gt;</code> 真触发脚本——立刻补 DOMPurify；</li>
+    <li><strong>事件属性更隐蔽</strong>：onerror/onclick 比 script 隐蔽，清洗库必须连事件属性一起剥；</li>
+    <li><strong>幂等键未配按钮置灰</strong>：忘了"提交中"置灰，用户连点重复创建记录——加按钮 loading + 幂等键双保险。</li>
   </ul>
-  <h3>6.2 只防 &lt;script&gt;，漏了事件属性</h3>
-  <p class="lead"><b>一句话定位</b>：onerror/onclick 这类事件属性比 script 更隐蔽，正则过滤会漏。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>&lt;img src=x onerror=恶意代码&gt;</code> 绕过了过滤。</li>
-    <li><strong>正解</strong>：用成熟清洗库（如 DOMPurify），不要自己写正则过滤。</li>
-  </ul>
-  <h3>6.3 CSRF：Cookie 自动带登录态的风险</h3>
-  <p class="lead"><b>一句话定位</b>：浏览器会自动带 Cookie，恶意站可借登录态发请求。</p>
-  <ul>
-    <li><strong>正解</strong>：关键接口用 POST + CSRF Token 或 <code>SameSite=Lax/Strict</code> Cookie；状态变更要校验。</li>
-  </ul>
-  <h3>6.4 前端校验不是安全边界</h3>
-  <p class="lead"><b>一句话定位</b>：前端转义只是体验与第一道防线，可被绕过。</p>
-  <ul>
-    <li><strong>现象</strong>：以为前端转义就安全。</li>
-    <li><strong>正解</strong>：服务端仍必须对输入校验/输出编码。</li>
-  </ul>
+
+  <h3>6.3 落地设计四条</h3>
+  <ol>
+    <li><strong>默认转义</strong>：普通配置文本一律文本插值，不用 v-html；</li>
+    <li><strong>富文本白名单清洗</strong>：确需富文本的字段经 DOMPurify 清洗后再渲染；</li>
+    <li><strong>状态接口防重</strong>：POST + 幂等键（与后端契约），前端提交中置灰；</li>
+    <li><strong>后端兜底</strong>：服务端仍须输入校验/输出编码 + CSP 头 + HttpOnly Cookie。</li>
+  </ol>
+
+  <h3>6.4 验证与经验</h3>
+  <ol>
+    <li>注入 <code>&lt;script&gt;</code> 与 <code>&lt;img onerror&gt;</code>：配置不再执行；</li>
+    <li>连点提交：幂等键 + loading 拦住重复记录；</li>
+    <li><strong>经验</strong>：默认转义、显式富文本（v-html 是高危口）；清洗要剥事件属性（onerror 才是真攻击面）；防重前后端双保险。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑。</p>
+
+  <h3>7.1 v-html / innerHTML 直接插用户内容</h3>
+  <p><strong>现象</strong>：用户输入含脚本被执行。<strong>正解</strong>：默认转义（文本插值）；必须富文本时白名单清洗。</p>
+
+  <h3>7.2 只防 script，漏了事件属性</h3>
+  <p><strong>现象</strong>：<code>&lt;img src=x onerror=恶意代码&gt;</code> 绕过过滤。<strong>根因</strong>：正则过滤注定不全。<strong>正解</strong>：成熟清洗库（DOMPurify），不自己写正则。</p>
+
+  <h3>7.3 CSRF：Cookie 自动带登录态的风险</h3>
+  <p><strong>正解</strong>：关键接口 POST + CSRF Token 或 SameSite=Lax/Strict；状态变更一律校验（3.4 三件套）。</p>
+
+  <h3>7.4 前端校验当安全边界</h3>
+  <p><strong>误区</strong>：以为前端转义就安全。<strong>正解</strong>：前端只是体验与第一道防线，<strong>可被绕过</strong>——服务端必须输入校验/输出编码。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：XSS 三型的区别与统一防御？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>存储型</strong>——脚本入库，每个访问者中招（危害最大）；<strong>反射型</strong>——脚本在 URL 参数被回显，需钓鱼诱导；<strong>DOM 型</strong>——不经服务端，前端 JS 把不可信数据插进 DOM，日志看不到。<strong>统一防御</strong>：渲染不可信内容前转义（普通文本）或白名单清洗（富文本），加 CSP 兜底、HttpOnly Cookie 保会话。<strong>关键认知</strong>：防御点在"输出时"而非"输入时"——输入无法预知会被渲染到什么上下文（正文/属性/JS/URL）。</p>
+
+  <p><strong>Q2：CSRF 是怎么冒用身份的？与 XSS 的区别？</strong></p>
+  <p class="note"><strong>参考答案</strong>：CSRF 利用的是<strong>浏览器自动带 Cookie</strong> 的默认行为——用户已登录目标站，访问恶意站时恶意站自动向目标站发请求，浏览器带上用户 Cookie，后端无法区分本人操作与伪造。XSS 与 CSRF 区别：XSS 是"在你的页面里执行脚本"（可偷数据、可冒充一切操作），CSRF 是"从站外冒用你的登录态发请求"（受同源策略限制读不到响应，只能"盲发"）。<strong>防御</strong>：SameSite Cookie（治本）、CSRF Token（验证真实性）、状态变更 POST+校验头。</p>
+
+  <p><strong>Q3：转义和清洗有什么区别？富文本为什么不能转义了事？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>转义</strong>把 <code>&lt;&gt;&amp;"'</code> 换成实体——内容变成纯文本，适合标题/评论等普通输入；<strong>清洗</strong>按白名单保留安全标签、剥离 script 与 onerror 等事件属性——适合确需排版的富文本。<strong>富文本不能转义了事</strong>：转义后加粗/链接全变成可见字符，功能丧失。清洗必须用成熟库（DOMPurify）——自写正则必漏事件属性与编码变体。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>XSS 三型各自"脚本怎么进来"？哪个危害最大？</li>
+    <li>为什么转义要在输出时做而不是输入时？</li>
+    <li>CSRF 的攻击前提？SameSite 为什么是治本？</li>
+    <li>HttpOnly 防的是什么？为什么说是 XSS 盗号的兜底？</li>
+    <li>为什么"前端校验不是安全边界"？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>OWASP Top 10（Web 安全权威清单，含 XSS/CSRF）：<a href="https://owasp.org/www-project-top-ten/" rel="noopener">owasp.org/www-project-top-ten</a></li>
-    <li>MDN 内容安全策略 CSP：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CSP" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/HTTP/CSP</a></li>
+    <li>OWASP Top 10（Web 安全权威清单）：<a href="https://owasp.org/www-project-top-ten/" rel="noopener">owasp.org/www-project-top-ten</a></li>
+    <li>MDN 内容安全策略 CSP：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/CSP" rel="noopener">MDN · CSP</a></li>
     <li>DOMPurify 富文本清洗库：<a href="https://github.com/cure53/DOMPurify" rel="noopener">github.com/cure53/DOMPurify</a></li>
   </ul>
   <h3>书籍</h3>
   <ul>
-    <li>《Web 安全攻防实战》——前端常见漏洞与防御的入门书。</li>
+    <li>《Web 安全攻防实战》——前端常见漏洞与防御入门。</li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>建一个最小页面：v-html 插入 <code>&lt;img onerror&gt;</code> 亲眼看脚本执行，再接 DOMPurify 修复；</li>
+    <li>给自己项目加 CSP Report-Only，看一周违规报告再收紧；</li>
+    <li>检查登录态存储方式：Cookie 是否 HttpOnly/Secure，localStorage Token 是否有 XSS 面。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../01_前端基础/07_响应式布局_Flex与Grid【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../01_前端基础/08_Tailwind_CSS原子化【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../01_前端基础/08_Tailwind_CSS原子化【标准】.html">下一篇 →</a>
 </nav>
