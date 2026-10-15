@@ -542,27 +542,149 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/04_状态管理_Vuex与Pinia【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/07_微前端架构_Qiankun【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学+Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：React 是用于构建用户界面的 JavaScript 库。它的核心心智是<strong>声明式</strong>：你描述"界面在状态下长什么样"，状态变化时 React 重跑组件函数、对比出差异再更新 DOM。组件是函数，返回 JSX（看起来像 HTML 的 JS 语法）。Hooks 让函数组件能拥有状态和副作用。</p>
-  <p><strong>解决什么问题</strong>：和 Vue 一样，把"状态到视图"的同步自动化。区别在于范式：Vue 是"可变状态 + 框架代理拦截"（改 data 触发更新），React 是"不可变 + 重渲染"（setState 后整个组件函数重跑）。理解这个差异，是 React 与 Vue 对照的关键。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位</h3>
+  <p><strong>React 是构建用户界面的 JS 库，核心心智是声明式</strong>：描述"界面在状态下长什么样"，状态变化时 React <strong>重跑组件函数</strong>、diff 出差异再更新 DOM。组件是函数、返回 JSX；Hooks 让函数组件拥有状态与副作用。<strong>与 Vue 的范式差异</strong>是理解 React 的钥匙：Vue 是"可变状态 + 框架代理拦截"（改 data 精确更新），React 是<strong>"不可变 + 重渲染"</strong>（setState 后整个组件函数重跑，内部 diff）。</p>
+
+  <h3>1.2 痛点</h3>
+  <ul>
+    <li>被问"React 与 Vue 差异"没有体感——没亲手写过；</li>
+    <li>stale closure（闭包拿旧 state）——React 特有坑；</li>
+    <li>Hooks 写在条件里——状态张冠李戴。</li>
+  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立"组件即函数、重渲染驱动 UI"的心智；</li>
+    <li>掌握 useState/useEffect/useRef/useContext 四件套；</li>
+    <li>讲清 <strong>Hooks 两条铁律的原理</strong>（调用顺序对应状态）；</li>
+    <li>对照 Vue 组合式 API 建立映射表；</li>
+    <li>避开四条高频坑（条件调用/依赖遗漏/直接改 state/过早优化）。</li>
+  </ol>
+  <p class="note"><strong>诚实声明</strong>：本篇为自学 + 自建 demo——企业项目全部用 Vue，React 是"横向对比 Vue 心智"目的的横向视野，如实呈现深度。</p>
+  <p><strong>前置知识</strong>：01/02 篇 Vue 组合式（对照学习）。<strong>难度</strong>：★★★☆☆。<strong>本篇不涉及</strong>：Redux/Zustand 状态库、Next.js。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>JSX 与函数组件</strong>→ <strong>useState 不可变更新</strong>→ <strong>useEffect 三模式</strong>→ <strong>Hooks 规则的原理</strong>。</p>
+
+  <h3>2.1 JSX 与函数组件</h3>
+  <p>组件是一个返回 JSX 的函数；JSX 在 JS 里写类 HTML，编译期转换（React 17+ 自动运行时编译为 <code>jsx()</code>，不再要求 import React）。<strong>属性命名 camelCase</strong>：<code>className</code> 代替 class、<code>onClick</code> 代替 onclick。</p>
+
+  <h3>2.2 useState：不可变更新的代价</h3>
+  <p><code>const [count, setCount] = useState(0)</code> 拿状态与更新函数；<strong>必须 <code>setCount(x =&gt; x + 1)</code></strong>——调用后组件函数重新执行拿新值。<span class="tag-pit">坑</span>：<code>count++</code> 直接改值不触发重渲染——React 是"不可变 + 重渲染"范式：列表更新也要 <strong>setState 新数组</strong>，不能 push 原数组。</p>
+
+  <h3>2.3 useEffect：依赖数组三种模式</h3>
+  <ul>
+    <li><strong>[] 空依赖</strong>：只挂载时跑一次、卸载时跑清理——发初始请求/绑一次监听；</li>
+    <li><strong>[count] 有依赖</strong>：count 变了重跑、重跑前先执行上次清理；</li>
+    <li><strong>不传依赖数组</strong>：每次渲染后都跑——<strong>容易死循环，几乎不用</strong>。</li>
+  </ul>
+  <p>清理函数在卸载/重跑前执行——对应 Vue 的 watch + 生命周期清理。</p>
+
+  <h3>2.4 Hooks 两条铁律的原理</h3>
+  <p>①<strong>只在顶层调用</strong>（不能放 if/for/嵌套函数）；②只在 React 函数组件里调用。<span class="tag-key">原因</span>：<strong>React 靠 Hooks 的调用顺序记录每次渲染的状态</strong>——用一个链表记"第几个 Hook 对应哪份状态"，顺序变了就把 A 的状态装到 B 上（张冠李戴）。常用补充：<code>useRef</code>（DOM 引用/跨渲染保留可变值不触发重渲染）、<code>useContext</code>（跨层级传值，对应 Vue provide/inject）；<code>React.StrictMode</code> 开发模式 effect 挂载-卸载-再挂载执行两次——<strong>清理函数必须幂等</strong>。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最小 Hooks 组件</h3>
+<pre class="code" data-lang="jsx"><code>import { useState, useEffect } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() =&gt; {
+    document.title = `点击 ${count} 次`;   // 副作用：随 count 变化
+  }, [count]);                              // 依赖 count，变了重跑
+
+  return &lt;button onClick={() =&gt; setCount(c =&gt; c + 1)}&gt;{count}&lt;/button&gt;;
+}</code></pre>
+
+  <h3>3.2 场景二：列表的不可变更新</h3>
+<pre class="code" data-lang="jsx"><code>const [list, setList] = useState([]);
+function add(item) {
+  setList([...list, item]);        // 新数组，不能 list.push
+}
+function remove(id) {
+  setList(list.filter(x =&gt; x.id !== id));
+}</code></pre>
+
+  <h3>3.3 场景三：自定义 Hook（useRequest）</h3>
+<pre class="code" data-lang="jsx"><code>function useRequest(fetcher) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  async function run() {
+    setLoading(true);
+    try { setData(await fetcher()); }
+    finally { setLoading(false); }
+  }
+  return { data, loading, run };   // 与 Vue composable 同构
+}</code></pre>
+
+  <h3>3.4 场景四：React Hooks 与 Vue 组合式对照</h3>
+  <table>
+    <colgroup><col style="width:33%"><col style="width:33%"><col style="width:34%"></colgroup>
+    <thead><tr><th>概念</th><th>React</th><th>Vue 组合式</th></tr></thead>
+    <tbody>
+      <tr><th>状态</th><td>useState</td><td>ref / reactive</td></tr>
+      <tr><th>派生值</th><td>useMemo</td><td>computed</td></tr>
+      <tr><th>副作用</th><td>useEffect</td><td>watch / watchEffect</td></tr>
+      <tr><th>复用逻辑</th><td>自定义 Hook</td><td>composable</td></tr>
+      <tr><th>触发更新</th><td>整个组件重跑</td><td>精确依赖更新</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：四件套与对照表已掌握。</p>
+
+  <h3>4.1 useMemo 与 useCallback</h3>
+  <p><strong>useMemo</strong> 缓存计算结果（对应 computed，但<strong>必须手动声明依赖</strong>）；<strong>useCallback</strong> 缓存函数引用——传给 memo 子组件时防止"函数每次新建导致子组件白 memo"。两者都是性能工具，<strong>别过早用</strong>。</p>
+
+  <h3>4.2 React.memo 与渲染优化</h3>
+  <p><code>React.memo(Comp)</code> 对 props 浅比较跳过重渲染。React 默认重渲染很快（diff 高效），<strong>遇到瓶颈再优化</strong>——一有状态变就包 memo 是过早优化，还会引入依赖引用相等的新坑。</p>
+
+  <h3>4.3 stale closure 的系统理解</h3>
+  <p>组件函数每次渲染都是一个<strong>新的闭包</strong>，捕获当次的 state；异步回调/漏依赖的 effect 里持有旧闭包就是 stale closure。<strong>解法</strong>：依赖数组写全；setState 用函数式更新 <code>setX(x =&gt; x + 1)</code>（不依赖闭包值）；定时器等长期持有的值放 useRef。</p>
+
+  <h3>4.4 Context 与状态下放</h3>
+  <p>useContext 跨层级传值（对应 provide/inject），但 <strong>value 变化会让所有消费组件重渲染</strong>——高频变化的状态别塞 Context，拆分 Provider 或下放到状态库（Redux/Zustand，本篇不展开）。</p>
+
+  <h3>4.5 与 Vue 心智的差异总结</h3>
+  <ul>
+    <li><strong>响应式实现</strong>：React 无代理层——每次渲染重新执行函数、靠 diff；Vue 有依赖收集、精确更新；</li>
+    <li><strong>依赖声明</strong>：React 手动声明依赖数组（可漏）；Vue 自动追踪（无需声明）；</li>
+    <li><strong>模板 vs JSX</strong>：Vue 模板受限但编译期可优化；JSX 全 JS 表达力但全靠运行时。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="React 状态变化触发重渲染的数据流示意图">
       <defs>
@@ -587,29 +709,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 React 的渲染循环（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 JSX 与函数组件</h3>
-  <p class="lead"><b>一句话定位</b>：组件是一个返回 JSX 的函数；JSX 在 JS 里写类 HTML，编译期转成创建元素的函数调用。</p>
-  <ul>
-    <li><strong>本质</strong>：经典转换把 JSX 编译成 <code>React.createElement</code>；React 17+（Vite 工程默认）采用新的自动运行时，编译为 <code>jsx()</code>，且不再要求文件里 <code>import React</code>。</li>
-    <li><strong>属性命名</strong>：用 camelCase——<code>className</code> 代替 class、<code>onClick</code> 代替 onclick。</li>
-  </ul>
-  <h3>2.2 useState：组件状态</h3>
-  <p class="lead"><b>一句话定位</b>：不能直接改状态，必须用 setter——直接改不触发渲染。</p>
-  <ul>
-    <li><strong>声明</strong>：<code>const [count, setCount] = useState(0)</code> 拿到状态与更新函数。</li>
-    <li><strong>更新</strong>：必须 <code>setCount(x =&gt; x + 1)</code>；调用后组件函数重新执行拿新值。</li>
-  </ul>
-  <p class="pit-sentence"><span class="tag-pit">坑</span><code>count++</code> 直接改值不触发重渲染——React 是"不可变 + 重渲染"范式。</p>
-  <h3>2.3 useEffect：副作用</h3>
-  <p class="lead"><b>一句话定位</b>：处理渲染之外的事（发请求/订阅/操作 DOM），依赖数组决定何时重跑。</p>
-  <ul>
-    <li><strong>时机</strong>：空依赖数组只在挂载时跑一次。</li>
-    <li><strong>清理</strong>：返回的清理函数在卸载/重跑前执行，类似 Vue 的 watch + 生命周期清理。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="useEffect依赖数组三种模式对比">
       <defs>
@@ -619,7 +718,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">useEffect 依赖数组：什么时候重跑？</text>
 
-      <!-- 空依赖 -->
       <rect x="30" y="50" width="240" height="140" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="150" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">[] 空依赖</text>
       <text x="150" y="100" text-anchor="middle" font-size="11" fill="#4f6348">只在挂载后跑一次</text>
@@ -627,7 +725,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="150" y="155" text-anchor="middle" font-size="10.5" fill="#7a8a70">场景：发一次初始请求</text>
       <text x="150" y="175" text-anchor="middle" font-size="10.5" fill="#7a8a70">绑定一次事件监听</text>
 
-      <!-- 有依赖 -->
       <rect x="285" y="50" width="240" height="140" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="405" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">[count] 有依赖</text>
       <text x="405" y="100" text-anchor="middle" font-size="11" fill="#4f6348">count 变了就重跑</text>
@@ -635,7 +732,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="405" y="155" text-anchor="middle" font-size="10.5" fill="#7a8a70">场景：count 变化后</text>
       <text x="405" y="175" text-anchor="middle" font-size="10.5" fill="#7a8a70">更新 document.title</text>
 
-      <!-- 无依赖数组 -->
       <rect x="540" y="50" width="230" height="140" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="655" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">不传依赖数组</text>
       <text x="655" y="100" text-anchor="middle" font-size="11" fill="#4f6348">每次渲染后都跑</text>
@@ -645,12 +741,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 useEffect 依赖数组三种模式（示意）</p>
   </div>
-  <h3>2.4 Hooks 规则</h3>
-  <p class="lead"><b>一句话定位</b>：两条铁律——只在顶层调用、只在函数组件里调用，因为 React 靠调用顺序对应状态。</p>
-  <ul>
-    <li><strong>铁律一</strong>：只在顶层调用 Hooks，不能放 if/for/嵌套函数里。</li>
-    <li><strong>铁律二</strong>：只在 React 函数组件里调用。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="Hooks调用顺序原理图">
       <defs>
@@ -660,7 +750,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">为什么 Hooks 不能写在 if 里？（示意）</text>
 
-      <!-- 正确：顺序固定 -->
       <rect x="30" y="50" width="350" height="160" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">正确：每次渲染顺序一样</text>
       <rect x="50" y="85" width="310" height="22" rx="4" fill="#fff" stroke="#047857"/>
@@ -671,7 +760,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="60" y="155" font-size="11" fill="#4f6348">第3个 useEffect → 发请求</text>
       <text x="205" y="185" text-anchor="middle" font-size="11" fill="#047857">React 按"第几个Hook"取对应状态，永远对得上</text>
 
-      <!-- 错误：if里调用 -->
       <rect x="420" y="50" width="350" height="160" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">错误：if 里调用，顺序变了</text>
       <rect x="440" y="85" width="310" height="22" rx="4" fill="#fff" stroke="#dc2626"/>
@@ -684,128 +772,75 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 Hooks 为什么不能条件调用（示意）</p>
   </div>
-  <p class="key-sentence"><span class="tag-key">原因</span>React 靠 Hooks 的调用顺序记录每次渲染的状态——顺序变了就张冠李戴。</p>
-  <p class="key-sentence"><span class="tag-key">常用 Hooks</span>除 useState/useEffect 外还有 <code>useRef</code>（持有 DOM 引用 / 跨渲染保留可变值且不触发重渲染）与 <code>useContext</code>（跨层级传值，对应 Vue 的 provide/inject）；另外 <code>React.StrictMode</code> 在开发模式下 effect 会"挂载-卸载-再挂载"执行两次，清理函数必须幂等。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p>如上图：<code>setCount</code> 触发后，React 把组件函数重新执行一遍，得到新的 JSX 树，与上一次做 diff，把差异打到真实 DOM。每次渲染，Hooks 都按同样的顺序被调用，React 用一个链表把"第几个 Hook 对应哪份状态"记下来。这解释了为什么 Hooks 不能条件调用——顺序一旦乱了，React 就会把 A 的状态装到 B 上。</p>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 一个最小 Hooks 组件</h3>
-<pre class="code" data-lang="jsx"><code>import { useState, useEffect } from 'react';
-
-function Counter() {
-  const [count, setCount] = useState(0);
-
-  useEffect(() =&gt; {
-    document.title = `点击 ${count} 次`;   // 副作用：随 count 变化
-  }, [count]);                              // 依赖 count，变了重跑
-
-  return &lt;button onClick={() =&gt; setCount(c =&gt; c + 1)}&gt;{count}&lt;/button&gt;;
-}</code></pre>
-  <h3>4.2 React Hooks 与 Vue 组合式 API 对照</h3>
-  <table>
-    <colgroup><col style="width:33%"><col style="width:33%"><col style="width:34%"></colgroup>
-    <thead><tr><th>概念</th><th>React</th><th>Vue 组合式</th></tr></thead>
-    <tbody>
-      <tr><th>状态</th><td>useState</td><td>ref / reactive</td></tr>
-      <tr><th>派生值</th><td>useMemo</td><td>computed</td></tr>
-      <tr><th>副作用</th><td>useEffect</td><td>watch / watchEffect</td></tr>
-      <tr><th>复用逻辑</th><td>自定义 Hook</td><td>composable</td></tr>
-      <tr><th>触发更新</th><td>整个组件重跑</td><td>精确依赖更新</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-  <div class="warn-box"><strong>说明</strong>：本节为<strong>自学 + 自建 Demo，非生产环境项目</strong>。实际项目中的项目（数据编排平台、低代码、业务系统、可视化大屏系统）全部用 Vue 实现；React 是以"横向对比 Vue 心智"为目的自建的最小 demo。</div>
-
-  <h3>5.1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补 React/Hooks 这块横向视野——主力是 Vue，想搞清 React 心智模型与 Vue 组合式 API 的异同。</p>
-  <ul>
-    <li><strong>动机</strong>：面试常被问"React 与 Vue 的差异"，需要亲手写过才有体感。</li>
-  </ul>
-
-  <h3>5.2 搭建的 Demo 是什么</h3>
-  <ul>
-    <li><strong>技术栈</strong>：Vite + React + Hooks。</li>
-    <li><strong>功能</strong>：计数器 + 列表（增删）+ 一个抽出来的 useRequest 自定义 Hook。</li>
-    <li><strong>规模</strong>：单页最小应用，3 个组件 + 1 个自定义 Hook。</li>
-  </ul>
-
-  <h3>5.3 落地步骤</h3>
-  <pre class="code" data-lang="jsx"><code>function useRequest(fetcher) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  async function run() {
-    setLoading(true);
-    try { setData(await fetcher()); }
-    finally { setLoading(false); }
-  }
-  return { data, loading, run };   // 与 Vue composable 同构
-}</code></pre>
-    <ol>
-      <li>用 useState 管计数器与列表，map 渲染列表。</li>
-      <li>把"请求 loading + 数据"抽成 useRequest，对照 Vue 的 composable。</li>
-    </ol>
-
-  <h3>5.4 自学过程中遇到的坑与解决</h3>
-  <ul>
-    <li><strong>stale closure</strong>：useEffect 依赖数组写漏，闭包拿到旧 state——这是 React 新手最常踩的坑，对照 Vue watchEffect 自动追踪依赖就没这个问题。</li>
-    <li><strong>不可变更新</strong>：列表要 setState 新数组，不能 push 原数组——与 Vue 的响应式替换思路相通。</li>
-  </ul>
-
-  <h3>5.5 成果</h3>
-  <ul>
-    <li>验证能力：useState/useEffect/自定义 Hook，以及"组件即函数、重渲染驱动 UI"的心智。</li>
-    <li>对照结论：请求状态封装 = React 的 useRequest = Vue 的 composable，模式相通。</li>
-  </ul>
-
-  <h3>5.6 与真实项目的差异</h3>
-  <ul>
-    <li><strong>诚实说明</strong>：纯学习 demo，未在生产用过 React；企业项目以 Vue 为主。</li>
-  </ul>
-
-  <h3>5.7 面试讲法</h3>
-  <p class="key-sentence"><span class="tag-point">实战要点</span>我主力是 Vue，React 是自建最小 demo 验证过的横向视野——能讲清 useState/useEffect 与 ref/composable 的对应，也清楚 stale closure 这个 React 特有坑。</p>
+  <p><strong>读图要点</strong>：①图 1 渲染循环是 React 一切行为的根——"重跑+diff"决定了它的性能模型与不可变纪律；②图 2 三模式的本质是"依赖数组控制重跑时机"；③图 3 是 Hooks 铁律的原理图——<strong>顺序即身份</strong>，条件调用让顺序漂移、状态错位。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 Hooks 写在条件里</h3>
-  <p class="lead"><b>一句话定位</b>：Hooks 靠调用顺序对应状态，写在条件里会张冠李戴。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：自学 + 自建 demo（Vite + React），非生产。企业项目全用 Vue，React 以"横向对比 Vue 心智"为目的，如实呈现深度。</p>
+
+  <h3>6.1 Demo 是什么</h3>
   <ul>
-    <li><strong>现象</strong>：<code>if (x) useState(...)</code>。</li>
-    <li><strong>危害</strong>：调用顺序错乱，React 状态张冠李戴。</li>
-    <li><strong>正解</strong>：Hooks 一律顶层调用，条件判断放进 Hook 内部。</li>
+    <li><strong>功能</strong>：计数器 + 列表（增删）+ useRequest 自定义 Hook；</li>
+    <li><strong>规模</strong>：单页最小应用，3 个组件 + 1 个自定义 Hook；</li>
+    <li><strong>步骤</strong>：useState 管计数器与列表、map 渲染列表 → 抽 useRequest 对照 Vue composable（3.3 代码）。</li>
   </ul>
-  <h3>6.2 useEffect 依赖遗漏</h3>
-  <p class="lead"><b>一句话定位</b>：依赖数组写漏，副作用就拿到过期的 state（闭包陷阱）。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>现象</strong>：依赖数组写漏，副作用拿到过期的 state。</li>
-    <li><strong>正解</strong>：把用到的响应式值都列进依赖，或用 useCallback/useRef 处理。</li>
+    <li><strong>stale closure</strong>：useEffect 依赖数组写漏，闭包拿到旧 state——React 新手最常踩；对照 Vue watchEffect 自动追踪依赖就没这个问题；</li>
+    <li><strong>不可变更新</strong>：列表要 setState 新数组，不能 push 原数组——与 Vue 响应式替换思路相通。</li>
   </ul>
-  <h3>6.3 直接修改 state</h3>
-  <p class="lead"><b>一句话定位</b>：直接改 state 不触发重渲染，必须传新值。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>count++</code>。</li>
-    <li><strong>正解</strong>：<code>setCount(c =&gt; c + 1)</code>，传入新值。</li>
-  </ul>
-  <h3>6.4 把"重渲染"当性能问题</h3>
-  <p class="lead"><b>一句话定位</b>：React 默认重渲染很快，遇到瓶颈再优化，别过早。</p>
-  <ul>
-    <li><strong>误区</strong>：一有状态变就觉得该优化。</li>
-    <li><strong>口径</strong>：只有遇到瓶颈再用 memo/useMemo，不要过早优化。</li>
-  </ul>
+
+  <h3>6.3 验证与对照结论</h3>
+  <ol>
+    <li>验证 useState/useEffect/自定义 Hook 与"组件即函数"心智；</li>
+    <li><strong>对照结论</strong>：请求状态封装 = React useRequest = Vue composable，<strong>模式相通、实现范式不同</strong>；</li>
+    <li>诚实说明：纯学习 demo，未在生产用过 React。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑。</p>
+
+  <h3>7.1 Hooks 写在条件里</h3>
+  <p><strong>危害</strong>：调用顺序错乱，React 状态张冠李戴（图 3 原理）。<strong>正解</strong>：Hooks 一律顶层调用，条件判断放进 Hook 内部（<code>useEffect(() =&gt; { if (x) {...} })</code>）。</p>
+
+  <h3>7.2 useEffect 依赖遗漏（stale closure）</h3>
+  <p><strong>现象</strong>：依赖写漏，副作用拿到过期 state。<strong>正解</strong>：用到的响应式值都列进依赖；或函数式 setState、useRef 处理（4.3）。</p>
+
+  <h3>7.3 直接修改 state</h3>
+  <p><strong>现象</strong>：<code>count++</code> 页面不动。<strong>根因</strong>：不可变范式。<strong>正解</strong>：<code>setCount(c =&gt; c + 1)</code> 传新值；列表同理传新数组。</p>
+
+  <h3>7.4 把"重渲染"当性能问题</h3>
+  <p><strong>误区</strong>：一有状态变就想优化。<strong>口径</strong>：React 默认重渲染很快，<strong>遇到瓶颈再用 memo/useMemo</strong>，不要过早优化。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：React 和 Vue 的核心范式差异？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>响应式实现</strong>——Vue 用代理拦截（defineProperty/Proxy）+ 依赖收集，改哪个属性就精确更新哪里；React 无代理层，setState 后<strong>整个组件函数重跑</strong>，返回新 JSX 树 diff 出最小改动。<strong>推论</strong>：①React 要求不可变更新（必须 setState 新值，直接改不触发）；②React 需要手动声明依赖数组（useEffect/useMemo），Vue 自动追踪；③React 的 Hooks 靠调用顺序对应状态（两条铁律），Vue 的 ref 是对象引用无此约束。<strong>一句话</strong>：Vue 是"推"（数据变推给订阅者），React 是"拉"（状态变整体重算拉一遍）。</p>
+
+  <p><strong>Q2：为什么 Hooks 不能写在条件语句里？</strong></p>
+  <p class="note"><strong>参考答案</strong>：React <strong>按 Hooks 的调用顺序</strong>记录每次渲染的状态（内部链表：第 N 个 Hook 对应第 N 份状态）。条件调用让某次渲染的 Hook 顺序漂移——条件不成立时，后面的 useEffect 会被当成"第 2 个 Hook"，拿到前面 useState 的状态，张冠李戴。<strong>正解</strong>：Hooks 只在顶层调用，条件逻辑写进 Hook 内部。<strong>对照</strong>：Vue 的 ref 是显式引用（const count = ref(0)），不靠顺序，无此约束。</p>
+
+  <p><strong>Q3：什么是 stale closure？怎么解决？</strong></p>
+  <p class="note"><strong>参考答案</strong>：组件函数每次渲染是<strong>新的闭包</strong>，捕获当次的 state 快照；异步回调（定时器/事件）或漏写依赖的 effect 持有旧闭包，读到过期 state——就是 stale closure。<strong>解法三件</strong>：①依赖数组写全（让 effect 拿新闭包）；②setState 用函数式更新 <code>setX(x =&gt; x + 1)</code>（不依赖闭包里的旧值）；③长期持有的可变值放 useRef（跨渲染同一引用）。<strong>对照 Vue</strong>：watchEffect 自动追踪依赖、ref 是稳定引用，结构上不会犯这个错——这是两库心智差异的典型体现。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>React 渲染循环三步？与 Vue 更新机制的本质差异？</li>
+    <li>useEffect 三种依赖模式的行为与场景？</li>
+    <li>Hooks 两条铁律的原理？</li>
+    <li>useRef 的两个用途？StrictMode 下 effect 行为？</li>
+    <li>React/Vue 概念映射表（useState→? useEffect→?）？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>React 官方文档（中文）：<a href="https://zh-hans.react.dev/" rel="noopener">zh-hans.react.dev</a></li>
@@ -815,6 +850,12 @@ function Counter() {
   <ul>
     <li>Vue 官方对两者的取舍说明：<a href="https://cn.vuejs.org/guide/extras/choosing-vue.html" rel="noopener">cn.vuejs.org/guide/extras/choosing-vue</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通第 6 章 Demo，对照 Vue 版写一遍同功能组件；</li>
+    <li>故意把 useState 写进 if 里，观察 React 报错并解释原理；</li>
+    <li>复现 stale closure（setInterval 里读 state），用函数式更新与 useRef 分别修复。</li>
+  </ol>
 </section>
 
 </main>
@@ -822,7 +863,7 @@ function Counter() {
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../02_前端框架与状态管理/04_状态管理_Vuex与Pinia【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../02_前端框架与状态管理/07_微前端架构_Qiankun【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../02_前端框架与状态管理/06_ElementUI与ElementPlus【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · React与Hooks【基础】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
