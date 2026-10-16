@@ -2,34 +2,40 @@
 window.KB_MANIFEST = {
   "groups": [
     {
+      "key": "tutorial",
+      "name": "从 0 到精通",
+      "icon": "📚",
+      "order": 1
+    },
+    {
       "key": "fe",
       "name": "前端开发",
       "icon": "🧱",
-      "order": 1
+      "order": 2
     },
     {
       "key": "server",
       "name": "服务端与数据",
       "icon": "🖥️",
-      "order": 2
+      "order": 3
     },
     {
       "key": "eng",
       "name": "工程与交付",
       "icon": "⚙️",
-      "order": 3
+      "order": 4
     },
     {
       "key": "workflow",
       "name": "研发与 AI",
       "icon": "🤝",
-      "order": 4
+      "order": 5
     },
     {
       "key": "meta",
       "name": "体系与路线",
       "icon": "🧭",
-      "order": 5
+      "order": 6
     },
     {
       "key": "misc",
@@ -39,6 +45,182 @@ window.KB_MANIFEST = {
     }
   ],
   "cats": [
+    {
+      "key": "14_从0到精通",
+      "group": "tutorial",
+      "name": "书架与总导览",
+      "icon": "📚",
+      "desc": "教科书模块：每本对应一个技术点的从 0 到精通完整学习线",
+      "arts": [
+        {
+          "t": "从 0 到精通 · 书架与总导览",
+          "f": "00_从0到精通_模块导览【精讲】.html",
+          "u": "14_从0到精通/00_从0到精通_模块导览【精讲】.html",
+          "d": "std"
+        }
+      ],
+      "order": 1
+    },
+    {
+      "key": "14_从0到精通/javascript",
+      "group": "tutorial",
+      "name": "《JavaScript 从 0 到精通》",
+      "icon": "🟨",
+      "desc": "10 篇 · 规划 97 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《JavaScript 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/javascript/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 2
+    },
+    {
+      "key": "14_从0到精通/typescript",
+      "group": "tutorial",
+      "name": "《TypeScript 从 0 到精通》",
+      "icon": "🔷",
+      "desc": "6 篇 · 规划 52 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《TypeScript 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/typescript/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 3
+    },
+    {
+      "key": "14_从0到精通/mysql",
+      "group": "tutorial",
+      "name": "《MySQL 从 0 到精通》",
+      "icon": "🐬",
+      "desc": "8 篇 · 规划 72 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《MySQL 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/mysql/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 4
+    },
+    {
+      "key": "14_从0到精通/java",
+      "group": "tutorial",
+      "name": "《Java 从 0 到精通》",
+      "icon": "☕",
+      "desc": "12 篇 · 规划 112 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《Java 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/java/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 5
+    },
+    {
+      "key": "14_从0到精通/python",
+      "group": "tutorial",
+      "name": "《Python 从 0 到精通》",
+      "icon": "🐍",
+      "desc": "6 篇 · 规划 60 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《Python 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/python/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 6
+    },
+    {
+      "key": "14_从0到精通/vue",
+      "group": "tutorial",
+      "name": "《Vue 从 0 到精通》",
+      "icon": "💚",
+      "desc": "8 篇 · 规划 78 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《Vue 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/vue/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 7
+    },
+    {
+      "key": "14_从0到精通/react",
+      "group": "tutorial",
+      "name": "《React 从 0 到精通》",
+      "icon": "⚛️",
+      "desc": "7 篇 · 规划 74 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《React 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/react/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 8
+    },
+    {
+      "key": "14_从0到精通/git",
+      "group": "tutorial",
+      "name": "《Git 从 0 到精通》",
+      "icon": "🌿",
+      "desc": "4 篇 · 规划 40 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《Git 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/git/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 9
+    },
+    {
+      "key": "14_从0到精通/nginx",
+      "group": "tutorial",
+      "name": "《Nginx 从 0 到精通》",
+      "icon": "🔁",
+      "desc": "3 篇 · 规划 32 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《Nginx 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/nginx/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 10
+    },
+    {
+      "key": "14_从0到精通/redis",
+      "group": "tutorial",
+      "name": "《Redis 从 0 到精通》",
+      "icon": "🧱",
+      "desc": "5 篇 · 规划 54 章 · 撰写中",
+      "arts": [
+        {
+          "t": "《Redis 从 0 到精通》全书目录",
+          "f": "00_目录.html",
+          "u": "14_从0到精通/redis/00_目录.html",
+          "d": "std"
+        }
+      ],
+      "order": 11
+    },
     {
       "key": "01_前端基础",
       "group": "fe",
@@ -131,7 +313,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 1
+      "order": 12
     },
     {
       "key": "02_前端框架与状态管理",
@@ -219,7 +401,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 2
+      "order": 13
     },
     {
       "key": "05_前端常用工具库",
@@ -295,7 +477,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 3
+      "order": 14
     },
     {
       "key": "03_数据可视化",
@@ -365,7 +547,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 4
+      "order": 15
     },
     {
       "key": "04_实时通信",
@@ -423,7 +605,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 5
+      "order": 16
     },
     {
       "key": "07_后端开发",
@@ -505,7 +687,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 6
+      "order": 17
     },
     {
       "key": "08_数据库与建模",
@@ -593,7 +775,7 @@ window.KB_MANIFEST = {
           "d": "basic"
         }
       ],
-      "order": 7
+      "order": 18
     },
     {
       "key": "13_Python",
@@ -627,7 +809,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 8
+      "order": 19
     },
     {
       "key": "06_前端工程化与工具链",
@@ -709,7 +891,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 9
+      "order": 20
     },
     {
       "key": "09_DevOps部署与运维",
@@ -797,7 +979,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 10
+      "order": 21
     },
     {
       "key": "10_研发流程与AI辅助",
@@ -855,7 +1037,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 11
+      "order": 22
     },
     {
       "key": "11_全面学习",
@@ -937,7 +1119,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 12
+      "order": 23
     },
     {
       "key": "12_全栈技术路线图",
@@ -995,8 +1177,8 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 13
+      "order": 24
     }
   ],
-  "total": 138
+  "total": 149
 };

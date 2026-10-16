@@ -24,15 +24,21 @@ for name in sorted(os.listdir(ROOT)):
     full = os.path.join(ROOT, name)
     if os.path.isdir(full) and re.match(r"^\d+_", name):
         CATS.append((name, full))
+        # 教科书模块：一层子目录 = 一本书（书内可再分篇子目录，递归收集）
+        for sub in sorted(os.listdir(full)):
+            subfull = os.path.join(full, sub)
+            if os.path.isdir(subfull) and not sub.startswith((".", "_")):
+                CATS.append((f"{name}/{sub}", subfull))
 
 # ── 大区定义（order = 首页展示顺序；misc 为未注册分类兜底区）──
 GROUPS = [
     # key        名称            图标   order
-    ("fe",       "前端开发",     "🧱",  1),
-    ("server",   "服务端与数据", "🖥️", 2),
-    ("eng",      "工程与交付",   "⚙️",  3),
-    ("workflow", "研发与 AI",    "🤝",  4),
-    ("meta",     "体系与路线",   "🧭",  5),
+    ("tutorial", "从 0 到精通",  "📚",  1),
+    ("fe",       "前端开发",     "🧱",  2),
+    ("server",   "服务端与数据", "🖥️", 3),
+    ("eng",      "工程与交付",   "⚙️",  4),
+    ("workflow", "研发与 AI",    "🤝",  5),
+    ("meta",     "体系与路线",   "🧭",  6),
     ("misc",     "未分类",       "📁",  99),
 ]
 GROUP_META = {g[0]: (g[1], g[2], g[3]) for g in GROUPS}
@@ -52,10 +58,26 @@ CAT_META = {
     "11_全面学习":           ("体系精讲",       "🎯", "知识总纲 + 分领域体系化精讲", "meta"),
     "12_全栈技术路线图":     ("技术路线图",     "🗺️", "从计算机底层到项目实战的路线地图", "meta"),
     "13_Python":             ("Python",         "🐍", "入门语法 / 工程化与 FastAPI / GIL 与并发 / 性能调优", "server"),
+    # ── 教科书模块：书 = 子目录 ──
+    "14_从0到精通":              ("书架与总导览",             "📚", "教科书模块：每本对应一个技术点的从 0 到精通完整学习线", "tutorial"),
+    "14_从0到精通/javascript":   ("《JavaScript 从 0 到精通》", "🟨", "10 篇 · 规划 97 章 · 撰写中", "tutorial"),
+    "14_从0到精通/typescript":   ("《TypeScript 从 0 到精通》", "🔷", "6 篇 · 规划 52 章 · 撰写中", "tutorial"),
+    "14_从0到精通/mysql":        ("《MySQL 从 0 到精通》",     "🐬", "8 篇 · 规划 72 章 · 撰写中", "tutorial"),
+    "14_从0到精通/java":         ("《Java 从 0 到精通》",      "☕", "12 篇 · 规划 112 章 · 撰写中", "tutorial"),
+    "14_从0到精通/python":       ("《Python 从 0 到精通》",    "🐍", "6 篇 · 规划 60 章 · 撰写中", "tutorial"),
+    "14_从0到精通/vue":          ("《Vue 从 0 到精通》",       "💚", "8 篇 · 规划 78 章 · 撰写中", "tutorial"),
+    "14_从0到精通/react":        ("《React 从 0 到精通》",     "⚛️", "7 篇 · 规划 74 章 · 撰写中", "tutorial"),
+    "14_从0到精通/git":          ("《Git 从 0 到精通》",       "🌿", "4 篇 · 规划 40 章 · 撰写中", "tutorial"),
+    "14_从0到精通/nginx":        ("《Nginx 从 0 到精通》",     "🔁", "3 篇 · 规划 32 章 · 撰写中", "tutorial"),
+    "14_从0到精通/redis":        ("《Redis 从 0 到精通》",     "🧱", "5 篇 · 规划 54 章 · 撰写中", "tutorial"),
 }
 
 # ── 组内展示顺序（未列出的自动追加到本大区末尾）──
 CAT_ORDER = {
+    "tutorial": ["14_从0到精通", "14_从0到精通/javascript", "14_从0到精通/typescript",
+                 "14_从0到精通/mysql", "14_从0到精通/java", "14_从0到精通/python",
+                 "14_从0到精通/vue", "14_从0到精通/react",
+                 "14_从0到精通/git", "14_从0到精通/nginx", "14_从0到精通/redis"],
     "fe":       ["01_前端基础", "02_前端框架与状态管理", "05_前端常用工具库", "03_数据可视化", "04_实时通信"],
     "server":   ["07_后端开发", "08_数据库与建模", "13_Python"],
     "eng":      ["06_前端工程化与工具链", "09_DevOps部署与运维"],
@@ -86,27 +108,38 @@ built = []
 total = 0
 for cname, cdir in CATS:
     arts = []
-    for fn in sorted(os.listdir(cdir)):
-        if not fn.lower().endswith(".html"): continue
-        # 读 title
-        title = None
-        try:
-            with open(os.path.join(cdir, fn), "r", encoding="utf-8", errors="ignore") as f:
-                head = f.read(2000)
-            m = re.search(r"<title>([^<]+)</title>", head)
-            if m:
-                title = m.group(1).strip()
-                title = re.sub(r"\s*[-｜—]\s*(全栈技术路线图|全栈技术知识库).*$", "", title).strip()
-        except Exception:
-            pass
-        if not title:
-            title = pretty_title(fn)
-        arts.append({
-            "t": title,
-            "f": fn,
-            "u": f"{cname}/{fn}",
-            "d": depth_of(fn),
-        })
+    # 书分类（含 "/"）递归收集（篇子目录）；模块分类只取本层文件，避免重复归属
+    if "/" in cname:
+        walker = os.walk(cdir)
+    else:
+        top_files = sorted(f for f in os.listdir(cdir)
+                           if os.path.isfile(os.path.join(cdir, f)))
+        walker = [(cdir, [], top_files)]
+    for dirpath, dirnames, filenames in walker:
+        dirnames.sort()
+        for fn in sorted(filenames):
+            if not fn.lower().endswith(".html"): continue
+            fullp = os.path.join(dirpath, fn)
+            u = os.path.relpath(fullp, ROOT).replace("\\", "/")
+            # 读 title
+            title = None
+            try:
+                with open(fullp, "r", encoding="utf-8", errors="ignore") as f:
+                    head = f.read(2000)
+                m = re.search(r"<title>([^<]+)</title>", head)
+                if m:
+                    title = m.group(1).strip()
+                    title = re.sub(r"\s*[-｜—]\s*(全栈技术路线图|全栈技术知识库).*$", "", title).strip()
+            except Exception:
+                pass
+            if not title:
+                title = pretty_title(fn)
+            arts.append({
+                "t": title,
+                "f": fn,
+                "u": u,
+                "d": depth_of(fn),
+            })
     meta = CAT_META.get(cname)
     if meta:
         disp, icon, desc, gkey = meta
