@@ -121,6 +121,66 @@ window.KB_MANIFEST = {
           "f": "008_第8章_类型转换与相等比较.html",
           "u": "14_从0到精通/javascript/10_第一篇_入门与环境/008_第8章_类型转换与相等比较.html",
           "d": "std"
+        },
+        {
+          "t": "第 9 章 流程控制：if 与 switch｜JavaScript 从 0 到精通",
+          "f": "009_第9章_流程控制：if与switch.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/009_第9章_流程控制：if与switch.html",
+          "d": "std"
+        },
+        {
+          "t": "第 10 章 循环：for、while 与 for-of｜JavaScript 从 0 到精通",
+          "f": "010_第10章_循环.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/010_第10章_循环.html",
+          "d": "std"
+        },
+        {
+          "t": "第 11 章 函数：声明、表达式与调用｜JavaScript 从 0 到精通",
+          "f": "011_第11章_函数声明与调用.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/011_第11章_函数声明与调用.html",
+          "d": "std"
+        },
+        {
+          "t": "第 12 章 参数进阶：默认值、剩余参数与解构传参｜JavaScript 从 0 到精通",
+          "f": "012_第12章_参数进阶.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/012_第12章_参数进阶.html",
+          "d": "std"
+        },
+        {
+          "t": "第 13 章 箭头函数：语法与适用边界｜JavaScript 从 0 到精通",
+          "f": "013_第13章_箭头函数.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/013_第13章_箭头函数.html",
+          "d": "std"
+        },
+        {
+          "t": "第 14 章 作用域与变量提升：词法环境初探｜JavaScript 从 0 到精通",
+          "f": "014_第14章_作用域与变量提升.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/014_第14章_作用域与变量提升.html",
+          "d": "std"
+        },
+        {
+          "t": "第 15 章 字符串深入：方法全景与模板字面量｜JavaScript 从 0 到精通",
+          "f": "015_第15章_字符串深入.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/015_第15章_字符串深入.html",
+          "d": "deep"
+        },
+        {
+          "t": "第 16 章 数字与 Math：精度问题与常用 API｜JavaScript 从 0 到精通",
+          "f": "016_第16章_数字与Math.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/016_第16章_数字与Math.html",
+          "d": "std"
+        },
+        {
+          "t": "第 17 章 日期与时间：Date 的坑与正确姿势｜JavaScript 从 0 到精通",
+          "f": "017_第17章_日期与时间.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/017_第17章_日期与时间.html",
+          "d": "std"
+        },
+        {
+          "t": "第 18 章 正则表达式入门｜JavaScript 从 0 到精通",
+          "f": "018_第18章_正则表达式入门.html",
+          "u": "14_从0到精通/javascript/20_第二篇_语法核心/018_第18章_正则表达式入门.html",
+          "d": "std"
         }
       ],
       "planned": 97,
@@ -134,7 +194,7 @@ window.KB_MANIFEST = {
         {
           "name": "第二篇 语法核心",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第三篇 数据集合",
@@ -177,7 +237,7 @@ window.KB_MANIFEST = {
           "state": "plan"
         }
       ],
-      "done": 8,
+      "done": 18,
       "order": 2
     },
     {
@@ -1623,5 +1683,5 @@ window.KB_MANIFEST = {
       "order": 24
     }
   ],
-  "total": 157
+  "total": 167
 };
