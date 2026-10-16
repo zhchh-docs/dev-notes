@@ -540,37 +540,128 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/03_ESLint与Prettier代码规范【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/08_前端性能优化_懒加载与虚拟列表【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/01_npm与包管理【基础】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Jest 与 Vitest 都是 JavaScript 单元测试框架，提供：</p>
-  <ul>
-    <li><strong>能力</strong>：断言（expect）、用例组织（test/describe）、mock（把依赖的函数/模块/接口替换成假的）、覆盖率统计。</li>
-    <li><span class="tag-key">关键</span><strong>Vitest</strong>：Vite 团队出品，API 与 Jest 高度兼容，但直接复用 Vite 的转换与缓存、快很多，是 Vite 项目首选。</li>
-  </ul>
-  <p><strong>解决什么问题</strong>：手动点一遍页面验证太脆、容易漏。单测让"核心工具函数/关键组件逻辑"改完后自动验证一次，防止改 A 坏 B（回归）。但要诚实：</p>
-  <ul>
-    <li><strong>收益集中处</strong>：纯逻辑（utils、校验、计算）。</li>
-    <li><strong>性价比低处</strong>：组件 UI 与接口联调——这也是 业务系统 实际采取的取舍。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：自动化回归保护网</h3>
+  <p><strong>Jest 与 Vitest 都是 JS 单测框架</strong>，提供四件套：断言（expect）、用例组织（test/describe）、mock（把依赖换成假实现）、覆盖率统计。<span class="tag-key">Vitest</span>：Vite 团队出品，API 与 Jest 高度兼容，直接复用 Vite 的转换与缓存、快很多——<strong>Vite 项目首选</strong>。<strong>要诚实</strong>：手动点页面验证太脆易漏，单测让"改完后自动验证一次防回归"，但收益集中在<strong>纯逻辑</strong>，组件 UI 与接口联调性价比低。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立<strong>测试金字塔</strong>分层心智（底层多上层少）；</li>
+    <li>掌握三段式用例与匹配器选择（toBe/toEqual/toStrictEqual）；</li>
+    <li>会用 vi.mock 替身依赖（含 hoisting 陷阱）与 jsdom 环境；</li>
+    <li>建立"<strong>测什么不测什么</strong>"的诚实取舍观。</li>
+  </ol>
+  <p><strong>难度</strong>：★★☆☆☆。<strong>姊妹篇</strong>：10 E2E（金字塔顶层）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>金字塔</strong>→ <strong>断言</strong>→ <strong>Mock</strong>→ <strong>jsdom</strong>→ <strong>覆盖率观</strong>。</p>
+
+  <h3>2.1 测试金字塔：Unit / Integration / E2E</h3>
+  <p><strong>单元测试</strong>：测一个函数/模块，依赖全 mock，又快又多；<strong>组件/集成测试</strong>：测组件与关键交互，jsdom 模拟 DOM；<strong>E2E</strong>：真实浏览器点完整流程，最接近用户但最慢最脆。<span class="tag-key">原则</span>：底层写最多——越靠底层越便宜、快、稳；E2E 只覆盖关键主流程。</p>
+
+  <h3>2.2 断言：三段式与匹配器</h3>
+  <p>句式 <code>expect(add(1,2)).toBe(3)</code>；<span class="tag-point">匹配器别用混</span>：<code>toBe</code> 用 Object.is（比引用/基本类型）；<code>toEqual</code> 递归深比较对象（忽略 undefined 键）；<code>toStrictEqual</code> 更严（undefined 键与类型都要一致）——<strong>比对象用 toEqual，别用 toBe</strong>。<strong>三段式</strong>：Arrange（给定条件）→ Act（执行）→ Assert（断言），一个测试只验证一件事。</p>
+
+  <h3>2.3 Mock：替身依赖</h3>
+  <p><code>vi.fn()</code> 造能记录调用的假函数；<code>vi.mock('@/api')</code> 把整个模块替换成假实现。<strong>收益</strong>：不被网络/时序干扰，且能验证"有没有以正确参数调用某函数"——单测只 mock <strong>外部依赖</strong>。</p>
+
+  <h3>2.4 jsdom：Node 里的假 DOM</h3>
+  <p>Node 没有 DOM，jsdom 用 JS 模拟出 document/window——配 <code>environment: 'jsdom'</code>；<strong>测 Vue/React 组件必须开</strong>，否则报 <code>document is not defined</code>。</p>
+
+  <h3>2.5 覆盖率的正确看法</h3>
+  <p><span class="tag-pit">误区</span>：100% 覆盖率 ≠ 没 bug（断言可能写得松）；低覆盖也不一定差（可能测了关键路径）。<strong>本项目态度</strong>：核心纯逻辑覆盖率追高，展示性 UI 不硬凑——覆盖率是参考指标不是目标。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：工具函数单测（最划算）</h3>
+<pre class="code" data-lang="js"><code>// utils/format.test.ts
+import { describe, it, expect } from 'vitest';
+import { formatMoney } from './format';
+
+describe('formatMoney', function () {
+  it('给数字加千分位和货币符号', function () {
+    expect(formatMoney(1234567)).toBe('¥1,234,567.00');
+  });
+  it('处理 null 返回占位符', function () {
+    expect(formatMoney(null)).toBe('--');
+  });
+});</code></pre>
+
+  <h3>3.2 场景二：mock 接口依赖</h3>
+<pre class="code" data-lang="js"><code>import { vi, it, expect } from 'vitest';
+// 把 api 模块整个替换成假实现
+vi.mock('@/api/user', function () {
+  return { fetchUser: vi.fn(() =&gt; Promise.resolve({ id: 1, name: '测试' })) };
+});
+it('加载后渲染用户名', async function () {
+  // 断言组件调用了 fetchUser，且用假返回渲染——不发真请求
+});</code></pre>
+  <div class="note"><span class="tag-pit">vi.mock 会被提升（hoisting）</span>：自动提到所有 import 之前执行，工厂里不能用顶层 import 进来的变量（要用 <code>vi.hoisted</code> 取）。测异步/假定时器用 <code>vi.useFakeTimers()</code>。</div>
+
+  <h3>3.3 场景三：组件测试（Vue）</h3>
+<pre class="code" data-lang="js"><code>import { mount } from '@vue/test-utils';
+import Counter from './Counter.vue';
+it('点击按钮数字 +1', function () {
+  const wrapper = mount(Counter);
+  wrapper.find('button').trigger('click');
+  expect(wrapper.text()).toContain('1');
+});</code></pre>
+  <p>三段式：Arrange（挂载组件）→ Act（点击）→ Assert（断言文本）。一个 it 只测一件事，失败一眼定位。</p>
+
+  <h3>3.4 场景四：日常命令</h3>
+<pre class="code" data-lang="bash"><code>pnpm vitest run   # 一次性跑全部（CI 门禁用）
+pnpm vitest       # watch 模式，改代码自动重跑</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三段式与 vi.mock 已会。</p>
+
+  <h3>4.1 setup 文件与全局注入</h3>
+  <p><code>setupFiles</code> 里做全局准备（@testing-library/jest-dom 扩展匹配器、cleanup 钩子、canvas stub）——所有测试文件自动执行，避免每个文件重复样板。</p>
+
+  <h3>4.2 快照测试的边界</h3>
+  <p><code>toMatchSnapshot</code> 适合稳定结构的序列化对比（配置对象/序列化输出）；<strong>慎用于大组件 DOM</strong>——动一点全量 diff、人肉 update 快照会让快照沦为"自动改期望"。</p>
+
+  <h3>4.3 Testing Library 范式：以用户视角测</h3>
+  <p>与 @vue/test-utils 的 mount 找 DOM 不同，Testing Library 提倡<strong>按可访问性角色/文本查询</strong>（getByRole/getByText），断言用户能看到什么——<strong>测行为不测实现</strong>的天然实现，重构组件结构测试不红。</p>
+
+  <h3>4.4 monorepo 里的测试编排</h3>
+  <p>每包各自配 vitest，turbo test dependsOn ^build 编排（07 篇流水线呼应）；共享配置抽 @rmp/vitest-config 包 extends——与共享 ESLint/TSconfig 同构。</p>
+
+  <h3>4.5 Jest 与 Vitest 迁移边界</h3>
+  <p>API 几乎一致，差异点在配置载体（jest.config vs vite.config 内 test 字段）与个别匹配器/环境变量；<strong>老 Jest 项目不必为快而迁</strong>——迁移成本要盖过收益，新 Vite 项目直接 Vitest。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="测试金字塔分层示意图">
       <defs>
@@ -591,48 +682,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 测试金字塔（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 测试金字塔（Unit / Integration / E2E）</h3>
-  <p class="lead"><b>一句话定位</b>：底层单元测试写最多，E2E 只覆盖关键主流程。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>单元测试</strong>：测一个函数/模块，依赖全 mock，又快又多。</li>
-    <li><strong>组件/集成测试</strong>：测一个组件和它的关键交互，用 jsdom 模拟 DOM。</li>
-    <li><strong>E2E（端到端）</strong>：真实浏览器点完整流程（Cypress/Playwright），最接近用户但最慢最脆。</li>
-  </ul>
-  <h3>2.2 断言（Assertion）</h3>
-  <p class="lead"><b>一句话定位</b>：测试核心句式是"输入 X，断言结果是 Y"，三段清晰、一次只验一件事。</p>
-  <ul>
-    <li><strong>句式</strong>：<code>expect(add(1,2)).toBe(3)</code>，断言库提供 toBe/toEqual/toBeCalled 等匹配器。</li>
-    <li><span class="tag-point">要点</span><strong>匹配器别用混</strong>：<code>toBe</code> 用 Object.is 比引用/基本类型；<code>toEqual</code> 递归深比较对象（忽略 undefined 键）；<code>toStrictEqual</code> 更严（连 undefined 键与类型都要一致）。比对象请用 toEqual，别用 toBe。</li>
-    <li><strong>三段式</strong>：Arrange（给定条件）→ Act（执行）→ Assert（断言），一个测试只验证一件事。</li>
-  </ul>
-  <h3>2.3 Mock（替身）</h3>
-  <p class="lead"><b>一句话定位</b>：把外部依赖换成假实现，让测试只聚焦被测逻辑。</p>
-  <ul>
-    <li><strong>假函数</strong>：<code>vi.fn()</code> 造一个能记录调用的假函数。</li>
-    <li><strong>假模块</strong>：<code>vi.mock('@/api')</code> 把整个接口模块替换成返回假数据。</li>
-    <li><strong>收益</strong>：不被网络/时序干扰，且能验证"有没有以正确参数调用某函数"。</li>
-  </ul>
-  <h3>2.4 jsdom 与 DOM 环境</h3>
-  <p class="lead"><b>一句话定位</b>：Node 没有浏览器 DOM，jsdom 在 Node 里用 JS 模拟出 document/window。</p>
-  <ul>
-    <li><strong>做法</strong>：Vitest/Jest 配 <code>environment: 'jsdom'</code>。</li>
-    <li><strong>何时开</strong>：测 Vue/React 组件时必须开，否则报 <code>document is not defined</code>。</li>
-  </ul>
-  <h3>2.5 覆盖率（Coverage）的正确看法</h3>
-  <p class="lead"><b>一句话定位</b>：覆盖率是参考指标不是目标——100% 不等于没 bug。</p>
-  <ul>
-    <li><strong>误区</strong>：100% 覆盖率不代表没 bug（断言可能写得不对）；低覆盖率也不一定差（可能测了关键路径）。</li>
-    <li><strong>本项目态度</strong>：核心纯逻辑覆盖率追高，展示性 UI 不硬凑。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一个单测用例的执行与 Jest/Vitest 关系</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="单测执行流程与Jest Vitest关系示意图">
       <defs>
@@ -660,7 +709,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 单测执行流程（示意）</p>
   </div>
-  <p>选型对比：<strong>Vitest</strong>——与 Vite 项目无缝、快、API 兼容 Jest；<strong>Jest</strong>——生态最成熟、老项目（Webpack/Babel）存量大。新项目用 Vite 就选 Vitest，老 Jest 项目迁移成本低（API 几乎一样）。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="Jest与Vitest对比图">
       <defs>
@@ -669,162 +717,111 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Jest vs Vitest 怎么选？（示意）</text>
-
-      <!-- Jest -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Jest</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">生态最成熟、社区资料多</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">Webpack/Babel 老项目存量大</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">老项目沿用</text>
-
-      <!-- Vitest -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Vitest</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">复用 Vite 转译与缓存，跑测试快</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">API 与 Jest 高度兼容，迁移成本低</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">Vite 新项目首选</text>
     </svg>
-    <p class="diagram-caption">图 1 Jest vs Vitest（示意）</p>
+    <p class="diagram-caption">图 3 Jest vs Vitest（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 工具函数单测（最划算的部分）</h3>
-<pre class="code" data-lang="js"><code>// utils/format.test.ts
-import { describe, it, expect } from 'vitest';
-import { formatMoney } from './format';
-
-describe('formatMoney', function () {
-  it('给数字加千分位和货币符号', function () {
-    expect(formatMoney(1234567)).toBe('¥1,234,567.00');
-  });
-  it('处理 null 返回占位符', function () {
-    expect(formatMoney(null)).toBe('--');
-  });
-});</code></pre>
-  <h3>4.2 mock 接口依赖</h3>
-<pre class="code" data-lang="js"><code>import { vi, it, expect } from 'vitest';
-// 把 api 模块整个替换成假实现
-vi.mock('@/api/user', function () {
-  return { fetchUser: vi.fn(() =&gt; Promise.resolve({ id: 1, name: '测试' })) };
-});
-it('加载后渲染用户名', async function () {
-  // 断言组件调用了 fetchUser，且用假返回渲染——不发真请求
-});</code></pre>
-  <div class="note"><strong>vi.mock 会被提升（hoisting）</strong>：<code>vi.mock</code> 会自动提到所有 import 之前执行，所以它的工厂里不能用顶层 import 进来的变量（要用 <code>vi.hoisted</code> 取），否则报"在 import 后才 mock"。测异步/假定时器则用 <code>vi.useFakeTimers()</code>。</div>
-  <h3>4.3 组件测试（Vue）</h3>
-<pre class="code" data-lang="js"><code>import { mount } from '@vue/test-utils';
-import Counter from './Counter.vue';
-it('点击按钮数字 +1', function () {
-  const wrapper = mount(Counter);
-  wrapper.find('button').trigger('click');
-  expect(wrapper.text()).toContain('1');
-});</code></pre>
-  <div class="note">三段式：Arrange（造输入/挂载组件）→ Act（调用/点击）→ Assert（断言结果）。一个 it 只测一件事，失败时一眼定位。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：业务系统 单测实践（诚实说明规模）</h3>
-  <p class="lead"><b>一句话定位</b>：业务密集、核心纯逻辑改动频繁易回归，单测优先覆盖工具函数与校验，不盲目追全量覆盖。</p>
-  <ul>
-    <li><strong>项目</strong>：业务系统（Vue3+Vite+TS）。</li>
-    <li><strong>核心逻辑</strong>：金额/日期格式化、表单校验规则、OpenAPI 请求封装。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责给 utils/校验逻辑补单测、接 CI；团队小范围协作。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Vitest（项目已用 Vite）+ jsdom + vi.mock；对比参考 Jest。</li></ul>
-
-  <h3>5.4 落地设计：测什么、不测什么</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>优先纯逻辑</strong>：金额格式化/日期/表单校验——最稳定、易写、收益高。</li>
-    <li><strong>接口 mock</strong>：组件测试用 <code>vi.mock</code> 替换 API 模块，不发真请求。</li>
-    <li><strong>诚实取舍</strong>：展示型 UI（布局/样式/纯渲染列表）单测性价比低，主动放弃，不追 100% 覆盖。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code># 一次性跑全部单测（CI 用）
-pnpm vitest run
-# 开发时 watch 模式，改代码自动重跑
-pnpm vitest</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>mock 过度</strong>：把组件内部全 mock，测试绿却没测到真实行为——只 mock 外部依赖。</li>
-    <li><span class="tag-pit">坑</span><strong>测组件没开 jsdom</strong>：报 <code>document is not defined</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>测实现细节</strong>：断言私有变量，重构全红——改测对外行为。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>工具函数与关键校验逻辑有回归保护，改格式化/校验规则时单测先报警；PR 流水线 <code>vitest run</code> 不过不许合并。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>流程</strong>：随功能迭代补对应 utils 单测；CI 接 <code>vitest run</code> 作为合并门禁。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>测行为不测实现</strong>：重构不红。</li>
-    <li><span class="tag-point">要点</span><strong>纯逻辑优先</strong>：把单测花在最易回归的工具函数上，性价比最高。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中 业务系统 用 Vitest 给金额/日期格式化和表单校验这类纯逻辑补单测，接口用 vi.mock，接 CI 门禁；诚实说项目组没追全量组件覆盖——展示型 UI 单测性价比低，主动放弃。"</p>
+  <p><strong>读图要点</strong>：①图 1 分层投资观——底层多上层少，投入产出比越靠底层越划算；②图 2 四步——发现→setup/mock→执行断言→汇总（选型注脚：Vitest 复用 Vite 转译与缓存所以快）；③图 3 选型口径——老项目沿用 Jest，Vite 新项目 Vitest。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 追求覆盖率数字而非质量</h3>
-  <p class="lead"><b>一句话定位</b>：100% 覆盖率 ≠ 无 bug——可能每行都执行到，但断言写得松。</p>
-  <p class="pit-sentence">正解：测关键路径与边界，断言要真正验证结果，覆盖率只是参考。</p>
-  <h3>6.2 测实现细节而非行为</h3>
-  <p class="lead"><b>一句话定位</b>：测内部私有方法，重构一下测试全红，对外行为却没变。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战（诚实说明规模）——业务系统（Vue3+Vite+TS）：我负责给 utils/校验逻辑补单测、接 CI 门禁；团队小范围协作。</p>
+
+  <h3>6.1 落地设计：测什么、不测什么</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：重构组件内部实现，测试全红，对外行为没变。</li>
-    <li><strong>正解</strong>：测"输入→输出/对外交互"，不测内部私有方法与中间状态。</li>
+    <li><span class="tag-key">优先纯逻辑</strong>：金额/日期格式化、表单校验规则、OpenAPI 请求封装——最稳定易写收益高；</li>
+    <li><strong>接口 mock</strong>：组件测试 vi.mock 替换 API 模块，不发真请求；</li>
+    <li><span class="tag-pit">诚实取舍</span>：展示型 UI（布局/样式/纯渲染列表）单测性价比低，<strong>主动放弃，不追 100% 覆盖</strong>。</li>
   </ul>
-  <h3>6.3 mock 过度 / mock 不足</h3>
-  <p class="lead"><b>一句话定位</b>：mock 过度测不到真实集成，mock 不足又慢又脆。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>两端坑</strong>：mock 过度（什么都替身）测不到真实集成；mock 不足（真发请求）慢且脆、依赖后端。</li>
-    <li><strong>正解</strong>：单测 mock 外部依赖，集成测试才少 mock。</li>
+    <li><span class="tag-pit">坑</span><strong>mock 过度</strong>：把组件内部全 mock，测试绿却没测到真实行为——只 mock 外部依赖；</li>
+    <li><span class="tag-pit">坑</span><strong>测组件没开 jsdom</strong>：报 document is not defined；</li>
+    <li><span class="tag-pit">坑</span><strong>测实现细节</strong>：断言私有变量，重构全红——改测对外行为。</li>
   </ul>
-  <h3>6.4 组件测试忘了 jsdom</h3>
-  <p class="lead"><b>一句话定位</b>：组件测试不开 jsdom，mount 就报 document is not defined。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>正解</strong>：组件测试配 <code>environment: 'jsdom'</code>。</li>
-  </ul>
-  <h3>6.5 把 E2E 当主力</h3>
-  <p class="lead"><b>一句话定位</b>：E2E 慢、脆、维护贵，只覆盖关键主流程。</p>
-  <p class="key-sentence">金字塔原则：E2E 只覆盖登录、下单这种关键主流程，海量逻辑靠单元测试——E2E 写太多会让套件变成天天碎的负担。</p>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：工具函数与关键校验逻辑有回归保护，改格式化/校验规则时单测先报警；PR 流水线 <code>vitest run</code> 不过不许合并；</li>
+    <li><strong>可复用经验</strong>：测行为不测实现（重构不红）；纯逻辑优先（单测花在最易回归处）；</li>
+    <li><strong>一句话抓手</strong>："用 Vitest 给金额/日期格式化和表单校验补单测，接口 vi.mock，接 CI 门禁；诚实说没追全量组件覆盖——展示型 UI 性价比低主动放弃。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 追覆盖率数字</h3>
+  <p><strong>坑</strong>：100% 覆盖但断言松，等于没测。<strong>正解</strong>：测关键路径与边界，断言真验证结果，覆盖率只参考。</p>
+
+  <h3>7.2 测实现细节</h3>
+  <p><strong>现象</strong>：重构内部实现测试全红，对外行为没变。<strong>正解</strong>：测"输入→输出/对外交互"，不测私有方法与中间状态。</p>
+
+  <h3>7.3 mock 过度 / mock 不足</h3>
+  <p><strong>两端坑</strong>：mock 过度测不到真实集成；mock 不足真发请求慢且脆。<strong>正解</strong>：单测 mock 外部依赖，集成测试才少 mock。</p>
+
+  <h3>7.4 忘开 jsdom</h3>
+  <p><strong>现象</strong>：mount 报 document is not defined。<strong>正解</strong>：environment: 'jsdom'。</p>
+
+  <h3>7.5 把 E2E 当主力</h3>
+  <p><strong>坑</strong>：E2E 慢脆贵，写太多套件天天碎。<strong>正解</strong>：金字塔原则——E2E 只覆盖登录/下单关键主流程，海量逻辑靠单测（见 10 篇）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：测试金字塔是什么？为什么底层多上层少？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层——<strong>单元测试</strong>（测函数/模块，依赖全 mock，快而多）、<strong>组件/集成测试</strong>（测组件与交互，jsdom 模拟 DOM）、<strong>E2E</strong>（真实浏览器走完整流程，最接近用户但最慢最脆）。<strong>越靠底层越便宜、快、稳，越靠上层越贵、慢、脆</strong>（E2E 依赖环境/网络/数据，任何一环抖动都红）——所以海量逻辑靠单测，E2E 只守登录/下单等关键主流程。把 E2E 当主力会让套件变成天天碎的维护负担。</p>
+
+  <p><strong>Q2：toBe / toEqual / toStrictEqual 的区别？mock 的原则？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>toBe</code> 用 Object.is——比基本类型或引用（<strong>比对象会翻车</strong>）；<code>toEqual</code> 递归深比较（忽略 undefined 键）；<code>toStrictEqual</code> 连 undefined 键与类型都要求一致。<strong>比对象用 toEqual</strong>。<strong>mock 原则</strong>：单测 mock <strong>外部依赖</strong>（网络/模块），不 mock 被测逻辑内部——mock 过度测试绿却没测到真实行为，mock 不足真发请求又慢又脆。注意 <code>vi.mock</code> 有 <strong>hoisting</strong>（自动提到 import 之前），工厂里要用 vi.hoisted 取变量。</p>
+
+  <p><strong>Q3：覆盖率怎么看待？"测行为不测实现"是什么意思？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>覆盖率是参考不是目标</strong>——100% 覆盖 ≠ 没 bug（每行执行到但断言可能松）；低覆盖也不一定差。<strong>测行为不测实现</strong>：断言"输入→输出/对外交互"（函数返回值、组件渲染结果、用户可见文本），不断言内部私有方法与中间状态——效果是<strong>重构不红</strong>：内部实现改了、对外行为没变时测试仍绿。Testing Library 的 getByRole/getByText 范式是这条原则的天然实现。<strong>诚实取舍</strong>：展示型 UI 性价比低主动放弃，把测试花在最易回归的纯逻辑上。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>金字塔三层各自测什么、成本特征？</li>
+    <li>三个匹配器差异？比对象用哪个？</li>
+    <li>vi.mock 的 hoisting 陷阱？</li>
+    <li>什么时候必须 jsdom？</li>
+    <li>Jest vs Vitest 选型口径？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>Vitest 官方文档：<a href="https://vitest.dev/guide/" rel="noopener">vitest.dev/guide</a></li>
-    <li>Jest 官方文档：<a href="https://jestjs.io/docs/getting-started" rel="noopener">jestjs.io/docs/getting-started</a></li>
+    <li>Vitest：<a href="https://vitest.dev/guide/" rel="noopener">vitest.dev/guide</a>；Jest：jestjs.io/docs/getting-started</li>
+    <li>Vue Test Utils：<a href="https://test-utils.vuejs.org/" rel="noopener">test-utils.vuejs.org</a>；Testing Library：testing-library.com</li>
   </ul>
-  <h3>组件测试与 E2E</h3>
-  <ul>
-    <li>Vue Test Utils（Vue 组件测试官方库）：<a href="https://test-utils.vuejs.org/" rel="noopener">test-utils.vuejs.org</a></li>
-    <li>Testing Library（以用户视角测组件的主流范式）：<a href="https://testing-library.com/" rel="noopener">testing-library.com</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>给一个金额格式化函数写单测（正常值/边界/null），故意用 toBe 比对象复现失败；</li>
+    <li>vi.mock 一个 API 模块并断言调用参数；体验 hoisting 报错再用 vi.hoisted 修复；</li>
+    <li>测一个 Vue 组件：先不开 jsdom 复现报错，再开启修复；最后把 vitest run 接进 CI。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/03_ESLint与Prettier代码规范【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/08_前端性能优化_懒加载与虚拟列表【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/01_npm与包管理【基础】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 前端测试_Jest与Vitest【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
