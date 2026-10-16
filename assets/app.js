@@ -5,9 +5,30 @@
    支持 SPA 无刷新导航
    ============================================================ */
 (function(){
-  // 动态加载 manifest.js
+  // 深度自适应：计算“页面 → 仓库根”的相对前缀（app.js 固定位于 根/assets/）
+  let UP = '../';
+  try{
+    const appUrl = new URL(document.currentScript.src, location.href);
+    const rootPath = decodeURIComponent(new URL('../', appUrl).pathname);   // 去掉 assets/app.js → 根/
+    const hereDir  = decodeURIComponent(location.pathname.replace(/[^/]*$/, ''));
+    const rel = hereDir.startsWith(rootPath) ? hereDir.slice(rootPath.length) : '';
+    UP = '../'.repeat(rel.split('/').filter(Boolean).length);
+    window.__KB_ROOT_PATH = rootPath;
+    window.__KB_UP = UP;
+  }catch(e){}
+
+  // 页面内任意 href → 相对仓库根的路径（与 manifest 的 u 匹配）
+  window.__KB_REL = function(u){
+    try{
+      const p = decodeURIComponent(new URL(u, location.href).pathname);
+      const rootPath = window.__KB_ROOT_PATH || '';
+      return p.startsWith(rootPath) ? p.slice(rootPath.length) : p;
+    }catch(e){ return u; }
+  };
+
+  // 动态加载 manifest.js（路径随页面深度自适应）
   const s = document.createElement('script');
-  s.src = '../assets/manifest.js';
+  s.src = UP + 'assets/manifest.js';
   s.onload = init;
   document.head.appendChild(s);
 
@@ -24,7 +45,7 @@
 
     const SHELL_IDS = ['kb-progress','kb-topbar','kb-toc','kb-content','kb-pager'];
 
-    let here = decodeURIComponent(location.pathname.split('/').slice(-2).join('/'));
+    let here = window.__KB_REL(location.href);
     let curIdx = -1, prev = null, next = null, curCat = null;
     let flat = [];
     M.cats.forEach(c => c.arts.forEach(a => flat.push(a)));
@@ -42,11 +63,11 @@
     const bar = document.createElement('header');
     bar.id = 'kb-topbar';
     bar.innerHTML = `
-      <a class="kb-btn" href="../index.html" title="返回首页" style="text-decoration:none">
+      <a class="kb-btn" href="${UP}index.html" title="返回首页" style="text-decoration:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </a>
       <div id="kb-crumb">
-        ${curCat ? `<a class="kb-cat" href="../index.html#cat-${encodeURIComponent(curCat.key)}" title="回到首页 · 定位到「${curCat.name}」模块">${curCat.icon} ${curCat.name}</a><span class="kb-sep">·</span>` : ''}
+        ${curCat ? `<a class="kb-cat" href="${UP}index.html#cat-${encodeURIComponent(curCat.key)}" title="回到首页 · 定位到「${curCat.name}」模块">${curCat.icon} ${curCat.name}</a><span class="kb-sep">·</span>` : ''}
         <span class="kb-title">${document.title.replace('｜全栈技术知识库','')}</span>
       </div>
       <div class="kb-right">
@@ -100,6 +121,8 @@
       Array.from(document.body.children).forEach(el => { if(!isShell(el)) content.appendChild(el); });
       document.body.appendChild(content);
     }
+    // 外壳就绪：解锁 app.css 中“外壳接管滚动”的规则（未注入时页面保持原生滚动）
+    document.body.classList.add('kb-shell-on');
 
     /* ---------- 3. 目录栏：把文章自带目录提取到左侧固定栏，独立滚动 ---------- */
     function extractToc(){
@@ -140,10 +163,10 @@
         const arrowR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
         pager.innerHTML = pos + `
           ${prev
-            ? `<a class="prev" href="../${encodeURI(prev.u)}"><div class="dir">${arrowL} 上一篇</div><div class="name">${prev.t}</div></a>`
+            ? `<a class="prev" href="${UP}${encodeURI(prev.u)}"><div class="dir">${arrowL} 上一篇</div><div class="name">${prev.t}</div></a>`
             : `<div class="none">已是第一篇</div>`}
           ${next
-            ? `<a class="next" href="../${encodeURI(next.u)}"><div class="dir">下一篇 ${arrowR}</div><div class="name">${next.t}</div></a>`
+            ? `<a class="next" href="${UP}${encodeURI(next.u)}"><div class="dir">下一篇 ${arrowR}</div><div class="name">${next.t}</div></a>`
             : `<div class="none">已是最后一篇</div>`}`;
         const footer = content.querySelector('footer');
         if(footer && footer.parentElement === content) content.insertBefore(pager, footer);
@@ -155,7 +178,7 @@
         const edge = document.createElement('a');
         edge.id = isPrev ? 'kb-edge-prev' : 'kb-edge-next';
         edge.className = 'kb-edge ' + (isPrev ? 'left' : 'right');
-        edge.href = '../' + encodeURI(art.u);
+        edge.href = UP + encodeURI(art.u);
         edge.title = (isPrev ? '上一篇（←）' : '下一篇（→）') + art.t;
         edge.innerHTML = `
           <span class="chev">${isPrev
@@ -178,7 +201,7 @@
       const art = e.key === 'ArrowLeft' ? prev : next;
       if(!art) return;
       e.preventDefault();
-      const href = '../' + encodeURI(art.u);
+      const href = UP + encodeURI(art.u);
       const base = location.pathname.replace(/\/[^/]*$/, '/');
       updateHere(art.u);
       navigateTo(base + href, href);
@@ -294,7 +317,7 @@
       // 计算相对路径
       const base = location.pathname.replace(/\/[^/]*$/, '/');
       const url = base + href;
-      const path = decodeURIComponent(href.replace(/^\.\.\//,''));
+      const path = window.__KB_REL(href);
       updateHere(path);
       navigateTo(url, href);
     });
