@@ -542,36 +542,127 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../06_前端工程化与工具链/02_Git版本控制【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/09_前端测试_Jest与Vitest【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心配置与要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：两个工具，分工明确：</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>ESLint（正确性）</strong>：JS/TS 静态检查工具，把代码解析成 AST，按规则查出"未使用变量、== vs ===、回调 this 可能错"等问题。</li>
-    <li><strong>Prettier（可读性/排版）</strong>：不管逻辑，只管"缩进几个空格、行宽、分号、单双引号"这类排版，一键全项目统一。</li>
-  </ul>
-  <p><strong>解决什么问题</strong>：没有工具约束时，团队风格靠口口相传，PR 里大量精力花在"几个空格、命名好不好"上而非业务逻辑。工具化后：</p>
-  <ul>
-    <li><strong>风格由 Prettier 自动定死，争议归零</strong>。</li>
-    <li><strong>正确性由 ESLint 在提交前/CI 里卡死</strong>。</li>
-    <li><strong>本项目</strong>：低代码平台这类多人长期协作项目，规范工具是必须的工程基建。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：正确性与排版双分工</h3>
+  <p><span class="tag-key">ESLint（正确性）</span>：JS/TS 静态检查——把代码解析成 AST，按规则查出"未使用变量/== vs ===/未处理 promise"等逻辑问题，<strong>报错必须改或显式豁免</strong>；<strong>Prettier（可读性）</strong>：不管逻辑只管排版（缩进/行宽/分号/引号），自动重排。<strong>解决的问题</strong>：没有工具时 PR 精力耗在风格争论上——<strong>风格由 Prettier 定死争议归零，正确性由 ESLint 在提交前/CI 卡死</strong>。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立"ESLint 管正确性、Prettier 管排版"的分工心智；</li>
+    <li>掌握规则三档取舍（error 卡死/warn 提示/off）；</li>
+    <li>会用 <strong>eslint-config-prettier</strong> 消除两工具冲突；</li>
+    <li>落地 <strong>保存即修 + husky/lint-staged + CI 门禁</strong>三道防线。</li>
+  </ol>
+  <p><strong>前置知识</strong>：02 篇 Git 钩子。<strong>难度</strong>：★★☆☆☆。<strong>本篇不涉及</strong>：自定义规则开发。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>AST 规则机制</strong>→ <strong>规则三档</strong>→ <strong>extends 共享配置</strong>→ <strong>config-prettier 消冲突</strong>→ <strong>husky+lint-staged</strong>。</p>
+
+  <h3>2.1 AST：规则是语法树上的模式识别</h3>
+  <p>ESLint 把源码解析成 <strong>AST（抽象语法树）</strong>，每条规则是"遍历 AST 发现特定节点模式就报错"——<strong>不是文本匹配</strong>（no-unused-vars 查声明未用的变量、eqeqeq 查 ==）。这保证了不误伤注释/字符串里的相似文本。</p>
+
+  <h3>2.2 规则三档：error/warn/off 的取舍</h3>
+  <p><strong>error</strong> 违反即报错 CI 失败；<strong>warn</strong> 提示不阻断；<strong>off</strong> 关闭。<span class="tag-point">取舍原则</span>：<strong>真会导致 bug 的设 error 卡死，风格偏好交 Prettier</strong>——别把所有规则开成 error，否则团队天天为格式吵架。</p>
+
+  <h3>2.3 extends：继承推荐集再叠加</h3>
+  <p>没人从零配几百条规则——<code>extends: ['eslint:recommended', 'plugin:vue/vue3-recommended', '@vue/eslint-config-prettier']</code>；monorepo 把这份配置抽成共享包全仓复用（07 篇）。</p>
+
+  <h3>2.4 eslint-config-prettier：共存的标准答案</h3>
+  <p>ESLint 的格式规则（缩进/引号）与 Prettier 排版<strong>会打架</strong>（保存后格式反复横跳）——引入 config-prettier 关掉 ESLint 里所有格式规则，<strong>明确分工：格式归 Prettier，ESLint 只管逻辑</strong>。</p>
+
+  <h3>2.5 husky + lint-staged：提交前自动防线</h3>
+  <p>husky 注册 git 钩子，lint-staged <strong>只对暂存区文件跑</strong>（不是全项目，快）——"保存时编辑器自动 format，提交时自动 lint"，开发者几乎无感，坏代码提交不出去。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：.eslintrc 配置要点</h3>
+<pre class="code" data-lang="json"><code>{
+  "extends": [
+    "eslint:recommended",
+    "plugin:vue/vue3-recommended",
+    "@vue/eslint-config-prettier"
+  ],
+  "rules": {
+    "no-unused-vars": ["warn"],
+    "eqeqeq": ["error", "always"],
+    "vue/multi-word-component-names": "off"
+  }
+}</code></pre>
+  <p><span class="tag-key">Flat Config（ESLint v9+）</span>：新版默认 <code>eslint.config.js</code>（扁平配置），.eslintrc.* 已 deprecated——files 数组匹配文件、不再需要 --ext；经典写法理解规则组织即可，新项目直接上 Flat Config。</p>
+
+  <h3>3.2 场景二：.prettierrc 与脚本</h3>
+<pre class="code" data-lang="json"><code>{
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 100,
+  "trailingComma": "es5"
+}
+// package.json scripts 与 lint-staged
+{
+  "scripts": {
+    "lint": "eslint . --ext .vue,.js,.ts",
+    "format": "prettier --write ."
+  },
+  "lint-staged": {
+    "*.{vue,js,ts}": ["eslint --fix", "prettier --write"]
+  }
+}</code></pre>
+  <p><code>eslint --fix</code> 与 <code>prettier --write</code> 自动修可自动修的问题，修不了的（真逻辑问题）才需要人动手。</p>
+
+  <h3>3.3 场景三：落地命令流</h3>
+<pre class="code" data-lang="bash"><code># 开发者日常：保存即 format，commit 即 lint
+npx husky init                          # 初始化 git 钩子（husky v9+）
+npx lint-staged                         # 提交时自动跑（hook 触发）
+pnpm lint                               # CI 里全量跑：不通过即失败</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三道防线已落地。</p>
+
+  <h3>4.1 存量代码的渐进治理</h3>
+  <p>老项目上规范不能一刀切（存量报错几千条没人修）：<strong>①.auto-fix 一次性清格式</strong>（单独 PR 只含格式）；②逻辑 error 规则新代码立即生效、存量用 lint-staged 只查改动文件自然收敛；③必要处 <code>eslint-disable-next-line</code> 显式豁免并留注释——豁免要能被 grep 统计。</p>
+
+  <h3>4.2 eslint-plugin-import 与依赖纪律</h3>
+  <p>import 插件补足跨文件检查：<code>no-unresolved</code>（import 不存在的路径）、<code>order</code>（import 分组排序）、配合 <code>import/no-cycle</code> 防循环依赖——与 01 篇"谁用谁声明"纪律联动。</p>
+
+  <h3>4.3 CI 缓存与增量 lint</h3>
+  <p>大仓全量 lint 慢：<code>eslint --cache</code>（只重查变更文件）+ CI 缓存 .eslintcache；monorepo 用 Turborepo 按 app 粒度缓存 lint 任务（07 篇）。</p>
+
+  <h3>4.4 Prettier 的边界</h3>
+  <p>Prettier 只管排版不管语义——<strong>命名好坏/抽象合理性仍靠 review</strong>；别把 Prettier 当成"代码质量银弹"；markdown/yaml/css 也能 format（统一全仓文本风格）。</p>
+
+  <h3>4.5 规范的演进治理</h3>
+  <p>规则集要跟着团队演进：升级 major（ESLint v9 Flat Config 迁移）、淘汰没人违反的规则、新增踩坑后补规则（如 no-console 在生产构建警告）——<strong>规范文档与配置放在同一个 PR 里演进</strong>。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="ESLint 与 Prettier 分工对比示意图">
       <defs>
@@ -593,45 +684,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 ESLint 管正确性、Prettier 管可读性（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 AST（抽象语法树）与规则机制</h3>
-  <p class="lead"><b>一句话定位</b>：ESLint 把源码解析成 AST，每条规则就是"遍历 AST 发现特定节点模式就报错"的检查器。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>本质</strong>：不是文本匹配，而是在语法树上做模式识别。</li>
-    <li><strong>举例</strong>：<code>no-unused-vars</code> 查"声明了却没人用的变量"，<code>eqeqeq</code> 查"用了 == 而不是 ==="。</li>
-  </ul>
-  <h3>2.2 规则级别：error / warn / off</h3>
-  <p class="lead"><b>一句话定位</b>：每条规则三档——error 卡死、warn 提示、off 关闭，取舍是关键。</p>
-  <ul>
-    <li><strong>error</strong>：违反就报错、CI 失败。</li>
-    <li><strong>warn</strong>：提示但不阻断。</li>
-    <li><strong>off</strong>：关闭。</li>
-  </ul>
-  <p class="key-sentence">真正会导致 bug 的设 error 卡死，风格偏好设 warn 或交给 Prettier——别把所有规则都开成 error，否则团队天天为格式吵架。</p>
-  <h3>2.3 extends 与共享配置</h3>
-  <p class="lead"><b>一句话定位</b>：没人从零配几百条规则，一般继承官方/框架推荐集再叠加兼容集。</p>
-  <ul>
-    <li><strong>典型</strong>：<code>extends: ['eslint:recommended', 'plugin:vue/vue3-recommended', '@vue/eslint-config-prettier']</code>。</li>
-    <li><strong>monorepo</strong>：这份配置抽成共享包，所有 app 复用（见 Monorepo 页）。</li>
-  </ul>
-  <h3>2.4 eslint-config-prettier（消除冲突的关键）</h3>
-  <p class="lead"><b>一句话定位</b>：关掉 ESLint 里与 Prettier 冲突的格式规则，明确分工——格式归 Prettier，ESLint 只管逻辑。</p>
-  <p class="key-sentence">ESLint 的格式规则（缩进、引号）和 Prettier 排版会打架——这是"两者如何共存"的标准答案。</p>
-  <h3>2.5 提交前钩子（husky + lint-staged）</h3>
-  <p class="lead"><b>一句话定位</b>：commit 前自动跑 lint/format，比等 CI 才报顺滑得多。</p>
-  <ul>
-    <li><strong>husky</strong>：注册 git 钩子。</li>
-    <li><strong>lint-staged</strong>：只对暂存区文件跑（不是全项目，快）。</li>
-  </ul>
-  <p class="key-sentence">"保存时编辑器自动 format，提交时自动 lint"，开发者几乎无感，坏代码根本提交不出去。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 代码从写到进主干的规范防线</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="代码规范的三重防线流程示意图">
       <defs>
@@ -657,148 +709,93 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 保存/提交/CI 三重规范防线（示意）</p>
   </div>
-  <ol>
-    <li><strong>保存时</strong>：编辑器配 "保存时自动 format"，Prettier 实时排版，ESLint 标出逻辑问题——开发者当场就修。</li>
-    <li><strong>提交时</strong>：husky 钩子跑 lint-staged，只对本次改动的文件检查（快），不通过就拒绝 commit。</li>
-    <li><strong>CI 时</strong>：PR 流水线全量 lint + 测试，作为最后一道门禁，防住"本地没配钩子"的漏网情况。</li>
-  </ol>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心配置与要点</h2>
-  <h3>4.1 .eslintrc 配置要点</h3>
-<pre class="code" data-lang="json"><code>{
-  "extends": [
-    "eslint:recommended",
-    "plugin:vue/vue3-recommended",
-    "@vue/eslint-config-prettier"
-  ],
-  "rules": {
-    "no-unused-vars": ["warn"],
-    "eqeqeq": ["error", "always"],
-    "vue/multi-word-component-names": "off"
-  }
-}</code></pre>
-  <div class="note"><strong>Flat Config（ESLint v9+）</strong>：新版默认用 <code>eslint.config.js</code>（扁平配置），<code>.eslintrc.*</code> 已 deprecated；新写法用 <code>files</code> 数组匹配文件、不再需要 <code>--ext</code>。下面是经典 .eslintrc 写法，理解规则组织即可，新项目建议直接上 Flat Config。</div>
-  <h3>4.2 .prettierrc（排版交给它）</h3>
-<pre class="code" data-lang="json"><code>{
-  "semi": false,
-  "singleQuote": true,
-  "printWidth": 100,
-  "trailingComma": "es5"
-}</code></pre>
-  <h3>4.3 package.json 脚本与 husky</h3>
-<pre class="code" data-lang="json"><code>{
-  "scripts": {
-    "lint": "eslint . --ext .vue,.js,.ts",
-    "format": "prettier --write ."
-  },
-  "lint-staged": {
-    "*.{vue,js,ts}": ["eslint --fix", "prettier --write"]
-  }
-}</code></pre>
-  <div class="note"><code>eslint --fix</code> 与 <code>prettier --write</code> 会自动修可自动修的问题（缩进、引号、末尾分号），剩下修不了的（真逻辑问题）才需要人动手。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：低代码平台多人协作的规范治理</h3>
-  <p class="lead"><b>一句话定位</b>：多人并行开发早期无统一规范，PR 大量时间耗在风格争论上，需要工具化规范让争议归零。</p>
-  <ul>
-    <li><strong>项目</strong>：低代码平台（2021，Vue2+ElementUI+vue-draggable+CodeMirror+Vuex+Webpack+ESLint+Prettier）。</li>
-    <li><strong>痛点</strong>：无规范时 PR 里争论命名/缩进，新人代码风格五花八门。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我牵头落地 ESLint+Prettier 团队规范、编辑器集成与 CI 门禁。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>ESLint + Prettier + <code>eslint-config-prettier</code> + husky + lint-staged + VS Code。</li></ul>
-
-  <h3>5.4 落地设计：正确性与排版分工</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>分工</strong>：ESLint 管正确性（未用变量/== vs ===/未处理 promise），Prettier 管排版。</li>
-    <li><strong>规则取舍</strong>：真会出 bug 的规则设 error（如 <code>eqeqeq</code>），风格类交给 Prettier。</li>
-    <li><strong>编辑器集成</strong>：统一 VS Code 保存时自动 format + ESLint 自动修复。</li>
-    <li><strong>提交钩子+CI</strong>：husky+lint-staged 提交时只查暂存文件，CI 全量 lint。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code># 开发者日常：保存即 format，commit 即 lint
-npx husky init                          # 初始化 git 钩子（husky v9+；v8 及以前用 husky install）
-npx lint-staged                         # 提交时自动跑（hook 触发）
-pnpm lint                               # CI 里全量跑：不通过即失败</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>ESLint 与 Prettier 打架</strong>：缩进两边都管——引入 <code>eslint-config-prettier</code> 关掉 ESLint 格式规则。</li>
-    <li><span class="tag-pit">坑</span><strong>所有规则开 error</strong>：团队为风格吵翻——改"逻辑类 error、风格类交 Prettier"。</li>
-    <li><span class="tag-pit">坑</span><strong>本地没装 husky</strong>：靠 CI 全量 lint 兜底拦住。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>PR 里格式争论基本消失；坏代码在合并前被 CI 拦住；lint-staged 只查暂存文件，commit 保持快速。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>推行</strong>：先定规则 → 统一编辑器配置 → 接 husky/CI 门禁；存量代码分批 auto-fix。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>正确性 ESLint、排版 Prettier</strong>，二者不越界。</li>
-    <li><span class="tag-point">要点</span><strong>保存即修 + lint-staged</strong>，把规范做到开发者无感。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中低代码平台牵头落地 ESLint+Prettier，把正确性留给 ESLint、排版交给 Prettier，配 husky+lint-staged 和 CI 门禁，让 PR 里的格式争论归零、坏代码合并前被拦。"</p>
+  <p><strong>读图要点</strong>：①图 1 分工总纲——两工具不越界（config-prettier 落实）；②图 2 三道防线——<strong>越早拦截成本越低</strong>：保存时当场修 &gt; 提交时拦截 &gt; CI 兜底（防本地没装钩子的漏网）。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 ESLint 与 Prettier 规则冲突</h3>
-  <p class="lead"><b>一句话定位</b>：两者都想管缩进/引号，保存后格式反复横跳。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——低代码平台（2021，Vue2+ElementUI+Vuex+Webpack）多人协作的规范治理；我牵头落地团队规范、编辑器集成与 CI 门禁。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：保存后格式在两种风格间反复横跳，git diff 全是无关格式改动。</li>
-    <li><strong>正解</strong>：引入 <code>eslint-config-prettier</code>，关掉 ESLint 里所有格式类规则，格式全归 Prettier。</li>
+    <li><span class="tag-key">分工</span>：ESLint 管正确性，Prettier 管排版；真会出 bug 的规则设 error（eqeqeq），风格类交 Prettier；</li>
+    <li><strong>编辑器集成</strong>：统一 VS Code 保存自动 format + ESLint 自动修复；</li>
+    <li><strong>钩子+CI</strong>：husky+lint-staged 提交时只查暂存文件，CI 全量 lint 兜底。</li>
   </ul>
-  <h3>6.2 把风格规则也设成 error</h3>
-  <p class="lead"><b>一句话定位</b>：风格规则设 error，团队天天为"该不该加尾逗号"吵架。</p>
-  <p class="key-sentence">正解：风格交给 Prettier（不争论、自动统一），ESLint 只把"真会出 bug"的规则设 error。</p>
-  <h3>6.3 lint-staged 跑全项目</h3>
-  <p class="lead"><b>一句话定位</b>：每次 commit 都 lint 整个项目，慢得不可接受。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：commit 极慢。</li>
-    <li><strong>正解</strong>：lint-staged 只对暂存区（本次改动）的文件跑，大项目也能秒过。</li>
+    <li><span class="tag-pit">坑</span><strong>ESLint 与 Prettier 打架</strong>：缩进两边都管，保存后反复横跳——引入 eslint-config-prettier 关掉格式规则；</li>
+    <li><span class="tag-pit">坑</span><strong>所有规则开 error</strong>：团队为风格吵翻——改"逻辑类 error、风格类交 Prettier"；</li>
+    <li><span class="tag-pit">坑</span><strong>本地没装 husky</strong>：靠 CI 全量 lint 兜底拦住。</li>
   </ul>
-  <h3>6.4 跳过检查强行提交</h3>
-  <p class="lead"><b>一句话定位</b>：<code>--no-verify</code> 跳钩子推坏代码，靠 CI 兜底。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：图快 <code>git commit --no-verify</code> 跳过钩子，把坏代码推上去。</li>
-    <li><strong>正解</strong>：CI 全量 lint 作为兜底门禁，本地跳了也会在 PR 被拦。</li>
-  </ul>
-  <h3>6.5 TS 项目漏配 typescript-eslint</h3>
-  <p class="lead"><b>一句话定位</b>：TS 项目不挂 @typescript-eslint，类型层面的问题查不出来。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：TS 类型相关错误 ESLint 查不出来。</li>
-    <li><strong>正解</strong>：用 <code>@typescript-eslint/parser</code> 与对应插件。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：PR 里格式争论基本消失；坏代码合并前被 CI 拦住；lint-staged 只查暂存文件 commit 保持秒级；</li>
+    <li><strong>推行</strong>：先定规则→统一编辑器配置→接 husky/CI 门禁；存量代码分批 auto-fix；</li>
+    <li><strong>可复用经验</strong>：正确性 ESLint、排版 Prettier 不越界；保存即修+lint-staged 让规范无感。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 ESLint 与 Prettier 规则冲突</h3>
+  <p><strong>现象</strong>：保存后格式反复横跳，git diff 全是无关格式改动。<strong>正解</strong>：eslint-config-prettier 关掉 ESLint 所有格式类规则。</p>
+
+  <h3>7.2 把风格规则设成 error</h3>
+  <p><strong>现象</strong>：团队为"该不该加尾逗号"吵架。<strong>正解</strong>：风格交 Prettier 自动统一，ESLint 只卡真 bug。</p>
+
+  <h3>7.3 lint-staged 跑全项目</h3>
+  <p><strong>现象</strong>：commit 极慢。<strong>正解</strong>：lint-staged 只对暂存区文件跑，大项目秒过。</p>
+
+  <h3>7.4 --no-verify 跳过检查</h3>
+  <p><strong>现象</strong>：图快跳钩子推坏代码。<strong>正解</strong>：CI 全量 lint 兜底门禁，本地跳了 PR 也会被拦。</p>
+
+  <h3>7.5 TS 项目漏配 typescript-eslint</h3>
+  <p><strong>现象</strong>：类型层面问题查不出来。<strong>正解</strong>：@typescript-eslint/parser + 对应插件。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：ESLint 和 Prettier 为什么需要两个工具？怎么共存？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>职责不同</strong>——ESLint 是静态正确性检查（AST 上做模式识别：未使用变量/eqeqeq/未处理 promise），报错必须改或显式豁免；Prettier 只管排版自动重排，不评判逻辑。<strong>共存的冲突点</strong>：ESLint 的格式规则（缩进/引号）与 Prettier 打架，保存后格式反复横跳。<strong>标准答案</strong>：引入 <code>eslint-config-prettier</code> 关掉 ESLint 全部格式类规则，明确"格式归 Prettier、ESLint 只管逻辑"——分工不越界后两者互不干扰。规则级别取舍：真会出 bug 的设 error 卡 CI，风格交 Prettier 争议归零。</p>
+
+  <p><strong>Q2：规范的"三道防线"是什么？为什么不能只靠一道？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>①编辑器保存时</strong>——保存自动 format+ESLint 标红，开发者当场修（成本最低）；<strong>②git commit 时</strong>——husky+lint-staged 只查暂存文件，失败拒绝提交（快，只查本次改动）；<strong>③CI 流水线</strong>——全量 lint+测试，不过不许合并 PR。<strong>为什么三道</strong>：防线可绕过——编辑器配置可以不装、git 钩子可以 --no-verify 或本地没装 husky——CI 是唯一不可绕的兜底；而只靠 CI 则坏代码往返成本高。<strong>核心思想</strong>：把拦截尽量前移，CI 做最后保险。</p>
+
+  <p><strong>Q3：lint-staged 为什么快？存量老项目怎么渐进上规范？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>lint-staged 只对暂存区（本次改动）文件跑检查</strong>——不管项目多大 commit 都秒级；全量留给 CI。<strong>存量治理</strong>：不能一刀切（几千条报错没人修）——①一次 auto-fix 单独 PR 清格式；②逻辑 error 规则对存量靠 lint-staged"改到哪查到哪"自然收敛；③必要处 eslint-disable 显式豁免并留注释可统计。<strong>配套</strong>：eslint --cache 缓存、CI 增量 lint、monorepo 按 app 粒度缓存任务。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>ESLint 的规则机制为什么是 AST 而非文本匹配？</li>
+    <li>规则三档怎么取舍？全开 error 的后果？</li>
+    <li>eslint-config-prettier 解决什么问题？</li>
+    <li>三道防线各拦什么？哪道不可绕？</li>
+    <li>lint-staged 快的原理？存量代码治理三步？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>ESLint 官方文档：<a href="https://eslint.org/docs/latest/" rel="noopener">eslint.org/docs/latest</a></li>
-    <li>Prettier 官方文档：<a href="https://prettier.io/docs/en/" rel="noopener">prettier.io/docs/en</a></li>
+    <li>ESLint：<a href="https://eslint.org/docs/latest/" rel="noopener">eslint.org/docs/latest</a>；Prettier：<a href="https://prettier.io/docs/en/" rel="noopener">prettier.io/docs/en</a></li>
   </ul>
   <h3>配套工具</h3>
   <ul>
-    <li>eslint-config-prettier（消除 ESLint 与 Prettier 冲突）：<a href="https://github.com/prettier/eslint-config-prettier" rel="noopener">github.com/prettier/eslint-config-prettier</a></li>
-    <li>husky（git 钩子管理）：<a href="https://typicode.github.io/husky/" rel="noopener">typicode.github.io/husky</a></li>
-    <li>lint-staged（只对暂存文件跑检查）：<a href="https://github.com/lint-staged/lint-staged" rel="noopener">github.com/lint-staged/lint-staged</a></li>
+    <li>eslint-config-prettier；husky：<a href="https://typicode.github.io/husky/" rel="noopener">typicode.github.io/husky</a>；lint-staged：<a href="https://github.com/lint-staged/lint-staged" rel="noopener">github.com/lint-staged/lint-staged</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>配齐"保存 format + lint-staged + CI lint"三道防线并逐道故意破坏验证拦截；</li>
+    <li>写一段格式问题代码，故意不配 config-prettier 复现反复横跳；</li>
+    <li>用 eslint --cache 对比大仓全量 lint 的耗时差异。</li>
+  </ol>
 </section>
 
 </main>
@@ -806,7 +803,7 @@ pnpm lint                               # CI 里全量跑：不通过即失败</
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../06_前端工程化与工具链/02_Git版本控制【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/09_前端测试_Jest与Vitest【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · ESLint与Prettier代码规范【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
