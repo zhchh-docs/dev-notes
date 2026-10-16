@@ -72,6 +72,12 @@ window.KB_MANIFEST = {
           "f": "10_Canvas与SVG【深入】.html",
           "u": "01_前端基础/10_Canvas与SVG【深入】.html",
           "d": "deep"
+        },
+        {
+          "t": "JavaScript核心速查·ES2015与工程API【标准】",
+          "f": "11_JavaScript核心速查_ES2015与工程API【标准】.html",
+          "u": "01_前端基础/11_JavaScript核心速查_ES2015与工程API【标准】.html",
+          "d": "std"
         }
       ]
     },
@@ -146,6 +152,18 @@ window.KB_MANIFEST = {
           "f": "10_jQuery与Bootstrap【深入】.html",
           "u": "02_前端框架与状态管理/10_jQuery与Bootstrap【深入】.html",
           "d": "deep"
+        },
+        {
+          "t": "Vue框架入门【基础】",
+          "f": "11_Vue框架入门【基础】.html",
+          "u": "02_前端框架与状态管理/11_Vue框架入门【基础】.html",
+          "d": "basic"
+        },
+        {
+          "t": "React工程实践与Hooks【标准】",
+          "f": "12_React工程实践与Hooks【标准】.html",
+          "u": "02_前端框架与状态管理/12_React工程实践与Hooks【标准】.html",
+          "d": "std"
         }
       ]
     },
@@ -492,6 +510,12 @@ window.KB_MANIFEST = {
           "f": "10_SSH框架【基础】.html",
           "u": "07_后端开发/10_SSH框架【基础】.html",
           "d": "basic"
+        },
+        {
+          "t": "SpringBoot进阶·自动装配与启动流程【深入】",
+          "f": "11_SpringBoot进阶_自动装配与启动流程【深入】.html",
+          "u": "07_后端开发/11_SpringBoot进阶_自动装配与启动流程【深入】.html",
+          "d": "deep"
         }
       ]
     },
@@ -565,6 +589,12 @@ window.KB_MANIFEST = {
           "t": "PowerDesigner数据库建模【基础】",
           "f": "10_PowerDesigner数据库建模【基础】.html",
           "u": "08_数据库与建模/10_PowerDesigner数据库建模【基础】.html",
+          "d": "basic"
+        },
+        {
+          "t": "MySQL入门·从建库到CRUD【基础】",
+          "f": "11_MySQL入门_从建库到CRUD【基础】.html",
+          "u": "08_数据库与建模/11_MySQL入门_从建库到CRUD【基础】.html",
           "d": "basic"
         }
       ]
@@ -868,5 +898,5 @@ window.KB_MANIFEST = {
       ]
     }
   ],
-  "total": 127
+  "total": 132
 };
