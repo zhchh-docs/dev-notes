@@ -484,347 +484,304 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Babel 转译与 Polyfill</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：ES6+ 语法降级与兼容</span>
+      <span class="meta">定位：语法转译与 API 补齐——新代码跑进老浏览器的两条正交链路</span>
     </div>
-    <p class="hero-desc">本文系统讲解 Babel 转译与 Polyfill 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">Babel 管<strong>语法转译</strong>（箭头函数/可选链 → ES5），Polyfill 管 <strong>API 补齐</strong>（Promise/Array.includes 的运行时实现）——<strong>两者正交</strong>：转译解决"老引擎看不懂的写法"，polyfill 解决"老引擎没有的方法"，只配一个就漏一半。核心配置是 <strong>@babel/preset-env + browserslist</strong>：按目标浏览器按需转译与注入，避免全量 polyfill 体积爆炸。</p>
   </div>
 </header>
 
+<div class="hero">
+  <span class="meta">定位：语法转译与 API 补齐——新代码跑进老浏览器的两条正交链路</span>
+  <h1>Babel 转译与 Polyfill【标准】</h1>
+  <p class="hero-desc">Babel 管<strong>语法转译</strong>（箭头函数/可选链 → ES5），Polyfill 管 <strong>API 补齐</strong>（Promise/Array.includes 的运行时实现）——<strong>两者正交</strong>：转译解决"老引擎看不懂的写法"，polyfill 解决"老引擎没有的方法"，只配一个就漏一半。核心配置是 <strong>@babel/preset-env + browserslist</strong>：按目标浏览器按需转译与注入，避免全量 polyfill 体积爆炸。</p>
+</div>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/06_Vite【标准】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>Babel 转译与 Polyfill</strong> 是现代开发中广泛使用的技术方案之一，用于解决 Babel 转译与浏览器兼容 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 Babel 转译与 Polyfill 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
-  <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
-  </ul>
-  
-  <p>Babel 转译与 Polyfill 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Babel 转译与 Polyfill 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">Babel 转译与 Polyfill 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：两条正交链路</h3>
+  <p><strong>转译（transpile）</strong>：Babel 把新<strong>语法</strong>（箭头函数/解构/可选链）改写成等价旧语法——纯代码文本变换；<strong>Polyfill（垫片）</strong>：用 JS 实现<strong>缺失的运行时 API</strong>（Promise/Map/Array.prototype.includes）挂到全局——代码不变、方法有了。两件事独立发生：<strong>箭头函数转译掉了，Promise 还是 undefined</strong>——只配转译不配 polyfill 是最经典的配置漏洞。</p>
+
+  <h3>1.2 横向对比：Babel vs esbuild（Vite 时代）</h3>
   <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>Babel 转译与 Polyfill</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+    <tr><th>维度</th><th>Babel</th><th>esbuild（Vite 默认）</th></tr>
+    <tr><td>实现</td><td>JS 编写，插件生态最大</td><td>Go 编写，快 10-100 倍</td></tr>
+    <tr><td>转译</td><td>完整（插件可自定义 AST 变换）</td><td>覆盖主流语法，无自定义插件</td></tr>
+    <tr><td>Polyfill</td><td>preset-env 按需注入</td><td>不做（配 @vitejs/plugin-legacy 走 Babel）</td></tr>
+    <tr><td>JSX/TS</td><td>全支持</td><td>支持（仅转译不做类型检查）</td></tr>
+    <tr><td>适用</td><td>老 Vue CLI/Webpack 项目、需要自定义 AST 变换</td><td>新项目 dev 转译与压缩</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+  <p><strong>本套技术栈</strong>：老项目（数据编排/低代码）Vue CLI 内置 Babel；新项目 Vite 用 esbuild，仅 <strong>plugin-legacy</strong> 场景才回头用 Babel。</p>
+
+  <h3>1.3 学习目标与阅读指引（诚实声明）</h3>
+  <ol>
+    <li>建立<strong>"转译 vs polyfill 正交"</strong>的核心心智；</li>
+    <li>看懂 <strong>preset-env + browserslist + useBuiltIns</strong> 三件套配置；</li>
+    <li>理解 <strong>transform-runtime vs 全局 polyfill</strong> 的取舍；</li>
+    <li>会排查"老浏览器白屏"的兼容性故障链。</li>
+  </ol>
+  <p><strong>诚实声明</strong>：Babel 配置在生产项目由脚手架（Vue CLI）生成，本篇是<strong>配置级理解与故障排查视角</strong>（知道每个配置在干什么、出问题去哪查），非手写插件层面。<strong>前置知识</strong>：04 篇 Webpack。<strong>难度</strong>：★★★☆☆。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 Babel 转译与 Polyfill 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>Babel 转译与 Polyfill 的架构通常分为几层：</p>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>三步管线</strong>→ <strong>preset-env</strong>→ <strong>browserslist</strong>→ <strong>Polyfill 注入策略</strong>→ <strong>transform-runtime</strong>。</p>
+
+  <h3>2.1 三步管线：parse → transform → generate</h3>
+  <p><strong>parse</strong>（@babel/parser）把源码解析成 AST → <strong>transform</strong>（插件/预设遍历 AST 改写节点，箭头函数节点换成普通函数）→ <strong>generate</strong>（@babel/generator）输出代码+sourcemap。<span class="tag-key">本质</span>：与 ESLint 同构——都在 AST 上做变换，只是 ESLint 只读检查、Babel 改写。</p>
+
+  <h3>2.2 preset-env：一个预设替代几十个插件</h3>
+  <p>每个 ES 新语法对应一个 plugin（transform-arrow-functions/…），手排必漏；<strong>@babel/preset-env 按 browserslist 目标自动启用需要的插件</strong>——目标越新，转译越少、产物越接近源码、体积越小。</p>
+
+  <h3>2.3 browserslist：一份声明，全工具链共享</h3>
+  <p>package.json 或 .browserslistrc 声明目标浏览器（如 <code>defaults, not dead, Chrome &gt;= 80</code>）——Babel/Autoprefixer/eslint-plugin-compat/postcss 共享同一份。<span class="tag-key">纪律</span>：<strong>改兼容范围只改这里一处</strong>；不配则 preset-env 走默认全量（体积爆炸的根源）。</p>
+
+  <h3>2.4 Polyfill 注入策略：useBuiltIns</h3>
   <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
+    <li><strong>false</strong>：不注入 polyfill（目标浏览器很新时）；</li>
+    <li><strong>entry</strong>：入口手动 import core-js，按 browserslist 整体替换——注入全量目标所需；</li>
+    <li><span class="tag-key">usage</span>：按代码<strong>实际用到的 API</strong> 逐文件注入——最小体积，默认首选。</li>
   </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+  <p>polyfill 源是 <strong>core-js@3 + regenerator-runtime</strong>（async/await 的运行时）。</p>
+
+  <h3>2.5 transform-runtime：库作者的另一种姿势</h3>
+  <p>把 polyfill 从"改全局对象"改为"从 @babel/runtime 按需 import 辅助函数"——<strong>不污染全局</strong>（库/SDK 场景必须，改全局会与宿主冲突）、辅助函数去重。<strong>业务应用可全局注入</strong>（usage 更简单）；<strong>npm 库必须 runtime</strong>。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>Babel 转译与 Polyfill 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：标准 babel.config.js（业务应用）</h3>
+<pre class="code" data-lang="js"><code>module.exports = {
+  presets: [
+    ['@babel/preset-env', {
+      targets: '> 0.5%, last 2 versions, not dead',  // 也可由 browserslist 文件统一管
+      useBuiltIns: 'usage',        // 按代码用到的 API 注入 core-js@3
+      corejs: 3,                   // 声明 core-js 大版本（决定注入来源）
+      modules: false               // 交给 Webpack 处理 import（保留 ESM 才能摇树）
+    }]
+  ]
+};</code></pre>
+  <p><span class="tag-pit">modules: false 是隐形必配</span>：preset-env 默认把 ESM 转成 CommonJS，Webpack 的 tree-shaking 只认 ESM——不关就摇不掉。</p>
+
+  <h3>3.2 场景二：browserslist 声明（package.json）</h3>
+<pre class="code" data-lang="json"><code>{
+  "browserslist": [
+    "Chrome &gt;= 80",
+    "Firefox ESR",
+    "last 2 Safari versions",
+    "not dead"
+  ]
+}</code></pre>
+  <p>验证生效：<code>npx browserslist</code> 列出解析后的目标清单；<code>npx browserslist --coverage</code> 看全球覆盖率。</p>
+
+  <h3>3.3 场景三：npm 库的 runtime 模式</h3>
+<pre class="code" data-lang="js"><code>module.exports = {
+  presets: [['@babel/preset-env', { targets: { node: 'current' } }]],
+  plugins: [
+    ['@babel/plugin-transform-runtime', {
+      corejs: 3,             // polyfill 改为从 @babel/runtime-corejs3 import
+      helpers: true,         // 辅助函数复用 _classCallCheck 等，不每文件内联
+      regenerator: true
+    }]
+  ]
+};</code></pre>
+  <p><strong>库不用 useBuiltIns</strong>：它改全局对象，装进宿主会覆盖宿主的 Promise 版本——事故级冲突。</p>
+
+  <h3>3.4 场景四：排查"老浏览器白屏"</h3>
+<pre class="code" data-lang="bash"><code># 1. 找出产物里残留的新语法（转译漏网）
+npx esbuild dist/js/*.js --target=es5 --bundle=false 2&gt;&amp;1 | head
+# 2. 定位是哪个依赖发的未转译代码：console 报错的模块名 + source map
+# 3. 修复：把该依赖加进转译范围（见 7.3）或升级依赖版本</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三件套配置已会用。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
-  </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <h3>4.1 依赖未转译问题（被 exclude 的坑）</h3>
+  <p>babel-loader 惯例 <code>exclude: /node_modules/</code>（提速）——但<strong>npm 包发布的就是 ES6+ 源码时，它不经过转译直接进产物</strong>，老浏览器崩。解法：①include 白名单把发 ES6 的依赖纳入转译；②要求依赖提供 ES5 产物（main/module 双入口）；③Monorepo 内部包天然参与转译（workspace 源码）。</p>
+
+  <h3>4.2 插件与预设的执行顺序</h3>
+  <p><strong>plugins 先于 presets 执行</strong>；plugins 按声明顺序正序，presets 按声明顺序<strong>倒序</strong>（后声明的先跑）。排查转译顺序问题时用得上——多数业务场景只需记住"preset-env 里 modules:false 交 Webpack"。</p>
+
+  <h3>4.3 babel-loader 缓存</h3>
+  <p>转译是大头开销：<code>loader: 'babel-loader', options: { cacheDirectory: true }</code>——按文件内容+配置 hash 缓存转译结果，二次构建大幅提速（与 04 篇 filesystem cache 配合）。</p>
+
+  <h3>4.4 Vite 时代的兼容方案</h3>
+  <p>Vite dev 用 esbuild（不插 polyfill，假定现代浏览器）；build 目标 <code>build.target: 'es2015'</code> 由 esbuild 转译；<strong>需要兼容老浏览器时上 @vitejs/plugin-legacy</strong>——自动生成双份产物（现代版+SystemJS legacy 版）并用 browserslist 决定 legacy 范围——本质是"把 Babel 再请回来"。</p>
+
+  <h3>4.5 只转译不检查的边界</h3>
+  <p>esbuild/Babel 转译 TS 时<strong>只删类型不做类型检查</strong>——类型安全靠 IDE+tsc --noEmit/CI 单独跑；理解这个边界才不会以为"构建过了=类型没错"。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="转译与 Polyfill 两条正交链路示意图">
+      <defs>
+        <marker id="arrB5" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">两条正交链路：语法转译 vs API 垫片（示意）</text>
+      <rect x="40" y="50" width="330" height="150" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="205" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">Babel 转译链（语法）</text>
+      <text x="60" y="102" font-size="11.5" fill="#4f6348">源码 → parse 成 AST → 插件改写节点</text>
+      <text x="60" y="124" font-size="11.5" fill="#4f6348">→ generate 输出 ES5 代码</text>
+      <text x="60" y="152" font-size="11.5" fill="#047857">解决：老引擎"看不懂"的写法</text>
+      <text x="60" y="180" font-size="11.5" fill="#b45309">管不了：引擎缺的方法</text>
+      <rect x="430" y="50" width="330" height="150" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="595" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">Polyfill 链（运行时 API）</text>
+      <text x="450" y="102" font-size="11.5" fill="#4f6348">core-js@3 + regenerator-runtime</text>
+      <text x="450" y="124" font-size="11.5" fill="#4f6348">按 usage 注入缺失方法的实现</text>
+      <text x="450" y="152" font-size="11.5" fill="#047857">解决：引擎"没有"的方法</text>
+      <text x="450" y="180" font-size="11.5" fill="#b45309">管不了：语法写法（Promise 帮不了箭头函数）</text>
+      <text x="400" y="228" text-anchor="middle" font-size="12.5" fill="#7a8a70">只配一边 = 漏一半："箭头函数转译掉了，Promise 还是 undefined"是最经典的配置漏洞。</text>
+    </svg>
+    <p class="diagram-caption">图 1 转译与 Polyfill 正交关系（示意）</p>
   </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="preset-env 三件套协作示意图">
+      <defs>
+        <marker id="arrB6" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">preset-env 三件套协作（示意）</text>
+      <rect x="40" y="55" width="200" height="70" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="140" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">browserslist</text>
+      <text x="140" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">目标浏览器声明（唯一事实源）</text>
+      <rect x="300" y="55" width="200" height="70" rx="8" fill="#e0f0e2" stroke="#5a9e6a"/>
+      <text x="400" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#4f8a63">@babel/preset-env</text>
+      <text x="400" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">按目标自动选转译插件</text>
+      <rect x="560" y="55" width="200" height="70" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="660" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">useBuiltIns: usage</text>
+      <text x="660" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">按用到的 API 注入 core-js@3</text>
+      <line x1="240" y1="90" x2="296" y2="90" stroke="#7a8a70" marker-end="url(#arrB6)"/>
+      <line x1="500" y1="90" x2="556" y2="90" stroke="#7a8a70" marker-end="url(#arrB6)"/>
+      <rect x="120" y="150" width="560" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="400" y="175" text-anchor="middle" font-size="12.5" fill="#047857">目标越新 → 转译越少、注入越少、产物越接近源码——改兼容范围只改 browserslist 一处</text>
+      <text x="400" y="204" text-anchor="middle" font-size="12" fill="#7a8a70">不配 browserslist = preset-env 默认全量转译+全量 polyfill，体积爆炸。</text>
+    </svg>
+    <p class="diagram-caption">图 2 三件套协作与 browserslist 单一事实源（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 正交总纲——排查老浏览器白屏先问"是语法没转译还是 API 没垫"；②图 2 是体积与兼容的调节旋钮——browserslist 是全工具链共享的单一事实源。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：配置验证性 demo——本地跑通 preset-env 三件套并验证 polyfill 注入行为；生产配置由 Vue CLI 脚手架生成，本 demo 目的是"知道每行配置在干什么"。</p>
+
+  <h3>6.1 落地步骤</h3>
+  <ol>
+    <li><code>npm i -D @babel/core @babel/cli @babel/preset-env core-js@3</code>，写 3.1 配置；</li>
+    <li>写一段含 <code>?. 可选链 + Promise.allSettled + Array.flat</code> 的源码；</li>
+    <li>先配 <code>targets: chrome 90</code> 转译：产物几乎原样（目标新，不转译不注入）；</li>
+    <li>改 <code>targets: ie 11</code> 再转译：观察可选链被改写、文件头多出 core-js import（usage 注入）；</li>
+    <li>删掉 useBuiltIns 再转 ie11：语法转了但 <code>allSettled</code> 无人垫——用图 1 定性这次"漏一半"。</li>
+  </ol>
+
+  <h3>6.2 验证清单</h3>
+  <ol>
+    <li>产物中 grep "allSettled"：usage 模式下应出现 core-js 的 import 引入；</li>
+    <li>modules:false 时产物保留 import 语句（Webpack 可摇树）；</li>
+    <li>cacheDirectory 开启后二次转译耗时明显下降。</li>
+  </ol>
+
+  <h3>6.3 复盘经验</h3>
   <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
+    <li><strong>排查口诀</strong>：老浏览器白屏 → 先定性"语法 or API"（图 1）→ 再查 browserslist 是否覆盖该浏览器 → 最后查 node_modules 依赖是否漏转译（4.1）；</li>
+    <li><strong>经验</strong>：三件套（browserslist/preset-env/useBuiltIns）一个都不能少，理解比背配置重要。</li>
   </ul>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
-  <ul>
-    <li>Babel 转译与 Polyfill 官方文档：<a href="https://babeljs.io/docs/" rel="noopener">https://babeljs.io/docs/</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/babel/babel" rel="noopener">https://github.com/babel/babel</a></li>
-    <li>官方示例项目：<a href="https://github.com/babel/babel/tree/main/examples" rel="noopener">https://github.com/babel/babel/tree/main/examples</a></li>
-  </ul>
-  <h3>学习建议</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 只配转译不配 polyfill（漏一半）</h3>
+  <p><strong>现象</strong>：老浏览器报 "Promise is not defined"。 <strong>原因</strong>：转译与 polyfill 正交，preset-env 只转语法。<strong>正解</strong>：useBuiltIns:'usage' + corejs:3。</p>
+
+  <h3>7.2 不配 browserslist 全量注入</h3>
+  <p><strong>现象</strong>：产物莫名多几百 KB polyfill。<strong>原因</strong>：preset-env 默认按最保守目标全量转译+垫。<strong>正解</strong>：显式声明 browserslist（图 2 单一事实源）。</p>
+
+  <h3>7.3 node_modules 依赖漏转译</h3>
+  <p><strong>现象</strong>：本地现代浏览器全好，某老环境白屏，报错指向某个依赖。<strong>原因</strong>：babel-loader exclude 了 node_modules，而该包发布的是 ES6+。<strong>正解</strong>：include 白名单纳入该依赖，或要求依赖提供 ES5 产物。</p>
+
+  <h3>7.4 库项目用 useBuiltIns 污染全局</h3>
+  <p><strong>风险</strong>：npm 库全局垫片覆盖宿主版本，宿主行为突变。<strong>正解</strong>：库用 transform-runtime（按需 import，不改全局）。</p>
+
+  <h3>7.5 modules 转译毁掉 tree-shaking</h3>
+  <p><strong>现象</strong>：产物里塞满没用到的导出。<strong>原因</strong>：preset-env 默认 ESM→CommonJS，Webpack 摇不掉。<strong>正解</strong>：<code>modules: false</code> 交 Webpack 处理模块。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：转译和 Polyfill 的区别？为什么说两者正交？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>转译</strong>是代码文本变换——Babel parse 成 AST、插件改写节点、generate 输出，解决"老引擎看不懂的<strong>语法</strong>"（箭头函数/可选链）；<strong>Polyfill</strong> 是运行时补齐——core-js 把缺失<strong>API</strong>（Promise/allSettled）的实现挂到全局，代码写法不变。<strong>正交</strong>：两件事独立发生，转译不产生缺失的方法，polyfill 不改变写法——只配转译时 <code>Promise</code> 在 IE 依然是 undefined。排查老浏览器白屏第一步就是定性"语法 or API"。</p>
+
+  <p><strong>Q2：preset-env + browserslist + useBuiltIns 三件套怎么协作？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>browserslist</strong> 是目标浏览器的唯一事实源（Babel/Autoprefixer/压缩等全链路共享，改兼容范围只改一处）；<strong>preset-env</strong> 读它自动决定启用哪些转译插件——目标越新转译越少；<strong>useBuiltIns:'usage'</strong> 按代码实际用到的 API 注入 core-js@3 垫片（entry 是全量、false 是不垫）。<strong>必配纪律</strong>：不配 browserslist 会走默认全量（体积爆炸）；modules:false 保留 ESM 交给 Webpack（否则 tree-shaking 失效）。验证：<code>npx browserslist</code> 看解析结果。</p>
+
+  <p><strong>Q3：业务应用和 npm 库的 polyfill 策略为什么不同？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>业务应用</strong>是产物终点——全局注入（useBuiltIns:usage）最简单可靠，改全局没人与你冲突；<strong>npm 库</strong>是装进别人应用的中间件——用 useBuiltIns 会改宿主全局对象（覆盖宿主 Promise 版本，事故级冲突），必须用 <strong>@babel/plugin-transform-runtime</strong>：polyfill 从 @babel/runtime-corejs3 按需 import、辅助函数复用不内联、<strong>不污染全局</strong>。<strong>记忆法</strong>：终点可以占地盘，过客不能动地基。另：babel-loader 记得 cacheDirectory:true（转译是大头开销）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>转译与 polyfill 各解决什么？正交的含义？</li>
+    <li>三步管线是什么？与 ESLint 的同构点？</li>
+    <li>useBuiltIns 三个值的差异？默认首选哪个？</li>
+    <li>为什么库必须 transform-runtime？</li>
+    <li>依赖发 ES6 源码导致老环境白屏，怎么定位修复？</li>
   </ol>
 </section>
 
-
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档</h3>
+  <ul>
+    <li>Babel 官方文档（preset-env 全选项）：<a href="https://babeljs.io/docs/" rel="noopener">babeljs.io/docs</a>；GitHub：<a href="https://github.com/babel/babel" rel="noopener">github.com/babel/babel</a></li>
+    <li>browserslist 工具：<a href="https://github.com/browserslist/browserslist" rel="noopener">github.com/browserslist/browserslist</a>；core-js：<a href="https://github.com/zloirock/core-js" rel="noopener">github.com/zloirock/core-js</a></li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通 6.1 五步（含"漏一半"对照实验）；</li>
+    <li>用 esbuild 扫描一个真实项目产物里残留的新语法；</li>
+    <li>把一个 emit-ES6 的依赖加入转译白名单并在 ie11 目标下验证。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/06_Vite【标准】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考

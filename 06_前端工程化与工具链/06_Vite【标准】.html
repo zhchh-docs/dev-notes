@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/04_Webpack【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/05_Babel转译与Polyfill【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../06_前端工程化与工具链/07_Monorepo_pnpm与Turborepo【标准】.html">下一篇 →</a>
 </nav>
@@ -548,30 +548,128 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与配置要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Vite 是面向现代浏览器的前端构建工具，由两部分组成：</p>
-  <ul>
-    <li><strong>dev server</strong>：基于原生 ESM，HMR、TS、JSX、CSS 预处理开箱即用。</li>
-    <li><strong>生产构建</strong>：基于 <strong>Rollup</strong> 的 <code>vite build</code>，打包优化成可部署静态资源。</li>
-  </ul>
-  <p class="key-sentence">与 Webpack 的根本区别在 dev 模式：Webpack 启动前要把整棵依赖图打包完才服务；Vite 利用浏览器已支持 <code>&lt;script type="module"&gt;</code>，让浏览器直接请求各模块，服务器只在收到请求时即时转译那一个文件。</p>
-  <p><strong>解决什么问题</strong>：中大型项目里 Webpack dev server 冷启动动辄几十秒到几分钟、改一行也要等重新构建。Vite 干掉了"启动要打包全部"：</p>
-  <ul>
-    <li><strong>启动几乎瞬时</strong>，HMR 无论项目多大都保持亚秒级。</li>
-    <li><strong>现状</strong>：2023 年后新建 Vue/React 项目几乎都默认用 Vite——业务系统 正是选型它。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：原生 ESM dev + Rollup build 双模式</h3>
+  <p><strong>Vite 由两部分组成</strong>：<strong>dev server</strong>——基于原生 ESM 按需编译，HMR/TS/JSX/CSS 开箱即用；<strong>生产构建</strong>——内部调 Rollup 的 <code>vite build</code>。<span class="tag-key">与 Webpack 的根本区别在 dev</span>：Webpack 启动前把整棵依赖图打包完才服务（大项目几十秒）；Vite 让浏览器直接请求各模块、服务器只在收到请求时即时转译那一个文件——<strong>启动瞬时、HMR 亚秒</strong>。2023 后新项目几乎默认 Vite——本套技术栈业务系统选型它。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 <strong>"为什么 dev 快"</strong>（按需编译）与 <strong>依赖预构建</strong>的存在意义；</li>
+    <li>记住 <strong>dev 快 ≠ build 快</strong>（双引擎）；</li>
+    <li>落地 vite.config.ts 五件套（插件/别名/代理/预构建/环境变量）；</li>
+    <li>掌握 <strong>VITE_ 前缀</strong>与 alias 两边同步两大高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：04 篇 Webpack（对照读）。<strong>难度</strong>：★★☆☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>原生 ESM dev</strong>（总纲）→ <strong>依赖预构建</strong>→ <strong>HMR</strong>→ <strong>双引擎</strong>→ <strong>配置与环境变量</strong>。</p>
+
+  <h3>2.1 原生 ESM dev：请求到谁才转译谁</h3>
+  <p>浏览器原生 <code>&lt;script type="module"&gt;</code> 自己发请求加载 import 的模块；Vite 收到 <code>/src/App.vue</code> 请求才用插件即时转译返回 ESM JS。<strong>为什么快</strong>：只有被请求到的模块才被转译，不整图打包。</p>
+
+  <h3>2.2 依赖预构建（optimizeDeps）：快但不零启动</h3>
+  <p>很多包内部是 CommonJS/拆成几百小文件——逐个请求是几百次 HTTP。启动时用 <strong>esbuild</strong>（Go，极快）把 node_modules 依赖<strong>预打成少数 ESM 文件</strong>；只在依赖变化时重跑，业务改动不触发。<span class="tag-point">要点</span>："Vite 快但不是零启动"——它仍预构建了依赖，只是不碰业务代码。</p>
+
+  <h3>2.3 HMR：模块级失效、状态保留</h3>
+  <p>改某模块只通知浏览器该模块失效并重请求，其他模块与页面状态保留；不像 Webpack HMR 要注入大量 runtime——<strong>无论应用多大，更新一个模块代价近似常数</strong>；Vue/React 插件在此之上做组件级 HMR（不刷新整页保留状态）。</p>
+
+  <h3>2.4 双引擎：dev 用 ESM / build 用 Rollup</h3>
+  <p>dev 的按需模式<strong>不适合直接生产</strong>（几百请求/未压缩/兼容问题）；build 交给 Rollup 做代码分割/tree-shaking/压缩/hash 命名。<span class="tag-pit">误区</span>："dev 快"不等于"build 也快"——生产构建优化目标与 Webpack 一致，大项目 build 仍要等。</p>
+
+  <h3>2.5 配置与环境变量</h3>
+  <p>vite.config.ts 比 Webpack 简洁很多；环境变量走 .env 文件，<strong>前端可读的必须 VITE_ 前缀</strong>（import.meta.env.VITE_XXX）——前缀是刻意安全设计，防服务端密钥暴露；无前缀变量前端取到 undefined。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：标准 vite.config.ts</h3>
+<pre class="code" data-lang="ts"><code>import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: { '@': path.resolve(__dirname, 'src') }   // 等价 Webpack 的 @ 别名
+  },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': { target: 'http://localhost:8080', changeOrigin: true,
+                rewrite: (p) =&gt; p.replace(/^\/api/, '') }
+    }
+  },
+  optimizeDeps: {
+    include: ['element-plus', 'axios']   // 显式声明预构建，避免首屏才触发
+  }
+});</code></pre>
+
+  <h3>3.2 场景二：环境变量与路由懒加载</h3>
+<pre class="code" data-lang="bash"><code># .env.development
+VITE_API_BASE=/api
+# .env.production
+VITE_API_BASE=https://rmp.example.com</code></pre>
+<pre class="code" data-lang="ts"><code>const base = import.meta.env.VITE_API_BASE;   // import.meta.env.MODE/.DEV/.PROD 内置
+
+const routes = [
+  { path: '/design', component: () =&gt; import('@/views/Design.vue') }  // Rollup 自动分包
+];</code></pre>
+  <p><span class="tag-key">import.meta.glob</span>：Vite 特有批量动态导入——<code>import.meta.glob('./views/**/*.vue')</code> 一次按目录懒加载全部（路由自动注册常用）；立即加载用 <code>{ eager: true }</code>；大库手动拆分走 <code>build.rollupOptions.output.manualChunks</code>。</p>
+
+  <h3>3.3 场景三：与 Webpack 配置对照速查</h3>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>能力</th><th>Webpack</th><th>Vite</th></tr></thead>
+    <tbody>
+      <tr><td>dev 启动</td><td>先打包整图，慢</td><td>原生 ESM 按需，快</td></tr>
+      <tr><td>TS/JSX/CSS</td><td>需配 loader</td><td>开箱即用</td></tr>
+      <tr><td>入口</td><td>JS entry</td><td>index.html</td></tr>
+      <tr><td>生产打包</td><td>自身</td><td>内部调 Rollup</td></tr>
+      <tr><td>配置文件</td><td>webpack.config.js</td><td>vite.config.ts</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：五件套配置已会。</p>
+
+  <h3>4.1 monorepo 中的预构建边界</h3>
+  <p>workspace 内部源码包<strong>必须 exclude 出预构建</strong>（optimizeDeps.exclude）——预构建会把包"冻结"成快照，改内部包源码不生效（要与外部 node_modules 依赖区分：内部包走源码直连，外部库走预构建）。</p>
+
+  <h3>4.2 build.target 与 legacy 兼容</h3>
+  <p>build 默认 target 'modules'（原生 ESM 浏览器）；要兼容老浏览器：调 <code>build.target: 'es2015'</code> + <strong>@vitejs/plugin-legacy</strong> 生成双份产物（现代版+SystemJS legacy 版，05 篇 4.4 呼应）——兼容成本只在真需要时付。</p>
+
+  <h3>4.3 ssr 与库模式</h3>
+  <p>Vite 内建 SSR 支持（dev 阶段 SSR HMR）；<strong>库模式</strong>（build.lib）把公共包构建成 npm 包——monorepo 内部包用源码直连不构建，对外发布的包才用 lib 模式。</p>
+
+  <h3>4.4 静态资源与 JSON/Worker</h3>
+  <p>import 图片默认转 URL（小资源内联 base64，assetsInlineLimit 调阈值）；<code>?url</code>/<code>?raw</code> 后缀取 URL/原文；Worker 用 <code>new Worker(new URL('./w.js', import.meta.url), {type:'module'})</code>——比 Webpack worker-loader 简洁。</p>
+
+  <h3>4.5 迁移评估清单（Webpack→Vite）</h3>
+  <p>五项检查：①require() 语法与 webpack 特有 API（require.context → import.meta.glob）；②自定义 loader/plugin 有无 Vite 等价物；③CSS Modules 约定；④env 变量名前缀迁移；⑤CI 构建命令与产物结构（publicPath → base）。<strong>老项目深度绑定 Webpack 生态就不迁</strong>——收益要盖过迁移成本。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Vite 与 Webpack dev 模式启动方式对比示意图">
       <defs>
@@ -598,52 +696,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Webpack 与 Vite dev 启动方式对比（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 原生 ESM dev server</h3>
-  <p class="lead"><b>一句话定位</b>：Vite dev 顺着浏览器原生 ESM 按需转译，不打包，所以项目再大启动也快。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>原理</strong>：浏览器原生 <code>&lt;script type="module"&gt;</code> 直接发请求加载 import 的模块。</li>
-    <li><strong>按需转译</strong>：<code>import Foo from './Foo.vue'</code> 原样交给浏览器，浏览器请求 <code>/src/Foo.vue</code>，服务器实时转译返回。</li>
-    <li><strong>为什么快</strong>：只有"被浏览器请求到的模块"才被转译，不整图打包。</li>
-  </ul>
-  <h3>2.2 依赖预构建（Dependency Pre-bundling / optimizeDeps）</h3>
-  <p class="lead"><b>一句话定位</b>：用 esbuild 把 node_modules 第三方依赖预打成少数 ESM 文件，避免浏览器发几百个请求。</p>
-  <ul>
-    <li><strong>问题</strong>：很多包内部是 CommonJS、拆成几百个小文件，逐个请求会发几百次 HTTP。</li>
-    <li><strong>做法</strong>：启动时用 esbuild（Go 写的，很快）把依赖预打成少数几个 ESM 文件——即 <code>optimizeDeps</code>。</li>
-    <li><strong>触发时机</strong>：只在依赖变化时重跑，日常业务改动不触发。</li>
-  </ul>
-  <p class="key-sentence">"Vite 快但不是完全零启动"——它仍预构建了依赖，只是不碰业务代码。</p>
-  <h3>2.3 HMR（Hot Module Replacement，热更新）</h3>
-  <p class="lead"><b>一句话定位</b>：基于原生 ESM，改一个模块只失效并重求它，保留页面状态。</p>
-  <ul>
-    <li><strong>机制</strong>：改某模块时只通知浏览器该模块失效并重请求，保留其他模块与页面状态。</li>
-    <li><strong>为何轻量</strong>：不像 Webpack HMR 要注入大量 runtime，无论应用多大，更新一个模块的代价近似常数。</li>
-    <li><strong>组件级 HMR</strong>：Vue/React 官方插件在此之上做"改组件不刷新整页、保留状态"。</li>
-  </ul>
-  <h3>2.4 双模式：dev 用 ESM / build 用 Rollup</h3>
-  <p class="lead"><b>一句话定位</b>：Vite dev 与 Vite build 是两套引擎——dev 快不等于 build 快。</p>
-  <ul>
-    <li><strong>dev</strong>：浏览器原生 ESM + 即时转译（不适合直接生产：几百请求、未压缩、旧浏览器兼容问题）。</li>
-    <li><strong>build</strong>：交给 Rollup，做代码分割、tree-shaking、压缩、hash 命名——这才是上线产物。</li>
-  </ul>
-  <p class="key-sentence">build 阶段的优化目标与 Webpack 一致；"dev 快"不等于"build 也快"。</p>
-  <h3>2.5 配置文件与环境变量</h3>
-  <p class="lead"><b>一句话定位</b>：配置在 vite.config.ts；前端可读的环境变量必须 VITE_ 前缀。</p>
-  <ul>
-    <li><strong>配置</strong>：<code>vite.config.ts</code>，比 Webpack 简洁很多。</li>
-    <li><strong>环境变量</strong>：走 <code>.env</code> 文件，前端能访问的必须以 <code>VITE_</code> 开头（如 <code>VITE_API_BASE</code>）。</li>
-    <li><strong>读取</strong>：<code>import.meta.env.VITE_API_BASE</code>。</li>
-  </ul>
-  <p class="pit-sentence">VITE_ 前缀是刻意的安全设计，防止把服务端密钥暴露给前端——写成无前缀的变量在前端取到 undefined。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 dev 请求处理：一次模块请求经历了什么</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="Vite dev server 处理一次模块请求的流程示意图">
       <defs>
@@ -673,165 +725,93 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Vite dev 的按需编译流程（示意）</p>
   </div>
-  <ol>
-    <li><strong>加载入口 HTML</strong>：Vite 把 <code>/index.html</code> 作为入口（注意：Vite 以 HTML 为入口，不像 Webpack 以 JS entry 为中心），里面的 <code>&lt;script type="module" src="/src/main.ts"&gt;</code> 直接生效。</li>
-    <li><strong>浏览器按需发请求</strong>：解析 main.ts 时，浏览器看到 <code>import App from './App.vue'</code>，自己发请求去拿这个模块。</li>
-    <li><strong>Vite 即时转译</strong>：服务器收到 <code>/src/App.vue</code>，用 Vue 插件把 .vue 转成浏览器能跑的 ESM JS 返回。</li>
-    <li><strong>依赖走预构建产物</strong>：<code>import lodash from 'lodash'</code> 这类被重写到 <code>/node_modules/.vite/deps/lodash.js</code>，命中之前预打包的文件，避免几百个小请求。</li>
-  </ol>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与配置要点</h2>
-  <h3>4.1 一份 vite.config.ts（proxy + 别名 + 预构建）</h3>
-<pre class="code" data-lang="ts"><code>import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import path from 'path';
-
-export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') }   // 等价 Webpack 的 @ 别名
-  },
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': { target: 'http://localhost:8080', changeOrigin: true,
-                rewrite: (p) =&gt; p.replace(/^\/api/, '') }
-    }
-  },
-  optimizeDeps: {
-    include: ['element-plus', 'axios']   // 显式声明预构建依赖，避免首次打开时按需才发现
-  }
-});</code></pre>
-  <h3>4.2 环境变量（VITE_ 前缀是硬规则）</h3>
-<pre class="code" data-lang="bash"><code># .env.development
-VITE_API_BASE=/api
-# .env.production
-VITE_API_BASE=https://rmp.example.com</code></pre>
-<pre class="code" data-lang="ts"><code>const base = import.meta.env.VITE_API_BASE;   // 读环境变量
-// import.meta.env.MODE / .DEV / .PROD 是内置布尔量</code></pre>
-  <h3>4.3 路由懒加载（与 Webpack 写法一致）</h3>
-<pre class="code" data-lang="ts"><code>// Vite 同样支持动态 import()，build 时 Rollup 自动分包
-const routes = [
-  { path: '/design', component: () =&gt; import('@/views/Design.vue') }
-];</code></pre>
-  <div class="note"><strong>import.meta.glob</strong>：Vite 特有的批量动态导入——<code>import.meta.glob('./views/**/*.vue')</code> 可一次性按目录懒加载所有模块（路由自动注册常用）；要立即加载用 <code>{ eager: true }</code>。生产侧想手动拆大库，则在 <code>build.rollupOptions.output.manualChunks</code> 里把 element-plus 等单独成 chunk。</div>
-  <h3>4.4 与 Webpack 的配置对照速查</h3>
-  <table>
-    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
-    <thead><tr><th>能力</th><th>Webpack</th><th>Vite</th></tr></thead>
-    <tbody>
-      <tr><td>dev 启动</td><td>先打包整图，慢</td><td>原生 ESM 按需，快</td></tr>
-      <tr><td>TS/JSX/CSS</td><td>需配 loader</td><td>开箱即用</td></tr>
-      <tr><td>入口</td><td>JS entry</td><td>index.html</td></tr>
-      <tr><td>生产打包</td><td>自身</td><td>内部调 Rollup</td></tr>
-      <tr><td>配置文件</td><td>webpack.config.js</td><td>vite.config.ts</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：业务系统 多应用 Vite 工程</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 是 pnpm monorepo，多个应用都用 Vite，要配好代理、别名、预构建并共享配置。</p>
-  <ul>
-    <li><strong>项目</strong>：需求管理平台 业务系统（2026-，Vue3+TS+Vite+Pinia+ElementPlus）。</li>
-    <li><strong>结构</strong>：web 主应用 + drawio + 工作流多应用；公共包有 API 客户端/通用组件/表单设计器渲染器等。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责前端 Vite 配置、API 客户端与公共包；后端 SpringBoot 独立团队。前端组小团队协作。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Vue3 + TS + Vite + Pinia + ElementPlus + pnpm workspace；OpenAPI 自动生成 TS 接口客户端。</li></ul>
-
-  <h3>5.4 落地设计：代理/别名/预构建/环境变量</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>API 代理</strong>：dev 时 <code>/api</code> 代理到本地 SpringBoot，绕开跨域；生产由 Nginx 反代。</li>
-    <li><strong>别名</strong>：<code>@</code>→src，与 TS <code>paths</code> 同步。</li>
-    <li><strong>预构建</strong>：element-plus/axios 列入 <code>optimizeDeps.include</code>，避免首屏才触发预构建闪一下。</li>
-    <li><strong>环境变量</strong>：<code>VITE_API_BASE</code> 供 OpenAPI 客户端拼 baseURL。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="ts"><code>// API 客户端读环境变量（与 OpenAPI 生成器配合）
-import axios from 'axios';
-export const http = axios.create({ baseURL: import.meta.env.VITE_API_BASE });</code></pre>
-
-  <h3>5.6 真实问题与解法（含量化对比）</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>环境变量忘加 VITE_ 前缀</strong>：取到 undefined——前缀是硬规则。</li>
-    <li><span class="tag-pit">坑</span><strong>新依赖没触发重新预构建</strong>：删 <code>node_modules/.vite</code> 或重启 dev 即恢复。</li>
-    <li><span class="tag-pit">坑</span><strong>alias 两边不同步</strong>：TS 配了 vite.config 漏配，运行时报找不到模块。</li>
-    <li><span class="tag-pit">坑</span><strong>monorepo 内部包被误预打包</strong>：源码包需 <code>optimizeDeps.exclude</code> 排除。</li>
-    <li><strong>前后对比（估算）</strong>：dev 冷启动从 Webpack 时代几十秒降到 1 秒内。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>dev 冷启动与 HMR 亚秒级；多应用配置可复用；OpenAPI 客户端按环境变量自动切 baseURL。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：Swagger/OpenAPI 先定接口契约，自动生成 TS 客户端，前后端并行。</li>
-    <li><strong>联调协商点</strong>：dev 代理路径与后端接口前缀对齐。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>VITE_ 前缀 + alias 两边同步</strong>是 Vite 最常踩的两个坑。</li>
-    <li><span class="tag-point">要点</span><strong>内部包 exclude 出预构建</strong>：monorepo 源码包别让 Vite 打包。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中 业务系统 这个 pnpm monorepo 多应用里用 Vite，配了 dev 代理、@别名与 TS paths 同步、optimizeDeps 预构建和 VITE_ 环境变量，把冷启动从 Webpack 的几十秒压到亚秒级。"</p>
+  <p><strong>读图要点</strong>：①图 1 差异的本质——"先打包再服务" vs "请求到谁才转译谁"；②图 2 请求路径分两股——<strong>第三方库命中预构建产物、业务代码即时转译</strong>，这就是"快但不零启动"的结构原因。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 dev 快 ≠ build 快</h3>
-  <p class="lead"><b>一句话定位</b>：dev 靠原生 ESM 按需（不适合生产），build 走 Rollup 完整打包。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统（2026-，Vue3+TS+Vite+Pinia+ElementPlus）pnpm monorepo 多应用 Vite 工程；我负责前端 Vite 配置、API 客户端与公共包。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>误区</strong>：以为 Vite 生产构建也像 dev 那样瞬时。</li>
-    <li><strong>正解</strong>：生产 build 走 Rollup 做完整打包优化，大项目 build 仍要等。</li>
+    <li><span class="tag-key">API 代理</span>：dev 时 /api 代理本地 SpringBoot 绕开跨域，生产 Nginx 反代；</li>
+    <li><strong>别名</strong>：@→src，与 TS paths 同步；</li>
+    <li><strong>预构建</strong>：element-plus/axios 列入 optimizeDeps.include；内部源码包 exclude；</li>
+    <li><strong>环境变量</strong>：VITE_API_BASE 供 OpenAPI 客户端拼 baseURL（Swagger 契约先行，自动生成 TS 客户端）。</li>
   </ul>
-  <h3>6.2 环境变量必须 VITE_ 前缀</h3>
-  <p class="lead"><b>一句话定位</b>：Vite 只把 VITE_ 前缀的变量暴露给前端，其余防泄漏。</p>
+
+  <h3>6.2 踩坑记录（含量化对比）</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：<code>import.meta.env.XXX</code> 是 undefined。</li>
-    <li><strong>正解</strong>：前端要用的变量一律 <code>VITE_</code> 开头。</li>
+    <li><span class="tag-pit">坑</span><strong>环境变量忘加 VITE_ 前缀</strong>：取到 undefined——前缀是硬规则；</li>
+    <li><span class="tag-pit">坑</span><strong>新依赖没触发重新预构建</strong>：删 node_modules/.vite 或重启 dev 恢复；</li>
+    <li><span class="tag-pit">坑</span><strong>alias 两边不同步</strong>：TS 配了 vite.config 漏配，运行时报找不到模块；</li>
+    <li><span class="tag-pit">坑</span><strong>monorepo 内部包被误预打包</strong>：源码包 optimizeDeps.exclude 排除；</li>
+    <li><strong>前后对比（估算）</strong>：dev 冷启动从 Webpack 时代几十秒降到 1 秒内。</li>
   </ul>
-  <h3>6.3 预构建缓存导致新依赖不生效</h3>
-  <p class="lead"><b>一句话定位</b>：装了新包却报错，多半是 .vite 预构建缓存没更新。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：装了新包，dev 报错或行为异常。</li>
-    <li><strong>正解</strong>：重启 dev server 或删 <code>node_modules/.vite</code>；把常用依赖列入 <code>optimizeDeps.include</code>。</li>
-  </ul>
-  <h3>6.4 CommonJS 依赖在 Vite dev 下的坑</h3>
-  <p class="lead"><b>一句话定位</b>：原生 ESM 不能直接 require，老 CJS 包靠预构建转成 ESM。</p>
-  <p class="key-sentence">个别包导出方式怪异会报错，需 <code>optimizeDeps.include</code> 强制预构建或换 ESM 版依赖。</p>
-  <h3>6.5 选型：什么时候仍该用 Webpack</h3>
-  <p class="lead"><b>一句话定位</b>：深度绑定 Webpack 生态的老项目继续用 Webpack，新项目默认 Vite。</p>
-  <ul>
-    <li><strong>继续 Webpack</strong>：极老、深度绑定大量自定义 Webpack loader/plugin 的存量项目，迁移成本高。</li>
-    <li><strong>本项目分界</strong>：数据编排平台/低代码（老，Webpack），业务系统（新，Vite）。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：dev 冷启动与 HMR 亚秒级；多应用配置复用；OpenAPI 客户端按环境变量自动切 baseURL；</li>
+    <li><strong>协作</strong>：Swagger/OpenAPI 契约先行前后端并行；dev 代理路径与后端前缀对齐；</li>
+    <li><strong>可复用经验</strong>：VITE_ 前缀+alias 两边同步是最常踩两坑；内部包 exclude 出预构建。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 dev 快 ≠ build 快</h3>
+  <p><strong>误区</strong>：以为生产构建也瞬时。<strong>正解</strong>：build 走 Rollup 完整打包优化，大项目仍要等。</p>
+
+  <h3>7.2 环境变量必须 VITE_ 前缀</h3>
+  <p><strong>现象</strong>：import.meta.env.XXX undefined。<strong>正解</strong>：前端要用的变量一律 VITE_ 开头（防密钥泄漏的设计）。</p>
+
+  <h3>7.3 预构建缓存不更新</h3>
+  <p><strong>现象</strong>：装新包后 dev 报错。<strong>正解</strong>：重启 dev 或删 node_modules/.vite；常用依赖列 optimizeDeps.include。</p>
+
+  <h3>7.4 CommonJS 依赖的坑</h3>
+  <p><strong>原因</strong>：原生 ESM 不能 require，老 CJS 包靠预构建转 ESM。<strong>正解</strong>：怪异导出的包强制 include 预构建或换 ESM 版。</p>
+
+  <h3>7.5 选型：什么时候仍用 Webpack</h3>
+  <p><strong>口径</strong>：深度绑定自定义 loader/plugin 的存量项目迁移成本高就继续 Webpack；新项目默认 Vite——本套技术栈分界：数据编排/低代码（Webpack）vs 业务系统（Vite）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：为什么 Vite dev 启动快？依赖预构建是干什么的？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>快在启动方式</strong>——Webpack dev 起服务前要把整棵依赖图打包完（项目越大越慢）；Vite 利用浏览器原生 <code>&lt;script type="module"&gt;</code>，index.html 为入口，浏览器请求谁服务器才即时转译谁——启动不打包业务代码。<strong>但不是零启动</strong>：很多包是 CommonJS/几百个小文件，逐个请求是几百次 HTTP——Vite 启动时用 esbuild 把 node_modules 依赖<strong>预构建</strong>（optimizeDeps）成少数 ESM 文件，只在依赖变化时重跑。所以结构上分两股：第三方库命中预构建产物、业务代码按需转译。</p>
+
+  <p><strong>Q2：Vite 的 dev 和 build 是两套引擎，这意味着什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>dev</strong>=原生 ESM 按需编译（快、不压缩、不兼容旧浏览器，不能直接上生产）；<strong>build</strong>=内部调 Rollup 做代码分割/tree-shaking/压缩/hash 命名——这才是部署产物。<strong>推论</strong>：①"dev 快"不等于"build 快"，大项目生产构建仍要等；②dev 与 build 行为可能有差异（如 CJS 依赖 dev 靠预构建兜底），CI 里必须以 vite build 验证；③Rollup 的 manualChunks 对应 Webpack splitChunks，优化目标一致、配置入口不同。</p>
+
+  <p><strong>Q3：Vite 环境变量机制的安全设计？monorepo 里预构建要注意什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>VITE_ 前缀</strong>是硬规则——只有该前缀变量暴露给前端（import.meta.env.VITE_XXX），其余（如数据库密码）防泄漏；忘加前缀取到 undefined 是最高频坑。<strong>monorepo 预构建边界</strong>：外部 node_modules 依赖走预构建（esbuild 快照）；<strong>workspace 内部源码包必须 optimizeDeps.exclude</strong>——否则包被冻结成快照、改源码不生效；alias 要与 TS paths 两边同步（漏一边运行时找不到模块）。<strong>老环境兼容</strong>：build.target + @vitejs/plugin-legacy 双产物（05 篇正交链路的 Vite 版）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>Vite dev 为什么快？"快但不零启动"的原因？</li>
+    <li>双引擎各管什么？"dev 快=build 快"错在哪？</li>
+    <li>VITE_ 前缀防什么？漏加的症状？</li>
+    <li>optimizeDeps.include 与 exclude 各管什么？monorepo 内部包怎么处理？</li>
+    <li>什么情况下仍选 Webpack？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>Vite 官方文档（为什么快/配置/环境变量讲得极清楚）：<a href="https://cn.vitejs.dev/guide/why.html" rel="noopener">cn.vitejs.dev/guide/why.html</a></li>
-    <li>Vite 配置参考：<a href="https://cn.vitejs.dev/config/" rel="noopener">cn.vitejs.dev/config</a></li>
-    <li>Rollup（Vite 生产构建内核）文档：<a href="https://rollupjs.org/guide/zh/" rel="noopener">rollupjs.org/guide/zh</a></li>
+    <li>Vite 官方文档（为什么快/配置/环境变量极清楚）：<a href="https://cn.vitejs.dev/guide/why.html" rel="noopener">cn.vitejs.dev/guide/why.html</a>；配置参考 cn.vitejs.dev/config</li>
+    <li>Rollup（生产构建内核）：<a href="https://rollupjs.org/guide/zh/" rel="noopener">rollupjs.org/guide/zh</a>；Vite GitHub：github.com/vitejs/vite</li>
   </ul>
-  <h3>实战与对比</h3>
-  <ul>
-    <li>Vite 官方 GitHub（changelog 里能看到双模式演进）：<a href="https://github.com/vitejs/vite" rel="noopener">github.com/vitejs/vite</a></li>
-    <li>Vue 官方工具链文档（create-vite / 迁移指南）：<a href="https://cn.vuejs.org/guide/scaling-up/tooling.html" rel="noopener">cn.vuejs.org/guide/scaling-up/tooling.html</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>create-vite 建项目，观察 network 面板里按需请求与 .vite/deps 预构建产物；</li>
+    <li>故意写无前缀 env 变量复现 undefined；删除 .vite 缓存观察重新预构建；</li>
+    <li>把同一项目用 Webpack 与 Vite 分别起 dev，记录冷启动时间对比。</li>
+  </ol>
 </section>
 
 </main>
