@@ -66,7 +66,7 @@ window.KB_MANIFEST = {
       "group": "tutorial",
       "name": "《JavaScript 从 0 到精通》",
       "icon": "🟨",
-      "desc": "10 篇 · 规划 97 章 · 撰写中",
+      "desc": "10 篇 · 97 章完稿 + 3 附录 · 全书完",
       "arts": [
         {
           "t": "《JavaScript 从 0 到精通》全书目录",
@@ -361,10 +361,322 @@ window.KB_MANIFEST = {
           "f": "048_第48章_对象体系收官.html",
           "u": "14_从0到精通/javascript/50_第五篇_对象与原型/048_第48章_对象体系收官.html",
           "d": "std"
+        },
+        {
+          "t": "第 49 章 异步总览与单线程｜JavaScript 从 0 到精通",
+          "f": "049_第49章_异步总览与单线程.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/049_第49章_异步总览与单线程.html",
+          "d": "std"
+        },
+        {
+          "t": "第 50 章 错误处理与 Result 模式｜JavaScript 从 0 到精通",
+          "f": "050_第50章_错误处理与Result模式.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/050_第50章_错误处理与Result模式.html",
+          "d": "std"
+        },
+        {
+          "t": "第 51 章 事件循环：宏任务与微任务｜JavaScript 从 0 到精通",
+          "f": "051_第51章_事件循环宏微任务.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/051_第51章_事件循环宏微任务.html",
+          "d": "std"
+        },
+        {
+          "t": "第 52 章 定时器与 setTimeout 真相｜JavaScript 从 0 到精通",
+          "f": "052_第52章_定时器与setTimeout真相.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/052_第52章_定时器与setTimeout真相.html",
+          "d": "std"
+        },
+        {
+          "t": "第 53 章 回调与回调地狱｜JavaScript 从 0 到精通",
+          "f": "053_第53章_回调与回调地狱.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/053_第53章_回调与回调地狱.html",
+          "d": "std"
+        },
+        {
+          "t": "第 54 章 Promise 全解｜JavaScript 从 0 到精通",
+          "f": "054_第54章_Promise全解.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/054_第54章_Promise全解.html",
+          "d": "std"
+        },
+        {
+          "t": "第 55 章 async/await 与异步演进｜JavaScript 从 0 到精通",
+          "f": "055_第55章_async_await与异步演进.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/055_第55章_async_await与异步演进.html",
+          "d": "std"
+        },
+        {
+          "t": "第 56 章 并发控制：限流重试超时｜JavaScript 从 0 到精通",
+          "f": "056_第56章_并发控制.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/056_第56章_并发控制.html",
+          "d": "std"
+        },
+        {
+          "t": "第 57 章 异步迭代与面试名题｜JavaScript 从 0 到精通",
+          "f": "057_第57章_异步迭代与面试名题.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/057_第57章_异步迭代与面试名题.html",
+          "d": "std"
+        },
+        {
+          "t": "第 58 章 异步收官：实战与总复习｜JavaScript 从 0 到精通",
+          "f": "058_第58章_异步收官.html",
+          "u": "14_从0到精通/javascript/60_第六篇_异步与事件循环/058_第58章_异步收官.html",
+          "d": "std"
+        },
+        {
+          "t": "第 59 章 DOM 树与节点｜JavaScript 从 0 到精通",
+          "f": "059_第59章_DOM树与节点.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/059_第59章_DOM树与节点.html",
+          "d": "std"
+        },
+        {
+          "t": "第 60 章 查询与遍历｜JavaScript 从 0 到精通",
+          "f": "060_第60章_查询与遍历.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/060_第60章_查询与遍历.html",
+          "d": "std"
+        },
+        {
+          "t": "第 61 章 增删改与批量操作｜JavaScript 从 0 到精通",
+          "f": "061_第61章_增删改与批量操作.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/061_第61章_增删改与批量操作.html",
+          "d": "std"
+        },
+        {
+          "t": "第 62 章 事件模型与委托｜JavaScript 从 0 到精通",
+          "f": "062_第62章_事件模型与委托.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/062_第62章_事件模型与委托.html",
+          "d": "std"
+        },
+        {
+          "t": "第 63 章 表单与交互｜JavaScript 从 0 到精通",
+          "f": "063_第63章_表单与交互.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/063_第63章_表单与交互.html",
+          "d": "std"
+        },
+        {
+          "t": "第 64 章 BOM 与存储｜JavaScript 从 0 到精通",
+          "f": "064_第64章_BOM与存储.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/064_第64章_BOM与存储.html",
+          "d": "std"
+        },
+        {
+          "t": "第 65 章 渲染流水线｜JavaScript 从 0 到精通",
+          "f": "065_第65章_渲染流水线.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/065_第65章_渲染流水线.html",
+          "d": "std"
+        },
+        {
+          "t": "第 66 章 fetch 与网络请求｜JavaScript 从 0 到精通",
+          "f": "066_第66章_fetch与网络请求.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/066_第66章_fetch与网络请求.html",
+          "d": "std"
+        },
+        {
+          "t": "第 67 章 现代 Web API｜JavaScript 从 0 到精通",
+          "f": "067_第67章_现代Web_API.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/067_第67章_现代Web_API.html",
+          "d": "std"
+        },
+        {
+          "t": "第 68 章 DOM 收官实战｜JavaScript 从 0 到精通",
+          "f": "068_第68章_DOM收官实战.html",
+          "u": "14_从0到精通/javascript/70_第七篇_DOM与浏览器/068_第68章_DOM收官实战.html",
+          "d": "std"
+        },
+        {
+          "t": "第 69 章 可选链与空值合并｜JavaScript 从 0 到精通",
+          "f": "069_第69章_可选链与空值合并.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/069_第69章_可选链与空值合并.html",
+          "d": "std"
+        },
+        {
+          "t": "第 70 章 逻辑赋值与语法新兵｜JavaScript 从 0 到精通",
+          "f": "070_第70章_逻辑赋值与语法新兵.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/070_第70章_逻辑赋值与语法新兵.html",
+          "d": "std"
+        },
+        {
+          "t": "第 71 章 ESM 模块系统｜JavaScript 从 0 到精通",
+          "f": "071_第71章_ESM模块系统.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/071_第71章_ESM模块系统.html",
+          "d": "std"
+        },
+        {
+          "t": "第 72 章 错误类型体系与自定义错误｜JavaScript 从 0 到精通",
+          "f": "072_第72章_错误类型与自定义错误.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/072_第72章_错误类型与自定义错误.html",
+          "d": "std"
+        },
+        {
+          "t": "第 73 章 调试与防御式编程｜JavaScript 从 0 到精通",
+          "f": "073_第73章_调试与防御式编程.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/073_第73章_调试与防御式编程.html",
+          "d": "std"
+        },
+        {
+          "t": "第 74 章 正则进阶｜JavaScript 从 0 到精通",
+          "f": "074_第74章_正则进阶.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/074_第74章_正则进阶.html",
+          "d": "std"
+        },
+        {
+          "t": "第 75 章 Intl 与日期时间｜JavaScript 从 0 到精通",
+          "f": "075_第75章_Intl与日期时间.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/075_第75章_Intl与日期时间.html",
+          "d": "std"
+        },
+        {
+          "t": "第 76 章 代码风格与评审清单｜JavaScript 从 0 到精通",
+          "f": "076_第76章_代码风格与评审清单.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/076_第76章_代码风格与评审清单.html",
+          "d": "std"
+        },
+        {
+          "t": "第 77 章 现代语法收官｜JavaScript 从 0 到精通",
+          "f": "077_第77章_现代语法收官.html",
+          "u": "14_从0到精通/javascript/80_第八篇_现代语法与错误处理/077_第77章_现代语法收官.html",
+          "d": "std"
+        },
+        {
+          "t": "第 78 章 包管理与 npm 生态｜JavaScript 从 0 到精通",
+          "f": "078_第78章_包管理与npm生态.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/078_第78章_包管理与npm生态.html",
+          "d": "std"
+        },
+        {
+          "t": "第 79 章 构建工具：Vite 与 Webpack｜JavaScript 从 0 到精通",
+          "f": "079_第79章_构建工具Vite与Webpack.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/079_第79章_构建工具Vite与Webpack.html",
+          "d": "std"
+        },
+        {
+          "t": "第 80 章 转译与 polyfill｜JavaScript 从 0 到精通",
+          "f": "080_第80章_转译与polyfill.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/080_第80章_转译与polyfill.html",
+          "d": "std"
+        },
+        {
+          "t": "第 81 章 代码质量三件套｜JavaScript 从 0 到精通",
+          "f": "081_第81章_代码质量三件套.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/081_第81章_代码质量三件套.html",
+          "d": "std"
+        },
+        {
+          "t": "第 82 章 测试入门：Vitest｜JavaScript 从 0 到精通",
+          "f": "082_第82章_测试入门Vitest.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/082_第82章_测试入门Vitest.html",
+          "d": "std"
+        },
+        {
+          "t": "第 83 章 从 JS 到 TS：过渡视角｜JavaScript 从 0 到精通",
+          "f": "083_第83章_从JS到TS过渡.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/083_第83章_从JS到TS过渡.html",
+          "d": "std"
+        },
+        {
+          "t": "第 84 章 兼容性与渐进增强｜JavaScript 从 0 到精通",
+          "f": "084_第84章_兼容性与渐进增强.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/084_第84章_兼容性与渐进增强.html",
+          "d": "std"
+        },
+        {
+          "t": "第 85 章 函数式编程进阶与管道｜JavaScript 从 0 到精通",
+          "f": "085_第85章_函数式进阶与管道.html",
+          "u": "14_从0到精通/javascript/90_第九篇_工程化与进阶/085_第85章_函数式进阶与管道.html",
+          "d": "std"
+        },
+        {
+          "t": "第 86 章 性能指标与 Lighthouse｜JavaScript 从 0 到精通",
+          "f": "086_第86章_性能指标与Lighthouse.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/086_第86章_性能指标与Lighthouse.html",
+          "d": "std"
+        },
+        {
+          "t": "第 87 章 内存管理与泄漏｜JavaScript 从 0 到精通",
+          "f": "087_第87章_内存管理与泄漏.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/087_第87章_内存管理与泄漏.html",
+          "d": "std"
+        },
+        {
+          "t": "第 88 章 渲染性能｜JavaScript 从 0 到精通",
+          "f": "088_第88章_渲染性能.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/088_第88章_渲染性能.html",
+          "d": "std"
+        },
+        {
+          "t": "第 89 章 网络性能｜JavaScript 从 0 到精通",
+          "f": "089_第89章_网络性能.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/089_第89章_网络性能.html",
+          "d": "std"
+        },
+        {
+          "t": "第 90 章 Web Worker 与并行｜JavaScript 从 0 到精通",
+          "f": "090_第90章_Web_Worker与并行.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/090_第90章_Web_Worker与并行.html",
+          "d": "std"
+        },
+        {
+          "t": "第 91 章 安全｜JavaScript 从 0 到精通",
+          "f": "091_第91章_安全.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/091_第91章_安全.html",
+          "d": "std"
+        },
+        {
+          "t": "第 92 章 可访问性 a11y｜JavaScript 从 0 到精通",
+          "f": "092_第92章_可访问性a11y.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/092_第92章_可访问性a11y.html",
+          "d": "std"
+        },
+        {
+          "t": "第 93 章 设计模式在 JS｜JavaScript 从 0 到精通",
+          "f": "093_第93章_设计模式在JS.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/093_第93章_设计模式在JS.html",
+          "d": "std"
+        },
+        {
+          "t": "第 94 章 综合实战一：组件化待办｜JavaScript 从 0 到精通",
+          "f": "094_第94章_综合实战一.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/094_第94章_综合实战一.html",
+          "d": "std"
+        },
+        {
+          "t": "第 95 章 综合实战二：数据仪表盘｜JavaScript 从 0 到精通",
+          "f": "095_第95章_综合实战二.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/095_第95章_综合实战二.html",
+          "d": "std"
+        },
+        {
+          "t": "第 96 章 全书知识地图｜JavaScript 从 0 到精通",
+          "f": "096_第96章_全书知识地图.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/096_第96章_全书知识地图.html",
+          "d": "std"
+        },
+        {
+          "t": "第 97 章 毕业典礼｜JavaScript 从 0 到精通",
+          "f": "097_第97章_毕业典礼.html",
+          "u": "14_从0到精通/javascript/95_第十篇_性能内存与收官/097_第97章_毕业典礼.html",
+          "d": "std"
+        },
+        {
+          "t": "附录 A 习题参考答案精选｜JavaScript 从 0 到精通",
+          "f": "附录A_习题参考答案精选.html",
+          "u": "14_从0到精通/javascript/99_附录/附录A_习题参考答案精选.html",
+          "d": "std"
+        },
+        {
+          "t": "附录 B 全书速查卡｜JavaScript 从 0 到精通",
+          "f": "附录B_全书速查卡.html",
+          "u": "14_从0到精通/javascript/99_附录/附录B_全书速查卡.html",
+          "d": "std"
+        },
+        {
+          "t": "附录 C 术语对照表｜JavaScript 从 0 到精通",
+          "f": "附录C_术语对照表.html",
+          "u": "14_从0到精通/javascript/99_附录/附录C_术语对照表.html",
+          "d": "std"
         }
       ],
       "planned": 97,
-      "status": "doing",
+      "status": "done",
       "parts": [
         {
           "name": "第一篇 入门与环境",
@@ -394,30 +706,30 @@ window.KB_MANIFEST = {
         {
           "name": "第六篇 异步与事件循环",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第七篇 DOM 与浏览器",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第八篇 现代语法与错误处理",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第九篇 工程化与进阶",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第十篇 性能内存与收官",
           "chapters": 12,
-          "state": "plan"
+          "state": "done"
         }
       ],
-      "done": 48,
+      "done": 100,
       "order": 2
     },
     {
@@ -1863,5 +2175,5 @@ window.KB_MANIFEST = {
       "order": 24
     }
   ],
-  "total": 197
+  "total": 249
 };
