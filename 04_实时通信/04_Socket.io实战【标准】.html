@@ -484,347 +484,293 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>Socket.io 实战</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：封装 WebSocket 的实时方案</span>
+      <span class="meta">定位：WebSocket 之上的工程化封装——事件模型、房间、自动降级</span>
     </div>
-    <p class="hero-desc">本文系统讲解 Socket.io 实战 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">Socket.io 不是"另一个 WebSocket"，而是<strong>建立在 WebSocket（Engine.IO）之上的应用层框架</strong>：事件化的 emit/on API、房间与命名空间、广播、ack 回调、<strong>内建的心跳重连与降级</strong>（连不上 ws 自动退回 HTTP 长轮询）。它用几 KB 的抽象换掉了 02 篇里手写的心跳/退避/房间广播三套代码——代价是非标准协议（客户端必须也是 Socket.io）与包体积。</p>
   </div>
 </header>
 
+<div class="hero">
+  <span class="meta">定位：WebSocket 之上的工程化封装——事件模型、房间、自动降级</span>
+  <h1>Socket.io 实战【标准】</h1>
+  <p class="hero-desc">Socket.io 不是"另一个 WebSocket"，而是<strong>建立在 WebSocket（Engine.IO）之上的应用层框架</strong>：事件化的 emit/on API、房间与命名空间、广播、ack 回调、<strong>内建的心跳重连与降级</strong>（连不上 ws 自动退回 HTTP 长轮询）。它用几 KB 的抽象换掉了 02 篇里手写的心跳/退避/房间广播三套代码——代价是非标准协议（客户端必须也是 Socket.io）与包体积。</p>
+</div>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/03_SSE服务器推送【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/05_WebRTC【深入】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>Socket.io 实战</strong> 是现代开发中广泛使用的技术方案之一，用于解决 Socket.io 实时通信 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 Socket.io 实战 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
-  <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
-  </ul>
-  
-  <p>Socket.io 实战 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Socket.io 实战 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">Socket.io 实战 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：应用层框架，不是协议</h3>
+  <p>Socket.io = <strong>Engine.IO（连接层）+ 应用层封装</strong>：Engine.IO 先用 HTTP 长轮询建立连接，探测到支持就<strong>升级到 WebSocket</strong>（ws 不可用时降级长轮询——老网关友好）；应用层提供事件 API（emit/on）、房间（room）、命名空间（namespace）、ack 回调、自动重连。<strong>与原生 WebSocket 的关系</strong>：ws 是协议（RFC 6455，任何语言可连），Socket.io 是私有协议封装——<strong>客户端必须也是 Socket.io</strong>。</p>
+
+  <h3>1.2 横向对比：原生 ws vs Socket.io vs SSE</h3>
   <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>Socket.io 实战</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+    <tr><th>维度</th><th>原生 WebSocket</th><th>Socket.io</th><th>SSE</th></tr>
+    <tr><td>协议</td><td>标准 RFC 6455</td><td><strong>私有协议</strong>（客户端需配套）</td><td>标准 HTTP</td></tr>
+    <tr><td>降级</td><td>无（不支持就失败）</td><td><strong>自动降级长轮询</strong></td><td>IE 需 polyfill</td></tr>
+    <tr><td>心跳/重连</td><td>自己写（02 篇整套）</td><td><strong>内建</strong></td><td>浏览器内建</td></tr>
+    <tr><td>房间/广播</td><td>自己实现（clients 遍历）</td><td><strong>room/join 内建</strong></td><td>无</td></tr>
+    <tr><td>ack/消息确认</td><td>自己设计 seq</td><td><strong>emit 回调内建</strong></td><td>无上行</td></tr>
+    <tr><td>成本</td><td>轻、跨语言</td><td>包体积+服务端 Node 绑定</td><td>最轻但单向</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+  <p><strong>口径</strong>：Node 全栈 + 要快速落地聊天/通知/协同 → Socket.io 省心；跨语言对接（Java/Go 服务端）或协议洁癖 → 原生 ws；纯下行 → SSE。</p>
+
+  <h3>1.3 学习目标与阅读指引（诚实声明）</h3>
+  <ol>
+    <li>理解 Engine.IO 的<strong>轮询升级机制</strong>（为什么它在老网关环境能活）；</li>
+    <li>掌握<strong>事件模型与 ack</strong>（比裸消息多了"请求-响应"语义）；</li>
+    <li>落地<strong>房间与命名空间</strong>（02 篇手写房间广播的框架化版本）；</li>
+    <li>知道 <strong>Redis adapter</strong> 水平扩展的配置。</li>
+  </ol>
+  <p><strong>诚实声明</strong>：本套技术栈生产信令用原生 WebSocket（Janus 协议要求），Socket.io 属<strong>技术储备</strong>——本篇代码为自学验证（复用 02 篇聊天室场景，对比实现成本）。<strong>前置知识</strong>：02 篇。<strong>难度</strong>：★★☆☆☆。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 Socket.io 实战 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>Socket.io 实战 的架构通常分为几层：</p>
-  <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
-  </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>Engine.IO 连接层</strong>（总纲）→ <strong>事件模型与 ack</strong>→ <strong>房间</strong>→ <strong>命名空间</strong>→ <strong>重连与 volatile</strong>。</p>
+
+  <h3>2.1 Engine.IO：轮询起步、升级到 ws</h3>
+  <p>连接建立时先用 <strong>HTTP 长轮询</strong>收发若干包，同时尝试开 WebSocket，成功后<strong>平滑升级</strong>（升级前轮询缓存的消息不丢）。<span class="tag-key">价值</span>：被防火墙拦 ws 的内网环境自动退回轮询——"至少能通"是 Socket.io 早期的立身之本；代价是首包延迟与轮询开销（现代环境默认直接 ws 更优，可用 <code>transports: ['websocket']</code> 跳过轮询）。</p>
+
+  <h3>2.2 事件模型与 ack：带响应的 emit</h3>
+  <p><code>socket.emit('event', data, callback)</code>——最后参数是 <strong>ack 回调</strong>，服务端处理完 <code>callback(result)</code> 回传：把"发了没收到/成没成功"从裸消息（要自建 seq 确认，02 篇 4.1）变成<strong>框架内建的请求-响应语义</strong>。广播 API：io.emit（全员）/ socket.broadcast.emit（除自己）/ io.to(room).emit（房间）。</p>
+
+  <h3>2.3 房间：join/leave 与广播范围</h3>
+  <p><code>socket.join('room1')</code> 加入、<code>io.to('room1').emit(...)</code> 房间广播、<code>socket.rooms</code> 查所属——<strong>02 篇手写的 clients.forEach 房间广播被一行 API 替代</strong>。房间是服务端内存态（多实例要 adapter，见 4.3）。</p>
+
+  <h3>2.4 命名空间：一条连接层的多业务隔离</h3>
+  <p><code>io.of('/chat')</code> 与 <code>io.of('/admin')</code> 各自独立的连接池/中间件/事件——按业务域隔离（管理员连接单独鉴权中间件）；比多端口部署省资源，比单空间混事件清晰。</p>
+
+  <h3>2.5 重连与 volatile：内建的状态管理</h3>
+  <p>断线<strong>自动指数退避重连</strong>（reconnection 配置），<code>on('connect')</code>/<code>on('disconnect')</code> 生命周期事件（disconnect 带原因码）；<code>socket.volatile.emit(...)</code> 表示"丢就丢"（连接断开时直接丢弃不缓存）——适合高频位置/遥测流，与 02 篇手写的心跳重连对照，工程量差距一目了然。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>Socket.io 实战 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：服务端骨架（房间广播 + ack）</h3>
+<pre class="code" data-lang="js"><code>const { Server } = require('socket.io');
+const io = new Server(3000, { cors: { origin: '*' } });
+
+io.on('connection', (socket) =&gt; {
+  console.log('连接建立', socket.id);
+
+  socket.on('join', (room, cb) =&gt; {
+    socket.join(room);
+    cb &amp;&amp; cb({ ok: true });                    // ack：告诉客户端加入成功
+    io.to(room).emit('system', `${socket.id} 加入了 ${room}`);
+  });
+
+  socket.on('chat', (msg, cb) =&gt; {
+    io.to(msg.room).emit('chat', { from: socket.id, text: msg.text });
+    cb &amp;&amp; cb({ delivered: true });             // 广播完成即确认
+  });
+
+  socket.on('disconnect', (reason) =&gt; {
+    io.emit('system', `${socket.id} 离开（${reason}）`);
+  });
+});</code></pre>
+
+  <h3>3.2 场景二：客户端（连接/收发/生命周期）</h3>
+<pre class="code" data-lang="js"><code>import { io } from 'socket.io-client';
+
+const socket = io('https://api.example.com', {
+  transports: ['websocket'],        // 现代环境跳过轮询探测
+  reconnectionDelayMax: 15000,      // 退避封顶
+  auth: { token: 'jwt...' }         // 鉴权随握手发送
+});
+
+socket.on('connect', () =&gt; socket.emit('join', 'room-101'));
+socket.on('chat', (m) =&gt; render(m));
+socket.on('disconnect', (reason) =&gt; console.warn('断开:', reason));
+
+// 带确认的发送：3s 超时则走补偿
+socket.timeout(3000).emit('chat', { room: 'room-101', text: 'hi' },
+  (err, res) =&gt; { if (err) queueCompensation(res); });</code></pre>
+
+  <h3>3.3 场景三：中间件鉴权（命名空间级）</h3>
+<pre class="code" data-lang="js"><code>io.use((socket, next) =&gt; {
+  const token = socket.handshake.auth.token;
+  if (verifyJwt(token)) next();        // 通过：进入 connection
+  else next(new Error('unauthorized')); // 拒绝：客户端 connect_error
+});
+// admin 命名空间单独再挂一层角色校验
+io.of('/admin').use((socket, next) =&gt; {
+  if (isAdmin(socket.handshake.auth.token)) next(); else next(new Error('forbidden'));
+});</code></pre>
+
+  <h3>3.4 场景四：volatile 高频流（丢就丢）</h3>
+<pre class="code" data-lang="js"><code>// 高频遥测：断线期间不发（缓存无意义），恢复后发最新值
+setInterval(() =&gt; {
+  socket.volatile.emit('telemetry', { ts: Date.now(), v: readSensor() });
+}, 200);</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：事件/房间/ack 已会用。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
-  </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <h3>4.1 Redis Adapter：多实例广播</h3>
+  <p>多实例部署时 io.to(room).emit 只达本实例连接——<strong>@socket.io/redis-adapter</strong> 把广播转为 Redis Pub/Sub 跨节点分发（与 02 篇 4.3 手写方案同构，框架已封装）：两个参数 pubClient/subClient 接上即可。注意 adapter 后房间成员数查询要走 Redis（fetchSockets 开销）。</p>
+
+  <h3>4.2 二进制与压缩</h3>
+  <p>Socket.io <strong>原生支持二进制 payload</strong>（Buffer/ArrayBuffer 自动走附件通道，不 base64）；高频大 payload 开 permessage-deflate 需权衡 CPU。消息体超 1MB 默认上限（maxHttpBufferSize）——大文件走 HTTP，别塞信令通道。</p>
+
+  <h3>4.3 调试与可观测</h3>
+  <p>客户端 <code>localStorage.debug = 'socket.io-client:socket'</code>（debug 库分级日志）；服务端 DEBUG=socket.io:*；<strong>关键指标</strong>：连接数、重连率、每秒消息数、ack 超时率——重连率突增通常是网关空闲超时或负载均衡会话不亲和。</p>
+
+  <h3>4.4 与反向代理的部署</h3>
+  <p>Nginx 需 Upgrade 头（同 02 篇 4.5）；多实例要 <strong>ip_hash/粘性会话</strong>（轮询探测升级期间请求需落同一实例）或直接强制 websocket transports（升级路径消失后粘性要求降低）。健康检查：Engine.IO 有 /socket.io/?EIO=4&amp;transport=polling 探针。</p>
+
+  <h3>4.5 v2→v4 的破坏性变化</h3>
+  <p>v4 默认仅 WebSocket 优先（不再默认长轮询起步）、API 全面 Promise 化方向、房间广播方法改名（socket.to 取代 socket.in）。<strong>选型提示</strong>：新项目直接 v4；网上大量 v2 教程的默认配置在现代环境反而是负优化。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 280" role="img" aria-label="Socket.io 连接升级与事件交互时序图">
+      <defs>
+        <marker id="arrE4" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Socket.io：轮询起步 → 升级 ws → 事件与 ack（示意）</text>
+      <line x1="180" y1="50" x2="180" y2="260" stroke="#c2cfb4" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="620" y1="50" x2="620" y2="260" stroke="#c2cfb4" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="180" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">客户端 socket.io-client</text>
+      <text x="620" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">服务端 socket.io</text>
+      <line x1="184" y1="80" x2="616" y2="80" stroke="#3d7a4f" stroke-width="1.8" marker-end="url(#arrE4)"/>
+      <text x="400" y="73" text-anchor="middle" font-size="12" fill="#3d7a4f">① Engine.IO 长轮询握手（open 包）</text>
+      <line x1="184" y1="115" x2="616" y2="115" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrE4)"/>
+      <text x="400" y="108" text-anchor="middle" font-size="12" fill="#4f6348">② 并行尝试 WebSocket，成功则平滑升级</text>
+      <rect x="330" y="128" width="140" height="22" rx="6" fill="#f0fdf4" stroke="#047857"/>
+      <text x="400" y="143" text-anchor="middle" font-size="11" fill="#047857">连接就绪（connect）</text>
+      <line x1="184" y1="175" x2="616" y2="175" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arrE4)"/>
+      <text x="400" y="168" text-anchor="middle" font-size="12" fill="#354835">③ emit('join', room, ack) — 带确认回调</text>
+      <line x1="616" y1="205" x2="184" y2="205" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arrE4)"/>
+      <text x="400" y="198" text-anchor="middle" font-size="12" fill="#354835">④ ack 回执 + 房间广播 to(room).emit</text>
+      <line x1="184" y1="238" x2="616" y2="238" stroke="#d97706" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrE4)"/>
+      <text x="400" y="231" text-anchor="middle" font-size="12" fill="#b45309">⑤ 断线 → 内建指数退避重连（无需手写）</text>
+      <text x="400" y="268" text-anchor="middle" font-size="12.5" fill="#7a8a70">对照 02 篇：心跳/退避/房间广播三套手写代码，这里全部内建。</text>
+    </svg>
+    <p class="diagram-caption">图 1 Socket.io 连接与事件时序（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①②是 Engine.IO 双通道设计——"先通再升级"是老网关友好性的来源；③④是应用层核心——<strong>emit+ack=带响应的事件</strong>，房间广播一行 API；⑤内建重连——与 02 篇手写栈的成本对比是本篇的中心论点。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：自学验证——把 02 篇的手写聊天室用 Socket.io 重做一遍，对比实现成本；生产未使用（信令走原生 ws）。</p>
+
+  <h3>6.1 落地步骤</h3>
+  <ol>
+    <li><code>npm i socket.io socket.io-client</code>，跑 3.1 服务端 + 3.2 客户端；</li>
+    <li>对比 02 篇实现：房间广播（clients.forEach → io.to(room).emit）、心跳退避（三段代码 → 配置项）、消息确认（裸消息 → ack 回调）——<strong>逐项记录删掉的代码行数</strong>；</li>
+    <li>杀服务端复现：断线自动重连 + connect 事件重新 join（会话恢复自己补 id）；</li>
+    <li>起两个实例 + Redis adapter，验证跨实例房间广播。</li>
+  </ol>
+
+  <h3>6.2 验证清单</h3>
+  <ol>
+    <li>network 面板：默认先轮询再升级 ws（或 transports 指定后直接 ws）；</li>
+    <li>ack 超时路径：timeout(3000).emit 在服务端 sleep 时走 err 分支；</li>
+    <li>双实例广播：实例 A 的客户端发消息，实例 B 的同房间客户端收到（Redis Pub/Sub 生效）。</li>
+  </ol>
+
+  <h3>6.3 复盘经验</h3>
   <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
+    <li><strong>体感</strong>：达到 02 篇同等健壮性，代码量约 40%；房间/ack/volatile 三个 API 是主要省力点；</li>
+    <li><strong>代价确认</strong>：客户端必须配套 socket.io-client（第三方系统对接只能原生 ws）、包体积增加、首连多一次轮询探测；</li>
+    <li><strong>选型结论</strong>：Node 全栈自建实时功能 → Socket.io 默认；对外协议（信令对接 Janus 等）→ 原生 ws——本套技术栈两者并存正是这个边界。</li>
   </ul>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
-  <ul>
-    <li>Socket.io 官方文档：<a href="https://socket.io/docs/v4/" rel="noopener">https://socket.io/docs/v4/</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/socketio/socket.io" rel="noopener">https://github.com/socketio/socket.io</a></li>
-    <li>官方示例项目：<a href="https://socket.io/demos" rel="noopener">https://socket.io/demos</a></li>
-  </ul>
-  <h3>学习建议</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 客户端版本与服务端不配套</h3>
+  <p><strong>现象</strong>：连接即失败或消息乱码。<strong>原因</strong>：Socket.io 是私有协议，v2 客户端连 v4 服务端不兼容。<strong>正解</strong>：两端同大版本；跨系统对接走原生 ws。</p>
+
+  <h3>7.2 多实例广播只达部分人</h3>
+  <p><strong>原因</strong>：房间是单实例内存态。<strong>正解</strong>：Redis adapter 串联各实例（4.1），或负载均衡粘性会话+按用户路由（不推荐）。</p>
+
+  <h3>7.3 默认轮询起步拖慢首连</h3>
+  <p><strong>现象</strong>：首包延迟几百 ms。<strong>原因</strong>：v4 之前默认先长轮询探测。<strong>正解</strong>：现代环境 <code>transports: ['websocket']</code> 直连；v4 默认已优化，v2 教程配置是负优化。</p>
+
+  <h3>7.4 ack 没接，消息石沉大海</h3>
+  <p><strong>现象</strong>：emit 后无任何反馈。<strong>原因</strong>：服务端 handler 未调 callback；或没配 timeout。<strong>正解</strong>：约定"所有请求型事件必须 ack"+ 客户端统一 timeout(3000) 走补偿。</p>
+
+  <h3>7.5 大 payload 塞信令通道</h3>
+  <p><strong>现象</strong>：发大文件片段其他消息全部卡住。<strong>原因</strong>：1MB 上限 + 串行队列。<strong>正解</strong>：大文件走 HTTP 上传，连接只传引用/通知。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Socket.io 和原生 WebSocket 的本质区别？什么时候选它？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>本质</strong>——ws 是标准协议（RFC 6455，跨语言可连），Socket.io 是私有协议的应用层框架：Engine.IO 连接层（长轮询起步+平滑升级 ws，ws 被拦自动降级）+ 事件模型（emit/on + <strong>ack 请求-响应语义</strong>）+ 房间/命名空间 + <strong>内建心跳退避重连</strong>。<strong>选 Socket.io</strong>：Node 全栈自建实时功能（聊天/通知/协同）——实测达到手写 ws 同等健壮性代码量约 40%；<strong>不选</strong>：跨语言服务端对接、协议标准性要求（客户端必须配套 socket.io-client）、纯下行场景（SSE 更省）。本套技术栈边界：Janus 信令走原生 ws（协议要求），自建功能评估 Socket.io。</p>
+
+  <p><strong>Q2：Engine.IO 的"轮询起步再升级"机制怎么工作？为什么说它老网关友好？</strong></p>
+  <p class="note"><strong>参考答案</strong>：连接先走 HTTP 长轮询收发数据包（保证"一定通"），同时并行尝试开 WebSocket，握手成功后<strong>平滑升级</strong>（升级窗口内轮询缓存的消息不丢）；ws 被防火墙/老代理拦截时自动留在轮询模式——降级不失败。<strong>代价</strong>：首连多一次探测延迟、轮询模式开销大。<strong>现代取舍</strong>：v4 默认已优化升级路径；目标环境确认支持 ws 时直接 <code>transports: ['websocket']</code> 跳过探测。这与 02 篇"复用 80/443 穿代理"是同一生存策略的两代实现。</p>
+
+  <p><strong>Q3：Socket.io 的房间广播在多实例下为什么会丢人？怎么解？</strong></p>
+  <p class="note"><strong>参考答案</strong>：房间是<strong>服务端进程内存态</strong>——用户 A 连在实例 1、用户 B 连在实例 2，io.to(room).emit 只扫本实例连接，B 收不到。<strong>解法</strong>：@socket.io/redis-adapter——广播事件转为 Redis Pub/Sub，各实例订阅后推给自己持有的连接（02 篇 4.3 手写方案的框架化）；注意 adapter 后 fetchSockets 等成员查询走 Redis 有开销，粘性会话仍建议配置（升级探测期请求需落同实例）。<strong>通用教训</strong>：任何"连接在内存里"的长连接方案，水平扩展都要过 Pub/Sub 这一关。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>Engine.IO 双通道怎么工作？降级的意义？</li>
+    <li>ack 回调解决了裸消息的什么问题？</li>
+    <li>房间与命名空间的区别与各自用途？</li>
+    <li>volatile.emit 适合什么流？为什么？</li>
+    <li>多实例广播丢人的根因与标准解？</li>
   </ol>
 </section>
 
-
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档</h3>
+  <ul>
+    <li>Socket.io v4 官方文档（连接/房间/adapter 全索引）：<a href="https://socket.io/docs/v4/" rel="noopener">socket.io/docs/v4</a></li>
+    <li>GitHub：<a href="https://github.com/socketio/socket.io" rel="noopener">github.com/socketio/socket.io</a>；官方 Demo：<a href="https://socket.io/demos" rel="noopener">socket.io/demos</a></li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>按 6.1 重做聊天室并记录与手写 ws 的代码量对比；</li>
+    <li>配 Redis adapter 双实例验证跨节点广播；</li>
+    <li>故意混用 v2 客户端 v4 服务端复现协议不兼容，加深"私有协议"认知。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/03_SSE服务器推送【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/05_WebRTC【深入】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考

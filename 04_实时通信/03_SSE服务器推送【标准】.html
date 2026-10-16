@@ -484,347 +484,299 @@ p, li, h1, h2, h3, h4, h5, h6 {
     <h1>SSE 服务器推送</h1>
     <div class="meta-row">
       <span class="badge std">标准</span>
-      <span class="meta">定位：单向推送的轻量方案</span>
+      <span class="meta">定位：服务器单向推送——基于 HTTP 的轻量实时方案</span>
     </div>
-    <p class="hero-desc">本文系统讲解 SSE 服务器推送 的核心概念、工作原理、实战要点与常见误区。内容从基础概念入手，逐步深入到架构原理与工程实践，覆盖从入门到精通的完整知识体系。结合实际项目经验，帮助你建立完整的知识框架。</p>
+    <p class="hero-desc">SSE（Server-Sent Events）是<strong>跑在普通 HTTP 上的单向推送协议</strong>：响应头 <code>text/event-stream</code>，连接保持打开，服务器随时往里写 <code>data: ...</code> 行。它是"只需要服务器→客户端推送"场景的最优解——不用引入 WebSocket 的协议升级与心跳栈，<strong>浏览器 EventSource 原生自带断线自动重连与 Last-Event-ID 续传</strong>。代价是单向：客户端要发数据还得走 HTTP 请求。</p>
   </div>
 </header>
 
+<div class="hero">
+  <span class="meta">定位：服务器单向推送——基于 HTTP 的轻量实时方案</span>
+  <h1>SSE 服务器推送【标准】</h1>
+  <p class="hero-desc">SSE（Server-Sent Events）是<strong>跑在普通 HTTP 上的单向推送协议</strong>：响应头 <code>text/event-stream</code>，连接保持打开，服务器随时往里写 <code>data: ...</code> 行。它是"只需要服务器→客户端推送"场景的最优解——不用引入 WebSocket 的协议升级与心跳栈，<strong>浏览器 EventSource 原生自带断线自动重连与 Last-Event-ID 续传</strong>。代价是单向：客户端要发数据还得走 HTTP 请求。</p>
+</div>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/02_WebSocket通用实时通信【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/04_Socket.io实战【标准】.html">下一篇 →</a>
 </nav>
-
 <div class="container">
-
-<nav class="toc">
+<nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念与基本架构</a></li>
-    <li><a href="#sec3">工作原理与核心流程</a></li>
-    <li><a href="#sec4">核心API与配置详解</a></li>
-    <li><a href="#sec5">实战项目经验</a></li>
-    <li><a href="#sec6">性能优化与最佳实践</a></li>
-    <li><a href="#sec7">易错点与常见问题</a></li>
-    
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
-
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  
-  <h3>1.1 是什么</h3>
-  <p><strong>SSE 服务器推送</strong> 是现代开发中广泛使用的技术方案之一，用于解决 Server-Sent Events 相关的工程问题。它通过标准化的接口和抽象层，让开发者能够以更高效、更可维护的方式构建应用，同时享受经过生产验证的最佳实践。</p>
-  
-  <p>从发展历程来看，这项技术经历了从早期简单实现到现在成熟生态的演进。早期的方案往往是零散的、非标准化的，每个团队都要自己造轮子；而现代的 SSE 服务器推送 已经形成了完整的生态系统，包括核心库、周边工具、插件体系和社区最佳实践。</p>
-  
-  <h3>1.2 解决什么问题</h3>
-  <p>在没有这项技术之前，开发者面临着几个痛点：</p>
-  <ul>
-    <li><strong>重复造轮子</strong>：每个项目都要自己实现类似的功能，代码质量参差不齐</li>
-    <li><strong>一致性差</strong>：不同开发者写的代码风格、实现方式差异很大，维护成本高</li>
-    <li><strong>最佳实践缺失</strong>：新手不知道正确的做法，容易写出有隐患的代码</li>
-    <li><strong>生态不互通</strong>：不同方案之间无法复用，学习成本高</li>
-  </ul>
-  
-  <p>SSE 服务器推送 的出现正是为了解决这些问题：它提供了一套标准化的解决方案，让大家站在同一个肩膀上开发。</p>
-  
-  <h3>1.3 技术定位与生态位置</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="280" viewBox="0 0 750 280">
-      <defs>
-        <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">SSE 服务器推送 在技术栈中的位置</text>
-      
-      <rect x="275" y="45" width="200" height="45" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
-      <text x="375" y="72" text-anchor="middle" font-size="14" font-weight="600" fill="#5b21b6">应用层 / 业务代码</text>
-      
-      <line x1="375" y1="90" x2="375" y2="115" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="117" width="200" height="45" rx="8" fill="#e0f0e2" stroke="#4f8a63"/>
-      <text x="375" y="144" text-anchor="middle" font-size="14" font-weight="600" fill="#2d6a3f">SSE 服务器推送 核心库</text>
-      
-      <line x1="375" y1="162" x2="375" y2="187" stroke="#7a8a70" marker-end="url(#arr1)"/>
-      
-      <rect x="275" y="189" width="200" height="45" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
-      <text x="375" y="216" text-anchor="middle" font-size="14" font-weight="600" fill="#354835">平台 / 运行时</text>
-      
-      <text x="120" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">抽象封装</text>
-      <text x="630" y="144" text-anchor="middle" font-size="13" fill="#7a8a70">简化复杂度</text>
-      
-      <text x="375" y="260" text-anchor="middle" font-size="13" fill="#7a8a70">上层业务无需关心底层细节，通过标准接口调用</text>
-    </svg>
-    <p class="diagram-caption">图 1 技术栈分层示意</p>
-  </div>
-  
-  <h3>1.4 横向对比：为什么选择它</h3>
-  
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：HTTP 上的单向推送</h3>
+  <p>SSE = 客户端发一个普通 HTTP 请求，服务器响应 <code>Content-Type: text/event-stream</code> 且<strong>不结束响应</strong>，随后随时写入事件行——本质是"一个不结束的 HTTP 响应"。前端用原生 <code>EventSource</code> API 消费。它解决"服务器→客户端单向推送"（日志流/进度条/通知/行情单向下发），<strong>不解决双向</strong>——客户端上行仍走普通 HTTP 请求。</p>
+
+  <h3>1.2 横向对比：SSE vs WebSocket vs 轮询</h3>
   <table class="compare-table">
-    <tr><th>方案</th><th>优势</th><th>劣势</th><th>适用场景</th></tr>
-    <tr><td>原生实现</td><td>无依赖、最灵活</td><td>重复造轮子、质量难保证</td><td>简单场景、特殊需求</td></tr>
-    <tr><td><strong>SSE 服务器推送</strong></td><td>成熟稳定、生态完善</td><td>有学习成本、包体积</td><td>中大型项目、团队协作</td></tr>
-    <tr><td>其他同类方案</td><td>各有特色</td><td>生态相对小</td><td>特定场景需求</td></tr>
+    <tr><th>维度</th><th>SSE</th><th>WebSocket</th><th>HTTP 轮询</th></tr>
+    <tr><td>方向</td><td>服务器→客户端单向</td><td>全双工</td><td>一问一答</td></tr>
+    <tr><td>协议</td><td>普通 HTTP（无升级）</td><td>协议升级 ws://</td><td>普通 HTTP</td></tr>
+    <tr><td>断线重连</td><td><strong>浏览器原生自动</strong>+Last-Event-ID 续传</td><td>自己写心跳+退避</td><td>天然（每次新请求）</td></tr>
+    <tr><td>代理/网关友好度</td><td>高（就是 HTTP）</td><td>需配置 Upgrade 头</td><td>高</td></tr>
+    <tr><td>适用</td><td>日志流/通知/进度/行情下发</td><td>聊天/协同/互动</td><td>低频状态查询</td></tr>
   </table>
-  
-  <div class="key-sentence">
-    <span class="tag-point">选型建议</span>新项目优先考虑成熟方案，不要为了"轻量"而牺牲可维护性；老项目根据团队熟悉度和迁移成本评估。
-  </div>
+  <p><strong>口径</strong>：只要不需要"客户端向服务器高频上行"，SSE 就是比 WebSocket 更省的选择——少一套心跳重连栈，复用全部 HTTP 基建（鉴权/CDN/网关）。</p>
+
+  <h3>1.3 学习目标与阅读指引（诚实声明）</h3>
+  <ol>
+    <li>掌握 <strong>event-stream 文本协议</strong>（data:/event:/id:/retry: 四种行）；</li>
+    <li>理解 <strong>EventSource 自动重连与 Last-Event-ID</strong> 机制——SSE 的最大卖点；</li>
+    <li>会写 Node SSE 端点并处理<strong>代理缓冲</strong>坑；</li>
+    <li>建立与 WebSocket 的准确选型边界。</li>
+  </ol>
+  <p><strong>诚实声明</strong>：本套技术栈生产项目以 WebSocket 信令+WebRTC 媒体为主，SSE 属<strong>单向推送场景的技术储备</strong>（构建进度推送、日志流场景评估用）——本篇代码为自学验证性质。</p>
+  <p><strong>前置知识</strong>：02 篇 WebSocket（对照读）。<strong>难度</strong>：★☆☆☆☆（四个方案里最简单）。</p>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念与基本架构</h2>
-  
-  <h3>2.1 整体架构</h3>
-  <p class="lead"><b>一句话定位</b>：理解 SSE 服务器推送 的核心组成部分及其协作关系，是深入掌握它的前提。</p>
-  
-  <p>SSE 服务器推送 的架构通常分为几层：</p>
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>event-stream 协议</strong>（总纲）→ <strong>EventSource 状态与重连</strong>→ <strong>Last-Event-ID 续传</strong>→ <strong>HTTP 长连接约束</strong>。</p>
+
+  <h3>2.1 event-stream 文本协议：四种行</h3>
+  <p>服务器按纯文本行写响应，每条事件由空行分隔：</p>
   <ul>
-    <li><strong>接入层</strong>：对外暴露的 API，接收调用请求</li>
-    <li><strong>核心层</strong>：主要的业务逻辑实现</li>
-    <li><strong>扩展层</strong>：插件/中间件机制，支持自定义扩展</li>
-    <li><strong>输出层</strong>：处理结果的格式化与输出</li>
+    <li><code>data:</code> 消息体（必填，多行 data 会按 \\n 拼接）；</li>
+    <li><code>event:</code> 自定义事件名（客户端 addEventListener 区分，默认 message）；</li>
+    <li><code>id:</code> 事件 ID（重连时浏览器自动放进 Last-Event-ID 请求头）；</li>
+    <li><code>retry:</code> 告诉浏览器重连间隔（毫秒）。</li>
   </ul>
-  
-  <div class="diagram">
-    <svg width="700" height="250" viewBox="0 0 700 250">
-      <defs>
-        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="350" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分层架构示意</text>
-      
-      <rect x="250" y="45" width="200" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="350" y="70" text-anchor="middle" font-size="14" fill="#22331f">接入层（API）</text>
-      
-      <line x1="350" y1="85" x2="350" y2="105" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="107" width="200" height="40" rx="6" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="350" y="132" text-anchor="middle" font-size="14" fill="#22331f">核心层（逻辑）</text>
-      
-      <line x1="350" y1="147" x2="350" y2="167" stroke="#7a8a70" marker-end="url(#arr2)"/>
-      
-      <rect x="250" y="169" width="200" height="40" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="350" y="194" text-anchor="middle" font-size="14" fill="#22331f">扩展层（插件）</text>
-      
-      <text x="120" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">请求流入</text>
-      <text x="580" y="132" text-anchor="middle" font-size="13" fill="#7a8a70">逐层处理</text>
-      
-      <text x="350" y="230" text-anchor="middle" font-size="13" fill="#7a8a70">每层职责单一，便于测试和维护</text>
-    </svg>
-    <p class="diagram-caption">图 2 分层架构</p>
-  </div>
-  
-  <h3>2.2 核心概念详解</h3>
-  
-  <h4>2.2.1 基本工作单元</h4>
-  <p>每个技术都有它最基本的工作单元，理解这个概念是入门的第一步。基本工作单元通常包含输入、处理逻辑和输出三部分，构成了最基础的执行单元。</p>
-  
-  <h4>2.2.2 生命周期</h4>
-  <p>大多数技术都有完整的生命周期：创建 → 初始化 → 运行 → 销毁。理解生命周期的各个阶段，才能正确地在合适的时机做合适的事情。</p>
-  
-  <ul>
-    <li><strong>创建阶段</strong>：分配资源，初始化状态</li>
-    <li><strong>运行阶段</strong>：接收输入，执行逻辑，产生输出</li>
-    <li><strong>销毁阶段</strong>：清理资源，释放内存，避免泄漏</li>
-  </ul>
-  
-  <h4>2.2.3 配置与定制</h4>
-  <p>好的技术方案一定是可配置的：通过配置项调整行为，而不是修改源码。配置通常分为：</p>
-  <ul>
-    <li><strong>全局配置</strong>：影响所有实例的默认行为</li>
-    <li><strong>实例配置</strong>：每个实例可以有自己的配置</li>
-    <li><strong>运行时配置</strong>：可以在运行过程中动态修改</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-key">工程惯例</span>所有配置项都要有默认值，并且在文档中说明每个配置项的作用、类型和默认值。
-  </div>
+  <p><span class="tag-key">要点</span>：以 <code>:</code> 开头的行是<strong>注释</strong>——常用作心跳（写 <code>: keep-alive\\n\\n</code> 防代理空闲超时，比 WebSocket 心跳还简单）。</p>
+
+  <h3>2.2 EventSource：状态与原生重连</h3>
+  <p><code>new EventSource(url)</code> 三状态：CONNECTING(0)/OPEN(1)/CLOSED(2)。**断线自动重连是浏览器内建行为**——error 后自动按 retry 间隔重连，业务只在 <code>onerror</code> 里做日志与 UI 提示；调用 <code>es.close()</code> 才永久停止。与 WebSocket 对比：<strong>省掉整套心跳+退避重连代码</strong>。</p>
+
+  <h3>2.3 Last-Event-ID：断点续传协议内建</h3>
+  <p>每条事件带 <code>id:</code>，浏览器重连时自动带 <code>Last-Event-ID</code> 请求头——服务端据此<strong>补发遗漏事件</strong>（需要服务端有短期事件缓冲）。这是 SSE 协议层内建的"至少一次送达"基础，WebSocket 要自己实现 seq+补偿接口（02 篇 4.1）。</p>
+
+  <h3>2.4 HTTP 长连接约束：6 连接限制与 HTTP/2</h3>
+  <p>HTTP/1.1 浏览器对同域<strong>并发连接数限 6</strong>——开多个 SSE 标签页可能占满连接池阻塞其他请求；<strong>HTTP/2 多路复用</strong>（单连接多流）解决此问题。生产部署建议：SSE 走独立子域或确保全站 HTTP/2+。</p>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与核心流程</h2>
-  
-  <p>SSE 服务器推送 的工作流程可以分解为几个关键阶段，每个阶段都有明确的输入输出和处理逻辑。</p>
-  
-  <h3>3.1 整体流程</h3>
-  
-  <div class="diagram">
-    <svg width="750" height="200" viewBox="0 0 750 200">
-      <defs>
-        <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="375" y="25" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">核心处理流程</text>
-      
-      <rect x="30" y="60" width="120" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
-      <text x="90" y="95" text-anchor="middle" font-size="14" fill="#22331f">1. 接收输入</text>
-      
-      <line x1="150" y1="90" x2="210" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="210" y="60" width="120" height="60" rx="8" fill="#e0f0e2" stroke="#4f8a63" stroke-width="2"/>
-      <text x="270" y="95" text-anchor="middle" font-size="14" fill="#22331f">2. 参数校验</text>
-      
-      <line x1="330" y1="90" x2="390" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="390" y="60" width="120" height="60" rx="8" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
-      <text x="450" y="95" text-anchor="middle" font-size="14" fill="#22331f">3. 核心处理</text>
-      
-      <line x1="510" y1="90" x2="570" y2="90" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr3)"/>
-      
-      <rect x="570" y="60" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
-      <text x="645" y="95" text-anchor="middle" font-size="14" fill="#22331f">4. 输出结果</text>
-      
-      <text x="375" y="160" text-anchor="middle" font-size="13" fill="#7a8a70">每个阶段都有错误捕获和日志记录</text>
-    </svg>
-    <p class="diagram-caption">图 3 核心处理流程</p>
-  </div>
-  
-  <h3>3.2 阶段详解</h3>
-  
-  <h4>3.2.1 输入接收与校验</h4>
-  <p>首先接收外部输入，然后做参数校验：检查参数类型是否正确、必填参数是否存在、取值范围是否合理。校验失败要给出明确的错误信息，方便调用方定位问题。</p>
-  
-  <h4>3.2.2 核心处理逻辑</h4>
-  <p>这是整个流程中最核心的部分，也是性能优化的重点区域。处理逻辑通常包括：数据转换、状态更新、逻辑计算等。好的实现会把复杂逻辑拆分成小的、可测试的函数。</p>
-  
-  <h4>3.2.3 输出与错误处理</h4>
-  <p>处理完成后，将结果格式化成标准输出。同时要做好错误处理：预期内的错误返回友好提示，预期外的错误记录日志并向上抛出。</p>
-  
-  <div class="warn-box">
-    <b>注意：</b>不要在核心处理逻辑里埋太多副作用，保持逻辑纯粹，这样才好测试和调试。
-  </div>
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：最简 SSE 端点（Node）</h3>
+<pre class="code" data-lang="js"><code>// 服务端：Express 风格
+app.get('/api/progress/:taskId', (req, res) =&gt; {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'          // 关键：关 Nginx 缓冲（见 7.2）
+  });
+  res.flushHeaders();
+
+  const send = (data, id) =&gt; {
+    if (id) res.write(`id: ${id}\\n`);
+    res.write(`data: ${JSON.stringify(data)}\\n\\n`);
+  };
+
+  // 心跳：每 25s 写一行注释，防代理空闲超时
+  const beat = setInterval(() =&gt; res.write(': keep-alive\\n\\n'), 25000);
+
+  const un = subscribeProgress(req.params.taskId, (p) =&gt; send(p, p.seq));
+  req.on('close', () =&gt; { clearInterval(beat); un(); });   // 成对清理
+});</code></pre>
+
+  <h3>3.2 场景二：前端 EventSource 消费</h3>
+<pre class="code" data-lang="js"><code>const es = new EventSource('/api/progress/task-42');
+
+es.onmessage = (e) =&gt; {                 // 默认 message 事件
+  const p = JSON.parse(e.data);
+  progressBar.set(p.percent);
+};
+es.addEventListener('done', (e) =&gt; {    // 自定义事件名
+  es.close();                           // 业务完成：主动永久关闭
+});
+es.onerror = (e) =&gt; {
+  // 浏览器会自动重连，这里只做 UI 提示；readyState===CLOSED 才需要手动重建
+  if (es.readyState === EventSource.CLOSED) showReconnectBtn();
+};</code></pre>
+
+  <h3>3.3 场景三：带 id 的事件（支持续传）</h3>
+<pre class="code" data-lang="js"><code>// 服务端：事件带自增 id，断线重连时按 Last-Event-ID 补发
+app.get('/api/logs', (req, res) =&gt; {
+  const lastId = Number(req.get('Last-Event-ID') || 0);   // 浏览器自动带
+  const since = eventBuffer.after(lastId);                // 从缓冲补发遗漏
+  since.forEach(ev =&gt; res.write(`id: ${ev.seq}\\ndata: ${ev.line}\\n\\n`));
+  // ...继续实时推送...
+});</code></pre>
+
+  <h3>3.4 场景四：EventSource 发送凭据</h3>
+<pre class="code" data-lang="js"><code>// 跨域 SSE 默认不带 Cookie，需要 withCredentials
+const es = new EventSource('https://api.example.com/stream', {
+  withCredentials: true
+});
+// 注意：EventSource 不能自定义请求头——token 走 Cookie 或 URL query 一次性 ticket</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4</span>核心API与配置详解</h2>
-  
-  <h3>4.1 基本用法</h3>
-  <p>入门阶段先掌握最基本的用法：初始化、调用、销毁。</p>
-  
-  <pre><code>// 基本用法示例
-const instance = new Something({
-  option1: 'value1',
-  option2: 123
-});
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：event-stream 协议与 EventSource 已会。</p>
 
-instance.method();
-instance.destroy();</code></pre>
-  
-  <h3>4.2 常用API</h3>
-  
-  <table class="compare-table">
-    <tr><th>API</th><th>作用</th><th>使用场景</th></tr>
-    <tr><td><code>init()</code></td><td>初始化实例</td><td>创建后第一次调用</td></tr>
-    <tr><td><code>update()</code></td><td>更新配置或数据</td><td>动态更新场景</td></tr>
-    <tr><td><code>on()</code></td><td>监听事件</td><td>需要响应内部状态变化</td></tr>
-    <tr><td><code>destroy()</code></td><td>销毁实例</td><td>组件卸载时清理</td></tr>
-  </table>
-  
-  <h3>4.3 常用配置项</h3>
-  
-  <ul>
-    <li><strong>基础配置</strong>：影响核心行为的关键配置</li>
-    <li><strong>性能配置</strong>：调整性能相关的参数</li>
-    <li><strong>错误处理配置</strong>：自定义错误处理策略</li>
-    <li><strong>日志配置</strong>：调整日志级别和输出</li>
-  </ul>
-  
-  <div class="key-sentence">
-    <span class="tag-point">最佳实践</span>配置项要有合理的默认值，90% 的场景不需要自定义配置；自定义配置一定要加注释说明为什么这么配。
-  </div>
+  <h3>4.1 代理缓冲：SSE 第一大坑的完整解法</h3>
+  <p>中间代理（Nginx）默认<strong>攒够 buffer 才转发</strong>——表现为"本地直连正常、上代理后消息成块到达或全无"。三层解法：①响应头 <code>X-Accel-Buffering: no</code>（Nginx 按头关闭缓冲）；②Nginx 配置 <code>proxy_buffering off; proxy_cache off;</code>；③每条事件后确保 flush（Node res.write 即 flush，PHP 需 ob_flush）。<strong>必须真机过代理验证</strong>，不能只在本地测。</p>
+
+  <h3>4.2 SSE 的多路复用设计：一条流多类事件</h3>
+  <p>与其开多条 SSE 连接（撞 6 连接限制），不如<strong>一条流按 event 名分流</strong>：<code>event: log</code>、<code>event: progress</code>、<code>event: notify</code> 各自 addEventListener——把 SSE 当"订阅了多个频道的单条管道"用。</p>
+
+  <h3>4.3 与 HTTP/2 的配合</h3>
+  <p>HTTP/2 单连接多流天然适合 SSE（不占并发连接名额、头部压缩）；但注意 <strong>HTTP/2 的流控</strong>（SETTINGS 初期窗口小会限吞吐，大流量日志流要调窗口）。反向情况：不支持 HTTP/2 的内网老网关，SSE 连接数规划要按 6 上限算。</p>
+
+  <h3>4.4 断线期间的丢失窗口</h3>
+  <p>Last-Event-ID 只在<strong>浏览器自动重连</strong>时携带；若服务端重启导致事件缓冲丢失、或客户端 closed 后人工重建，仍有丢失窗口。<strong>加固</strong>：业务侧关键消息仍要"seq+HTTP 补偿拉取"兜底（与 02 篇 4.1 同构）——SSE 的续传不等于可靠性保证。</p>
+
+  <h3>4.5 选型决策树（与 02/04 篇合流）</h3>
+  <p>需要双向或客户端高频上行 → WebSocket（自建）或 Socket.io（要自动降级/房间/广播）；纯服务器下行 → SSE（最省）→ 但要求 IE/老内核兼容 → 长轮询兜底。本套技术栈口径：信令用 ws、日志流与进度推送用 SSE。</p>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验</h2>
-  
-  <h3>5.1 典型应用场景</h3>
-  <ul>
-    <li><strong>业务开发</strong>：在日常业务需求中应用，提升开发效率</li>
-    <li><strong>性能优化</strong>：针对特定场景做深度优化</li>
-    <li><strong>架构演进</strong>：随着业务规模增长，架构逐步升级</li>
-  </ul>
-  
-  <h3>5.2 项目落地经验</h3>
-  
-  <h4>5.2.1 初期阶段</h4>
-  <p>项目初期往往追求快速上线，这时候选择成熟的方案可以节省大量时间。不要在早期过度设计，先跑起来再说。</p>
-  
-  <h4>5.2.2 中期阶段</h4>
-  <p>随着业务增长，开始遇到性能和维护问题。这时候需要回头做技术债清理，把之前快速写的代码重构一下。</p>
-  
-  <h4>5.2.3 成熟期阶段</h4>
-  <p>项目稳定后，重点转向可观测性和稳定性：加监控、加告警、加测试。确保出问题能快速定位。</p>
-  
-  <div class="key-sentence">
-    <span class="tag-key">经验总结</span>没有银弹，每个方案都有它的适用场景和代价。根据项目阶段和团队情况做取舍，才是正确的做法。
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="SSE 请求-推流-自动重连时序图">
+      <defs>
+        <marker id="arrE3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">SSE：普通 HTTP 推流 + 断线自动重连续传（示意）</text>
+      <line x1="180" y1="50" x2="180" y2="280" stroke="#c2cfb4" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="620" y1="50" x2="620" y2="280" stroke="#c2cfb4" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="180" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">浏览器 EventSource</text>
+      <text x="620" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">服务器</text>
+      <line x1="184" y1="80" x2="616" y2="80" stroke="#3d7a4f" stroke-width="1.8" marker-end="url(#arrE3)"/>
+      <text x="400" y="73" text-anchor="middle" font-size="12" fill="#3d7a4f">① GET /stream（Last-Event-ID: 42）</text>
+      <line x1="616" y1="112" x2="184" y2="112" stroke="#5a9e6a" stroke-width="1.8" marker-end="url(#arrE3)"/>
+      <text x="400" y="105" text-anchor="middle" font-size="12" fill="#5a9e6a">② 200 + text/event-stream（响应不结束）</text>
+      <line x1="616" y1="145" x2="184" y2="145" stroke="#7a8a70" stroke-width="1.5" marker-end="url(#arrE3)"/>
+      <text x="400" y="138" text-anchor="middle" font-size="12" fill="#354835">③ id: 43 / data: {...}  …  id: 44 / data: {...}</text>
+      <line x1="616" y1="178" x2="184" y2="178" stroke="#d97706" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrE3)"/>
+      <text x="400" y="171" text-anchor="middle" font-size="12" fill="#b45309">④ : keep-alive（注释行心跳）</text>
+      <rect x="300" y="192" width="200" height="22" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="400" y="208" text-anchor="middle" font-size="11" fill="#b91c1c">⑤ 网络中断（onerror）</text>
+      <line x1="184" y1="238" x2="616" y2="238" stroke="#3d7a4f" stroke-width="1.8" marker-end="url(#arrE3)"/>
+      <text x="400" y="231" text-anchor="middle" font-size="12" fill="#3d7a4f">⑥ 浏览器自动重连 + Last-Event-ID: 44</text>
+      <line x1="616" y1="266" x2="184" y2="266" stroke="#047857" stroke-width="1.5" marker-end="url(#arrE3)"/>
+      <text x="400" y="259" text-anchor="middle" font-size="12" fill="#047857">⑦ 从 45 起补发遗漏 → 继续实时推</text>
+      <text x="400" y="292" text-anchor="middle" font-size="12.5" fill="#7a8a70">对比 WebSocket：无协议升级、重连与续传是协议内建，代价是单向。</text>
+    </svg>
+    <p class="diagram-caption">图 1 SSE 全生命周期时序（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①②就是普通 HTTP——这是"代理友好"的根源；③④是协议主体（四种行+注释心跳）；⑤⑥⑦是卖点——<strong>重连与 Last-Event-ID 续传由浏览器与服务端协议约定内建</strong>，业务不用写心跳退避栈。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>性能优化与最佳实践</h2>
-  
-  <h3>6.1 性能优化方向</h3>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：自学验证——一个"构建进度推送"demo（模拟任务进度流），验证 event-stream 协议、自动重连与 Last-Event-ID 续传；生产项目未使用 SSE。</p>
+
+  <h3>6.1 落地步骤</h3>
+  <ol>
+    <li>Node 起 3.1 进度端点（订阅模拟任务，0-100 每 500ms 推一条，带自增 id）；</li>
+    <li>前端 3.2 EventSource 消费，进度条 + done 事件关闭；</li>
+    <li>手动杀服务端：观察 onerror 后浏览器<strong>自动重连</strong>（network 面板看到重发请求且带 Last-Event-ID）；</li>
+    <li>重启服务端接上续传逻辑：确认从断点 seq 补发，进度条不回跳；</li>
+    <li>Nginx 反代下验证：故意不加 X-Accel-Buffering 复现"消息成块到达"，再修复对比。</li>
+  </ol>
+
+  <h3>6.2 验证清单</h3>
+  <ol>
+    <li>network 面板：请求 Type 是 eventstream、Time 一直在涨（连接未结束）；</li>
+    <li>自定义 event 分流正常（log/progress 各走各的 listener）；</li>
+    <li>断线重连不带任何 JS 重连代码——浏览器内建；</li>
+    <li>注释行心跳经代理后连接不断。</li>
+  </ol>
+
+  <h3>6.3 复盘经验</h3>
   <ul>
-    <li><strong>减少不必要的计算</strong>：缓存计算结果，避免重复计算</li>
-    <li><strong>延迟执行</strong>：把非关键路径的逻辑延后执行</li>
-    <li><strong>批量处理</strong>：合并多次操作，减少调用次数</li>
-    <li><strong>按需加载</strong>：只加载当前需要的功能模块</li>
-  </ul>
-  
-  <h3>6.2 代码最佳实践</h3>
-  <ul>
-    <li>函数要小而美，单一职责</li>
-    <li>命名要清晰，见名知意</li>
-    <li>关键逻辑要有注释</li>
-    <li>边界情况要考虑到</li>
-    <li>错误处理要完善</li>
-  </ul>
-  
-  <h3>6.3 可维护性建议</h3>
-  <ul>
-    <li>版本升级前先看 changelog</li>
-    <li>重大变更要有迁移指南</li>
-    <li>老代码重构要有测试保障</li>
+    <li><strong>体感</strong>：实现成本约为 WebSocket 方案的 1/3（无心跳/退避/状态机代码）；</li>
+    <li><strong>边界</strong>：单向才成立——demo 里"取消任务"这类客户端指令仍走 POST，两套通道并存；</li>
+    <li><strong>选型结论</strong>：日志流/进度/通知类需求，SSE 是默认首选，WebSocket 是"需要双向"时才升级。</li>
   </ul>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档与资源</h3>
-  <ul>
-    <li>SSE 服务器推送 官方文档：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Server-sent_events" rel="noopener">https://developer.mozilla.org/zh-CN/docs/Web/API/Server-sent_events</a></li>
-    <li>GitHub 源码仓库：<a href="https://github.com/mdn/dom-examples/tree/main/server-sent-events" rel="noopener">https://github.com/mdn/dom-examples/tree/main/server-sent-events</a></li>
-    <li>官方示例项目：<a href="https://github.com/EventSource/eventsource" rel="noopener">https://github.com/EventSource/eventsource</a></li>
-  </ul>
-  <h3>学习建议</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 代理缓冲导致消息"成块到达"</h3>
+  <p><strong>现象</strong>：本地正常、上 Nginx 后消息攒一大批一起到。<strong>原因</strong>：代理默认缓冲响应。<strong>正解</strong>：X-Accel-Buffering: no + proxy_buffering off，真机过代理验证。</p>
+
+  <h3>7.2 忘记心跳，长连接被掐</h3>
+  <p><strong>现象</strong>：静置几分钟后流断了。<strong>原因</strong>：与 WebSocket 同理，中间设备空闲超时。<strong>正解</strong>：注释行 <code>: keep-alive</code> 定时写入（比 ws 心跳更简单）。</p>
+
+  <h3>7.3 HTTP/1.1 六连接占满</h3>
+  <p><strong>现象</strong>：开几个 SSE 标签页后其他请求卡住。<strong>原因</strong>：同域并发连接限 6。<strong>正解</strong>：一条流按 event 名分流（4.2），或全站升级 HTTP/2。</p>
+
+  <h3>7.4 跨域 SSE 不带凭据</h3>
+  <p><strong>现象</strong>：跨域流鉴权 401。<strong>原因</strong>：EventSource 默认不带 Cookie 且不能自定义头。<strong>正解</strong>：withCredentials: true + 服务端 CORS 允许凭据，token 走一次性 ticket。</p>
+
+  <h3>7.5 压缩导致缓冲叠加</h3>
+  <p><strong>现象</strong>：开了 gzip 后消息延迟巨大。<strong>原因</strong>：压缩器攒数据凑压缩块。<strong>正解</strong>：text/event-stream 不做 gzip（文本量小压缩收益低），或用支持 flush 的压缩配置。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：SSE 的协议格式是什么？断线重连与续传是怎么工作的？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>协议</strong>——响应 Content-Type: text/event-stream 且不结束，按行写：data:（消息体）/event:（自定义事件名）/id:（事件 ID）/retry:（重连间隔），空行分隔事件，<code>:</code> 开头是注释（常用作心跳）。<strong>重连续传</strong>：连接断开时浏览器<strong>自动</strong>按 retry 间隔重连（业务零代码），重连请求自动携带最后收到的 id 放进 <code>Last-Event-ID</code> 头，服务端从事件缓冲按 id 之后的 seq 补发——这是协议层内建的续传，对比 WebSocket 需要自建心跳+退避+seq 补偿整套栈。</p>
+
+  <p><strong>Q2：SSE 和 WebSocket 怎么选？各自的真实边界？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>分界线是"客户端要不要高频上行"</strong>——纯服务器下行（日志流/进度/通知/行情下发）选 SSE：实现成本约 1/3、复用全部 HTTP 基建（鉴权/网关/CORS）、浏览器原生重连；需要双向（聊天/协同/WebRTC 信令）选 WebSocket。<strong>SSE 的边界</strong>：①单向——上行只能另走 HTTP；②HTTP/1.1 同域 6 连接限制（一条流按 event 分流或上 HTTP/2）；③IE 全系不支持（需 polyfill/长轮询兜底）；④Last-Event-ID 续传依赖服务端事件缓冲，重启即丢——关键业务仍要 seq+HTTP 补偿兜底。</p>
+
+  <p><strong>Q3：SSE 上生产最容易踩什么坑？怎么排查？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>第一大坑是代理缓冲</strong>——Nginx 默认攒 buffer 转发，表现为"本地正常、上环境消息成块到达或全无"。排查顺序：①本地直连验证协议正确；②curl -N 直接打代理看是否逐条到达；③确认响应头 X-Accel-Buffering: no 与 Nginx proxy_buffering off；④检查 gzip（event-stream 别压缩）；⑤确认注释行心跳间隔小于空闲超时。<strong>方法论</strong>：SSE 的问题九成出在"中间层"，不在协议本身——逐跳排除（浏览器→代理→服务端）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
   <ol>
-    <li>入门：跟着官方文档跑通第一个示例</li>
-    <li>实践：在小项目中实际使用，解决真实问题</li>
-    <li>深入：阅读源码，理解核心实现原理</li>
-    <li>精通：能独立设计架构，解决复杂场景问题</li>
+    <li>event-stream 的四种行各干什么？注释行的妙用？</li>
+    <li>EventSource 的三状态？CLOSED 时浏览器还会重连吗？</li>
+    <li>Last-Event-ID 续传的前提与丢失窗口？</li>
+    <li>6 连接限制的成因与两条出路？</li>
+    <li>SSE vs WebSocket 的分界线？</li>
   </ol>
 </section>
 
-
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档</h3>
+  <ul>
+    <li>MDN：Server-sent events（协议与 EventSource API）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Server-sent_events" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/Server-sent_events</a></li>
+    <li>MDN 官方示例：<a href="https://github.com/mdn/dom-examples/tree/main/server-sent-events" rel="noopener">github.com/mdn/dom-examples</a></li>
+    <li>Node polyfill（老端/自定义重连策略）：<a href="https://github.com/EventSource/eventsource" rel="noopener">github.com/EventSource/eventsource</a></li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>跑通 6.1 demo 五步（含杀服务端复现自动重连）；</li>
+    <li>给流加 event 分流（log/progress/notify 三个频道一条连接）；</li>
+    <li>故意配 gzip 复现延迟，再用 flush 方案修复并记录排查路径。</li>
+  </ol>
+</section>
 
 </main>
 
 </div>
 
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn hidden" href="#">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/02_WebSocket通用实时通信【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn hidden" href="#">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/04_Socket.io实战【标准】.html">下一篇 →</a>
 </nav>
 <footer>
   全栈技术知识库 · 系统化技术梳理 · 仅供学习参考
