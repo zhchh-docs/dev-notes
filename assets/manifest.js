@@ -78,6 +78,18 @@ window.KB_MANIFEST = {
           "f": "11_JavaScript核心速查_ES2015与工程API【标准】.html",
           "u": "01_前端基础/11_JavaScript核心速查_ES2015与工程API【标准】.html",
           "d": "std"
+        },
+        {
+          "t": "TypeScript实战速查·类型系统与工程配置【标准】",
+          "f": "12_TypeScript实战速查_类型系统与工程配置【标准】.html",
+          "u": "01_前端基础/12_TypeScript实战速查_类型系统与工程配置【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "HTTP进阶·HTTPS与HTTP2/3【深入】",
+          "f": "13_HTTP进阶_HTTPS与HTTP2_3【深入】.html",
+          "u": "01_前端基础/13_HTTP进阶_HTTPS与HTTP2_3【深入】.html",
+          "d": "deep"
         }
       ]
     },
@@ -436,6 +448,12 @@ window.KB_MANIFEST = {
           "f": "10_前端E2E测试_Playwright与Cypress【标准】.html",
           "u": "06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html",
           "d": "std"
+        },
+        {
+          "t": "Git进阶·分支模型与冲突恢复【深入】",
+          "f": "11_Git进阶_分支模型与冲突恢复【深入】.html",
+          "u": "06_前端工程化与工具链/11_Git进阶_分支模型与冲突恢复【深入】.html",
+          "d": "deep"
         }
       ]
     },
@@ -596,6 +614,12 @@ window.KB_MANIFEST = {
           "f": "11_MySQL入门_从建库到CRUD【基础】.html",
           "u": "08_数据库与建模/11_MySQL入门_从建库到CRUD【基础】.html",
           "d": "basic"
+        },
+        {
+          "t": "Redis入门·数据结构与缓存初见【基础】",
+          "f": "12_Redis入门_数据结构与缓存初见【基础】.html",
+          "u": "08_数据库与建模/12_Redis入门_数据结构与缓存初见【基础】.html",
+          "d": "basic"
         }
       ]
     },
@@ -670,6 +694,18 @@ window.KB_MANIFEST = {
           "f": "10_云原生与公有云部署【基础】.html",
           "u": "09_DevOps部署与运维/10_云原生与公有云部署【基础】.html",
           "d": "basic"
+        },
+        {
+          "t": "Nginx进阶·配置体系与调优【标准】",
+          "f": "11_Nginx进阶_配置体系与调优【标准】.html",
+          "u": "09_DevOps部署与运维/11_Nginx进阶_配置体系与调优【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Kubernetes进阶·核心对象与部署【标准】",
+          "f": "12_Kubernetes进阶_核心对象与部署【标准】.html",
+          "u": "09_DevOps部署与运维/12_Kubernetes进阶_核心对象与部署【标准】.html",
+          "d": "std"
         }
       ]
     },
@@ -898,5 +934,5 @@ window.KB_MANIFEST = {
       ]
     }
   ],
-  "total": 132
+  "total": 138
 };
