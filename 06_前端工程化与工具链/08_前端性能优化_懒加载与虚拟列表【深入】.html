@@ -542,38 +542,141 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../06_前端工程化与工具链/07_Monorepo_pnpm与Turborepo【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/02_Git版本控制【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/09_前端单元测试_Vitest与Vue_Testing_Library【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：两类互补的性能优化——懒加载砍首屏体积，虚拟列表砍"同时存在的 DOM 数"。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：两类互补的优化</h3>
+  <p><strong>懒加载</strong>砍"首屏加载成本"——把首屏不需要的资源推迟到真正用到时（路由级/组件级/图片级）；<span class="tag-key">虚拟列表</span>砍"同时渲染成本"——长列表只渲染视口内（加缓冲）十几行 DOM，用绝对定位模拟滚动条高度，一万条数据只占十几个节点。<strong>两类卡顿同源</strong>：首屏 JS 太多交互迟迟不可用；一次上万 DOM 让每帧重排代价爆炸。</p>
+
+  <h3>1.2 横向对比：虚拟列表 vs 分页 vs Canvas vs content-visibility</h3>
   <ul>
-    <li><strong>懒加载（Lazy Loading）</strong>：把"首屏不需要的资源"推迟到真正用到时才加载——路由级（切到该路由才下对应 chunk）、组件级异步（组件渲染时才加载其代码）、图片（进视口才下 src）。</li>
-    <li><span class="tag-key">关键</span><strong>虚拟列表（Virtual Scroll）</strong>：长列表不渲染全部行 DOM，只渲染视口内（加少量缓冲）那十几行，用绝对定位模拟滚动条高度——一万条数据也只占十几个 DOM 节点。</li>
+    <li><strong>vs 分页</strong>：分页天然少 DOM 但不能连续滚动检索；行数可控用分页，要连续浏览/快速定位用虚拟列表；</li>
+    <li><strong>vs Canvas 全量画</strong>：万级数据点 DOM 必卡，改 Canvas 一次绘制（GPU/画布，无上万 DOM）。<strong>取舍</strong>：节点要交互（拖拽/选中）→ DOM；纯展示海量点 → Canvas；</li>
+    <li><strong>vs content-visibility:auto</strong>：浏览器原生跳过屏外渲染，成本低于手写；但精确滚动条高度/动态行高控制不如虚拟列表——能用 CSS 就不手写，复杂场景才上库。</li>
   </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：两类卡顿同源——首屏 JS 太多交互迟迟不可用，一次上万 DOM 让重排代价爆炸。</p>
-  <ul>
-    <li><strong>懒加载</strong>：砍首屏加载的 JS 体积。</li>
-    <li><strong>虚拟列表</strong>：砍"同时存在的 DOM 数"，避免滚动时每帧重排上万个节点。</li>
-    <li><strong>本项目场景</strong>：低代码开发平台流程编辑器要摆上千节点（渲染压力）；业务系统 要把多个大页面拆成按需 chunk（首屏体积）。</li>
-  </ul>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>懒加载<strong>三级粒度</strong>（路由→组件→图片）与其底层代码分割；</li>
+    <li>虚拟列表<strong>窗口公式 + 缓冲 + 占位容器</strong>三件套；</li>
+    <li><strong>稳定 key 与 rAF 节流</strong>——不卡的两个前提；</li>
+    <li>动态行高为何"该用库就别手写"。</li>
+  </ol>
+  <p><strong>本项目场景</strong>：低代码平台千节点画布（渲染压力）；业务系统大页面拆按需 chunk（首屏体积）。<strong>难度</strong>：★★★☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>七个核心模型：<strong>代码分割</strong>→ <strong>IntersectionObserver</strong>→ <strong>可视窗口</strong>→ <strong>缓冲</strong>→ <strong>动态行高</strong>→ <strong>占位容器</strong>→ <strong>rAF 与 key</strong>。</p>
+
+  <h3>2.1 代码分割：懒加载的底层</h3>
+  <p><code>import('./X.vue')</code> 让 Webpack/Rollup 把 X 单独切 chunk，运行时 script 异步加载。<strong>权衡</strong>：省的是首屏，代价是切换时按需下载——"首屏小、第一次切路由有一瞬加载"的原因。</p>
+
+  <h3>2.2 IntersectionObserver：可见性观察的正解</h3>
+  <p>异步批量告知"元素与视口相交比例"，比监听 scroll 手动算 getBoundingClientRect 高效（不强制读布局）。<span class="tag-point">能用原生就别手写</span>：纯图片懒加载现代浏览器直接 <code>&lt;img loading="lazy" decoding="async"&gt;</code>（首屏主图加 fetchpriority="high"）；要"进视口才发请求/占位/动画"等自定义逻辑才用 IO。</p>
+
+  <h3>2.3 可视窗口与缓冲</h3>
+  <p><span class="tag-key">窗口公式</span>：<code>startIndex = floor(scrollTop / itemHeight)</code>，<code>endIndex = startIndex + ceil(viewportH / itemHeight)</code>——只有这个区间渲染成 DOM，"一万条只占十几个 DOM"的数学本质。<strong>缓冲（overscan）</strong>：视口上下各多渲染 5-10 行，避免快速滚动白屏闪烁——"空白闪烁"与"多渲染成本"的权衡。</p>
+
+  <h3>2.4 动态行高：最复杂的部分</h3>
+  <p>固定行高直接除；动态行高"预估行高 + 渲染后测量真实高 + 累积修正后续偏移"。这就是 <strong>vue-virtual-scroller / TanStack Virtual 等成熟库比自己写稳的原因</strong>——细节太多。</p>
+
+  <h3>2.5 占位容器（Spacer）与绝对定位</h3>
+  <p>占位容器总高 = 总行数×行高撑起滚动条；真实行 <code>position:absolute; top: 累计偏移</code> 叠上去——浏览器以为一万行高（滚动条正常），DOM 里只有十几行。</p>
+
+  <h3>2.6 rAF 节流与稳定 key</h3>
+  <p>scroll 高频触发，重算必须进 <strong>requestAnimationFrame</strong>（一帧一次，对齐 16.6ms 帧预算）；key 用<strong>稳定行 id 而非索引</strong>——让框架复用已渲染 DOM，索引 key 在动态高度/排序场景节点错配。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：路由级懒加载</h3>
+<pre class="code" data-lang="js"><code>// Vue Router：() =&gt; import() 自动分包
+const routes = [
+  { path: '/design', component: () =&gt; import('@/views/Design.vue') }
+];
+// React Router 同构：const Design = React.lazy(() =&gt; import('./Design'));</code></pre>
+
+  <h3>3.2 场景二：组件级异步加载</h3>
+<pre class="code" data-lang="js"><code>import { defineAsyncComponent } from 'vue';
+const RichEditor = defineAsyncComponent(() =&gt; import('./RichEditor.vue'));
+// 配合 &lt;suspense&gt; 给加载态；不进首屏就不下载其代码与依赖</code></pre>
+
+  <h3>3.3 场景三：图片懒加载（IntersectionObserver）</h3>
+<pre class="code" data-lang="js"><code>const io = new IntersectionObserver(function (entries) {
+  entries.forEach(function (en) {
+    if (en.isIntersecting) {
+      en.target.src = en.target.dataset.src;   // 真地址从 data-src 取
+      io.unobserve(en.target);                // 加载过一次就停止观察
+    }
+  });
+}, { rootMargin: '200px' });   // 提前 200px 开始加载，滚动无感
+document.querySelectorAll('img[data-src]').forEach(img =&gt; io.observe(img));</code></pre>
+
+  <h3>3.4 场景四：固定行高虚拟列表核心计算 + rAF 节流</h3>
+<pre class="code" data-lang="js"><code>const itemH = 40, viewportH = 600, overscan = 5;
+function visibleRange(scrollTop) {
+  let start = Math.floor(scrollTop / itemH);
+  let end = start + Math.ceil(viewportH / itemH);
+  start = Math.max(0, start - overscan);
+  end = Math.min(total, end + overscan);
+  return { start, end, offsetY: start * itemH };   // offsetY 让渲染区整体下移对齐
+}
+
+let ticking = false;
+container.addEventListener('scroll', function () {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(function () {
+    renderVisible(container.scrollTop);   // 每帧只渲染一次可见行
+    ticking = false;
+  });
+});</code></pre>
+  <div class="note"><strong>scroll 里直接算 vs 放进 rAF</strong>：前者一次快速滚动触发几十次重算重渲染掉帧；后者一帧最多算一次。长列表滚动卡顿，先查"有没有把重算放进 rAF"。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：窗口公式与三级懒加载已会。</p>
+
+  <h3>4.1 画布场景：可视区裁剪（虚拟列表思想搬到 2D）</h3>
+  <p>算视口与节点包围盒交集，只渲染视口内节点；pan/zoom 后 rAF 内重算一次；包围盒<strong>必须算上宽高</strong>（只算 x/y 边缘节点渲染不全/闪烁）。</p>
+
+  <h3>4.2 DOM/Canvas 混合渲染分层</h3>
+  <p>可交互节点（拖拽/选中/事件）用 DOM，纯展示装饰用 Canvas 一次绘制——"能 Canvas 就别 DOM"：万级纯展示 Canvas，少数可交互才 DOM；与 01 篇"渲染后端三选"的规模阈值模型同源。</p>
+
+  <h3>4.3 chunk 拆分粒度治理</h3>
+  <p>异步拆过细→公共依赖重复打进多个小 chunk、请求数反增；<strong>splitChunks/manualChunks 抽公共依赖</strong>，异步粒度适度——首屏小不等于加载快，要看请求数与总传输量的平衡。</p>
+
+  <h3>4.4 图片占位与布局稳定（CLS）</h3>
+  <p>懒加载图片必须预留宽高比占位（<code>aspect-ratio</code> 或 padding-top hack），否则加载后把内容顶下去（布局抖动，CLS 变差）；配合骨架屏提升感知性能。</p>
+
+  <h3>4.5 动态行高的测量修正策略</h3>
+  <p>预估行高定位 + 渲染后 ResizeObserver 测真实高 + 修正缓存累积偏移；滚动方向向上时修正会引发位置跳动——成熟库（TanStack Virtual）已处理这些边界，<strong>复杂动态行高场景直接用库</strong>。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="懒加载与虚拟列表在性能优化中的位置示意图">
       <defs>
@@ -597,72 +700,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 懒加载砍加载、虚拟列表砍渲染（示意）</p>
   </div>
-  <h3>横向对比：虚拟列表 vs 分页 vs Canvas 全量画</h3>
-  <ul>
-    <li><strong>vs 分页</strong>：分页（每页 20 条）天然只渲染少量 DOM，但用户要翻页、不能连续滚动检索。虚拟列表保留"一条长列表连续滚"的体验，同时只渲染可视行。取舍：后台管理表格行数可控就分页，需要连续浏览/快速定位就虚拟列表。</li>
-    <li><strong>vs Canvas 全量画</strong>：万级数据点的图（如 Three.js 万点、流程图千节点），用 DOM 每个节点一个 div 必然卡，改用 Canvas 一次性绘制全部——渲染由 GPU/画布完成，不产生上万个 DOM。本项目低代码平台千节点正是 DOM 虚拟 + Canvas 绘制混合的路子（见案例 1）。取舍：节点需要交互（拖拽/选中/事件）→ DOM；纯展示海量点 → Canvas。</li>
-    <li><strong>vs content-visibility CSS</strong>：浏览器原生 <code>content-visibility:auto</code> 也能跳过屏外渲染（见浏览器原理页），成本比手写虚拟列表低，但对"精确滚动条高度、动态行高"控制不如虚拟列表细。能用 CSS 解决就不手写，复杂行高与精确定位才上虚拟列表。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 代码分割（Code Splitting）与 chunk</h3>
-  <p class="lead"><b>一句话定位</b>：懒加载的底层是代码分割——把 import() 的模块单独切成 chunk，运行时才异步加载。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>机制</strong>：<code>import('./X.vue')</code> 让 Webpack/Rollup 把 X 单独切成 chunk，运行时用 <code>script</code> 异步加载。</li>
-    <li><strong>权衡</strong>：省的是首屏，代价是切路由时的按需下载——这就是"首屏小、但第一次切路由有一瞬加载"的原因。</li>
-  </ul>
-  <h3>2.2 IntersectionObserver（可见性观察器）</h3>
-  <p class="lead"><b>一句话定位</b>：图片懒加载与"进视口才动作"的现代正解，浏览器原生、高效。</p>
-  <ul>
-    <li><strong>优势</strong>：异步、批量告诉你"元素与视口相交了多少比例"，比监听 scroll 手动算 getBoundingClientRect 高效（不用每次滚动强制读布局）。</li>
-    <li><strong>本项目用途</strong>：图片懒加载、长列表"滚到底加载下一页"都靠它。</li>
-    <li><span class="tag-point">要点</span><strong>能用原生就别手写</strong>：纯图片懒加载现代浏览器直接 <code>&lt;img loading="lazy" decoding="async"&gt;</code> 即可，首屏主图再加 <code>fetchpriority="high"</code>；需要"进视口才发请求/占位/动画"这类自定义逻辑时才用 IntersectionObserver。</li>
-  </ul>
-  <h3>2.3 可视窗口（Visible Window）</h3>
-  <p class="lead"><b>一句话定位</b>：由 scrollTop 与视口高度算出"该显示第几条到第几条"，只渲染这个区间。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>公式</strong>：<code>startIndex = floor(scrollTop / itemHeight)</code>，<code>endIndex = startIndex + ceil(viewportH / itemHeight)</code>。</li>
-    <li><strong>本质</strong>：只有这个区间（加缓冲）的行渲染成 DOM，其余不渲染——这就是"一万条数据只占十几个 DOM"的数学本质。</li>
-  </ul>
-  <h3>2.4 缓冲（Buffer / Overscan）</h3>
-  <p class="lead"><b>一句话定位</b>：视口上下各多渲染几行，避免快速滚动时白屏闪烁。</p>
-  <ul>
-    <li><strong>为什么</strong>：只渲染正好视口内的行，快速滚时新行还没画好会先白一下。</li>
-    <li><strong>权衡</strong>：缓冲是"空白闪烁"与"多渲染成本"的权衡，一般上下各 5-10 行。</li>
-  </ul>
-  <h3>2.5 动态行高（Dynamic Height）</h3>
-  <p class="lead"><b>一句话定位</b>：行高不一时用"预估行高 + 测量修正"，是虚拟列表最复杂的部分。</p>
-  <ul>
-    <li><strong>固定行高</strong>：<code>scrollTop/itemHeight</code> 直接算索引，很简单。</li>
-    <li><strong>动态行高</strong>：先按平均高预估位置，行渲染后测真实高、累积修正后续偏移。</li>
-  </ul>
-  <p class="pit-sentence">这就是成熟库（vue-virtual-scroller / react-virtual）比自己写稳的原因——动态行高细节太多。</p>
-  <h3>2.6 滚动占位（Spacer）与绝对定位</h3>
-  <p class="lead"><b>一句话定位</b>：用一个总高=总行数×行高的占位容器撑滚动条，真实行绝对定位叠上去。</p>
-  <ul>
-    <li><strong>占位容器</strong>：总高度 = <code>总行数 × 行高</code>，撑起整个滚动条高度。</li>
-    <li><strong>渲染行</strong>：<code>position:absolute; top: 该行累计偏移</code> 叠在占位容器上。</li>
-    <li><strong>效果</strong>：浏览器以为列表有一万行高（滚动条正常），DOM 里只有十几行。</li>
-  </ul>
-  <h3>2.7 rAF 节流与帧预算</h3>
-  <p class="lead"><b>一句话定位</b>：把滚动重算放进 requestAnimationFrame，一帧最多算一次，对齐渲染节奏。</p>
-  <ul>
-    <li><strong>为什么</strong>：scroll 触发极频繁，直接在回调里算，一次滚动可能触发几十次重渲染。</li>
-    <li><strong>帧预算</strong>：60Hz 下 16.6ms，超出就掉帧。</li>
-  </ul>
-  <h3>2.8 key 与 DOM 复用</h3>
-  <p class="lead"><b>一句话定位</b>：用稳定 key（行 id 而非索引）让框架复用已渲染 DOM，决定滚动流畅度。</p>
-  <ul>
-    <li><strong>做法</strong>：key 用行 id，让框架复用节点而不是每次销毁重建。</li>
-    <li><span class="tag-pit">坑</span><strong>用索引当 key</strong>：动态高度/排序场景会导致节点错配。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 虚拟列表：一次滚动重算的全过程</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 300" role="img" aria-label="虚拟列表窗口计算与渲染流程示意图">
       <defs>
@@ -699,14 +736,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 虚拟列表窗口计算与渲染（示意）</p>
   </div>
-  <ol>
-    <li><strong>滚动触发</strong>：容器 scroll 事件拿到最新 <code>scrollTop</code>。</li>
-    <li><strong>rAF 节流计算</strong>：在 <code>requestAnimationFrame</code> 里算 <code>startIndex = floor(scrollTop/itemH)</code>、<code>endIndex = startIndex + viewportRows</code>。</li>
-    <li><strong>加缓冲</strong>：前后各扩 overscan 行。</li>
-    <li><strong>渲染可见行</strong>：只对区间内行生成 DOM，用 <code>top = index*itemH</code> 绝对定位叠在占位容器上；区间外的行不渲染。</li>
-    <li><strong>稳定 key 复用</strong>：滚动时复用已有 DOM，只更新数据与位置，不重建节点。</li>
-  </ol>
-  <h3>3.2 懒加载三级体系</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="路由组件图片三级懒加载体系示意图">
       <defs>
@@ -730,176 +759,100 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 懒加载的三级粒度（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 路由级懒加载（Vue / React）</h3>
-<pre class="code" data-lang="js"><code>// Vue Router：() =&gt; import() 自动分包
-const routes = [
-  { path: '/design', component: () =&gt; import('@/views/Design.vue') }
-];
-// React Router 同构：const Design = React.lazy(() =&gt; import('./Design'));</code></pre>
-  <h3>4.2 组件级异步加载</h3>
-<pre class="code" data-lang="js"><code>// Vue3 defineAsyncComponent：把重组件（如富文本/大表格）做成异步
-import { defineAsyncComponent } from 'vue';
-const RichEditor = defineAsyncComponent(() =&gt; import('./RichEditor.vue'));
-// 配合 &lt;suspense&gt; 给加载态；不进首屏就不下载它的代码与依赖</code></pre>
-  <h3>4.3 图片懒加载（IntersectionObserver）</h3>
-<pre class="code" data-lang="js"><code>const io = new IntersectionObserver(function (entries) {
-  entries.forEach(function (en) {
-    if (en.isIntersecting) {
-      en.target.src = en.target.dataset.src;   // 真地址从 data-src 取
-      io.unobserve(en.target);                // 加载过一次就停止观察
-    }
-  });
-}, { rootMargin: '200px' });   // 提前 200px 开始加载，滚动时无感
-document.querySelectorAll('img[data-src]').forEach(img =&gt; io.observe(img));</code></pre>
-  <h3>4.4 一个固定高度虚拟列表的核心计算</h3>
-<pre class="code" data-lang="js"><code>// 固定行高版（最基础，动态行高见 6.4）
-const itemH = 40, viewportH = 600, overscan = 5;
-function visibleRange(scrollTop) {
-  let start = Math.floor(scrollTop / itemH);
-  let end = start + Math.ceil(viewportH / itemH);
-  start = Math.max(0, start - overscan);
-  end = Math.min(total, end + overscan);
-  return { start, end, offsetY: start * itemH };   // offsetY 让渲染区整体下移对齐
-}</code></pre>
-  <div class="note">两种写法对比：<strong>scroll 事件里直接算</strong> vs <strong>放进 rAF</strong>。前者一次快速滚动会触发几十次重算与重渲染，掉帧；后者一帧最多算一次，对齐渲染节奏。长列表滚动卡顿，先查"有没有把重算放进 rAF"。</div>
-  <h3>4.5 rAF 节流滚动</h3>
-<pre class="code" data-lang="js"><code>let ticking = false;
-container.addEventListener('scroll', function () {
-  if (ticking) return;
-  ticking = true;
-  requestAnimationFrame(function () {
-    renderVisible(container.scrollTop);   // 每帧只渲染一次可见行
-    ticking = false;
-  });
-});</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：千节点画布 + 重组件平台</h3>
-  <p class="lead"><b>一句话定位</b>：低代码平台要在画布上排上千个流程节点还不卡；业务系统 功能密集、重组件多，首屏要瘦。</p>
-  <ul>
-    <li><strong>项目一</strong>：低代码开发平台（2022-，Vue3+G6+Element Plus），可视化流程编辑器，千节点拖拽 + 动态规则校验 + 版本对比。</li>
-    <li><strong>项目二</strong>：业务系统（Vue3+Vite），表单设计器/DOCX 预览/富文本/drawio 都是重组件。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责流程编辑器渲染性能优化（虚拟裁剪/Canvas 混合）与 业务系统 的路由/组件/图片懒加载策略。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Vue3 + G6 + Element Plus；业务系统 侧 Vue3+Vite+defineAsyncComponent+IntersectionObserver。</li></ul>
-
-  <h3>5.4 落地设计：可视区裁剪 + DOM/Canvas 混合 + 三级懒加载</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>可视区裁剪</strong>：算视口与节点包围盒交集，只渲染视口内节点（虚拟列表思路搬到画布）。</li>
-    <li><strong>DOM+Canvas 混合</strong>：可交互节点用 DOM，纯展示装饰用 Canvas 一次绘制。</li>
-    <li><strong>rAF 节流</strong>：pan 后一帧最多重算一次可视区。</li>
-    <li><strong>业务系统 三级懒加载</strong>：路由 <code>()=&gt;import()</code> + 重组件 <code>defineAsyncComponent</code> + 图片 IntersectionObserver。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 可视区裁剪：只渲染落在视口内的节点
-function nodesInViewport(all, view) {
-  return all.filter(function (n) {
-    return n.x + n.w &gt;= view.x &amp;&amp; n.x &lt;= view.x + view.w &amp;&amp;
-           n.y + n.h &gt;= view.y &amp;&amp; n.y &lt;= view.y + view.h;
-  });
-}
-// 画布平移（pan）后重算一次（rAF 节流）
-canvas.addEventListener('pan', function () {
-  requestAnimationFrame(function () { render(nodesInViewport(all, currentView)); });
-});</code></pre>
-  <p>重组件异步加载：</p>
-  <pre class="code" data-lang="js"><code>// DOCX 预览只在文档详情页才下载
-const DocxPreview = defineAsyncComponent(() =&gt; import('@rmp/docx-preview'));</code></pre>
-
-  <h3>5.6 真实问题与解法（含量化对比）</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>全部用 DOM</strong>：千节点 DOM 重排/事件绑定代价远超预期——Canvas 混合后才稳。</li>
-    <li><span class="tag-pit">坑</span><strong>包围盒忘算宽高</strong>：边缘节点渲染不全/闪烁。</li>
-    <li><span class="tag-pit">坑</span><strong>节点用索引做 key</strong>：缩放/排序后 DOM 错配——改稳定 id。</li>
-    <li><span class="tag-pit">坑</span><strong>异步组件瞬间空白</strong>：配 <code>&lt;suspense&gt;</code> + loading 态。</li>
-    <li><strong>前后对比（估算）</strong>：每帧重算节点数从约 1000 降到约 100；首屏从整包切到只含主框架。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>千节点下拖拽/滚动从明显卡顿恢复到可用帧率；业务系统 首屏主包明显瘦身，重页面才有一次按需加载。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>分工</strong>：性能优化独立迭代，先砍 DOM 数量、再上 rAF 节流；业务系统 懒加载随路由模块逐步接入。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>能 Canvas 就别 DOM</strong>：万级纯展示用 Canvas，少数可交互才 DOM。</li>
-    <li><span class="tag-point">要点</span><strong>稳定 key + rAF 节流</strong>：虚拟渲染不卡的两个前提。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中低代码开发平台把千节点流程编辑器从全 DOM 改成可视区裁剪 + DOM/Canvas 混合 + rAF 节流，每帧重算节点从约 1000 降到约 100，拖拽恢复流畅；业务系统 用路由/组件/图片三级懒加载给首屏瘦身。"</p>
+  <p><strong>读图要点</strong>：①图 1 分工总纲——懒加载管"加载"、虚拟列表管"渲染"，两类卡顿同源不同治；②图 2 五步链——scroll→rAF 计算窗口→加缓冲→只渲染区间→稳定 key 复用；③图 3 三级从粗到细，先砍整页再砍重组件最后砍图片。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 虚拟列表用索引当 key</h3>
-  <p class="lead"><b>一句话定位</b>：滚动时行集合在变，用索引当 key 会把旧 DOM 复用到错误数据行。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战两例——①低代码平台（2022-，Vue3+G6+ElementPlus）千节点流程编辑器渲染优化；②业务系统（Vue3+Vite）重组件首屏瘦身。我负责可视区裁剪/Canvas 混合与三级懒加载策略。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：列表排序/动态高度后，行内容错位、状态串行了。</li>
-    <li><strong>正解</strong>：用数据里稳定的唯一 id 做 key。</li>
+    <li><span class="tag-key">可视区裁剪</span>：视口与节点包围盒求交，只渲染视口内节点（虚拟列表思路搬到画布）；</li>
+    <li><strong>DOM+Canvas 混合</strong>：可交互节点 DOM，纯展示装饰 Canvas 一次绘制；</li>
+    <li><strong>rAF 节流</strong>：pan 后一帧最多重算一次可视区；</li>
+    <li><strong>业务系统三级懒加载</strong>：路由 <code>()=&gt;import()</code> + 重组件 defineAsyncComponent（如 DOCX 预览只在详情页下载）+ 图片 IO。</li>
   </ul>
-  <h3>6.2 虚拟列表没加缓冲导致快速滚动白屏</h3>
-  <p class="lead"><b>一句话定位</b>：只渲染正好视口内的行，快速滚时下一行还没画好就白一下。</p>
+
+  <h3>6.2 踩坑记录（含量化对比）</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：快速往下滚，新行位置先白一下才出来。</li>
-    <li><strong>正解</strong>：上下各加 overscan 缓冲行，提前渲染。</li>
+    <li><span class="tag-pit">坑</span><strong>全部用 DOM</strong>：千节点重排/事件绑定代价远超预期——Canvas 混合后才稳；</li>
+    <li><span class="tag-pit">坑</span><strong>包围盒忘算宽高</strong>：边缘节点渲染不全/闪烁；</li>
+    <li><span class="tag-pit">坑</span><strong>节点用索引做 key</strong>：缩放/排序后 DOM 错配——改稳定 id；</li>
+    <li><span class="tag-pit">坑</span><strong>异步组件瞬间空白</strong>：配 &lt;suspense&gt; + loading 态；</li>
+    <li><strong>前后对比（估算）</strong>：每帧重算节点约 1000→约 100；首屏从整包切到只含主框架。</li>
   </ul>
-  <h3>6.3 scroll 回调里重算没节流</h3>
-  <p class="lead"><b>一句话定位</b>：scroll 高频触发，不节流就一帧内跑多次重算重渲染。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：长列表滚动卡顿、掉帧。</li>
-    <li><strong>正解</strong>：重算放进 rAF（一帧一次），或加防抖/节流。</li>
-  </ul>
-  <h3>6.4 动态行高没做测量修正</h3>
-  <p class="lead"><b>一句话定位</b>：行高不一时固定公式失效，要预估+测量修正。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：富文本/展开收起列表里，滚动位置错位、滚动条长度不对。</li>
-    <li><strong>正解</strong>：预估行高 + 渲染后测真实高、累积修正；复杂场景直接用成熟库（vue-virtual-scroller / TanStack Virtual）而非手写。</li>
-  </ul>
-  <h3>6.5 懒加载 chunk 拆太碎</h3>
-  <p class="lead"><b>一句话定位</b>：异步拆得过细，公共依赖被重复打进多个小 chunk，请求数反增。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：首屏小了，但一次路由跳转发五六个小 chunk，加载反而慢。</li>
-    <li><strong>正解</strong>：用 splitChunks 抽公共依赖，异步粒度适度，避免过度拆分。</li>
-  </ul>
-  <h3>6.6 懒加载图片忘了占位导致布局抖动</h3>
-  <p class="lead"><b>一句话定位</b>：图片没加载时无高度占位，加载后把下面内容顶下去。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：图片进视口加载后把下面内容顶下去，页面跳动。</li>
-    <li><strong>正解</strong>：给 img 容器预留固定宽高比占位（<code>aspect-ratio</code> 或 padding-top hack）。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：千节点拖拽/滚动恢复可用帧率；首屏主包明显瘦身、重页面一次按需加载；</li>
+    <li><strong>可复用经验</strong>：能 Canvas 就别 DOM；稳定 key + rAF 节流是虚拟渲染不卡的两个前提；</li>
+    <li><strong>一句话抓手</strong>："千节点流程编辑器从全 DOM 改成可视区裁剪+DOM/Canvas 混合+rAF 节流，每帧重算约 1000→约 100。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 用索引当 key</h3>
+  <p><strong>现象</strong>：排序/动态高度后行内容错位、状态串行。<strong>正解</strong>：稳定唯一 id 做 key。</p>
+
+  <h3>7.2 没加缓冲快速滚动白屏</h3>
+  <p><strong>现象</strong>：快滚时新行先白一下。<strong>正解</strong>：上下各加 overscan 缓冲行提前渲染。</p>
+
+  <h3>7.3 scroll 重算没节流</h3>
+  <p><strong>现象</strong>：长列表滚动掉帧。<strong>正解</strong>：重算进 rAF（一帧一次）。</p>
+
+  <h3>7.4 动态行高没测量修正</h3>
+  <p><strong>现象</strong>：富文本/展开收起列表滚动错位、滚动条长度不对。<strong>正解</strong>：预估+测量修正；复杂场景直接用成熟库。</p>
+
+  <h3>7.5 chunk 拆太碎</h3>
+  <p><strong>现象</strong>：首屏小了但一次跳转发五六个小 chunk 反而慢。<strong>正解</strong>：splitChunks 抽公共依赖、异步粒度适度。</p>
+
+  <h3>7.6 懒加载图片没占位</h3>
+  <p><strong>现象</strong>：图片加载后把内容顶下去（CLS 变差）。<strong>正解</strong>：aspect-ratio 或 padding-top hack 预留宽高比。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：虚拟列表的原理？一万条数据为什么只渲染十几行 DOM？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>核心是"可视窗口"</strong>——用户任何时刻只能看见视口内十几行，公式 <code>startIndex=floor(scrollTop/itemH)</code>、<code>endIndex=startIndex+ceil(viewportH/itemH)</code>，只把这个区间（加 overscan 缓冲）渲染成 DOM；用一个<strong>总高=总行数×行高的占位容器</strong>撑起滚动条，真实行绝对定位叠上去——浏览器以为列表有一万行高，DOM 里只有十几行。配套三前提：<strong>rAF 节流</strong>（scroll 一帧只算一次）、<strong>稳定 key</strong>（行 id 复用 DOM）、<strong>缓冲</strong>（防快滚白屏）。动态行高需"预估+测量修正"，复杂场景用 TanStack Virtual 等成熟库。</p>
+
+  <p><strong>Q2：懒加载有哪三级粒度？底层机制是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>路由级</strong>——<code>() =&gt; import()</code> 切到该路由才下载整页 chunk；<strong>组件级</strong>——defineAsyncComponent/React.lazy 把富文本/大表格等重组件推迟到渲染时加载；<strong>图片级</strong>——进视口才下 src（现代浏览器直接 <code>loading="lazy"</code>，自定义逻辑用 IntersectionObserver）。<strong>底层机制是代码分割</strong>：import() 让打包器把模块单独切 chunk，运行时 script 异步加载。<strong>代价</strong>：首次切换有按需下载的一瞬——所以不能拆太碎（公共依赖重复打包、请求数反增），配 splitChunks 抽公共。</p>
+
+  <p><strong>Q3：千节点画布场景怎么优化？和虚拟列表什么关系？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>可视区裁剪</strong>——虚拟列表思想搬到 2D：算视口与节点包围盒交集（必须算宽高），只渲染视口内节点，pan/zoom 后 rAF 内重算；<strong>DOM/Canvas 混合</strong>——可交互节点用 DOM（拖拽/选中/事件），纯展示装饰 Canvas 一次绘制（无上万 DOM，GPU 完成渲染）。<strong>量化</strong>：每帧重算节点约 1000→约 100，拖拽恢复流畅。<strong>与虚拟列表的关系</strong>：同一"只渲染可见"思想在不同坐标系的应用；取舍原则同 01 篇——要交互 DOM、纯展示 Canvas。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>虚拟列表窗口公式？占位容器的作用？</li>
+    <li>不卡的三个前提（rAF/key/缓冲）各防什么？</li>
+    <li>懒加载三级粒度与底层机制？拆太碎的症状？</li>
+    <li>虚拟列表 vs 分页 vs Canvas vs content-visibility 怎么选？</li>
+    <li>动态行高为什么"该用库就别手写"？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>MDN IntersectionObserver：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/IntersectionObserver" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/IntersectionObserver</a></li>
-    <li>MDN requestAnimationFrame 与渲染性能：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/window/requestAnimationFrame" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/window/requestAnimationFrame</a></li>
-    <li>web.dev 懒加载与长列表最佳实践：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
+    <li>MDN IntersectionObserver：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/IntersectionObserver" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/IntersectionObserver</a>；rAF：MDN requestAnimationFrame</li>
+    <li>web.dev 性能最佳实践：<a href="https://web.dev/learn/performance" rel="noopener">web.dev/learn/performance</a></li>
   </ul>
   <h3>成熟虚拟列表库</h3>
   <ul>
-    <li>TanStack Virtual（通用虚拟列表引擎，动态行高处理成熟）：<a href="https://tanstack.com/virtual" rel="noopener">tanstack.com/virtual</a></li>
-    <li>vue-virtual-scroller（Vue 生态常用）：<a href="https://github.com/Akryum/vue-virtual-scroller" rel="noopener">github.com/Akryum/vue-virtual-scroller</a></li>
+    <li>TanStack Virtual（动态行高处理成熟）：<a href="https://tanstack.com/virtual" rel="noopener">tanstack.com/virtual</a>；vue-virtual-scroller：github.com/Akryum/vue-virtual-scroller</li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>手写固定行高虚拟列表（含 overscan），对比有无 rAF 节流的帧率（Performance 面板）；</li>
+    <li>故意用索引 key 复现排序错位；给懒加载图片去掉占位观察 CLS；</li>
+    <li>用 vue-virtual-scroller 处理一个动态行高列表，读其测量修正源码。</li>
+  </ol>
 </section>
 
 </main>

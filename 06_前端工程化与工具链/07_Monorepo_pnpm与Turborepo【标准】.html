@@ -548,30 +548,122 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与配置要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Monorepo（Monolithic Repository）是"把多个项目/包放在同一个 Git 仓库"的组织方式，相对的是 Polyrepo（每包一个仓库）。JS 生态落地它靠两件工具：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：包管理 + 任务编排两件套</h3>
+  <p><strong>Monorepo</strong>（单仓多包）对立面是 Polyrepo（每包一仓）。JS 生态落地靠两件工具：<strong>pnpm workspace</strong>（包管理——声明多包、互引、共享 node_modules）+ <strong>Turborepo</strong>（任务编排——按依赖顺序跑 build/test，缓存跳过没变化的包）。<span class="tag-key">核心收益</span>：Polyrepo 里改公共组件要发版+各仓升级+版本对不上+link 来 link 去；Monorepo 让"改公共包+改消费它的应用"在<strong>一个 PR 里一起完成</strong>，版本天然一致。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>理解 <strong>pnpm 内容寻址 store + 符号链接</strong>为什么又快又隔离；</li>
+    <li>讲清 <strong>幽灵依赖</strong>与 pnpm 的根治原理；</li>
+    <li>掌握 workspace 协议 + turbo 任务流水线（<strong>^build 语义</strong>）；</li>
+    <li>落地业务系统式多应用多包结构。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 npm、06 Vite（monorepo 内部包 exclude 呼应）。<strong>难度</strong>：★★☆☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>内容寻址 store</strong>→ <strong>幽灵依赖治理</strong>→ <strong>Turborepo 任务图</strong>→ <strong>Task Pipeline</strong>→ <strong>共享配置与版本统一</strong>。</p>
+
+  <h3>2.1 pnpm：硬链接 + 符号链接的存储设计</h3>
   <ul>
-    <li><span class="tag-key">关键</span><strong>pnpm workspace（包管理）</strong>：怎么在一个仓库里声明多个包、让它们互相引用、共享同一份 node_modules。</li>
-    <li><strong>Turborepo（任务编排）</strong>：怎么按依赖顺序跑 build/test，并用缓存跳过没变化的包的重复构建。</li>
+    <li><strong>内容寻址 store</strong>：全局维护，每个包版本只存一份；</li>
+    <li><strong>硬链接</strong>：store 与项目 <code>node_modules/.pnpm/&lt;pkg&gt;@ver/</code> 之间硬链接——10 个项目用 vue@3.4 磁盘只存一份；</li>
+    <li><strong>符号链接</strong>：顶层 node_modules 里包是指向 .pnpm 的符号链接（Windows 为 junction）——<strong>既隔离依赖又不重复占盘</strong>。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：多包分开仓库时，改一个公共组件要发版、多个仓库分别升级、版本对不上、本地调试 link 来 link 去。Monorepo 让"改公共包 + 改消费它的应用"在一个 PR 里一起完成：</p>
-  <ul>
-    <li><strong>收益</strong>：一个 PR 里一起改、一起测试、一起发版，版本天然一致。</li>
-    <li><strong>代价</strong>：仓库变大、需要工具保证"一个包的改动不意外破坏别的包"。</li>
-    <li><strong>本项目</strong>：业务系统 正是 monorepo——web 主应用、drawio、工作流多个应用，共享 API 客户端/通用组件/表单设计器渲染器/DOCX 预览/富文本等公共包。</li>
-  </ul>
+  <p><strong>收益</strong>：比 npm 每项目复制一份 node_modules 又快又省，monorepo 里尤其明显。</p>
+
+  <h3>2.2 幽灵依赖与 workspace 协议</h3>
+  <p><span class="tag-pit">幽灵依赖</span>：import 了没在自己 package.json 声明的包——靠扁平 node_modules"隔壁恰好装了"侥幸工作，隔壁升级删了它就莫名崩。<strong>pnpm 隔离式 node_modules 根治</strong>：没声明的包 import 不到。<span class="tag-key">workspace 协议</span>：<code>"@rmp/api-client": "workspace:*"</code> = 用本地最新这个包、别去 npm 拉；<code>pnpm publish</code> 发版时自动替换成真实版本号。</p>
+
+  <h3>2.3 Turborepo：任务依赖图 + 输入 hash 缓存</h3>
+  <p><strong>拓扑并行</strong>：api-client 没 build 完，web build 跑不了；<span class="tag-point">缓存</span>：记录包输入（源码+依赖）hash，与上次一致就直接恢复 build 结果、跳过真编译；<strong>远程缓存</strong>：开 Remote Caching 后团队/CI 共享产物——别人构建过的包我直接拉缓存，<strong>这才是 monorepo CI 提速的核心</strong>。</p>
+
+  <h3>2.4 Task Pipeline：dependsOn 与 outputs</h3>
+  <p><code>"build": {"dependsOn": ["^build"], "outputs": ["dist/**"]}</code>；<span class="tag-key">^build 语义</span>：<strong>先跑完我所依赖的那些包的 build</strong>（<code>^</code> 指"依赖我所依赖的包"），不带 ^ 的 <code>["build"]</code> 是跑我自己所有包的同名任务；<strong>outputs</strong>：声明哪些产物进缓存——配错则缓存恢复空产物。</p>
+
+  <h3>2.5 共享配置与版本一致性</h3>
+  <p>ESLint/TSconfig/构建配置抽共享包、所有 app extends；根 package.json 用 <strong>pnpm.overrides 锁大版本</strong>——避免"A 用 vue3.4、B 用 vue3.2"漂移。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：声明 workspace 与内部互引</h3>
+<pre class="code" data-lang="yaml"><code># pnpm-workspace.yaml：声明哪些目录是包
+packages:
+  - 'apps/*'        # 所有应用
+  - 'packages/*'    # 所有共享包</code></pre>
+<pre class="code" data-lang="json"><code>{
+  "name": "@rmp/web",
+  "dependencies": {
+    "@rmp/api-client": "workspace:*",
+    "@rmp/ui-components": "workspace:*",
+    "vue": "^3.4.0"
+  }
+}</code></pre>
+  <p><code>workspace:*</code> = 永远用本仓库最新本地包——本地改 api-client，web 立刻生效无需发版；publish 时自动替换真实版本。</p>
+
+  <h3>3.2 场景二：turbo.json 任务流水线</h3>
+<pre class="code" data-lang="json"><code>{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],      // 先跑完依赖包的 build
+      "outputs": ["dist/**"]        // 产物进缓存
+    },
+    "dev": { "cache": false, "persistent": true },   // dev 不缓存常驻
+    "test": { "dependsOn": ["^build"], "outputs": [] }
+  }
+}</code></pre>
+
+  <h3>3.3 场景三：日常命令</h3>
+<pre class="code" data-lang="bash"><code>pnpm install                        # 一条命令装全仓所有包依赖
+pnpm build                          # turbo 全量 build：拓扑排序+缓存跳过
+turbo run build --filter=@rmp/web   # 只 build web 及其依赖（缓存命中秒级）</code></pre>
+
+  <h3>3.4 场景四：.npmrc 过渡配置</h3>
+<pre class="code" data-lang="ini"><code>shamefully-hoist=true   ; 老包依赖幽灵包时临时摊平过渡（根治仍是补声明）
+auto-install-peers=true ; 自动装 peer 依赖</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：workspace 与 turbo 基本配置已会。</p>
+
+  <h3>4.1 内部包的两种发布形态</h3>
+  <p><strong>源码直连</strong>（内部消费）：不发版，应用直接 import 源码——需构建器 exclude 预打包（06 篇 4.1），改包即时生效；<strong>对外发布</strong>：build 成 npm 包（Vite lib 模式）+ Changesets 管版本与 workspace:* 替换。<strong>内部包优先源码直连，别为"规范"提前引入发版流程。</strong></p>
+
+  <h3>4.2 peer dependencies 的双重角色</h3>
+  <p>组件库声明 <code>peerDependencies: { vue: "^3.0" }</code>——要求宿主提供 vue 而不是自带（避免双 Vue 实例事故）；monorepo 内部组件库的 peer 由 <code>auto-install-peers</code> 或根 package.json 统一满足。</p>
+
+  <h3>4.3 filter 与 affected（增量 CI）</h3>
+  <p><code>--filter=@rmp/web...</code>（三点=含其依赖）只构建受影响子集；配合 turbo 输入 hash，CI 只跑<strong>本次改动波及的包</strong>——monorepo 不拖慢 CI 的关键。GitHub Actions 上用 turbo 的 affected/prune 进一步裁剪。</p>
+
+  <h3>4.4 Changesets 发版流</h3>
+  <p>贡献者改动时写 changeset（标记哪个包 minor/patch）→ CI 汇总生成版本 PR → 合并后统一发版并替换 workspace:*——解决"多包谁该升版本、怎么发"的协作难题，是 Turborepo 官方推荐的版本管理搭档。</p>
+
+  <h3>4.5 Monorepo 的边界（不是银弹）</h3>
+  <p>判断依据是<strong>"共享代码与同步发版的频率"</strong>——高度共享、一起发版适合；完全无关、发版节奏独立的项目硬凑只会臃肿（仓库大、权限粗、CI 噪音）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="Monorepo与Polyrepo对比图">
       <defs>
@@ -580,15 +672,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Monorepo vs Polyrepo（示意）</text>
-
-      <!-- Polyrepo -->
       <rect x="30" y="45" width="350" height="120" rx="8" fill="#fee2e2" stroke="#dc2626"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">Polyrepo（每包一个仓库）</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">改公共组件要发版，各仓库分别升级</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">版本对不上，本地 link 来 link 去</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#b91c1c">改 A 包要动好几个仓库</text>
-
-      <!-- Monorepo -->
       <rect x="420" y="45" width="350" height="120" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Monorepo（一个仓库多包）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">改公共包+改消费它的应用，一个 PR 搞定</text>
@@ -597,7 +685,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Monorepo vs Polyrepo（示意）</p>
   </div>
-
   <div class="diagram">
     <svg viewBox="0 0 800 280" role="img" aria-label="一个 monorepo 的目录结构与依赖关系示意图">
       <defs>
@@ -633,54 +720,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <line x1="240" y1="95" x2="316" y2="95" stroke="#7a8a70" stroke-dasharray="4,3" marker-end="url(#arr)"/>
       <text x="400" y="265" text-anchor="middle" font-size="12.5" fill="#7a8a70">apps 通过 workspace 协议引用 packages；packages 之间也可互相引用。</text>
     </svg>
-    <p class="diagram-caption">图 1 业务系统 monorepo 的 apps/packages 双层结构（示意）</p>
+    <p class="diagram-caption">图 2 业务系统 monorepo 的 apps/packages 双层结构（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 pnpm 与硬链接/内容寻址存储</h3>
-  <p class="lead"><b>一句话定位</b>：pnpm 全局内容寻址 store 每版本只存一份；store 用硬链接连到项目虚拟仓库，顶层 node_modules 再用符号链接指回它。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>内容寻址 store</strong>：全局维护，每个包版本只存一份。</li>
-    <li><strong>硬链接</strong>：全局 store 与项目虚拟仓库 <code>node_modules/.pnpm/&lt;pkg&gt;@ver/</code> 之间是硬链接——10 个项目都用 vue@3.4，磁盘上 vue 只存一份。</li>
-    <li><strong>符号链接</strong>：顶层 <code>node_modules/&lt;pkg&gt;</code> 不是实体目录，而是指向 <code>.pnpm</code> 内真实包的符号链接（Windows 上为 junction）——既隔离依赖、又不重复占盘。</li>
-    <li><strong>收益</strong>：比 npm 每项目复制一份 node_modules 又快又省空间，monorepo 里尤其明显。</li>
-  </ul>
-  <h3>2.2 Workspace 协议与幽灵依赖（Phantom Dependencies）</h3>
-  <p class="lead"><b>一句话定位</b>：pnpm 隔离 node_modules 根治幽灵依赖；workspace:* 是 monorepo 内部互引的写法。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>幽灵依赖</strong>：代码 <code>import { x } from 'lodash'</code> 但自己 package.json 没声明——靠"隔壁恰好装了"才在；隔壁升级删了它就莫名崩。</li>
-    <li><strong>pnpm 解法</strong>：符号链接的隔离 node_modules——没声明的包 import 不到。</li>
-    <li><span class="tag-pit">坑</span><strong>从 npm 迁 pnpm 报错</strong>：老包依赖了没声明的幽灵包，隔离后直接 import 失败——临时可在 <code>.npmrc</code> 配 <code>shamefully-hoist=true</code> 摊平过渡，根治仍是补全声明；<code>auto-install-peers=true</code> 则自动装好 peer 依赖。</li>
-    <li><strong>workspace 协议</strong>：<code>"@rmp/api-client": "workspace:*"</code> = 用本地最新这个包、别去 npm 拉；发版时替换成真实版本号。</li>
-  </ul>
-  <h3>2.3 Turborepo 与任务依赖图</h3>
-  <p class="lead"><b>一句话定位</b>：把各包脚本任务建成依赖图，按拓扑并行执行，并用输入 hash 缓存跳过。</p>
-  <ul>
-    <li><strong>拓扑并行</strong>：api-client 没 build 完，web build 就跑不了——按依赖顺序并行执行。</li>
-    <li><span class="tag-point">要点</span><strong>缓存</strong>：记录某包输入（源码、依赖）hash，和上次一样就直接恢复 build 结果、跳过真编译。</li>
-    <li><strong>远程缓存</strong>：上面默认是本机缓存；开 Remote Caching 后团队/CI 共享同一份构建产物——别人构建过的包，我本地直接拉缓存复现，才是 monorepo CI 提速的核心收益。</li>
-    <li><strong>提速来源</strong>：改了 web、没改 api-client，就不用重新 build api-client。</li>
-  </ul>
-  <h3>2.4 Task Pipeline（任务流水线）与 outputs</h3>
-  <p class="lead"><b>一句话定位</b>：turbo.json 声明任务依赖关系与哪些产物要被缓存。</p>
-  <ul>
-    <li><strong>声明</strong>：<code>"build": {"dependsOn": ["^build"], "outputs": ["dist/**"]}</code>。</li>
-    <li><strong>^build</strong>：先把我所依赖的那些包的 build 跑完再跑我的——<code>^</code> 指"依赖我所依赖的包"，不是脚本内部顺序。</li>
-    <li><strong>outputs</strong>：声明哪些产物要被缓存。</li>
-  </ul>
-  <h3>2.5 共享配置与版本一致性</h3>
-  <p class="lead"><b>一句话定位</b>：monorepo 另一大收益是"统一"——共享配置抽包、依赖版本统一锁定。</p>
-  <ul>
-    <li><strong>共享配置</strong>：ESLint/TSconfig/构建配置抽成共享包，所有 app extends 它。</li>
-    <li><strong>版本一致</strong>：根 package.json 用 <code>pnpm.overrides</code> 锁定大版本，避免"A 用 vue3.4、B 用 vue3.2"漂移。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次 turbo build 发生了什么</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="Turborepo 任务编排与缓存流程示意图">
       <defs>
@@ -708,152 +749,93 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="164" text-anchor="middle" font-size="13" fill="#4f6348">② 缓存：包的输入（源码+依赖版本）hash 未变 → 直接复用上一次的 dist，不再真编译。</text>
       <text x="400" y="188" text-anchor="middle" font-size="13" fill="#7a8a70">③ 并行：无依赖关系的任务并行跑，充分利用多核。</text>
     </svg>
-    <p class="diagram-caption">图 2 Turborepo 任务编排与缓存（示意）</p>
+    <p class="diagram-caption">图 3 Turborepo 任务编排与缓存（示意）</p>
   </div>
-  <ol>
-    <li><strong>建依赖图</strong>：Turborepo 读各 package.json，谁依赖谁一目了然。</li>
-    <li><strong>拓扑排序 + 并行</strong>：被依赖的包先 build，无依赖关系的任务并行。</li>
-    <li><strong>缓存判断</strong>：每个任务算输入 hash（源码文件内容 + 依赖版本），命中缓存就从缓存恢复 outputs，跳过实际执行。</li>
-  </ol>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与配置要点</h2>
-  <h3>4.1 pnpm-workspace.yaml（声明哪些目录是包）</h3>
-<pre class="code" data-lang="yaml"><code>packages:
-  - 'apps/*'        # 所有应用
-  - 'packages/*'    # 所有共享包</code></pre>
-  <h3>4.2 应用 package.json 里用 workspace 协议引用内部包</h3>
-<pre class="code" data-lang="json"><code>{
-  "name": "@rmp/web",
-  "dependencies": {
-    "@rmp/api-client": "workspace:*",
-    "@rmp/ui-components": "workspace:*",
-    "vue": "^3.4.0"
-  }
-}</code></pre>
-  <div class="note"><code>workspace:*</code> 表示"永远用本仓库里最新的本地包"，本地开发时改 api-client，web 立刻生效，无需发版；<code>pnpm publish</code> 时会自动把它替换成真实版本号。</div>
-  <h3>4.3 turbo.json（任务流水线与缓存）</h3>
-<pre class="code" data-lang="json"><code>{
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
-    },
-    "dev": { "cache": false, "persistent": true },
-    "test": { "dependsOn": ["^build"], "outputs": [] }
-  }
-}</code></pre>
-  <h3>4.4 根 package.json 的脚本</h3>
-<pre class="code" data-lang="json"><code>{
-  "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "test": "turbo run test"
-  }
-}</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：业务系统 多应用 + 公共包</h3>
-  <p class="lead"><b>一句话定位</b>：前端不是单个应用，而是多应用加一批要被复用的公共包，需要一个仓库管好并让公共包改动即时生效。</p>
-  <ul>
-    <li><strong>应用</strong>：web 主应用、drawio、工作流。</li>
-    <li><strong>公共包</strong>：OpenAPI 生成的 API 客户端、通用组件、表单设计器渲染器、DOCX 预览、富文本。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责 monorepo 结构、workspace 配置、Turborepo 编排与公共包抽取；前端组协作开发各应用。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>pnpm workspace + Turborepo；Vue3+TS+Vite；公共包含 API 客户端/组件/渲染器。</li></ul>
-
-  <h3>5.4 落地设计：workspace 协议 + 任务编排</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>workspace 声明</strong>：<code>pnpm-workspace.yaml</code> 声明 <code>apps/*</code> 与 <code>packages/*</code>。</li>
-    <li><strong>workspace 协议引用</strong>：应用用 <code>"@rmp/api-client":"workspace:*"</code> 引用共享包，本地改包即时生效。</li>
-    <li><strong>Turborepo 编排</strong>：<code>build</code> 任务 <code>dependsOn:["^build"]</code> 保证共享包先 build；<code>outputs:["dist/**"]</code> 让产物可缓存。</li>
-    <li><strong>统一版本</strong>：根 <code>pnpm.overrides</code> 锁定 vue/element-plus 大版本。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code># 安装整个 monorepo：一条命令装所有包的依赖
-pnpm install
-# 跑全量 build：turbo 自动按依赖拓扑 + 缓存跳过没变化的包
-pnpm build
-# 只 build web 及其依赖（缓存命中时秒级）
-turbo run build --filter=@rmp/web</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>幽灵依赖</strong>：某应用直接 import 没声明的工具包，pnpm 隔离后报错——被迫补声明（这正是 pnpm 的价值）。</li>
-    <li><span class="tag-pit">坑</span><strong>workspace:* 没替换</strong>：发版原样发出导致下游装不上——用 pnpm 自带 publish 流程自动替换。</li>
-    <li><span class="tag-pit">坑</span><strong>outputs 漏写</strong>：dist 路径不对，缓存命中却恢复空产物——修正 outputs 路径。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li>改一个公共包能在一个 PR 里同步更新所有消费应用，版本天然一致；重复构建被缓存跳过，CI 与本地构建明显变快（缓存命中时秒级）。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：先抽公共包接口，多应用并行消费；OpenAPI 客户端自动生成，前后端解耦。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>谁用谁声明</strong>：幽灵依赖在 pnpm 下会被强制暴露，趁早补声明。</li>
-    <li><span class="tag-point">要点</span><strong>outputs 配准</strong>：turbo 缓存才有意义；内部 TS 包记得 Vite exclude。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中 业务系统 用 pnpm workspace + Turborepo 把 web/drawio/工作流三个应用和五个公共包管起来，靠 workspace:* 协议让改公共包即时生效，靠 turbo 缓存把重复 build 从全量压到缓存命中秒级。"</p>
+  <p><strong>读图要点</strong>：①图 1 选型总纲——核心收益是"一个 PR 一起改一起测一起发"；②图 2 是标准结构——apps/packages 双层+两个配置文件（workspace 声明位置、turbo 声明任务）；③图 3 三步——拓扑排序→缓存判定→并行执行，缓存命中直接恢复产物。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 幽灵依赖（Phantom Dependencies）</h3>
-  <p class="lead"><b>一句话定位</b>：用了没声明的包，靠扁平 node_modules 侥幸工作，pnpm 隔离后直接 import 失败。</p>
-  <p class="pit-sentence">正解：谁用谁声明，依赖自包含。</p>
-  <h3>6.2 workspace:* 发版未替换</h3>
-  <p class="lead"><b>一句话定位</b>：publish 时没把 workspace:* 替换成真实版本号，下游装不上。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统（pnpm workspace + Turborepo）：web/drawio/工作流三应用 + 五公共包（api-client/ui-components/form-render/docx-preview/rich-text）；我负责 monorepo 结构、workspace 配置、Turborepo 编排与公共包抽取。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：内部包发到 npm 后，下游 install 报找不到 "workspace:*"。</li>
-    <li><strong>正解</strong>：用 pnpm 自带 publish 流程（自动替换），或 Changesets 等发版工具统一处理。</li>
+    <li><span class="tag-key">workspace 协议</span>：应用以 <code>"@rmp/api-client":"workspace:*"</code> 引用共享包，本地改包即时生效；</li>
+    <li><strong>Turborepo 编排</strong>：build dependsOn ^build 保证共享包先构建；outputs dist/** 可缓存；</li>
+    <li><strong>统一版本</strong>：根 pnpm.overrides 锁定 vue/element-plus 大版本；</li>
+    <li><strong>契约先行</strong>：先抽公共包接口多应用并行消费；OpenAPI 客户端自动生成。</li>
   </ul>
-  <h3>6.3 turbo 缓存命中但产物为空</h3>
-  <p class="lead"><b>一句话定位</b>：outputs 路径配错，缓存以为"没有产物要存"，恢复时自然空。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：第二次 build 秒过，但 dist 是空的。</li>
-    <li><strong>正解</strong>：核对 outputs glob 与实际输出目录一致。</li>
+    <li><span class="tag-pit">坑</span><strong>幽灵依赖</strong>：某应用直接 import 没声明的工具包，pnpm 隔离后报错——被迫补声明（这正是 pnpm 的价值）；</li>
+    <li><span class="tag-pit">坑</span><strong>workspace:* 没替换</strong>：发版原样发出下游装不上——用 pnpm 自带 publish 流程自动替换；</li>
+    <li><span class="tag-pit">坑</span><strong>outputs 漏写</strong>：dist 路径不对，缓存命中却恢复空产物——修正 outputs。</li>
   </ul>
-  <h3>6.4 ^build 的含义记错</h3>
-  <p class="lead"><b>一句话定位</b>：^build = 先跑完我依赖的包的 build；["build"] = 跑我自己的同名任务。</p>
-  <ul>
-    <li><span class="tag-point">要点</span><code>["^build"]</code>：先跑完我所依赖的那些包的 build。</li>
-    <li><code>["build"]</code>（无 ^）：跑我自己所有包的同名任务。</li>
-  </ul>
-  <h3>6.5 Monorepo 不是银弹</h3>
-  <p class="lead"><b>一句话定位</b>：适合"高度共享、需要一起发版"的项目，无关项目硬凑只会臃肿。</p>
-  <p class="key-sentence">判断依据是"共享代码与同步发版的频率"——完全无关、发版节奏独立的项目不必硬凑一个 monorepo。</p>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：改一个公共包一个 PR 同步更新所有消费应用；缓存命中时构建秒级；</li>
+    <li><strong>可复用经验</strong>：谁用谁声明（幽灵依赖趁早补）；outputs 配准缓存才有意义；内部 TS 包记得 Vite exclude；</li>
+    <li><strong>一句话抓手</strong>："用 pnpm workspace + Turborepo 把三应用五公共包管起来，workspace:* 让改公共包即时生效，turbo 缓存把重复 build 压到缓存命中秒级。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 幽灵依赖</h3>
+  <p><strong>现象</strong>：import 没声明的包，npm 时代好好的迁 pnpm 就崩。<strong>原因</strong>：扁平 node_modules 侥幸可见，pnpm 隔离后不可见。<strong>正解</strong>：谁用谁声明；过渡期 shamefully-hoist=true。</p>
+
+  <h3>7.2 workspace:* 发版未替换</h3>
+  <p><strong>现象</strong>：内部包发 npm 后下游 install 报找不到 "workspace:*"。<strong>正解</strong>：pnpm publish（自动替换）或 Changesets。</p>
+
+  <h3>7.3 缓存命中但产物为空</h3>
+  <p><strong>现象</strong>：第二次 build 秒过但 dist 空。<strong>原因</strong>：outputs glob 与实际输出目录不符。<strong>正解</strong>：核对 outputs 路径。</p>
+
+  <h3>7.4 ^build 语义记错</h3>
+  <p><code>["^build"]</code>=先跑完<strong>我所依赖的包</strong>的 build；<code>["build"]</code>=跑我自己所有包的同名任务——记反会导致共享包产物过期。</p>
+
+  <h3>7.5 Monorepo 不是银弹</h3>
+  <p>共享与同步发版频率低的项目硬凑 monorepo 只会臃肿——选型看"共享代码与同步发版的频率"。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：pnpm 为什么快又省？符号链接的 node_modules 带来什么副作用？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>存储设计</strong>——全局内容寻址 store 每包版本只存一份，项目里 <code>.pnpm/&lt;pkg&gt;@ver/</code> 通过<strong>硬链接</strong>指向 store（不占额外磁盘），顶层 node_modules 里包是<strong>符号链接</strong>指回 .pnpm。收益：装得快、磁盘省（10 个项目共用 vue@3.4 只存一份）。<strong>副作用是根治幽灵依赖</strong>：隔离结构下没声明的包 import 不到——迁 pnpm 后老项目报错多半是幽灵依赖暴露，正解补声明，过渡期可 shamefully-hoist 但会丢隔离收益。</p>
+
+  <p><strong>Q2：workspace:* 协议是什么？和直接写版本号有什么区别？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>"@rmp/api-client": "workspace:*"</code> 表示<strong>引用本仓库内这个包的本地最新代码</strong>，不经过 npm——本地改 api-client 源码，web 立刻生效（源码直连无需发版）；直接写版本号则走 npm registry、需要发版+升级才能拿到改动。<strong>发版细节</strong>：<code>pnpm publish</code> 会自动把 workspace:* 替换成真实版本号再发布，手工发版忘替换则下游装不上——或用 Changesets 统一管理。</p>
+
+  <p><strong>Q3：Turborepo 的缓存机制？^build 的含义？</strong></p>
+  <p class="note"><strong>参考答案</strong>：Turborepo 把各包脚本任务建成<strong>依赖图</strong>：①拓扑排序——被依赖的包先 build（dependsOn ["^build"]，<strong>^ 表示"先跑完我所依赖的那些包的 build"</strong>，不带 ^ 是跑我自己所有包的同名任务）；②<strong>输入 hash 缓存</strong>——包的输入（源码内容+依赖版本）hash 未变就直接恢复上次的 outputs（dist/**），跳过真编译；③无依赖任务并行。<strong>远程缓存</strong>让团队/CI 共享产物，是 monorepo CI 提速的核心。<strong>踩坑</strong>：outputs 路径配错会"缓存命中但恢复空产物"。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>pnpm 的 store/硬链接/符号链接三层结构？</li>
+    <li>幽灵依赖是什么？pnpm 怎么根治？</li>
+    <li>workspace:* 与真实版本号写法的差异？发版时怎么替换？</li>
+    <li>^build 与 build 的 dependsOn 区别？outputs 配错的症状？</li>
+    <li>什么项目适合 monorepo？判断依据？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>pnpm workspace 官方文档：<a href="https://pnpm.io/zh/workspaces" rel="noopener">pnpm.io/zh/workspaces</a></li>
-    <li>pnpm 为什么快（内容寻址 store）：<a href="https://pnpm.io/zh/motivation" rel="noopener">pnpm.io/zh/motivation</a></li>
-    <li>Turborepo 官方文档：<a href="https://turbo.build/repo/docs" rel="noopener">turbo.build/repo/docs</a></li>
+    <li>pnpm workspace：<a href="https://pnpm.io/zh/workspaces" rel="noopener">pnpm.io/zh/workspaces</a>；为什么快：pnpm.io/zh/motivation</li>
+    <li>Turborepo：<a href="https://turbo.build/repo/docs" rel="noopener">turbo.build/repo/docs</a>；Changesets：github.com/changesets/changesets</li>
   </ul>
-  <h3>实战与工具</h3>
-  <ul>
-    <li>Changesets（monorepo 版本管理与发版，解决 workspace:* 替换）：<a href="https://github.com/changesets/changesets" rel="noopener">github.com/changesets/changesets</a></li>
-    <li>Nx（另一套 monorepo 工具，可与 Turborepo 对照了解）：<a href="https://nx.dev/" rel="noopener">nx.dev</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>create-turbo 建示例仓库，跑两次 build 观察第二次的缓存命中（FULL TURBO）；</li>
+    <li>故意在某应用 import 未声明依赖复现幽灵依赖报错；</li>
+    <li>改 outputs 为错误路径复现"命中但 dist 空"，再修复。</li>
+  </ol>
 </section>
 
 </main>
