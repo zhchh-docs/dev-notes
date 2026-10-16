@@ -301,6 +301,66 @@ window.KB_MANIFEST = {
           "f": "038_第38章_高阶函数实战.html",
           "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/038_第38章_高阶函数实战.html",
           "d": "std"
+        },
+        {
+          "t": "第 39 章 属性描述符与读写控制｜JavaScript 从 0 到精通",
+          "f": "039_第39章_属性描述符与读写控制.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/039_第39章_属性描述符与读写控制.html",
+          "d": "std"
+        },
+        {
+          "t": "第 40 章 原型与原型链：[[Prototype]] 全解｜JavaScript 从 0 到精通",
+          "f": "040_第40章_原型与原型链.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/040_第40章_原型与原型链.html",
+          "d": "std"
+        },
+        {
+          "t": "第 41 章 class 基础：字段、方法与静态成员｜JavaScript 从 0 到精通",
+          "f": "041_第41章_class基础.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/041_第41章_class基础.html",
+          "d": "basic"
+        },
+        {
+          "t": "第 42 章 class 进阶：私有字段与 getter/setter｜JavaScript 从 0 到精通",
+          "f": "042_第42章_class进阶与私有字段.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/042_第42章_class进阶与私有字段.html",
+          "d": "std"
+        },
+        {
+          "t": "第 43 章 extends 与继承：从原型链到 class｜JavaScript 从 0 到精通",
+          "f": "043_第43章_extends与继承.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/043_第43章_extends与继承.html",
+          "d": "std"
+        },
+        {
+          "t": "第 44 章 Object 静态 API 全景｜JavaScript 从 0 到精通",
+          "f": "044_第44章_Object_API全景.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/044_第44章_Object_API全景.html",
+          "d": "std"
+        },
+        {
+          "t": "第 45 章 Symbol：第七种类型与对象键进阶｜JavaScript 从 0 到精通",
+          "f": "045_第45章_Symbol.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/045_第45章_Symbol.html",
+          "d": "std"
+        },
+        {
+          "t": "第 46 章 new 的完整过程：四步拆解与手写｜JavaScript 从 0 到精通",
+          "f": "046_第46章_new的完整过程.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/046_第46章_new的完整过程.html",
+          "d": "std"
+        },
+        {
+          "t": "第 47 章 instanceof 原理与类型判定全景｜JavaScript 从 0 到精通",
+          "f": "047_第47章_instanceof与类型判定.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/047_第47章_instanceof与类型判定.html",
+          "d": "std"
+        },
+        {
+          "t": "第 48 章 对象体系收官：三个实战与总复习｜JavaScript 从 0 到精通",
+          "f": "048_第48章_对象体系收官.html",
+          "u": "14_从0到精通/javascript/50_第五篇_对象与原型/048_第48章_对象体系收官.html",
+          "d": "std"
         }
       ],
       "planned": 97,
@@ -329,7 +389,7 @@ window.KB_MANIFEST = {
         {
           "name": "第五篇 对象与原型",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第六篇 异步与事件循环",
@@ -357,7 +417,7 @@ window.KB_MANIFEST = {
           "state": "plan"
         }
       ],
-      "done": 38,
+      "done": 48,
       "order": 2
     },
     {
@@ -1803,5 +1863,5 @@ window.KB_MANIFEST = {
       "order": 24
     }
   ],
-  "total": 187
+  "total": 197
 };
