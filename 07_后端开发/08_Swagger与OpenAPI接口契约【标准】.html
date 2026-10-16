@@ -540,33 +540,129 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/09_接口安全_JWT与鉴权【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：OpenAPI 是描述 RESTful API 的规范，Swagger/springdoc 是实现它的工具——Spring Boot 3 用 springdoc-openapi 从注解自动生成文档。</p>
-  <ul>
-    <li><strong>三者关系</strong>：OpenAPI 是规范；Swagger 是工具集（UI、代码生成）；springdoc-openapi 是 Spring Boot 生态的实现（替代老牌 springfox）。</li>
-    <li><strong>它解决什么</strong>：传统手写 Word/Wiki 文档必然滞后，前后端联调全靠"你调一下试试"；OpenAPI 让文档从代码注解自动生成、永远同步。</li>
-  </ul>
-  <p class="key-sentence">再进一步：用文档自动生成前端类型化客户端，连手写请求函数都省了——字段名写错在编译期就报错。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：规范、工具与 Spring 实现的三层关系</h3>
+  <p><strong>OpenAPI 是描述 RESTful API 的规范，Swagger 是工具集，springdoc-openapi 是 Spring Boot 生态的实现</strong>（Boot 3 用 springdoc 2.x，替代老牌 springfox）。<strong>它解决什么</strong>：手写 Word/Wiki 文档必然滞后、联调靠"你调一下试试"——OpenAPI 让文档<strong>从代码注解自动生成、永远同步</strong>。<span class="tag-key">更进一步</span>：文档自动生成前端类型化客户端——字段名写错在编译期就报错。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>分清 <strong>OpenAPI / Swagger / springdoc</strong> 三者；</li>
+    <li>理解<strong>契约先行</strong>与<strong>生成流水线</strong>（注解→yaml→TS 客户端）；</li>
+    <li>落地 springdoc 接入 + openapi-generator 客户端生成；</li>
+    <li>掌握五坑（手改生成代码/包装展平/securitySchemes/生产暴露）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：07 RESTful。<strong>难度</strong>：★★☆☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>OAS 规范</strong>→ <strong>springdoc 生成</strong>→ <strong>契约先行</strong>→ <strong>客户端代码生成</strong>→ <strong>Swagger UI 与 Mock</strong>。</p>
+
+  <h3>2.1 OpenAPI 规范：中立契约</h3>
+  <p>与语言无关的接口描述格式——核心字段 <code>openapi</code> 版本、<code>paths</code>（路径与方法）、<code>components/schemas</code>（数据模型）、<code>securitySchemes</code>（鉴权）。Java/Node/Go 后端都能产出同一份文档，前端用同一份生成客户端——<strong>前后端只对它负责</strong>。</p>
+
+  <h3>2.2 springdoc-openapi：注解即文档</h3>
+  <p>启动时扫描所有 @RestController，结合注解自动输出文档：<code>/v3/api-docs</code> 出 JSON/YAML、<code>/swagger-ui.html</code> 渲染可交互页面。<strong>默认全量生成</strong>，只在需要补充说明时加 @Operation/@Schema。</p>
+
+  <h3>2.3 契约先行（Contract First）</h3>
+  <p>先定接口文档（路径/出入参/错误码），前后端照文档<strong>并行开发</strong>而非先写代码再补文档；文档变更双方可感知，配合客户端生成<strong>不兼容改动在编译期现形</strong>。对照事后补文档：必然滞后、联调靠试、前后端串行。</p>
+
+  <h3>2.4 客户端代码生成（Codegen）</h3>
+  <p>文档喂给 openapi-generator，产出"每接口一个函数 + TS 类型"的 SDK——前端直接 import 不手写 axios/interface；后端改字段重新生成后编辑器立刻标红——<span class="tag-key">联调从运行期报错前移到编码期</span>。</p>
+
+  <h3>2.5 Swagger UI 与 Mock</h3>
+  <p>文档渲染成可在线试用页面：填参数点执行真调接口；后端没写完时可基于 schema Mock 返回——既是文档也是联调工具。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Spring Boot 3 接入 springdoc</h3>
+<pre class="code" data-lang="xml"><code>&lt;!-- pom.xml：Spring Boot 3 用 springdoc 2.x --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springdoc&lt;/groupId&gt;
+  &lt;artifactId&gt;springdoc-openapi-starter-webmvc-ui&lt;/artifactId&gt;
+  &lt;version&gt;2.3.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+<pre class="code" data-lang="yaml"><code>springdoc:
+  swagger-ui:
+    path: /swagger-ui.html      # 文档页面地址
+  api-docs:
+    path: /v3/api-docs          # JSON 文档地址；.yaml 为 yaml 版</code></pre>
+
+  <h3>3.2 场景二：注解补充接口说明</h3>
+<pre class="code" data-lang="java"><code>@RestController
+@RequestMapping("/api/requirements")
+@Tag(name = "需求管理", description = "需求增删改查与状态流转")
+public class RequirementController {
+    @Operation(summary = "创建需求")
+    @PostMapping
+    public Result&lt;Long&gt; create(@RequestBody @Valid ReqCreateDTO dto) { ... }
+}
+
+// DTO 字段说明进 schema
+public class ReqCreateDTO {
+    @Schema(description = "需求标题", example = "登录页改版")
+    private String title;
+}</code></pre>
+
+  <h3>3.3 场景三：生成 TS 客户端并纳入构建</h3>
+<pre class="code" data-lang="bash"><code># 命令行：按 yaml 生成 typescript-axios 客户端
+openapi-generator-cli generate \
+  -i openapi.yaml \
+  -g typescript-axios \
+  -o packages/api-client/src/generated
+
+# 或轻量类型生成（只出类型不出函数）
+npx openapi-typescript http://localhost:8080/v3/api-docs -o src/api/schema.ts</code></pre>
+  <div class="note"><strong>工具选型</strong>：openapi-typescript 只生成类型定义（schema.ts）不生成请求函数——要"类型+可调用函数"的客户端用 openapi-generator（typescript-axios）或 @hey-api/openapi-ts。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：springdoc 接入已会。</p>
+
+  <h3>4.1 统一响应包装的文档建模</h3>
+  <p>Controller 返回 Result&lt;T&gt; 但生成器只看泛型实参——<strong>外层 code/data 结构要显式建模</strong>：springdoc 配置里注册 Result 的 schema，或写 generic 包装的 Converter；否则生成的 TS 类型拿不到外层结构，前端只能 any。</p>
+
+  <h3>4.2 生成分组（GroupedOpenApi）</h3>
+  <p>多模块/多版本拆多份文档：@Bean GroupedOpenApi 按 paths 拆 /v1/admin、/v1/app——文档页面按组切换；比单份全量大文档更可维护，权限组还能按包隔离。</p>
+
+  <h3>4.3 文档即 CI 卡点：契约 diff</h3>
+  <p>把 /v3/api-docs.yaml 提交进仓库或 CI 导出，用 oasdiff 等工具对比版本间变更——<strong>breaking change（删字段/改类型）在 CI 里就拦下</strong>，配合 07 篇版本前缀做兼容窗口。</p>
+
+  <h3>4.4 安全配置与文档共存</h3>
+  <p>Spring Security 全局 JWT 过滤器会挡掉文档路径——白名单放行 /v3/api-docs/**、/swagger-ui.html、/swagger-ui/**、/webjars/**；securitySchemes 配 Bearer JWT 让 Swagger UI 能带 token 试接口（09 篇呼应）。</p>
+
+  <h3>4.5 Mock 服务的位置</h3>
+  <p>契约先行下后端未实现时前端可基于 schema Mock（Apifox/Prism）——前端不等后端；真实后端就绪后切到代理，<strong>Mock 与真实实现共用同一份 schema</strong>，不会两套口径。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="OpenAPI 契约在前后端之间的位置示意图">
       <defs>
@@ -593,29 +689,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 OpenAPI 文档连接后端实现与前端客户端（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 OpenAPI 规范（OpenAPI Specification, OAS）</h3>
-  <p class="lead"><b>一句话定位</b>：一份中立、与语言无关的接口描述格式——前后端只对它负责，这就是"契约"。</p>
-  <ul>
-    <li><strong>核心字段</strong>：<code>openapi</code> 版本号、<code>paths</code>（路径与方法）、<code>components/schemas</code>（数据模型）、<code>securitySchemes</code>（鉴权）。</li>
-    <li><strong>语言无关</strong>：Java/Node/Go 后端都能产出同一份文档，前端用同一份文档生成客户端。</li>
-  </ul>
-  <h3>2.2 springdoc-openapi：从注解到文档</h3>
-  <p class="lead"><b>一句话定位</b>：启动时扫描所有 <code>@RestController</code>，结合注解自动输出文档，开发者不用手写文档。</p>
-  <ul>
-    <li><strong>Boot 3 版本</strong>：用 springdoc-openapi 2.x（支持 jakarta）。</li>
-    <li><strong>产出</strong>：<code>/v3/api-docs</code> 输出 OpenAPI JSON/YAML，<code>/swagger-ui.html</code> 渲染可交互页面。</li>
-    <li><strong>用法</strong>：默认全量生成，只在需要补充说明时加 <code>@Operation/@Schema</code>。</li>
-  </ul>
-  <h3>2.3 契约先行（Contract First）</h3>
-  <p class="lead"><b>一句话定位</b>：先定接口文档（路径/出入参/错误码），前后端照文档并行开发，而不是先写代码再补文档。</p>
-  <ul>
-    <li><strong>合同即文档</strong>：后端实现要满足文档，前端调用也按文档。</li>
-    <li><strong>变更可感知</strong>：文档变了双方都能感知，配合客户端生成，不兼容改动在编译期现形。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="契约先行与事后补文档对比图">
       <defs>
@@ -624,40 +697,19 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">契约先行 vs 事后补文档（示意）</text>
-
-      <!-- 事后补文档 -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#fee2e2" stroke="#dc2626"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">事后补文档</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">先写代码，再补 Word/Wiki 文档</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">文档必然滞后，联调靠"你调一下试试"</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#b91c1c">前后端串行开发，效率低</text>
-
-      <!-- 契约先行 -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">契约先行</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">先定 OpenAPI 文档，前后端照文档并行</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">文档从代码注解自动生成，永远同步</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">编译期暴露不兼容改动</text>
     </svg>
-    <p class="diagram-caption">图 1 契约先行 vs 事后补文档（示意）</p>
+    <p class="diagram-caption">图 2 契约先行 vs 事后补文档（示意）</p>
   </div>
-  <h3>2.4 客户端代码生成（Codegen）</h3>
-  <p class="lead"><b>一句话定位</b>：把 OpenAPI 文档喂给生成器，产出每个接口一个函数、出入参都是 TS 类型的 SDK。</p>
-  <ul>
-    <li><strong>产物</strong>：类型化客户端 SDK，前端直接 import 生成的函数，不用手写 axios 与 interface。</li>
-    <li><strong>收益</strong>：后端改了字段，重新生成后前端编辑器立刻标红——联调从运行期报错前移到编码期。</li>
-  </ul>
-  <h3>2.5 Swagger UI 与 Mock</h3>
-  <p class="lead"><b>一句话定位</b>：Swagger UI 把文档渲染成可在线试用的页面，既是文档也是联调工具。</p>
-  <ul>
-    <li><strong>在线试用</strong>：填参数、点"执行"就能真调接口。</li>
-    <li><strong>Mock</strong>：后端没写完时可基于 schema Mock 返回。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 从后端注解到前端可用客户端的完整链路</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 280" role="img" aria-label="OpenAPI 文档自动生成客户端的流程图">
       <defs>
@@ -685,155 +737,99 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="188" text-anchor="middle" font-size="13" fill="#047857">前端 import 后：字段名/参数类型不对，TypeScript 编译期直接报错，不再等运行期联调才发现。</text>
       <text x="400" y="218" text-anchor="middle" font-size="12.5" fill="#7a8a70">收益：联调从"运行期对接口"变成"编码期类型检查"，前后端可并行开发。</text>
     </svg>
-    <p class="diagram-caption">图 2 注解 → OpenAPI 文档 → 自动生成 TS 客户端的流水线（示意）</p>
+    <p class="diagram-caption">图 3 注解 → OpenAPI 文档 → 自动生成 TS 客户端的流水线（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 契约居中——后端注解生成、前端据此生成客户端，文档是唯一事实源；②图 3 流水线四步——注解→springdoc 扫描出 yaml→generator 按模板生成→入 Monorepo 公共包，<strong>CI 自动重生成防类型漂移</strong>。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统（前后端分离 + pnpm Monorepo）：后端 SpringBoot 用 springdoc 产出文档，牵头把文档接到前端自动生成 TS 客户端的流水线。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><strong>契约先行</strong>：后端定好接口路径/出入参，导出 OpenAPI JSON；</li>
+    <li><strong>代码生成</strong>：openapi-typescript 出类型（或 generator 出完整客户端）；</li>
+    <li><strong>单源真相</strong>：文档是后端注解生成的唯一来源，不再手维护易过期的 md；</li>
+    <li><strong>协作</strong>：后端先出接口与 OpenAPI，前端并行开发页面不等待。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>Result 包装没建模</strong>：生成的 TS 类型拿不到外层 code/data——补统一响应包装的 schema；</li>
+    <li><span class="tag-pit">坑</span><strong>枚举生成成 string</strong>：后端枚举没标注类型丢失——@Schema(allowableValues) 显式声明；</li>
+    <li><span class="tag-pit">坑</span><strong>文档要随版本提交</strong>：生成脚本进 npm script，接口一改重新生成防类型漂移。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>后端注解即文档</strong>：springdoc 扫描 Controller，把方法路径、参数、DTO 结构转成 OpenAPI 规范。</li>
-    <li><strong>导出 yaml</strong>：访问 <code>/v3/api-docs.yaml</code> 拿到完整契约文件。</li>
-    <li><strong>生成客户端</strong>：openapi-generator 按 typescript-axios 模板产出每个接口的函数与类型定义。</li>
-    <li><strong>纳入构建</strong>：生成产物作为 Monorepo 公共包发布给前端，后端改接口后 CI 自动重新生成、提交。</li>
+    <li><strong>量化</strong>：联调"字段名/类型对不上"类沟通大幅减少（估算原先约三成联调时间耗在字段对齐）；前端调用直接拿到类型提示；</li>
+    <li><strong>可复用经验</strong>：接口文档即代码（注解生成+提交版本）；响应包装要建模（Result/PageVO 进 schema）；</li>
+    <li><strong>一句话抓手</strong>："把 OpenAPI 自动生成 TS 客户端接进 Monorepo，契约先行前后端并行开发，联调字段对齐的沟通基本消失。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Spring Boot 3 引入 springdoc</h3>
-<pre class="code" data-lang="xml"><code>&lt;!-- pom.xml：Spring Boot 3 用 springdoc 2.x --&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;org.springdoc&lt;/groupId&gt;
-  &lt;artifactId&gt;springdoc-openapi-starter-webmvc-ui&lt;/artifactId&gt;
-  &lt;version&gt;2.3.0&lt;/version&gt;
-&lt;/dependency&gt;</code></pre>
-<pre class="code" data-lang="yaml"><code># application.yml
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html      # 文档页面地址
-  api-docs:
-    path: /v3/api-docs           # JSON 文档地址；.yaml 为 yaml 版</code></pre>
-  <h3>4.2 用注解补充接口说明</h3>
-<pre class="code" data-lang="java"><code>@RestController
-@RequestMapping("/api/requirements")
-@Tag(name = "需求管理", description = "需求增删改查与状态流转")
-public class RequirementController {
-
-    @Operation(summary = "创建需求")
-    @PostMapping
-    public Result&lt;Long&gt; create(
-            @RequestBody @Valid ReqCreateDTO dto) { ... }
-}
-
-// DTO 字段也可加说明，会进 schema
-public class ReqCreateDTO {
-    @Schema(description = "需求标题", example = "登录页改版")
-    private String title;
-}</code></pre>
-  <h3>4.3 用 openapi-generator 生成 TS 客户端</h3>
-<pre class="code" data-lang="bash"><code># 命令行：按 yaml 生成 typescript-axios 客户端
-openapi-generator-cli generate \
-  -i openapi.yaml \
-  -g typescript-axios \
-  -o packages/api-client/src/generated</code></pre>
-  <div class="note">业务系统 是 pnpm workspace + Turborepo Monorepo，生成的客户端正好作为公共包（packages/api-client）供 web 主应用与其他子应用引用——这是"契约即公共包"的标准做法。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 是前后端分离 + Monorepo（pnpm workspace），后端 SpringBoot 用 Swagger/OpenAPI 自动产出接口文档，并据此生成前端 TS 接口客户端。</p>
-  <ul><li><strong>业务量级</strong>：需求/团队/工作流接口数十个，前后端分离下接口字段多、联调频繁（估算）。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：后端写接口与注解、产出 OpenAPI 文档；牵头把文档接到前端自动生成 TS 客户端的流水线。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot 3 + springdoc-openapi（产出 OpenAPI 3 文档）→ 前端用 openapi 工具按文档生成 TS API 客户端。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>契约先行</strong>：后端定好接口路径/入参出参，导出 OpenAPI JSON。</li>
-    <li><strong>代码生成</strong>：前端跑脚本把 OpenAPI 转成类型化 TS 类型；注意 openapi-typescript 只生成类型定义（schema.ts）、不生成请求函数，要“类型 + 可调用函数”的客户端需用 openapi-generator（typescript-axios）或 @hey-api/openapi-ts。</li>
-    <li><strong>单源真相</strong>：接口文档是后端注解生成的唯一来源，不再手维护一份易过期的 md。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>@RestController
-@RequestMapping("/api/requirements")
-@Tag(name = "需求管理")
-public class ReqController {
-    @Operation(summary = "需求列表")
-    @GetMapping
-    public Result&lt;PageVO&lt;ReqVO&gt;&gt; list(ReqQuery q) { ... }
-}</code></pre>
-<pre class="code" data-lang="bash"><code># 后端启动后导出 OpenAPI，前端据此生成 TS 客户端
-npx openapi-typescript http://localhost:8080/v3/api-docs -o src/api/schema.ts</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>返回 Result 包没在文档里说明</strong>：生成的 TS 类型拿不到外层 code/data 结构——补统一响应包装的 schema。</li>
-    <li><span class="tag-pit">坑</span><strong>枚举字段生成成 string</strong>：后端枚举没标注，前端类型丢失——用 @Schema(allowableValues) 显式声明。</li>
-    <li><span class="tag-point">要点</span><strong>文档要随版本提交</strong>：生成脚本进 npm script，接口一改重新生成，避免前后端类型漂移。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>联调阶段"字段名对不上/类型不对"类沟通大幅减少（估算：原先约三成联调时间耗在接口字段对齐上）；前端调用直接拿到类型提示。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>契约先行：后端先出接口与 OpenAPI，前端据此并行开发页面，不再等后端接口写完；联调时差异点直接看生成的类型。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>接口文档即代码</strong>：注解生成 + 提交版本，杜绝过期文档。</li>
-    <li><strong>响应包装要建模</strong>：统一 Result/PageVO 必须在 schema 里体现。</li>
-  </ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 我把 OpenAPI 文档自动生成 TS 客户端接到 Monorepo 里，契约先行让前后端并行开发，联调字段对齐的沟通基本消失。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 文档与代码再次不一致</h3>
-  <p class="lead"><b>一句话定位</b>：以为用了 springdoc 就万事大吉——文档从注解生成，DTO 不加注解仍会脱节。</p>
-  <ul>
-    <li><strong>正解</strong>：文档只信自动生成的那份，不另维护 Wiki；DTO 关键字段加 <code>@Schema</code>。</li>
-  </ul>
-  <h3>6.2 手改生成的客户端代码</h3>
-  <p class="lead"><b>一句话定位</b>：在生成的 ts 文件里改逻辑，下次生成被覆盖、改动"神秘丢失"。</p>
-  <ul>
-    <li><strong>正解</strong>：生成目录视为只读，定制逻辑写在外面的封装层（自定义 axios 实例、错误处理）。</li>
-  </ul>
-  <h3>6.3 统一返回包装导致类型多套一层</h3>
-  <p class="lead"><b>一句话定位</b>：后端返回 <code>Result&lt;T&gt;</code>，前端生成的类型要 <code>res.data.data.xxx</code> 套两层。</p>
-  <ul>
-    <li><strong>正解</strong>：在 springdoc 配置或生成模板里把统一包装展平，或在前端封装层统一 unwrap。</li>
-  </ul>
-  <h3>6.4 鉴权方式没写进文档</h3>
-  <p class="lead"><b>一句话定位</b>：Swagger UI 里试接口 401——因为文档没配 securitySchemes。</p>
-  <ul>
-    <li><strong>正解</strong>：全局配置 Bearer JWT 鉴权，Swagger UI 页面可输入 token 后再试；与 Spring Security 共存时记得放行 <code>/v3/api-docs/**</code>、<code>/swagger-ui.html</code>、<code>/swagger-ui/**</code>、<code>/webjars/**</code>，否则 UI 会被 JWT 过滤器挡成 401。</li>
-  </ul>
-  <h3>6.5 生产环境暴露文档</h3>
-  <p class="lead"><b>一句话定位</b>：<code>/swagger-ui.html</code> 在生产可被匿名访问，泄露接口结构。</p>
-  <ul>
-    <li><strong>正解</strong>：生产 Profile 关闭或加鉴权，需同时关两项：<code>springdoc.api-docs.enabled=false</code> 与 <code>springdoc.swagger-ui.enabled=false</code>。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 文档与代码再次不一致</h3>
+  <p><strong>误区</strong>：用了 springdoc 就万事大吉。<strong>正解</strong>：文档只信自动生成那份（不另维护 Wiki），DTO 关键字段补 @Schema。</p>
+
+  <h3>7.2 手改生成的客户端代码</h3>
+  <p><strong>现象</strong>：在生成的 ts 里改逻辑，下次重新生成被覆盖"神秘丢失"。<strong>正解</strong>：生成目录视为只读，定制逻辑写在外部封装层（自定义 axios 实例/错误处理）。</p>
+
+  <h3>7.3 统一包装导致类型套两层</h3>
+  <p><strong>现象</strong>：res.data.data.xxx。<strong>正解</strong>：springdoc 配置或生成模板里展平包装，或前端封装层统一 unwrap。</p>
+
+  <h3>7.4 鉴权没进文档</h3>
+  <p><strong>现象</strong>：Swagger UI 试接口 401。<strong>正解</strong>：全局配 securitySchemes（Bearer JWT）让 UI 可输 token；与 Spring Security 共存时白名单放行文档路径，否则 UI 被过滤器挡 401。</p>
+
+  <h3>7.5 生产暴露文档</h3>
+  <p><strong>风险</strong>：/swagger-ui.html 匿名可访问泄露接口结构。<strong>正解</strong>：生产 Profile 同时关 springdoc.api-docs.enabled 与 swagger-ui.enabled 两项。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：OpenAPI、Swagger、springdoc 三者什么关系？"契约先行"的工程价值？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>OpenAPI（OAS）是规范</strong>——中立语言无关的接口描述格式（paths/schemas/securitySchemes）；<strong>Swagger 是工具集</strong>（UI 渲染、代码生成）；<strong>springdoc-openapi 是 Spring Boot 3 生态的实现</strong>（替代 springfox，2.x 支持 jakarta）。<strong>契约先行</strong>：先定文档再写代码，前后端照文档并行——对比事后补文档的"必然滞后+联调靠试"；更进一步把文档喂给生成器产出 TS 客户端，<strong>不兼容改动从运行期联调前移到编译期报错</strong>。</p>
+
+  <p><strong>Q2：从后端注解到前端类型化客户端的完整链路？为什么要进 CI？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四步——①后端 Controller/DTO 加 @Operation/@Schema 注解；②springdoc 扫描产出 /v3/api-docs.yaml；③openapi-generator 按 typescript-axios 模板生成客户端（每接口一个函数+TS 类型）；④产物作为 Monorepo 公共包（packages/api-client）给前端引用。<strong>必须进 CI</strong>：后端接口变更→重新导出 yaml→CI 自动跑生成脚本并提交——手工执行必然忘记，<strong>类型漂移</strong>（前端类型与后端实际不一致）是这套体系最隐蔽的坑；生成目录视为只读，定制逻辑写外部封装层。</p>
+
+  <p><strong>Q3：文档生成的常见坑？生产环境怎么处理？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>五坑</strong>：①文档与代码再脱节——只信自动生成那份，DTO 关键字段补 @Schema；②手改生成代码被覆盖——生成目录只读；③统一 Result 包装导致 res.data.data 套两层——建模展平或前端 unwrap；④鉴权没进文档——securitySchemes 配 Bearer 且 Security 白名单放行文档路径；⑤生产暴露接口结构——生产 Profile <strong>同时关 api-docs.enabled 与 swagger-ui.enabled 两项</strong>（只关一个仍可访问另一入口）。<strong>进阶</strong>：GroupedOpenApi 分组拆文档、oasdiff 在 CI 里拦 breaking change。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>规范/工具/实现三层怎么分？springdoc 与 springfox？</li>
+    <li>生成流水线四步？为什么生成脚本必须进 CI？</li>
+    <li>openapi-typescript 与 openapi-generator 的差异？</li>
+    <li>Result 包装的 schema 怎么建模？</li>
+    <li>生产关文档要关哪两项？为什么？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>OpenAPI 规范官方（OAS 3.x）：<a href="https://spec.openapis.org/" rel="noopener">spec.openapis.org</a></li>
-    <li>springdoc-openapi（Spring Boot 3 集成）：<a href="https://springdoc.org/" rel="noopener">springdoc.org</a></li>
-    <li>OpenAPI Generator（代码生成器）：<a href="https://openapi-generator.tech/" rel="noopener">openapi-generator.tech</a></li>
+    <li>OpenAPI 规范：<a href="https://spec.openapis.org/" rel="noopener">spec.openapis.org</a>；springdoc：<a href="https://springdoc.org/" rel="noopener">springdoc.org</a>；Generator：openapi-generator.tech</li>
+    <li>Swagger Editor 在线调试：editor.swagger.io；Redocly：redocly.com</li>
   </ul>
-  <h3>工具与生态</h3>
-  <ul>
-    <li>Swagger UI / Swagger Editor（在线编辑调试规范）：<a href="https://editor.swagger.io/" rel="noopener">editor.swagger.io</a></li>
-    <li>Stoplight / Redoc（另一种文档渲染与设计工具）：<a href="https://redocly.com/" rel="noopener">redocly.com</a></li>
-  </ul>
-  <h3>实战文章</h3>
-  <ul>
-    <li>Contract-First API 设计方法论（OpenAPI 官方指南）：<a href="https://www.openapis.org/" rel="noopener">openapis.org</a></li>
-    <li>Baeldung springdoc 专题：<a href="https://www.baeldung.com/" rel="noopener">baeldung.com</a>（搜 springdoc）</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>Boot 3 接入 springdoc，给一个 Controller 补 @Tag/@Operation/@Schema 看 UI 变化；</li>
+    <li>用 openapi-generator 生成 TS 客户端，故意改后端字段名观察前端编译报错；</li>
+    <li>配 securitySchemes + Security 白名单让 Swagger UI 带 token 调通一个受保护接口。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">下一篇 →</a>
 </nav>

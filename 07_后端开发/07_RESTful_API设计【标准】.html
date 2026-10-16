@@ -540,33 +540,34 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/08_Swagger与OpenAPI接口契约【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/09_接口安全_JWT与鉴权【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/08_Swagger与OpenAPI接口契约【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：REST 把一切操作对象抽象成资源——URL 定位资源、HTTP 方法表达动作、状态码表达结果，JSON 是事实标准。</p>
-  <ul>
-    <li><strong>它解决什么</strong>：不按 REST 时接口是"一堆动词路径"（<code>/createUser</code>、<wbr><code>/getUserById</code>、<wbr><code>/updateUser</code>、<wbr><code>/deleteUser</code>），命名全凭习惯、靠文档逐个对。</li>
-    <li><strong>核心收益</strong>：统一约定（名词 URL + 方法 + 状态码）让接口自解释，新接口无需额外解释即可被理解。</li>
-  </ul>
-  <h3>横向对比：REST 风格 vs RPC 风格的接口</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：资源 + 方法 + 状态码的自解释约定</h3>
+  <p><strong>REST 把一切操作对象抽象成资源</strong>——URL 定位资源（名词）、HTTP 方法表达动作、状态码表达结果，JSON 是事实标准。不按 REST 时接口是"一堆动词路径"（/createUser /getUserById…）命名全凭习惯；<span class="tag-key">核心收益</span>：统一约定让接口<strong>自解释</strong>——新接口无需额外解释即可被理解。</p>
+
+  <h3>1.2 横向对比：REST 风格 vs RPC 风格</h3>
   <table>
     <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
     <thead><tr><th>维度</th><th>REST 风格</th><th>RPC 风格</th></tr></thead>
@@ -577,31 +578,92 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>适用</td><td>资源型 CRUD、开放 API、前后端分离</td><td>复杂业务动作、内部高性能调用（gRPC）</td></tr>
     </tbody>
   </table>
-  <div class="diagram">
-    <svg viewBox="0 0 800 180" role="img" aria-label="REST风格vsRPC风格接口对比图">
-      <defs>
-        <marker id="arr3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同一件事（获取用户列表），两种风格的接口长什么样（示意）</text>
 
-      <!-- REST -->
-      <rect x="30" y="50" width="360" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="210" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">REST 风格</text>
-      <text x="50" y="100" font-size="12" font-family="monospace" fill="#4f6348">GET /api/v1/users?page=1&amp;size=20</text>
-      <text x="50" y="125" font-size="11" fill="#4f6348">名词 URL + GET 方法，一看就知道是查用户列表</text>
-      <text x="50" y="148" font-size="11" fill="#047857">自解释，不用翻文档</text>
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立<strong>"名词 URL + HTTP 方法 + 状态码"</strong>三件套心智；</li>
+    <li>掌握<strong>幂等性</strong>与 PATCH/PUT 的差异；</li>
+    <li>落地<strong>统一响应/错误结构/分页</strong>的全项目一套；</li>
+    <li>知道<strong>动作类接口的折中写法</strong>与"不必为 REST 而 REST"的边界。</li>
+  </ol>
+  <p><strong>前置知识</strong>：05 SpringBoot。<strong>难度</strong>：★★☆☆☆。</p>
+</section>
 
-      <!-- RPC -->
-      <rect x="410" y="50" width="360" height="110" rx="8" fill="#fef2f2" stroke="#dc2626"/>
-      <text x="590" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">RPC 风格</text>
-      <text x="430" y="100" font-size="12" font-family="monospace" fill="#4f6348">POST /api/getUserList</text>
-      <text x="430" y="125" font-size="11" fill="#4f6348">动词路径 + POST，每个接口名字都要靠文档约定</text>
-      <text x="430" y="148" font-size="11" fill="#b91c1c">命名不统一，靠记忆和文档</text>
-    </svg>
-    <p class="diagram-caption">图 2 REST vs RPC 风格（示意）</p>
-  </div>
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>资源与名词 URL</strong>→ <strong>HTTP 方法即语义</strong>→ <strong>状态码</strong>→ <strong>版本分页与统一错误</strong>。</p>
+
+  <h3>2.1 资源与名词 URL</h3>
+  <p>URL 名词复数表资源集合：<code>/requirements</code>（列表）、<code>/requirements/12</code>（单项）；<strong>子资源表归属</strong>：<code>/requirements/12/comments</code>——动作交给 HTTP 方法，URL 里不写动词。</p>
+
+  <h3>2.2 HTTP 方法即语义</h3>
+  <p>GET 只读、POST 建、PUT 全量改、DELETE 删、PATCH 局部改。<span class="tag-key">幂等性</span>：GET/PUT/DELETE 幂等，POST 非幂等（重复提交建多条）；<strong>PATCH 不保证幂等</strong>（自增计数类 patch 多次调用结果不同）。</p>
+
+  <h3>2.3 状态码：给通用处理留钩子</h3>
+  <p><strong>成功</strong>：200 成功、201 已创建、204 无内容（DELETE）；<strong>客户端错</strong>：400 参数错、401 未认证、403 无权限、404 不存在、409 冲突（重复创建）、429 限流。<strong>用途</strong>：网关/监控/前端拦截器做通用判断（401 统一跳登录）——<span class="tag-pit">一律 200 靠 body.code 判断会废掉这层钩子</span>。注：字段级校验业界惯例用 400 承载，严格语义 422 更贴切。</p>
+
+  <h3>2.4 版本、分页、统一错误</h3>
+  <p><strong>版本</strong>：/api/v1/… 前缀，破坏性升级到 v2；<strong>分页</strong>：统一 ?page=1&amp;size=20（全项目只选一种）；<strong>过滤排序</strong>：?status=OPEN&amp;sort=-createTime；<strong>统一错误结构</strong>：状态码表 HTTP 层成败，body 带业务码+可读消息+字段级错误——REST 与统一包装不冲突。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：一套资源 CRUD 标准写法</h3>
+<pre class="code" data-lang="http"><code>GET    /api/v1/requirements?status=OPEN&amp;page=1&amp;size=20   # 列表（过滤+分页）
+POST   /api/v1/requirements                              # 新建 → 201
+GET    /api/v1/requirements/12                           # 详情 → 200
+PUT    /api/v1/requirements/12                           # 全量更新 → 200
+PATCH  /api/v1/requirements/12/status                    # 状态流转 → 200
+DELETE /api/v1/requirements/12                           # 删除 → 204</code></pre>
+
+  <h3>3.2 场景二：统一响应与错误结构</h3>
+<pre class="code" data-lang="json"><code>// 成功（200）
+{ "code": 0, "message": "ok",
+  "data": { "list": [ ... ], "total": 138 } }
+
+// 失败（HTTP 400，body 带可读错误）
+{ "code": 40001, "message": "参数校验失败",
+  "errors": [ { "field": "title", "msg": "标题不能为空" } ] }</code></pre>
+<pre class="code" data-lang="java"><code>@RestController
+@RequestMapping("/api/v1/requirements")
+public class RequirementController {
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)  // 201，不是默认 200
+    public Result&lt;Long&gt; create(@Valid @RequestBody ReqCreateDTO dto) {
+        return Result.ok(requirementService.create(dto));
+    }
+}</code></pre>
+
+  <h3>3.3 场景三：动作类接口的折中</h3>
+  <p>"提交审批/关闭需求"对不上标准 CRUD——不要硬塞 PUT，也不要发明 <code>/api/passReq</code>：<strong>子资源下放动作</strong> <code>POST /api/v1/requirements/12/submit</code>（用 POST 表达"对该资源执行 submit 动作"），或状态流转用 <code>PATCH /requirements/12/status</code>——REST 实践中可接受的折中。</p>
+
+  <h3>3.4 场景四：处理链路</h3>
+  <p>网关/Nginx → DispatcherServlet（URL+方法路由）→ Controller→Service → JSON+状态码返回。<strong>REST 不是特殊框架，链路与普通 Spring MVC 完全一致</strong>——区别只在命名规范与状态码使用。客户端看状态码就能对成功/未授权/不存在/冲突做通用处理，这就是 REST 的工程价值。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：CRUD 约定已会。</p>
+
+  <h3>4.1 Richardson 成熟度模型</h3>
+  <p>四级：L0 单一 URI/POST（RPC 味）→ L1 多资源 URI → L2 用上 HTTP 方法与状态码（<strong>多数团队的目标层级</strong>）→ L3 HATEOAS（响应带超链接自描述）——L3 学术完美但工程上少用，做到 L2 + 统一约定就是好 API。</p>
+
+  <h3>4.2 幂等与重试的关系</h3>
+  <p>网关/客户端<strong>只敢自动重试幂等请求</strong>——POST 重复提交会建多条，所以幂等键（Idempotency-Key）是支付/下单类 POST 的标配：同 key 重复请求返回首次结果，这是"为什么 PUT 幂等很重要"的工程落点。</p>
+
+  <h3>4.3 ETag 与条件请求</h3>
+  <p>GET 响应带 ETag（资源指纹），客户端 If-None-Match 回传——未变则 304 Not Modified 省流量；配合 Cache-Control 是 HTTP 层缓存的 REST 标准做法，列表轮询类接口收益明显。</p>
+
+  <h3>4.4 HATEOAS 的务实取舍</h3>
+  <p>L3 让响应携带下一步可用的操作链接（客户端不用硬编码 URL）——好处是服务端可改路径，代价是响应膨胀与客户端复杂度；<strong>内部前后端分离项目通常不做</strong>，开放平台 API 可选。</p>
+
+  <h3>4.5 API 网关视角的约定价值</h3>
+  <p>统一状态码/路径前缀让网关能做<strong>通用规则</strong>：401 触发重新认证、429 触发限流响应、/api/v1 路由版本灰度——"约定统一"受益的不只是前端，还有整条链路的中间件。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 210" role="img" aria-label="REST 资源视角示意图">
       <defs>
@@ -630,55 +692,27 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 一个资源 + 四种 HTTP 方法覆盖增删改查（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 资源与名词 URL</h3>
-  <p class="lead"><b>一句话定位</b>：URL 是名词复数表资源集合，动作交给 HTTP 方法，不要在 URL 里写动词。</p>
-  <ul>
-    <li><strong>集合与单项</strong>：<code>/requirements</code>（列表）、<code>/requirements/12</code>（id=12）。</li>
-    <li><strong>子资源表归属</strong>：<code>/requirements/<wbr>12/<wbr>comments</code>（该需求的评论）。</li>
-  </ul>
-  <h3>2.2 HTTP 方法即语义</h3>
-  <p class="lead"><b>一句话定位</b>：方法选对了，接口语义就清晰——GET 只读、POST 建、PUT 全量改、DELETE 删。</p>
-  <ul>
-    <li><strong>幂等性</strong>：GET/PUT/DELETE 幂等，POST 非幂等（重复提交会建多条）；注意 PATCH 是局部增量更新、不保证幂等（如自增计数类 patch，多次调用结果不同）。</li>
-    <li><strong>PATCH</strong>：局部更新（区别于 PUT 全量替换）。</li>
-  </ul>
-  <h3>2.3 状态码</h3>
-  <p class="lead"><b>一句话定位</b>：用 HTTP 状态码表达结果，而不是一律 200 再在 body 里塞 code。</p>
-  <ul>
-    <li><strong>成功类</strong>：<code>200</code> 成功、<code>201</code> 已创建、<code>204</code> 无内容（DELETE 成功）。</li>
-    <li><strong>客户端错</strong>：<code>400</code> 参数错、<code>401</code> 未认证、<code>403</code> 无权限、<code>404</code> 不存在、<code>405</code> 方法不允许、<code>409</code> 冲突（如重复创建）、<code>415</code> 不支持的媒体类型、<code>422</code> 语义校验失败、<code>429</code> 请求过多。注：字段级参数校验业界惯例直接用 400 承载，严格语义上 422 Unprocessable Entity 更贴切。</li>
-    <li><strong>用途</strong>：给网关、监控、客户端做通用判断（如 401 统一跳登录）。</li>
-  </ul>
-  <h3>2.4 版本、分页、过滤</h3>
-  <p class="lead"><b>一句话定位</b>：统一约定比每个接口自定义更重要——版本、分页、过滤都要全项目一套。</p>
-  <ul>
-    <li><strong>版本</strong>：<code>/api/v1/...</code> 前缀，破坏性升级到 v2。</li>
-    <li><strong>分页</strong>：统一 <code>?page=1&amp;size=20</code>（或 <code>pageNum/pageSize</code>，全项目只选一种）。</li>
-    <li><strong>过滤排序</strong>：query 参数 <code>?status=OPEN&amp;<wbr>sort=-createTime</code>。</li>
-  </ul>
-  <h3>2.5 统一错误结构</h3>
-  <p class="lead"><b>一句话定位</b>：body 里仍要有结构化错误（错误码+可读消息+字段级错误），与状态码互补。</p>
-  <ul>
-    <li><strong>业界做法</strong>：状态码表 HTTP 层成败，body 带业务码与消息——REST 与统一 body 包装不冲突。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一个 REST 请求的处理链路</h3>
-  <p class="lead"><b>一句话定位</b>：REST 不是特殊框架，而是一套约定——链路与普通 Spring MVC 完全一致。</p>
-  <p>链路：网关/Nginx → DispatcherServlet → 按 URL + 方法路由到 Controller → Service 处理 → 返回 JSON 与状态码。约定只体现在三处：URL 怎么起名、用哪个方法、返回什么状态码与错误结构。下图是"创建一个需求"这个动作从请求到标准响应的完整约定。</p>
-  <ol>
-    <li><strong>请求</strong>：POST <code>/api/v1/requirements</code>，body 是需求字段 JSON。</li>
-    <li><strong>校验</strong>：参数不合法 → 直接返回 <code>400</code> + 字段错误。</li>
-    <li><strong>处理</strong>：成功创建 → 返回 <code>201 Created</code>，body 带回新资源 id。</li>
-    <li><strong>异常</strong>：重复创建冲突 → <code>409</code>；未登录 → <code>401</code>。</li>
-  </ol>
-  <div class="note">关键在于：客户端不需要读文档里的"业务码对照表"，看 HTTP 状态码就能对成功/未授权/不存在/冲突做出通用处理（如 401 统一跳登录）。这就是 REST 的工程价值。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 180" role="img" aria-label="REST风格vsRPC风格接口对比图">
+      <defs>
+        <marker id="arr3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同一件事（获取用户列表），两种风格的接口长什么样（示意）</text>
+      <rect x="30" y="50" width="360" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="210" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">REST 风格</text>
+      <text x="50" y="100" font-size="12" font-family="monospace" fill="#4f6348">GET /api/v1/users?page=1&amp;size=20</text>
+      <text x="50" y="125" font-size="11" fill="#4f6348">名词 URL + GET 方法，一看就知道是查用户列表</text>
+      <text x="50" y="148" font-size="11" fill="#047857">自解释，不用翻文档</text>
+      <rect x="410" y="50" width="360" height="110" rx="8" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="590" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">RPC 风格</text>
+      <text x="430" y="100" font-size="12" font-family="monospace" fill="#4f6348">POST /api/getUserList</text>
+      <text x="430" y="125" font-size="11" fill="#4f6348">动词路径 + POST，每个接口名字都要靠文档约定</text>
+      <text x="430" y="148" font-size="11" fill="#b91c1c">命名不统一，靠记忆和文档</text>
+    </svg>
+    <p class="diagram-caption">图 2 REST vs RPC 风格（示意）</p>
+  </div>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="REST请求处理链路图">
       <defs>
@@ -687,170 +721,120 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">一个 REST 请求的完整链路（示意）</text>
-
       <rect x="30" y="70" width="110" height="50" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
       <text x="85" y="92" text-anchor="middle" font-size="11.5" font-weight="600" fill="#354835">客户端</text>
       <text x="85" y="110" text-anchor="middle" font-size="10.5" fill="#4f6348">发 HTTP 请求</text>
-
       <line x1="140" y1="95" x2="185" y2="95" stroke="#7a8a70" marker-end="url(#arr)"/>
-
       <rect x="190" y="70" width="110" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="245" y="92" text-anchor="middle" font-size="11.5" font-weight="600" fill="#2d6a3f">网关/Nginx</text>
       <text x="245" y="110" text-anchor="middle" font-size="10.5" fill="#4f6348">路由转发</text>
-
       <line x1="300" y1="95" x2="345" y2="95" stroke="#7a8a70" marker-end="url(#arr)"/>
-
       <rect x="350" y="70" width="120" height="50" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="410" y="92" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f8a63">DispatcherServlet</text>
       <text x="410" y="110" text-anchor="middle" font-size="10.5" fill="#4f6348">URL+方法路由</text>
-
       <line x1="470" y1="95" x2="515" y2="95" stroke="#7a8a70" marker-end="url(#arr)"/>
-
       <rect x="520" y="70" width="120" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="580" y="92" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b45309">Controller→Service</text>
       <text x="580" y="110" text-anchor="middle" font-size="10.5" fill="#4f6348">业务处理+DB</text>
-
       <line x1="640" y1="95" x2="685" y2="95" stroke="#7a8a70" marker-end="url(#arr)"/>
-
       <rect x="690" y="70" width="90" height="50" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="735" y="92" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">JSON+状态码</text>
       <text x="735" y="110" text-anchor="middle" font-size="10.5" fill="#4f6348">返回响应</text>
-
       <text x="400" y="160" text-anchor="middle" font-size="12" fill="#7a8a70">REST 不是特殊框架，就是一套约定：URL 用名词、方法表动作、状态码表结果</text>
       <text x="400" y="182" text-anchor="middle" font-size="12" fill="#7a8a70">链路和普通 Spring MVC 完全一样，区别只在命名规范和状态码使用</text>
     </svg>
-    <p class="diagram-caption">图 2 REST 请求处理链路（示意）</p>
+    <p class="diagram-caption">图 3 REST 请求处理链路（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 方法即语义——URL 定位资源、方法表达动作、状态码回结果；②图 2 自解释性差异——REST 看接口就知道干什么，RPC 靠文档；③图 3 链路无特殊性——约定只体现在命名/方法/状态码三处。</p>
 </section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 一套资源 CRUD 的标准写法</h3>
-<pre class="code" data-lang="http"><code># 集合
-GET    /api/v1/requirements?status=OPEN&amp;page=1&amp;size=20
-       # 列表（过滤+分页）
-POST   /api/v1/requirements   # 新建 → 201
-# 单个资源
-GET    /api/v1/requirements/12   # 详情 → 200
-PUT    /api/v1/requirements/12   # 全量更新 → 200
-PATCH  /api/v1/requirements/12  # 局部更新 → 200
-DELETE /api/v1/requirements/12  # 删除 → 204</code></pre>
-  <h3>4.2 统一响应与错误结构</h3>
-<pre class="code" data-lang="json"><code>// 成功（200）
-{
-  "code": 0,
-  "message": "ok",
-  "data": { "id": 12, "title": "登录页改版" }
-}
-
-// 失败（HTTP 400，body 带可读错误）
-{
-  "code": 40001,
-  "message": "参数校验失败",
-  "errors": [ { "field": "title", "msg": "标题不能为空" } ]
-}</code></pre>
-<pre class="code" data-lang="java"><code>@RestController
-@RequestMapping("/api/v1/requirements")
-public class RequirementController {
-
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)  // 201，不是默认 200
-    public Result&lt;Long&gt; create(
-            @Valid @RequestBody ReqCreateDTO dto) {
-        return Result.ok(requirementService.create(dto));
-    }
-}</code></pre>
-  <h3>4.3 动作类接口怎么办</h3>
-  <p>有些动作对不上标准 CRUD（如"提交审批""关闭需求"），不要硬塞进 PUT。可以在子资源下放动作：<code>POST /api/<wbr>v1/<wbr>requirements/<wbr>12/<wbr>submit</code>——用 POST 表达"对该资源执行 submit 动作"，这是 REST 实践中可接受的折中。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 与数据编排平台后端对外都走 REST 风格 HTTP 接口，资源命名、状态码、分页、错误结构需要统一约定。</p>
-  <ul><li><strong>业务量级</strong>：需求/团队/配置等资源的增删改查，前端与大屏都在调。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：参与制定接口规范，落地资源命名、统一响应包装与错误结构。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot REST + 统一 Result 包装 + OpenAPI 文档。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>资源用名词</strong>：<code>/api/requirements</code>，操作用 HTTP 动词，不用 <code>/listReq</code>。</li>
-    <li><strong>统一响应</strong>：所有接口包 <code>{code, message, data}</code>，分页返回 <code>{list, total}</code>。</li>
-    <li><strong>错误结构</strong>：业务错误返回约定 code + message，不抛栈。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="http"><code>GET    /api/requirements?page=1&amp;size=20&amp;status=REVIEW
-POST   /api/requirements
-GET    /api/requirements/123
-PUT    /api/requirements/123
-PATCH  /api/requirements/123/status     # 状态流转用 PATCH
-DELETE /api/requirements/123</code></pre>
-<pre class="code" data-lang="json"><code>{ "code": 0, "message": "ok",
-  "data": { "list": [ ... ], "total": 138 } }</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>动作型接口硬凑 REST</strong>："审批通过"不是资源 CRUD——用 PATCH 子资源 <code>/status</code> 或受控动作路径，别发明 <code>/api/passReq</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>分页参数不统一</strong>：有的 pageNo/pageSize、有的 page/size——全局统一一套。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>接口风格统一后，前端按约定即可猜出路径，新资源接口文档阅读成本下降（估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>与前端约定分页参数与错误码字典，配合 OpenAPI 生成客户端，风格不一致的接口在评审时纠正。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>名词 + 动词</strong>：资源名词，动作用 HTTP method。</li><li><strong>统一包装</strong>：分页与错误结构全项目一套。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 在实践中落地 REST 规范：资源用名词、状态流转用 PATCH、统一 Result 与分页结构，和 OpenAPI 生成客户端配合，前后端对接口不再靠口头约定。"</p>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 URL 里塞动词</h3>
-  <p class="lead"><b>一句话定位</b>：<code>/api/getUserList</code>、<code>/api/deleteReqById</code>——URL 用名词资源，动作用 HTTP 方法表达。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统与数据编排平台后端对外走 REST：我参与制定接口规范，落地资源命名、统一响应包装与错误结构；前端与大屏都在调。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>正解</strong>：URL 用名词资源，动作交给 HTTP 方法。</li>
+    <li><strong>资源用名词</strong>：/api/requirements，操作用 HTTP 动词，不用 /listReq；</li>
+    <li><strong>统一响应</strong>：所有接口包 {code, message, data}，分页返回 {list, total}；</li>
+    <li><strong>错误结构</strong>：业务错误约定 code + message，不抛栈；</li>
+    <li><strong>协作</strong>：与前端约定分页参数与错误码字典，配合 OpenAPI 生成客户端（08 篇），风格不一致评审时纠正。</li>
   </ul>
-  <h3>6.2 全部返回 200</h3>
-  <p class="lead"><b>一句话定位</b>：找不到也返回 200 靠 body.code 判断——网关、监控、前端拦截器无法按状态码做通用处理。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>正解</strong>：该 404 就 404、该 400 就 400，body 再带业务码与消息。</li>
+    <li><span class="tag-pit">坑</span><strong>动作型接口硬凑 REST</strong>："审批通过"不是资源 CRUD——用 PATCH 子资源 /status 或受控动作路径，别发明 /api/passReq；</li>
+    <li><span class="tag-pit">坑</span><strong>分页参数不统一</strong>：有的 pageNo/pageSize、有的 page/size——全局统一一套。</li>
   </ul>
-  <h3>6.3 GET 用于修改数据</h3>
-  <p class="lead"><b>一句话定位</b>：GET 会被浏览器/缓存/爬虫自动触发，用它改数据可能被意外执行。</p>
-  <ul>
-    <li><strong>正解</strong>：任何有副作用的操作用 POST/PUT/DELETE，GET 严格只读。</li>
-  </ul>
-  <h3>6.4 分页/错误结构不统一</h3>
-  <p class="lead"><b>一句话定位</b>：每个 Controller 自己定分页参数和错误格式，前端要写多套适配。</p>
-  <ul>
-    <li><strong>正解</strong>：全局统一分页参数、统一 Result 包装与错误结构（可由全局异常处理器兜底）。</li>
-  </ul>
-  <h3>6.5 盲目追求"纯 REST"</h3>
-  <p class="lead"><b>一句话定位</b>：复杂业务动作硬套 CRUD 很别扭——资源型用 REST，复杂动作用折中，不必为 REST 而 REST。</p>
-  <ul>
-    <li><strong>正解</strong>：资源型 CRUD 用 REST；复杂动作用 <code>POST /资源/{id}/动作</code>；内部高性能调用可直接上 gRPC（RPC）。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：风格统一后前端按约定即可猜出路径，新资源接口文档阅读成本下降（估算）；</li>
+    <li><strong>可复用经验</strong>：名词+动词（资源名词、动作用 HTTP method）；统一包装（分页与错误结构全项目一套）；</li>
+    <li><strong>一句话抓手</strong>："落地 REST 规范：资源用名词、状态流转用 PATCH、统一 Result 与分页结构，和 OpenAPI 生成客户端配合，前后端对接口不再靠口头约定。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 URL 里塞动词</h3>
+  <p>/api/getUserList、/api/deleteReqById——<strong>正解</strong>：URL 名词资源，动作交 HTTP 方法。</p>
+
+  <h3>7.2 全部返回 200</h3>
+  <p><strong>代价</strong>：网关/监控/前端拦截器无法按状态码做通用处理。<strong>正解</strong>：该 404 就 404、该 400 就 400，body 再带业务码与消息。</p>
+
+  <h3>7.3 GET 用于修改数据</h3>
+  <p><strong>风险</strong>：GET 会被浏览器/缓存/爬虫自动触发，改数据可能被意外执行。<strong>正解</strong>：任何副作用操作用 POST/PUT/DELETE，GET 严格只读。</p>
+
+  <h3>7.4 分页/错误结构不统一</h3>
+  <p><strong>代价</strong>：前端为每个 Controller 写适配。<strong>正解</strong>：全局统一分页参数、统一 Result 包装与错误结构（全局异常处理器兜底）。</p>
+
+  <h3>7.5 盲目追求"纯 REST"</h3>
+  <p><strong>正解</strong>：资源型 CRUD 用 REST；复杂动作用 POST /资源/{id}/动作；内部高性能调用直接 gRPC——不必为 REST 而 REST。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：REST 的核心约定是什么？为什么说接口"自解释"？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三件套——①<strong>URL 用名词复数定位资源</strong>（/requirements/12，子资源表归属），不写动词；②<strong>HTTP 方法表达动作</strong>（GET 查/POST 建/PUT 全量改/PATCH 局部改/DELETE 删）；③<strong>状态码表达结果</strong>（201 创建/204 无内容/400 参数错/401 未认证/404 不存在/409 冲突）。<strong>自解释</strong>：GET /api/v1/users?page=1 看一眼就知道是查用户列表，不用翻文档；而 RPC 风格 POST /api/getUserList 每个名字都要靠文档约定。<strong>工程价值</strong>：客户端看状态码就能做通用处理（401 统一跳登录），网关/监控也有通用钩子。</p>
+
+  <p><strong>Q2：幂等性是什么？各方法的幂等性？为什么重要？</strong></p>
+  <p class="note"><strong>参考答案</strong>：幂等 = 同一请求执行多次与一次效果相同。<strong>GET/PUT/DELETE 幂等</strong>（查询/全量覆盖/删除同一资源）；<strong>POST 非幂等</strong>（重复提交建多条）；<strong>PATCH 不保证幂等</strong>（自增计数类操作多次结果不同）。<strong>为什么重要</strong>：网关与客户端只敢<strong>自动重试幂等请求</strong>——网络超时后重发 PUT 安全、重发 POST 会重复下单；所以支付/下单类 POST 用幂等键（Idempotency-Key）：同 key 重复请求返回首次结果。</p>
+
+  <p><strong>Q3：动作类需求（审批/提交）怎么设计？什么时候该放弃 REST？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三个折中选项——①状态本身就是资源属性：<code>PATCH /requirements/12/status</code>；②子资源下放动作：<code>POST /requirements/12/submit</code>（POST 表达"执行 submit 动作"）；③确实复杂难建模的动作，不要硬凑——<strong>资源型用 REST、复杂动作用受控动作路径、内部高性能调用直接 gRPC</strong>。Richardson 成熟度模型给出定位：做到 L2（方法+状态码）就是好 API，L3 HATEOAS 学术完美但工程少用——<strong>不必为 REST 而 REST</strong>。另：GET 严格只读（会被缓存/爬虫自动触发），全局统一分页与错误结构。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>REST 三件套？与 RPC 风格的差异？</li>
+    <li>各方法幂等性？幂等键解决什么？</li>
+    <li>为什么不能全 200？401/404/409 各表达什么？</li>
+    <li>动作类接口的三个折中？</li>
+    <li>Richardson 模型四级？团队目标层级？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>权威资料</h3>
   <ul>
-    <li>REST API 教程（MDN，HTTP 方法与状态码权威）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP" rel="noopener">developer.mozilla.org</a></li>
-    <li>HTTP 状态码总览（MDN）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Status" rel="noopener">developer.mozilla.org/HTTP/Status</a></li>
-    <li>Roy Fielding 关于 REST 的原始论述（架构风格）：可搜索 "Roy Fielding REST dissertation"</li>
+    <li>MDN HTTP 方法与状态码（权威）：<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP" rel="noopener">developer.mozilla.org/Web/HTTP</a></li>
+    <li>Microsoft REST API 设计指南；Richardson 成熟度模型；Roy Fielding REST 原始论述（搜关键词可得）。</li>
   </ul>
-  <h3>设计指南</h3>
-  <ul>
-    <li>Microsoft REST API 设计指南（业界广为参考）：<a href="https://learn.microsoft.com/" rel="noopener">learn.microsoft.com</a>（搜 REST API guidelines）</li>
-    <li> Richardson 成熟度模型（REST 成熟度分级）：可搜索 "Richardson maturity model"</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>把一组 RPC 风格接口（/getXxx /deleteXxx）重构成 REST 资源型；</li>
+    <li>给 POST 下单接口加幂等键，验证重复请求只建一条；</li>
+    <li>用 @ResponseStatus 与全局异常处理器统一状态码与错误结构。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../07_后端开发/08_Swagger与OpenAPI接口契约【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../07_后端开发/09_接口安全_JWT与鉴权【标准】.html">下一篇 →</a>
 </nav>
