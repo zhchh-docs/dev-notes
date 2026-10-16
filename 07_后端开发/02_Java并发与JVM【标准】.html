@@ -542,32 +542,126 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../07_后端开发/01_Java基础【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/04_Spring核心_IOC与AOP【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：<strong>并发</strong>管多线程怎么并行跑，<strong>JVM</strong>管这些线程与对象怎么在内存里活下来——两者决定后端的吞吐、延迟与稳定性。</p>
-  <ul>
-    <li><strong>并发靠什么</strong>：<code>Thread</code> + <code>java.util.concurrent</code>（JUC）提供线程池、锁、并发容器、同步器。</li>
-    <li><strong>JVM 靠什么</strong>：堆/栈内存布局 + 垃圾回收器（GC）自动管理对象生命周期。</li>
-    <li><strong>为什么要并行</strong>：一次大屏聚合要查 5~8 个数据源，串行耗时相加；线程池并行后总耗时约等于最慢那一段。</li>
-    <li><strong>为什么要 GC 调优</strong>：对象不回收会涨到 OOM；但回收时的 "Stop The World" 停顿又拖慢响应，需按业务选堆大小与回收器。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：吞吐、延迟与稳定性的两根支柱</h3>
+  <p><strong>并发</strong>管多线程怎么并行跑（Thread + JUC：线程池/锁/并发容器/同步器），<strong>JVM</strong> 管线程与对象在内存里怎么活下来（内存布局 + GC）。<strong>为什么并行</strong>：一次大屏聚合查 5~8 个数据源，串行耗时相加，线程池并行后总耗时≈最慢一段；<strong>为什么 GC 调优</strong>：不回收涨到 OOM，回收的 STW 停顿又拖慢响应——按业务选堆大小与回收器。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>吃透<strong>线程池七参数与提交流程</strong>（为什么禁止 Executors 工厂）；</li>
+    <li>会用 <strong>CompletableFuture 并行聚合 + 超时降级</strong>；</li>
+    <li>分清 <strong>synchronized / volatile / Atomic</strong> 的能力边界；</li>
+    <li>理解<strong>堆分代晋升</strong>与 Full GC 频繁的排查路径。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 Java 基础。<strong>难度</strong>：★★★★☆。<strong>本篇不涉及</strong>：Servlet 容器线程模型（03 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>线程与状态</strong>→ <strong>线程池</strong>→ <strong>并发容器与锁</strong>→ <strong>JVM 内存区域</strong>→ <strong>GC 与分代</strong>。</p>
+
+  <h3>2.1 线程生命周期</h3>
+  <p>NEW → RUNNABLE → 运行 → BLOCKED（等锁）→ WAITING/TIMED_WAITING（wait/sleep/join）→ TERMINATED。<span class="tag-pit">坑</span>：<strong>sleep 不释放锁</strong>——synchronized 持有的锁不会因 sleep 释放；真正释放锁的是 <code>Object.wait()</code>。</p>
+
+  <h3>2.2 线程池：七参数与提交流程</h3>
+  <p>corePoolSize / maximumPoolSize / keepAliveTime / unit / workQueue / threadFactory / handler 七个参数；<span class="tag-key">提交流程</span>：核心线程未满先开核心线程 → 满了进队列 → <strong>队列满了才开到 max</strong>（"先排队再扩容"）→ 还满触发拒绝策略。<span class="tag-pit">关键</span>：<strong>队列无界则最大线程数永不生效</strong>——newFixedThreadPool OOM 的根源。</p>
+
+  <h3>2.3 并发容器与锁</h3>
+  <p><strong>ConcurrentHashMap</strong>（读几乎无锁）、<strong>CopyOnWriteArrayList</strong>（读多写少）；<strong>CountDownLatch</strong> 等 N 个子任务、<strong>CompletableFuture</strong> 异步编排、<strong>Semaphore</strong> 限流；<strong>synchronized</strong>（内置自动释放）vs <strong>ReentrantLock</strong>（可中断/超时/公平）；<strong>volatile</strong> 只保证可见性与禁重排、<strong>不保证复合操作原子性</strong>。</p>
+
+  <h3>2.4 JVM 内存区域</h3>
+  <p><strong>堆</strong>（共享：对象分配处、GC 主战场，分新生代 Eden+Survivor 与老年代）；<strong>元空间</strong>（共享：类元信息，Java 8 后挪本地内存）；<strong>虚拟机栈/程序计数器</strong>（线程私有）。<strong>OOM 高发位置</strong>：堆溢出（对象太多/泄漏）、元空间溢出（动态生成类过多）、栈溢出（递归太深）。</p>
+
+  <h3>2.5 GC 与垃圾回收器</h3>
+  <p>从 <strong>GC Roots</strong>（栈引用/静态变量/常量）做可达性分析；Minor GC（新生代，频繁快）vs Full GC（整堆，慢停顿长）；<strong>STW</strong> 回收时业务线程全暂停。<strong>JDK 9+ 默认 G1</strong>：堆划 Region、<code>MaxGCPauseMillis</code> 可预测停顿；超大堆低延迟才上 ZGC。<span class="tag-point">调优核心</span>：减少对象朝生暮死、避免对象意外进老年代、让 Full GC 尽量少。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：规范构建线程池（禁止直接 Executors）</h3>
+<pre class="code" data-lang="java"><code>// 禁止：newFixedThreadPool 无界队列，任务堆积 → OOM
+// 正解：手动 new，显式定核心数、有界队列、拒绝策略
+ThreadPoolExecutor pool = new ThreadPoolExecutor(
+    8,                                   // core：CPU 密集约 N+1，IO 密集可更大
+    16,                                  // max
+    60L, TimeUnit.SECONDS,               // 闲线程回收
+    new ArrayBlockingQueue&lt;&gt;(200),       // 有界队列！
+    new ThreadFactoryBuilder().setNameFormat("agg-worker-%d").build(),  // 命名线程，便于 dump
+    new ThreadPoolExecutor.CallerRunsPolicy());  // 满了退回调用线程，形成反压</code></pre>
+  <div class="note">业务应封装统一线程池工厂（有界队列+命名+拒绝策略）；后文演示中出现的 Executors 写法仅示意并发提交，落地请替换为规范构建。</div>
+
+  <h3>3.2 场景二：CompletableFuture 并行聚合多数据源</h3>
+<pre class="code" data-lang="java"><code>CompletableFuture&lt;LoadVO&gt; load   = CompletableFuture.supplyAsync(() -&gt; loadClient.query(), pool);
+CompletableFuture&lt;AlarmVO&gt; alarm = CompletableFuture.supplyAsync(() -&gt; alarmClient.query(), pool);
+CompletableFuture&lt;DeviceVO&gt; dev   = CompletableFuture.supplyAsync(() -&gt; deviceClient.query(), pool);
+
+// 等全部完成；orTimeout 兜底超时，避免一个慢源拖死整页
+CompletableFuture.allOf(load, alarm, dev)
+    .orTimeout(2, TimeUnit.SECONDS)
+    .thenApply(v -&gt; new AggregateVO(load.join(), alarm.join(), dev.join()))
+    .exceptionally(ex -&gt; AggregateVO.fallback(ex));   // 某路失败给降级数据，不整页报错</code></pre>
+
+  <h3>3.3 场景三：线程安全计数</h3>
+<pre class="code" data-lang="java"><code>// 不要用普通 HashMap + synchronized，用 ConcurrentHashMap + LongAdder
+ConcurrentHashMap&lt;String, LongAdder&gt; counters = new ConcurrentHashMap&lt;&gt;();
+public void inc(String key) {
+    counters.computeIfAbsent(key, k -&gt; new LongAdder()).increment();
+}   // LongAdder 分段计数，高并发下比 AtomicLong 竞争更小</code></pre>
+
+  <h3>3.4 场景四：容器内 JVM 参数</h3>
+<pre class="code" data-lang="bash"><code>java -jar app.jar \
+  -Xms512m -Xmx512m \                 # 堆固定，避免运行时扩缩
+  -XX:+UseG1GC \                      # JDK 11+ 默认即 G1，显式更清晰
+  -XX:MaxGCPauseMillis=200 \          # 目标停顿 200ms
+  -XX:+HeapDumpOnOutOfMemoryError \   # OOM 自动 dump
+  -XX:HeapDumpPath=/logs/heap.hprof</code></pre>
+  <div class="warn-box"><strong>容器最常见的坑</strong>：JVM 默认按宿主机内存算堆；Java 10+ <code>UseContainerSupport</code>（JDK 17 默认开）会读 cgroup 限制，但仍建议<strong>显式 -Xmx</strong>——否则多个容器挤一台宿主机一起 OOM。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：线程池七参数与 G1 已懂。</p>
+
+  <h3>4.1 ThreadLocal 与内存泄漏</h3>
+  <p>ThreadLocal 每线程一份副本（Spring 事务上下文/用户上下文靠它传递）；底层 ThreadLocalMap 的 <strong>key 是弱引用、value 是强引用</strong>——线程池线程长活，不 remove 则 value 永不回收。<strong>纪律</strong>：try/finally 里 <code>threadLocal.remove()</code>。</p>
+
+  <h3>4.2 线程池参数的经验公式与压测校准</h3>
+  <p>CPU 密集约 N+1、IO 密集约 2N 或按 N×(1+等待/计算比)——都是起点不是答案；<strong>真实并发度靠压测校准</strong>，且要结合下游承受力（数据库连接池大小）反推，线程开再多下游先垮。</p>
+
+  <h3>4.3 AQS 一句话理解</h3>
+  <p>ReentrantLock/Semaphore/CountDownLatch 共同基座是 <strong>AQS</strong>：一个 volatile state + CLH 等待队列 + 模板方法（tryAcquire/tryRelease）——理解"state 语义由子类定义"即可读懂全家桶，不必啃源码细节。</p>
+
+  <h3>4.4 G1 与 ZGC 的取舍</h3>
+  <p>G1：Region 化、可预测停顿，适合 4-32G 堆的绝大多数服务；ZGC：着色指针+并发整理，停顿亚毫秒，适合超大堆/极致低延迟，代价是吞吐略降与资源开销——<strong>别无脑上 ZGC</strong>，先看 G1 能不能达标。</p>
+
+  <h3>4.5 常用排障命令速查</h3>
+  <p><code>jstack</code>（线程 dump，查死锁/blocking）、<code>jstat -gcutil</code>（GC 频率与各代占用）、<code>jmap -dump</code>（堆快照进 MAT 分析）、<code>arthas</code>（在线诊断）——四件套覆盖 90% 线上 JVM 排障。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="大屏分布式数据聚合的并行化位置示意图">
       <defs>
@@ -596,33 +690,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="595" y="180" text-anchor="middle" font-size="12" fill="#065f46">总耗时 ≈ max(300,200,250) = 300ms（示意）</text>
       <text x="595" y="202" text-anchor="middle" font-size="11.5" fill="#065f46">代价：占用多个线程、需要并发容器与超时兜底</text>
     </svg>
-    <p class="diagram-caption">图 1 多数据源聚合的串行与并行对比（示意，数字为示意）</p>
+    <p class="diagram-caption">图 1 多数据源聚合的串行与并行对比（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 线程与线程生命周期（Thread &amp; States）</h3>
-  <p class="lead"><b>一句话定位</b>：线程是 OS 调度的最小单位；理解它的状态流转，是排查"线程卡住、死锁"的前提。</p>
-  <ul>
-    <li><strong>状态流转</strong>：NEW → RUNNABLE → 运行 → BLOCKED（等锁）→ WAITING/TIMED_WAITING（<code>wait/sleep/join</code>）→ TERMINATED。</li>
-    <li><span class="tag-pit">坑</span><strong>sleep 不释放锁</strong>：<code>sleep</code> 只让线程休眠，<code>synchronized</code> 持有的锁不会释放；真正释放锁的是 <code>Object.wait()</code>。</li>
-  </ul>
-  <h3>2.2 线程池（ThreadPoolExecutor）</h3>
-  <p class="lead"><b>一句话定位</b>：线程池复用线程、控制并发度；七个参数里最容易被忽略的是"队列"和"拒绝策略"。</p>
-  <ul>
-    <li><strong>核心参数</strong>：<code>corePoolSize</code>、<code>maximumPoolSize</code>、<code>keepAliveTime</code>、<code>unit</code>（<code>TimeUnit</code>，keepAliveTime 的时间单位）、<code>workQueue</code>、<code>threadFactory</code>、<code>handler</code>（拒绝策略），共 7 个。</li>
-    <li><strong>提交流程</strong>：核心线程未满先开核心线程 → 满了进队列 → 队列满了开到最大线程 → 还满触发拒绝策略。</li>
-  </ul>
-  <p class="pit-sentence">队列若是无界的，最大线程数永远不生效——这是 <code>Executors.newFixedThreadPool</code> 用无界队列导致 OOM 的根源。</p>
-  <h3>2.3 JUC 并发容器与同步器</h3>
-  <p class="lead"><b>一句话定位</b>：多线程共享数据时，普通 <code>HashMap/ArrayList</code> 会错乱——要用并发容器 + 同步器。</p>
-  <ul>
-    <li><strong>并发容器</strong>：<code>ConcurrentHashMap</code>（读几乎无锁）、<code>CopyOnWriteArrayList</code>（读多写少）。</li>
-    <li><strong>同步协调</strong>：<code>CountDownLatch</code>（等 N 个子任务）、<code>CompletableFuture</code>（异步编排）、<code>Semaphore</code>（限流）。</li>
-    <li><strong>锁</strong>：<code>synchronized</code>（内置、自动释放）与 <code>ReentrantLock</code>（可中断、可超时、可公平）。</li>
-    <li><strong>volatile</strong>：保证可见性与禁止指令重排，但不保证复合操作原子性。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 150" role="img" aria-label="synchronized与ReentrantLock对比图">
       <defs>
@@ -631,44 +700,17 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">synchronized vs ReentrantLock（示意）</text>
-
-      <!-- synchronized -->
       <rect x="30" y="45" width="350" height="90" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">synchronized（内置锁）</text>
       <text x="50" y="92" font-size="11" fill="#4f6348">自动加锁/释放，写法简单</text>
       <text x="50" y="115" font-size="11" font-weight="600" fill="#2d6a3f">不可中断、不可超时</text>
-
-      <!-- ReentrantLock -->
       <rect x="420" y="45" width="350" height="90" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">ReentrantLock（显式锁）</text>
       <text x="440" y="92" font-size="11" fill="#4f6348">手动 lock/unlock，可中断可超时</text>
       <text x="440" y="115" font-size="11" font-weight="600" fill="#047857">支持公平锁、多条件队列</text>
     </svg>
-    <p class="diagram-caption">图 1 synchronized vs ReentrantLock（示意）</p>
+    <p class="diagram-caption">图 2 synchronized vs ReentrantLock（示意）</p>
   </div>
-  <h3>2.4 JVM 内存区域（Runtime Data Areas）</h3>
-  <p class="lead"><b>一句话定位</b>：JVM 内存分"线程共享"与"线程私有"——OOM 高发位置就散落在这几块里。</p>
-  <ul>
-    <li><strong>堆 Heap</strong>（共享）：对象实例分配处，GC 主战场，分新生代（Eden+Survivor）与老年代。</li>
-    <li><strong>方法区/元空间 Metaspace</strong>（共享）：存类元信息，Java 8 后挪到本地内存。</li>
-    <li><strong>虚拟机栈 / 程序计数器 / 本地方法栈</strong>（私有）：每线程一份，栈帧存局部变量表。</li>
-    <li><strong>OOM 常见位置</strong>：堆溢出（对象太多/泄漏）、元空间溢出（动态生成类过多）、栈溢出（递归太深）。</li>
-  </ul>
-  <h3>2.5 垃圾回收（GC）与垃圾回收器</h3>
-  <p class="lead"><b>一句话定位</b>：GC 从 GC Roots 出发做可达性分析回收垃圾；回收时业务线程暂停（STW），选回收器就是在吞吐与停顿间取舍。</p>
-  <ul>
-    <li><strong>判定垃圾</strong>：从 GC Roots（栈引用、静态变量、常量）出发不可达的对象即垃圾。</li>
-    <li><strong>两类回收</strong>：Minor GC（清新生代，频繁快）vs Major/Full GC（清整堆，慢、停顿长）。</li>
-    <li><strong>STW</strong>：回收时所有业务线程暂停。</li>
-    <li><strong>JDK 9 起默认 G1</strong>：堆划成多 Region，可预测停顿（<code>MaxGCPauseMillis</code>），兼顾吞吐与低延迟（JDK 8 可用 G1 但非默认）；超大堆低延迟才上 ZGC。</li>
-  </ul>
-  <p class="key-sentence">调优核心 = 减少对象朝生暮死、避免对象意外进老年代、让 Full GC 尽量少。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 线程池的任务流转：为什么要理解队列与拒绝策略</h3>
-  <p class="lead"><b>一句话定位</b>：只配 core/max 两个数是坑——忽略队列与拒绝策略，线上要么 OOM、要么任务被悄悄丢弃。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 330" role="img" aria-label="ThreadPoolExecutor 任务流转与拒绝策略示意图">
       <defs>
@@ -707,169 +749,99 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="672" y="284" text-anchor="middle" font-size="11" fill="#4f6348">抛异常/丢任务/调用者运行</text>
       <text x="400" y="318" text-anchor="middle" font-size="12.5" fill="#7a8a70">关键：无界队列会让 maximumPoolSize 永不生效，队列无限堆积直到 OOM——生产一律用有界队列。</text>
     </svg>
-    <p class="diagram-caption">图 2 ThreadPoolExecutor 任务调度判断链（示意）</p>
+    <p class="diagram-caption">图 3 ThreadPoolExecutor 任务调度判断链（示意）</p>
   </div>
-  <ol>
-    <li><strong>核心线程优先</strong>：任务来了先看核心线程数是否满，没满就开新核心线程直接跑——核心线程默认不回收。</li>
-    <li><strong>队列缓冲</strong>：核心线程满了，任务进 workQueue 排队。用有界队列（如 <code>ArrayBlockingQueue</code>）才能在压力大时触发后面的拒绝，而不是无限堆任务。</li>
-    <li><strong>扩容到最大</strong>：队列也满了，才临时开到 max 线程数。注意顺序——是"先排队再扩容"，不是"先扩容再排队"。</li>
-    <li><strong>拒绝兜底</strong>：max 也满了就执行拒绝策略：默认 <code>AbortPolicy</code> 抛异常，常用 <code>CallerRunsPolicy</code>（退回调用线程自己跑，反压）。</li>
-  </ol>
-  <h3>3.2 JVM 堆分代与对象晋升</h3>
-  <p class="lead"><b>一句话定位</b>：新对象先在 Eden 分配，熬过一次 Minor GC 年龄+1，到阈值晋升老年代——设计依据是"大多数对象朝生暮死"。</p>
-  <ul>
-    <li><strong>晋升路径</strong>：Eden 满触发 Minor GC → 存活对象复制到 Survivor → 每熬过一次年龄+1 → 达阈值（默认 15）晋升老年代。</li>
-    <li><strong>大对象直达</strong>：超过 <code>-XX:PretenureSizeThreshold</code> 的大对象直接进老年代。</li>
-    <li><strong>算法分工</strong>：短命对象集中在新生代用复制算法快速回收，长寿对象放老年代用标记-整理。</li>
-  </ul>
-  <p class="pit-sentence">"对象意外进老年代"会让老年代快速填满、触发 Full GC——这是调优要盯的核心。</p>
+  <p><strong>读图要点</strong>：①图 1 并行的收益与代价——耗时从相加变 max，代价是线程占用+超时兜底；②图 3 四级判断链——核心线程→有界队列→扩到 max→拒绝策略，<strong>"先排队再扩容"</strong>是最常被记反的顺序；③图 2 锁选型——默认 synchronized，要超时/公平/多条件才 ReentrantLock。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 手动规范构建线程池（禁止直接用 Executors）</h3>
-<pre class="code" data-lang="java"><code>// 禁止：Executors.newFixedThreadPool 用无界 LinkedBlockingQueue，任务堆积 → OOM
-// 正解：手动 new ThreadPoolExecutor，显式定核心数、有界队列、拒绝策略
-ThreadPoolExecutor pool = new ThreadPoolExecutor(
-    8,                                   // core：CPU 密集约 N+1，IO 密集可更大
-    16,                                  // max
-    60L, TimeUnit.SECONDS,               // 闲线程回收
-    new ArrayBlockingQueue&lt;&gt;(200),       // 有界队列！
-    new ThreadFactoryBuilder().setNameFormat("agg-worker-%d").build(),  // 有意义的线程名，便于 dump
-    new ThreadPoolExecutor.CallerRunsPolicy());  // 满了退回调用线程，形成反压</code></pre>
-  <p class="lead"><b>说明</b>：业务代码不应直接 <code>newFixedThreadPool</code>，而应封装统一线程池工厂（有界队列 + 命名线程工厂 + 拒绝策略）；后文实战示例中为简洁起见出现的 <code>Executors</code> 写法仅用于演示并发提交，落地生产时请替换为本节规范构建。</p>
-  <h3>4.2 CompletableFuture：并行聚合多数据源</h3>
-<pre class="code" data-lang="java"><code>// 并行查多个源，任意异常不影响其他路，全部完成后汇总
-CompletableFuture&lt;LoadVO&gt; load   = CompletableFuture.supplyAsync(() -> loadClient.query(), pool);
-CompletableFuture&lt;AlarmVO&gt; alarm = CompletableFuture.supplyAsync(() -> alarmClient.query(), pool);
-CompletableFuture&lt;DeviceVO&gt; dev   = CompletableFuture.supplyAsync(() -> deviceClient.query(), pool);
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——智能监控大屏后端数据聚合：一屏汇总数十路采集源实时指标，供大屏高频刷新；我负责聚合接口的并行拉取与结果合并。</p>
 
-// 等全部完成；orTimeout 给每路兜底超时，避免一个慢源拖死整页
-CompletableFuture.allOf(load, alarm, dev)
-    .orTimeout(2, TimeUnit.SECONDS)
-    .thenApply(v -> new AggregateVO(load.join(), alarm.join(), dev.join()))
-    .exceptionally(ex -> AggregateVO.fallback(ex));   // 某路失败给降级数据，不整页报错</code></pre>
-  <h3>4.3 线程安全计数与并发 Map</h3>
-<pre class="code" data-lang="java"><code>// 多线程统计：不要用普通 HashMap + synchronized，用 ConcurrentHashMap + LongAdder
-ConcurrentHashMap&lt;String, LongAdder&gt; counters = new ConcurrentHashMap&lt;&gt;();
-public void inc(String key) {
-    counters.computeIfAbsent(key, k -> new LongAdder()).increment();
-}
-// LongAdder 分段计数，高并发下比 AtomicLong 竞争更小（示意用法）</code></pre>
-  <h3>4.4 关键 JVM 参数（容器内）</h3>
-<pre class="code" data-lang="bash"><code># Spring Boot 3 / Java 17，容器内按限制内存配堆
-java -jar app.jar \
-  -Xms512m -Xmx512m \                 # 堆大小固定，避免运行时扩缩
-  -XX:+UseG1GC \                      # JDK 11+ 默认即 G1，显式写出更清晰
-  -XX:MaxGCPauseMillis=200 \          # 目标停顿 200ms
-  -XX:+HeapDumpOnOutOfMemoryError \   # OOM 时自动 dump，事后分析
-  -XX:HeapDumpPath=/logs/heap.hprof</code></pre>
-  <div class="warn-box">容器里最常见的坑：JVM 默认按宿主机内存算堆，而不是按容器 cgroup 限制。Java 10 起支持 <code>-XX:+UseContainerSupport</code>（JDK 17 默认开）会读容器限制，但仍建议显式 <code>-Xmx</code>，否则多个容器挤在一台宿主机上一起 OOM。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：数据可视化大屏项目（智能监控大屏 智能监控，Java + 前端）需要后端在短时间内聚合多个采集源的数据，供大屏高频刷新。</p>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>业务量级</strong>：一屏要汇总多个监控点位/设备的实时指标，后端要并行拉取再合并（估算并发：数十路采集源）。</li>
-    <li><strong>痛点</strong>：串行逐个查采集源，一屏数据要等所有源依次返回，刷新延迟高。</li>
+    <li><strong>并行拉取</strong>：固定大小线程池并发调各采集源，CompletableFuture/CountDownLatch 等齐后合并；</li>
+    <li><strong>结果收集</strong>：多线程写结果用并发容器（toConcurrentMap），避免 HashMap 并发丢数据；</li>
+    <li><strong>降级契约</strong>：与前端约定"超时降级返回上一帧缓存"，避免大屏空白闪烁。</li>
   </ul>
-  <h3>2 我的角色与职责</h3>
-  <ul>
-    <li><strong>分工</strong>：负责大屏数据聚合后端接口，设计并行拉取与结果合并；前端由他人开发大屏图表。</li>
-  </ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：Java + 线程池 + 并发容器；JVM 部署在应用服务器，用 G1/默认垃圾回收。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>并行拉取</strong>：用固定大小线程池并发调用各采集源，<code>CountDownLatch</code> 或 <code>CompletableFuture</code> 等齐后合并。</li>
-    <li><strong>结果收集</strong>：多线程写结果用线程安全容器，避免 HashMap 并发丢数据。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>ExecutorService pool = Executors.newFixedThreadPool(8);
-List&lt;CompletableFuture&lt;Metric&gt;&gt; fs = sources.stream()
+<pre class="code" data-lang="java"><code>List&lt;CompletableFuture&lt;Metric&gt;&gt; fs = sources.stream()
     .map(s -&gt; CompletableFuture.supplyAsync(() -&gt; fetch(s), pool))
     .toList();
 Map&lt;String, Metric&gt; merged = fs.stream()
     .map(CompletableFuture::join)
     .collect(Collectors.toConcurrentMap(Metric::getSource, m -&gt; m));
 // 任一采集源超时不能拖垮整屏：给 supplyAsync 加超时兜底</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>线程池无界 OOM</strong>：用 <code>newCachedThreadPool</code> 在高峰期线程暴涨——改用有界队列 + 拒绝策略。</li>
-    <li><span class="tag-pit">坑</span><strong>一个采集源卡住拖垮整屏</strong>：并行拉取没设超时，某个源慢导致整屏等待——给每个 future 加超时降级（取不到用上次缓存）。</li>
-    <li><span class="tag-point">要点</span><strong>JVM Full GC 卡顿</strong>：大屏接口高峰期偶发停顿，调大堆、用 G1 降低单次停顿。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>聚合接口从串行的约 3 秒降到并行的约 800ms（估算，随采集源数量变化），大屏高频刷新不再明显卡顿。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>与前端约定"超时降级返回上一帧缓存"，避免大屏空白闪烁；联调时固定一个模拟慢采集源压测。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>并行必配超时</strong>：任何外部调用并行化都要带超时与降级。</li>
-    <li><strong>线程池要定型</strong>：核心/最大线程、队列、拒绝策略显式配，不依赖默认。</li>
-  </ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"大屏多源聚合实践中常采用线程池 + CompletableFuture 并行拉取并加超时降级，接口从约 3 秒降到约 800ms；踩过无界线程池和单源超时拖垮整屏的坑。"</p>
 
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 用 Executors 快捷工厂导致 OOM</h3>
-  <p class="lead"><b>一句话定位</b>：<code>Executors.newFixedThreadPool</code> 用无界队列，压测时任务无限堆积直至 OOM。</p>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>现象</strong>：用 <code>newFixedThreadPool</code> 或 <code>newSingleThreadExecutor</code>，压测时队列无限增长直至 OOM。</li>
-    <li><strong>原因</strong>：内部用无界 <code>LinkedBlockingQueue</code>，生产快于消费时队列无上限堆积。</li>
-    <li><strong>正解</strong>：手动 <code>new ThreadPoolExecutor</code> + 有界队列 + 明确拒绝策略。</li>
+    <li><span class="tag-pit">坑</span><strong>线程池无界 OOM</strong>：newCachedThreadPool 高峰线程暴涨——改有界队列+拒绝策略；</li>
+    <li><span class="tag-pit">坑</span><strong>单源卡住拖垮整屏</strong>：并行拉取没超时——每路 future 加超时降级（取不到用上次缓存）；</li>
+    <li><span class="tag-pit">坑</span><strong>Full GC 卡顿</strong>：高峰偶发停顿——调大堆、用 G1 降低单次停顿。</li>
   </ul>
-  <h3>6.2 synchronized 与 volatile 的边界</h3>
-  <p class="lead"><b>一句话定位</b>：<code>volatile</code> 只保证可见性与禁重排，挡不住 <code>i++</code> 这种复合操作。</p>
-  <ul>
-    <li><strong>误区</strong>：以为 <code>volatile</code> 能保证 <code>i++</code> 原子性。</li>
-    <li><strong>真相</strong>：<code>i++</code> 是"读-改-写"三步复合操作，volatile 挡不住并发写丢失。</li>
-    <li><strong>正解</strong>：复合操作用 <code>synchronized</code>/<code>ReentrantLock</code> 或 <code>AtomicInteger/LongAdder</code>；volatile 只适合"一写多读"的状态标志位。</li>
-  </ul>
-  <h3>6.3 死锁的四条件与排查</h3>
-  <p class="lead"><b>一句话定位</b>：两线程互持对方要的锁双双卡住、CPU 却不高——<code>jstack</code> 一眼定位。</p>
-  <ul>
-    <li><strong>四条件</strong>：互斥、持有并等待、不可剥夺、循环等待。</li>
-    <li><strong>排查</strong>：<code>jstack</code> 抓线程 dump，找 <code>Found one Java-level deadlock</code>。</li>
-    <li><strong>正解</strong>：所有线程按相同顺序加锁、用 <code>tryLock(timeout)</code> 替代无限等待。</li>
-  </ul>
-  <h3>6.4 Full GC 频繁与 STW 停顿</h3>
-  <p class="lead"><b>一句话定位</b>：接口偶尔毛刺几秒、GC 日志频繁 Full GC，多半是老年代被意外填满。</p>
-  <ul>
-    <li><strong>现象</strong>：接口偶尔毛刺几秒，GC 日志里频繁 Full GC。</li>
-    <li><strong>原因</strong>：老年代被意外填满（大对象、短命对象提前晋升、内存泄漏），触发整堆回收。</li>
-    <li><strong>正解</strong>：<code>-XX:+HeapDumpOnOutOfMemoryError</code> 或 jstat 看 GC 频率与各代占用，定位是泄漏还是分配过快。</li>
-  </ul>
-  <h3>6.5 线程池线程名不规范，dump 看不懂</h3>
-  <p class="lead"><b>一句话定位</b>：jstack 全是 <code>pool-1-thread-3</code> 分不清哪个池——建池时就要命名。</p>
-  <ul>
-    <li><strong>现象</strong>：线上 jstack 全是默认线程名，分不清哪个业务池。</li>
-    <li><strong>正解</strong>：建池时用 <code>ThreadFactoryBuilder().setNameFormat("agg-worker-%d")</code> 命名——小事，但出问题时省的是排查时间。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：聚合接口串行约 3s → 并行约 800ms（估算），大屏高频刷新不再明显卡顿；</li>
+    <li><strong>可复用经验</strong>：并行必配超时与降级；线程池要定型（核心/最大/队列/拒绝显式配）；联调时固定一个模拟慢源压测；</li>
+    <li><strong>一句话抓手</strong>："线程池+CompletableFuture 并行拉取加超时降级，接口约 3s 降到约 800ms；踩过无界线程池和单源超时拖垮整屏的坑。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 Executors 快捷工厂导致 OOM</h3>
+  <p><strong>原因</strong>：newFixedThreadPool/newSingleThreadExecutor 内部无界 LinkedBlockingQueue，生产快于消费无限堆积。<strong>正解</strong>：手动 new ThreadPoolExecutor + 有界队列 + 明确拒绝策略。</p>
+
+  <h3>7.2 volatile 的能力边界</h3>
+  <p><strong>误区</strong>：volatile 保证 i++ 原子。<strong>真相</strong>：i++ 是读-改-写三步复合操作，volatile 挡不住并发写丢失。<strong>正解</strong>：复合操作用锁或 AtomicInteger/LongAdder；volatile 只适合"一写多读"状态标志。</p>
+
+  <h3>7.3 死锁四条件与排查</h3>
+  <p><strong>四条件</strong>：互斥、持有并等待、不可剥夺、循环等待。<strong>现象</strong>：线程互卡 CPU 不高。<strong>排查</strong>：jstack 找 "Found one Java-level deadlock"。<strong>正解</strong>：所有线程按相同顺序加锁、tryLock(timeout) 替代无限等待。</p>
+
+  <h3>7.4 Full GC 频繁</h3>
+  <p><strong>现象</strong>：接口偶发几秒毛刺，GC 日志频繁 Full GC。<strong>原因</strong>：老年代被意外填满（大对象/提前晋升/内存泄漏）。<strong>正解</strong>：jstat -gcutil 看频率与各代占用，HeapDumpOnOutOfMemoryError 留现场，区分泄漏还是分配过快。</p>
+
+  <h3>7.5 线程名不规范</h3>
+  <p><strong>现象</strong>：jstack 全是 pool-1-thread-3 分不清哪个池。<strong>正解</strong>：建池时 ThreadFactory 命名（agg-worker-%d）——小事，出问题省的是排查时间。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：线程池的提交流程？为什么禁止 Executors 快捷工厂？</strong></p>
+  <p class="note"><strong>参考答案</strong>：四级判断链——①核心线程未满开新核心线程执行；②满了进 workQueue 排队；③<strong>队列满了才扩到 maximumPoolSize</strong>（"先排队再扩容"，最常记反）；④max 也满触发拒绝策略（默认 AbortPolicy 抛异常，常用 CallerRunsPolicy 退回调用线程形成反压）。<strong>禁止 Executors 的原因</strong>：newFixedThreadPool 用<strong>无界 LinkedBlockingQueue</strong>——队列永不満，max 线程数永不生效，任务无限堆积直到 OOM；newCachedThreadPool 则线程数无上限。<strong>正解</strong>：手动 new ThreadPoolExecutor，有界队列+命名线程工厂+显式拒绝策略，参数靠压测校准（CPU 密集 N+1 是起点不是答案）。</p>
+
+  <p><strong>Q2：synchronized、volatile、Atomic 各管什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>synchronized</strong> 内置锁——互斥+可见性，自动加锁释放，不可中断不可超时；<strong>ReentrantLock</strong> 是需要可中断/超时/公平/多条件队列时的升级。<strong>volatile</strong> 只保证<strong>可见性与禁止指令重排</strong>，不保证复合操作原子性——i++ 是读改写三步，volatile 挡不住并发写丢失，只适合一写多读的标志位。<strong>Atomic/LongAdder</strong> 用 CAS 实现无锁原子操作，LongAdder 分段计数在高并发写场景竞争更小。<strong>顺带</strong>：sleep 不释放锁，释放锁的是 wait()；死锁四条件（互斥/持有并等待/不可剥夺/循环等待）被破一环即解，jstack 可直接定位。</p>
+
+  <p><strong>Q3：JVM 内存怎么分代？Full GC 频繁怎么排查？容器里要注意什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>分代假设</strong>"大多数对象朝生暮死"——新对象在 Eden 分配，Minor GC 存活者进 Survivor、年龄+1，达阈值（默认 15）晋升老年代，大对象可直达老年代；短命对象复制算法快、长寿对象标记-整理。<strong>Full GC 频繁</strong>多半是老年代被意外填满（大对象/提前晋升/内存泄漏）——jstat -gcutil 看频率与各代占用、HeapDumpOnOutOfMemoryError 留快照进 MAT，区分泄漏还是分配过快；调优核心是减少朝生暮死、避免意外进老年代、让 Full GC 尽量少。<strong>容器</strong>：JDK17 默认 UseContainerSupport 读 cgroup，但仍显式 -Xms=-Xmx 固定堆，防多容器挤宿主机一起 OOM。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>线程池四级判断链？"先排队再扩容"为什么容易记反？</li>
+    <li>volatile 为什么挡不住 i++？LongAdder 比 AtomicLong 强在哪？</li>
+    <li>sleep 与 wait 对锁的差异？死锁四条件？</li>
+    <li>对象晋升路径？Full GC 频繁的排查命令？</li>
+    <li>并行聚合为什么要每路超时降级？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>Java 平台：并发工具与线程池 API（Java 17）：<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/package-summary.html" rel="noopener">docs.oracle.com/en/java/javase/17（java.util.concurrent 包）</a></li>
-    <li>Java 虚拟机规范（JVMS）：<a href="https://docs.oracle.com/en/java/javase/17/docs/specs/" rel="noopener">docs.oracle.com/en/java/javase/17/docs/specs</a></li>
-    <li>OpenJ9/HotSpot GC 调优指南（Oracle）：<a href="https://docs.oracle.com/en/java/javase/17/gctuning/" rel="noopener">docs.oracle.com/en/java/javase/17/gctuning</a></li>
+    <li>Java 17 java.util.concurrent API 与 GC 调优指南：<a href="https://docs.oracle.com/en/java/javase/17/gctuning/" rel="noopener">docs.oracle.com/en/java/javase/17/gctuning</a></li>
+    <li>《Java 并发编程实战》（Brian Goetz）——JUC 圣经；《深入理解 Java 虚拟机（第3版）》（周志明）——中文 JVM 正典。</li>
   </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《Java 并发编程实战》（Brian Goetz 等）——JUC 与并发设计的圣经，线程池、锁、原子类原理讲得最透。</li>
-    <li>《深入理解 Java 虚拟机：JVM 高级特性与最佳实践（第 3 版）》（周志明）——中文 JVM 正典，内存区域、GC、调优必读书。</li>
-  </ul>
-  <h3>实战参考</h3>
-  <ul>
-    <li>Baeldung 线程池与 CompletableFuture 专题：<a href="https://www.baeldung.com/" rel="noopener">baeldung.com</a>（搜 thread pool / completablefuture）</li>
-    <li>Alibaba Java 开发手册（并发与线程池规约部分）：<a href="https://github.com/alibaba/p3c" rel="noopener">github.com/alibaba/p3c</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>手动 new 一个规范线程池（有界队列+命名+CallerRunsPolicy），压测观察拒绝策略触发；</li>
+    <li>用 CompletableFuture 并行调三个模拟接口（各自不同耗时），加 orTimeout 验证降级；</li>
+    <li>故意写双锁交叉的死锁，用 jstack 定位；用 jstat -gcutil 观察 GC 频率。</li>
+  </ol>
 </section>
 
 </main>
@@ -877,7 +849,7 @@ Map&lt;String, Metric&gt; merged = fs.stream()
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../07_后端开发/01_Java基础【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/04_Spring核心_IOC与AOP【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Java并发与JVM【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

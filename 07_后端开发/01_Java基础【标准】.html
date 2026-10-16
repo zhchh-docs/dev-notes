@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/00_后端开发模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../07_后端开发/02_Java并发与JVM【标准】.html">下一篇 →</a>
 </nav>
@@ -548,25 +548,128 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：Java = 编译成字节码、跑在 JVM 上的静态强类型语言；本套技术栈用 <strong>Java 17 LTS</strong>（Spring Boot 3 的硬性基线）。</p>
-  <ul>
-    <li><strong>怎么跑起来</strong>：源码 <code>.java</code> 经 <code>javac</code> 编译成平台无关的<strong>字节码</strong> <code>.class</code>，再由各系统的 JVM 解释 + JIT 即时编译执行。</li>
-    <li><strong>它解决什么</strong>：编译期类型检查在上线前挡住一大类错误；内存交给 GC，业务开发者不用手动 free；"一次编写到处运行"让同一套服务在开发机/测试服务器/容器里一致运行。</li>
-  </ul>
-  <p class="pit-sentence">代价是启动慢、内存占用偏高——这正是后面 JVM 调优与并发专题要解决的问题。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：字节码 + JVM + 静态强类型</h3>
+  <p><strong>Java = 编译成字节码、跑在 JVM 上的静态强类型语言</strong>；本套技术栈用 <strong>Java 17 LTS</strong>（Spring Boot 3 的硬性基线）。<code>.java</code> 经 javac 编译成平台无关的 <code>.class</code> 字节码，由 JVM 解释 + JIT 执行。它解决三件事：<strong>编译期类型检查</strong>上线前挡错、<strong>GC 免手动 free</strong>、<strong>一次编写到处运行</strong>。<span class="tag-pit">代价</span>：启动慢、内存偏高——交给 02 篇 JVM 调优解决。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>理解字节码/JIT（"为什么 Java 服务要预热"）；</li>
+    <li>吃透 <strong>== vs equals 与 Integer 缓存坑</strong>；</li>
+    <li>集合选型心智（List/Set/Map/并发容器）；</li>
+    <li>会用 Stream/Optional/record 写现代业务代码。</li>
+  </ol>
+  <p><strong>前置知识</strong>：无（后端模块地基篇）。<strong>难度</strong>：★★☆☆☆。<strong>本篇不涉及</strong>：并发与 GC 细节（02 篇）、Spring 容器（04/05 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>字节码与 JVM</strong>（总纲）→ <strong>类型系统</strong>→ <strong>集合框架</strong>→ <strong>泛型与擦除</strong>→ <strong>函数式与 Stream</strong>。</p>
+
+  <h3>2.1 字节码与平台无关</h3>
+  <p>编译产物是 JVM 指令集而非 CPU 机器码——同一份 .class 到处跑；<strong>JIT</strong> 运行时把热点代码编译成本地机器码，"服务越跑越快"。<span class="tag-key">推论</span>：解释了"为什么要预热"与"容器里按实际内存配堆"。</p>
+
+  <h3>2.2 静态强类型：基本类型 vs 引用类型</h3>
+  <p>变量类型编译期定死；<strong>基本类型</strong>（int/long/…）直接存值在栈上，<strong>引用类型</strong>存堆中对象地址——这是 == 与 equals 区别的根源；赋引用是复制地址（<strong>别名现象</strong>：两个引用可指同一对象）；<strong>装箱/拆箱</strong>有开销且暗藏缓存坑（7.1）。</p>
+
+  <h3>2.3 集合框架：业务最高频 API</h3>
+  <p><code>Collection</code>（单列：List 有序可重复 / Set 去重）与 <code>Map</code>（键值对）两大根接口；<strong>ArrayList</strong> 动态数组（随机读快/中间插慢）；<strong>HashMap</strong> 数组+链表+红黑树，负载因子 0.75、链表 ≥8 且数组 ≥64 转红黑树、扩容 2 倍；<strong>ConcurrentHashMap</strong> 并发环境用它（Hashtable 是 legacy）。<span class="tag-point">选型心智</span>：顺序用 List、去重用 Set、按键查用 Map、并发一律并发容器。</p>
+
+  <h3>2.4 泛型与类型擦除</h3>
+  <p>泛型是<strong>编译期约束</strong>，编译后被擦除——<code>List&lt;String&gt;</code> 与 <code>List&lt;Integer&gt;</code> 字节码里同一个 List。限制：不能 <code>new T()</code>、不能 <code>instanceof List&lt;String&gt;</code>；<strong>PECS 原则</strong>：<code>? extends T</code> 上界只读、<code>? super T</code> 下界只写。</p>
+
+  <h3>2.5 函数式与 Stream：声明式流水线</h3>
+  <p>Lambda + Function/Consumer/Supplier/Predicate 行为参数化；<code>filter → map → collect</code> 替代手写 for；<strong>Optional</strong> 把"可能为空"写进类型签名逼调用方处理；<strong>Java 17 新语法</strong>：record（不可变数据载体）、sealed（受限继承）、var（局部推断）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：集合初始化与 Stream 流水线</h3>
+<pre class="code" data-lang="java"><code>// 不可变集合（Java 9+）：List.of / Map.of，比 Arrays.asList 更安全
+List&lt;String&gt; owners = List.of("zhangsan", "lisi", "wangwu");
+
+// 需求单按状态分组、再统计数量，一条 Stream 完成（替代多层 for + Map.put）
+Map&lt;RequirementStatus, Long&gt; stat = requirements.stream()
+    .filter(r -&gt; r.getPriority() != Priority.LOW)          // 过滤
+    .collect(Collectors.groupingBy(
+        Requirement::getStatus,                            // 分组键
+        Collectors.counting()));                           // 下游收集器：计数
+
+// 提取 id 列表，供批量查询 in(...) 使用
+List&lt;Long&gt; ids = requirements.stream()
+    .map(Requirement::getId).distinct().toList();          // Java 16+ 不可变 List</code></pre>
+
+  <h3>3.2 场景二：Optional 显式处理"可能为空"</h3>
+<pre class="code" data-lang="java"><code>// 坏：返回 null，调用方忘判空 → NPE
+public Requirement findById(Long id) { ... return null; }
+
+// 好：Optional 把"可能为空"写进类型签名
+public Optional&lt;Requirement&gt; findById(Long id) {
+    return Optional.ofNullable(mapper.selectById(id));
+}
+// 调用方被迫处理
+Requirement r = repo.findById(id)
+    .orElseThrow(() -&gt; new BizException("需求不存在: " + id));</code></pre>
+
+  <h3>3.3 场景三：try-with-resources 安全关闭</h3>
+<pre class="code" data-lang="java"><code>// Java 7+：AutoCloseable 自动关闭，即使抛异常也关，无需 finally 判空
+try (BufferedReader br = Files.newBufferedReader(Paths.get(path))) {
+    return br.lines().filter(line -&gt; !line.startsWith("#")).toList();
+}</code></pre>
+
+  <h3>3.4 场景四：Java 17 现代语法与异常体系</h3>
+<pre class="code" data-lang="java"><code>// record：一行不可变数据载体，自动生成构造器/getter/equals/hashCode/toString
+public record RequirementDTO(Long id, String title, RequirementStatus status) {}
+// sealed：受限继承 + 模式匹配穷举
+public sealed interface Event permits Created, Updated, Closed {}
+
+// 异常两支：Error（JVM 级别捕）/ Exception
+//   RuntimeException 及子类 = 非受检；业务惯例：BizException extends RuntimeException
+public class BizException extends RuntimeException {
+    private final String code;
+    public BizException(String code, String msg) { super(msg); this.code = code; }
+}</code></pre>
+  <div class="note">Spring 生态统一用 <code>@RestControllerAdvice</code> 兜底捕获 BizException，业务只管 throw——<strong>不要在 Service 吞异常</strong>（catch(Exception e){}），吞掉的异常线上最难查（7.3）。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：集合与 Stream 已会。</p>
+
+  <h3>4.1 hashCode 契约：equals 与 hashCode 必须同重写</h3>
+  <p>只重写 equals 不重写 hashCode → 对象进 HashMap/HashSet 后<strong>按 hashCode 散列错位、找不到</strong>；约定：equals 相等则 hashCode 必须相等。record 自动生成两者，业务实体类用 Lombok @EqualsAndHashCode 或手写齐。</p>
+
+  <h3>4.2 不可变集合的三层写法</h3>
+  <p><code>Arrays.asList</code> 定长但元素可 set；<code>List.of</code> 真不可变（set/add 全抛异常）；<code>Collectors.toUnmodifiableList</code> 流收集不可变——<strong>对外返回值优先不可变</strong>，防止调用方偷偷改内部状态。</p>
+
+  <h3>4.3 Comparator 与排序链</h3>
+  <p><code>Comparator.comparing(Req::getStatus).thenComparing(Req::getPriority).reversed()</code>——声明式多级排序；注意 reversed() 的作用域（作用于前面整条链，拆开写语义不同）。</p>
+
+  <h3>4.4 String 的不可变与字符串池</h3>
+  <p>String 不可变（intern 池复用字面量）；大量拼接用 <strong>StringBuilder</strong>（循环里 + 拼接每次新建对象）；switch 对 String 是 hashCode 分派——这些都是"为什么 String 能做 Map key"的底层。</p>
+
+  <h3>4.5 record 的能力边界</h3>
+  <p>record 自动生成访问器/equals/hashCode/toString，但<strong>字段不可变、不能继承类</strong>（可实现接口）；需要可变字段或 JPA 实体时不适用（实体要无参构造+setter）——record 适合 DTO/VO/值对象，不适合 ORM 实体。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Java 在后端分层架构中的位置示意图">
       <defs>
@@ -592,82 +695,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <line x1="370" y1="209" x2="426" y2="209" stroke="#7a8a70" marker-end="url(#arr)"/>
       <text x="400" y="245" text-anchor="middle" font-size="12.5" fill="#7a8a70">本页聚焦 Service 层日常：怎么写集合、怎么用 Stream、怎么处理异常与资源。</text>
     </svg>
-    <p class="diagram-caption">图 1 Java 在 业务系统 分层架构中的位置（示意）</p>
+    <p class="diagram-caption">图 1 Java 在业务系统分层架构中的位置（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 字节码与平台无关（Bytecode &amp; JVM）</h3>
-  <p class="lead"><b>一句话定位</b>：Java 不编译成任何 CPU 的机器码，而编译成 JVM 的指令集——同一份 <code>.class</code> 到处跑。</p>
-  <ul>
-    <li><strong>字节码</strong>：<code>.java</code> 经 <code>javac</code> 编译成 <code>.class</code>，是供 JVM 消费的中间指令集，与具体 CPU 无关。</li>
-    <li><strong>跨平台</strong>：同一份 <code>.class</code> 丢到 Windows/Linux/容器里的 JVM 都能跑，即"一次编写、到处运行"。</li>
-    <li><strong>JIT 优化</strong>：运行时边解释边把热点代码编译成本地机器码，所以服务启动后越跑越快。</li>
-  </ul>
-  <p class="key-sentence">理解这点就懂了"为什么 Java 服务要预热、为什么容器里要按实际内存配堆"。</p>
-  <h3>2.2 静态强类型与基本类型/引用类型</h3>
-  <p class="lead"><b>一句话定位</b>：变量类型编译期就定死；基本类型存值、引用类型存地址——这是 <code>==</code> 与 <code>equals()</code> 区别的根源。</p>
-  <ul>
-    <li><strong>静态强类型</strong>：每个变量类型编译期确定，不能随意赋不兼容的值。</li>
-    <li><strong>基本类型</strong>（<code>int/long/double/boolean/byte/char/float/short</code>）：直接存值，在栈上。</li>
-    <li><strong>引用类型</strong>（对象、数组）：变量存的是堆中对象的地址。</li>
-    <li><strong>别名现象</strong>：赋基本类型是复制值，赋引用类型是复制地址——两个引用可指向同一个对象。</li>
-    <li><strong>装箱/拆箱</strong>：<code>Integer/Long</code> 与基本类型自动转换，但有开销且暗藏缓存坑（见板块 6）。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 150" role="img" aria-label="==与equals对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">== vs equals()（示意）</text>
-
-      <!-- == -->
-      <rect x="30" y="45" width="350" height="90" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">==（比较地址）</text>
-      <text x="50" y="92" font-size="11" fill="#4f6348">基本类型比值，引用类型比对象地址</text>
-      <text x="50" y="115" font-size="11" font-weight="600" fill="#2d6a3f">两个 new Integer(1) 用 == 是 false</text>
-
-      <!-- equals -->
-      <rect x="420" y="45" width="350" height="90" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">equals()（比较内容）</text>
-      <text x="440" y="92" font-size="11" fill="#4f6348">默认比地址，但 String/Integer 已重写为比值</text>
-      <text x="440" y="115" font-size="11" font-weight="600" fill="#047857">业务对象必须重写 equals/hashCode</text>
-    </svg>
-    <p class="diagram-caption">图 1 == vs equals()（示意）</p>
-  </div>
-  <h3>2.3 集合框架（Collections Framework）</h3>
-  <p class="lead"><b>一句话定位</b>：集合是业务里出现频率最高的 API——<code>List</code> 管顺序、<code>Set</code> 管去重、<code>Map</code> 按键查。</p>
-  <ul>
-    <li><strong>两大根接口</strong>：<code>Collection</code>（单列，下分 <code>List</code> 有序可重复、<code>Set</code> 去重）与 <code>Map</code>（键值对）。</li>
-    <li><strong>ArrayList</strong>：动态数组，随机读快、尾部插快、中间插慢。</li>
-    <li><strong>HashMap</strong>：数组+链表+红黑树，读写平均 O(1)；负载因子 0.75，链表长度 ≥ 8 且数组长度 ≥ 64 时转红黑树，扩容为 2 倍。</li>
-    <li><strong>ConcurrentHashMap</strong>：线程安全的 Map，并发环境用它；<code>Hashtable</code> 是 JDK 1.0 的遗留类（legacy），类级并未标注 <code>@Deprecated</code>，但并发场景应改用 <code>ConcurrentHashMap</code>。</li>
-  </ul>
-  <p class="key-sentence">选型心智：要顺序用 List、要去重用 Set、要按键查用 Map、并发环境一律用并发容器。</p>
-  <h3>2.4 泛型与类型擦除（Generics &amp; Type Erasure）</h3>
-  <p class="lead"><b>一句话定位</b>：泛型是编译期约束，编译后被擦除——<code>List&lt;String&gt;</code> 和 <code>List&lt;Integer&gt;</code> 在字节码里是同一个 <code>List</code>。</p>
-  <ul>
-    <li><strong>作用</strong>：编译期约束容器装什么类型，<code>List&lt;String&gt;</code> 放不进 <code>Integer</code>，避免运行时 <code>ClassCastException</code>。</li>
-    <li><strong>擦除带来的限制</strong>：不能 <code>new T()</code>、不能 <code>instanceof List&lt;String&gt;</code>。</li>
-    <li><strong>PECS 原则</strong>：<code>? extends T</code>（上界，只读）、<code>? super T</code>（下界，只写）——Producer Extends, Consumer Super。</li>
-  </ul>
-  <h3>2.5 函数式编程与 Stream（Functional &amp; Stream API）</h3>
-  <p class="lead"><b>一句话定位</b>：Lambda + Stream 把集合处理写成声明式流水线，Optional 把"可能为空"写进类型签名。</p>
-  <ul>
-    <li><strong>行为参数化</strong>：Java 8 起的 Lambda 与 <code>Function/Consumer/Supplier/Predicate</code>，让行为像数据一样传递。</li>
-    <li><strong>Stream 流水线</strong>：<code>filter → map → collect</code> 替代手写 for 循环与临时变量。</li>
-    <li><strong>Optional</strong>：显式表达"可能没有值"，逼调用方处理空值，减少 NPE。</li>
-    <li><strong>Java 17 新语法</strong>：record（不可变数据载体）、sealed（受限继承）、var（局部类型推断）进一步压薄样板代码。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一段 Java 代码从源码到运行的完整链路</h3>
-  <p class="lead"><b>一句话定位</b>：平时写业务不用想这条链路，但排查"类找不到、版本冲突、启动慢"时它是地图。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 280" role="img" aria-label="Java 源码到 JVM 执行的编译与运行链路示意图">
       <defs>
@@ -708,182 +737,91 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Java 从源码到执行引擎的链路与运行时数据区（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 分层落点——本篇语法知识全部用在 Service 层日常；②图 2 执行链路五步——javac 编译（类型检查/泛型擦除）→类加载（只一次缓存方法区）→<strong>new 的对象在堆（共享）、局部变量在栈帧（私有）</strong>→热点代码 JIT 编译（"预热后变快"）→GC 自动回收堆垃圾；排查"类找不到/版本冲突/启动慢"时它是地图。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统（需求管理平台）后端 SpringBoot 3 + Java 17 单体；我负责需求域接口、通用查询、参数校验与异常处理全链路（Controller→Service→Mapper）。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><strong>不可变 DTO</strong>：出入参用 record 替代手写 getter/setter；</li>
+    <li><strong>集合处理</strong>：按状态分组/按处理人聚合用 Stream 替代多层 for；</li>
+    <li><strong>异常分层</strong>：BizException 抛出 + 全局处理器统一转错误结构，不把栈信息抛给前端；</li>
+    <li><strong>契约先行</strong>：出入参随 OpenAPI 文档与前端对齐字段名，DTO 一改同步文档。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>自动拆箱 NPE</strong>：Integer 状态为 null 直接 == 比较拆箱 NPE——改 Objects.equals(a,b)；</li>
+    <li><span class="tag-pit">坑</span><strong>equals 写反</strong>：可能为 null 的变量调 .equals() 空指针——常量或枚举放前面；</li>
+    <li><span class="tag-pit">坑</span><strong>Stream 别滥用</strong>：简单循环硬套 Stream 反而难读——只在分组/映射/过滤时用。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>编译期</strong>：<code>javac</code> 做词法/语法分析、类型检查、泛型擦除，生成字节码。编译期就能发现类型不匹配、缺少返回值等错误——这是 Java 相比动态语言的第一道安全网。</li>
-    <li><strong>类加载</strong>：JVM 首次用到某个类时，类加载器把 <code>.class</code> 字节码读入、验证合法性、把符号引用解析成直接引用、执行 <code>&lt;clinit&gt;</code> 静态初始化。类只加载一次，缓存在方法区。</li>
-    <li><strong>内存分配</strong>：<code>new</code> 出来的对象在<strong>堆</strong>上分配（线程共享），方法内的基本类型与引用本身在<strong>栈帧</strong>的局部变量表（线程私有）。</li>
-    <li><strong>执行与 JIT</strong>：解释器逐条执行字节码，同时监控热点方法（被高频调用的方法、循环），JIT 把它编译成本地机器码缓存起来，下次直接跑本地码——这就是"预热后变快"。</li>
-    <li><strong>GC</strong>：堆中不再被任何栈帧引用的对象由垃圾回收器自动回收，开发者不用手动 free。GC 的选择与调优见并发与 JVM 专题。</li>
+    <li><strong>量化</strong>：record + Stream 后单个列表接口 DTO 转换代码行数降约一半（估算）；</li>
+    <li><strong>可复用经验</strong>：空安全优先（外部入参先判空、业务异常集中抛）；不可变优先（DTO 用 record）；</li>
+    <li><strong>一句话抓手</strong>："后端用 Java 17，record 简化 DTO、Stream 做分组聚合、异常统一全局处理器，踩过自动拆箱 NPE 后养成空安全习惯。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 集合初始化与 Stream 流水线</h3>
-<pre class="code" data-lang="java"><code>// 不可变集合（Java 9+）：List.of / Map.of，比 Arrays.asList 更安全
-List&lt;String&gt; owners = List.of("zhangsan", "lisi", "wangwu");
-
-// 需求单按状态分组、再统计数量，一条 Stream 完成（替代多层 for + Map.put）
-Map&lt;RequirementStatus, Long&gt; stat = requirements.stream()
-    .filter(r -> r.getPriority() != Priority.LOW)          // 过滤
-    .collect(Collectors.groupingBy(
-        Requirement::getStatus,                            // 分组键
-        Collectors.counting()));                           // 下游收集器：计数
-
-// 提取 id 列表，供后续批量查询 in(...) 使用
-List&lt;Long&gt; ids = requirements.stream()
-    .map(Requirement::getId)
-    .distinct()
-    .toList();                                             // Java 16+ 直接返回不可变 List</code></pre>
-  <h3>4.2 Optional：显式处理"可能为空"</h3>
-<pre class="code" data-lang="java"><code>// 坏：返回 null，调用方忘记判空 → NPE
-public Requirement findById(Long id) { ... return null; }
-
-// 好：返回 Optional，把"可能为空"写进类型签名
-public Optional&lt;Requirement&gt; findById(Long id) {
-    return Optional.ofNullable(mapper.selectById(id));
-}
-// 调用方被迫处理：有值就用，没值给默认值或抛业务异常
-Requirement r = repo.findById(id)
-    .orElseThrow(() -> new BizException("需求不存在: " + id));</code></pre>
-  <h3>4.3 try-with-resources：IO/连接的安全关闭</h3>
-<pre class="code" data-lang="java"><code>// 老式写法：finally 里关流，还要判空，容易漏关 → 连接泄漏
-BufferedReader br = null;
-try { br = new BufferedReader(new FileReader(path)); ... }
-finally { if (br != null) br.close(); }
-
-// Java 7+ try-with-resources：AutoCloseable 自动关闭，即使抛异常也关
-try (BufferedReader br = Files.newBufferedReader(Paths.get(path))) {
-    return br.lines().filter(line -> !line.startsWith("#")).toList();
-} // br 在此自动 close，无需 finally</code></pre>
-  <h3>4.4 Java 17 现代语法：record 与 var</h3>
-<pre class="code" data-lang="java"><code>// record：一行声明不可变数据载体，自动生成构造器、getter、equals、hashCode、toString
-public record RequirementDTO(Long id, String title, RequirementStatus status) {}
-
-// var：局部变量类型推断，右侧类型明确时省去重复写泛型
-var active = requirements.stream().filter(r -> r.isActive()).toList();
-
-// sealed：限制哪些类可以继承它，配合模式匹配做穷举
-public sealed interface Event permits Created, Updated, Closed {}</code></pre>
-  <h3>4.5 异常体系：受检 vs 非受检</h3>
-<pre class="code" data-lang="java"><code>// Throwable 分两支：Error（JVM 级，别捕）/ Exception
-//   Exception 里 RuntimeException 及其子类 = 非受检（编译器不强制 catch）
-//   其余 Exception = 受检（必须 throws 或 try-catch）
-// 业务惯例：自定义业务异常继承 RuntimeException，避免层层 throws 污染签名
-public class BizException extends RuntimeException {
-    private final String code;
-    public BizException(String code, String msg) { super(msg); this.code = code; }
-}</code></pre>
-  <div class="note">经验：Spring 生态里统一用 <code>@RestControllerAdvice</code> 兜底捕获 <code>BizException</code>，业务代码只管 <code>throw new BizException(...)</code>，不要在 Service 里吞异常（<code>catch(Exception e){}</code>）——吞掉的异常线上最难查。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统（需求管理平台）后端是 SpringBoot 3 + Java 17 的单体服务，Java 语法特性贯穿日常每个接口的编写。</p>
-  <ul>
-    <li><strong>业务量级</strong>：需求/团队/工作流/AI 集成多模块，服务端日均处理数百次需求流转与评审操作（估算）。</li>
-    <li><strong>为什么是 Java 17</strong>：团队 2026 年新项目直接选 LTS，用 record、switch 模式匹配、var、Stream 简化样板代码。</li>
-  </ul>
-  <h3>2 我的角色与职责</h3>
-  <ul>
-    <li><strong>分工</strong>：后端主力之一，负责需求域接口、通用查询、参数校验与异常处理，与 1 名前端对接联调（团队约 3-4 人，估算）。</li>
-    <li><strong>范围</strong>：从 Controller 入参 DTO 到 Service 业务逻辑到 Mapper 出参全链路。</li>
-  </ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：Java 17 + SpringBoot 3 + MyBatis + Redis(Redisson) + MySQL；构建 Maven/Gradle。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>不可变 DTO</strong>：入参出参用 <code>record</code> 替代手写 getter/setter，减少样板。</li>
-    <li><strong>集合处理</strong>：把需求按状态分组、按处理人聚合，用 Stream 替代多层 for 循环。</li>
-    <li><strong>异常分层</strong>：业务异常 <code>BizException</code> 抛出，全局处理器统一转错误结构，不把栈信息抛给前端。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>// 出参不可变记录
-public record ReqVO(Long id, String title, String status, String assigneeName) {}
-
-// 按状态分组聚合，替代多层 for
-Map&lt;String, List&lt;ReqVO&gt;&gt; byStatus = list.stream()
-    .collect(Collectors.groupingBy(ReqVO::status));
-
-// 业务异常 → 全局处理
-if (req == null) throw new BizException("需求不存在", 40004);</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>自动拆箱 NPE</strong>：<code>Integer</code> 状态值为 null 时直接 <code>==</code> 比较拆箱 NPE——改 <code>Objects.equals(a,b)</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>equals 写反</strong>：用可能为 null 的变量调 <code>.equals()</code> 空指针——常量或枚举放前面。</li>
-    <li><span class="tag-point">要点</span><strong>Stream 别滥用</strong>：简单循环里硬套 Stream 反而难读，只在分组/映射/过滤时用。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>用 record + Stream 后，单个需求列表接口的 DTO 转换代码行数下降约一半（估算），可读性提升。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>接口出入参随 OpenAPI 文档与前端对齐字段名，DTO 一改就同步文档，避免前后端字段名不一致返工。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>空安全优先</strong>：所有外部入参先判空，业务异常集中抛。</li>
-    <li><strong>不可变优先</strong>：DTO 用 record，减少可变状态。</li>
-  </ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 后端用 Java 17，实践中常采用 record 简化 DTO、Stream 做分组聚合，并把异常统一到全局处理器，踩过自动拆箱 NPE 后养成了空安全习惯。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 == 与 equals：Integer 缓存坑</h3>
-  <p class="lead"><b>一句话定位</b>：<code>==</code> 比地址，值比较永远用 <code>equals()</code>——<code>Integer</code> 对 -128~127 做了缓存。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>Integer a=127,b=127; a==b</code> 为 true；但 <code>a=200,b=200</code> 为 false。</li>
-    <li><strong>原因</strong>：<code>Integer</code> 对 <code>-128~127</code> 缓存复用，超出范围每次 new 新对象。</li>
-    <li><strong>正解</strong>：值比较用 <code>equals()</code>（或拆箱成 int 再比）。</li>
-  </ul>
-  <p class="pit-sentence">面试高频：equals 与 hashCode 必须同时重写——只重写 equals，对象进 HashMap/HashSet 后按 hashCode 散列错位、找不到。</p>
-  <h3>6.2 ConcurrentModificationException：边遍历边删</h3>
-  <p class="lead"><b>一句话定位</b>：for-each 里 <code>list.remove()</code> 会抛并发修改异常——要用 <code>removeIf</code>。</p>
-  <ul>
-    <li><strong>现象</strong>：for-each 遍历 List 时调 <code>list.remove()</code>，抛并发修改异常。</li>
-    <li><strong>原因</strong>：for-each 底层是 Iterator，它有 expectedModCount 校验，手动 remove 让 modCount 对不上。</li>
-    <li><strong>正解</strong>：用 <code>Iterator.remove()</code>，或 Java 8+ 直接 <code>list.removeIf(r -> r.isX())</code>。</li>
-  </ul>
-  <h3>6.3 异常吞噬：catch 了却什么都不做</h3>
-  <p class="lead"><b>一句话定位</b>：<code>catch(Exception e){}</code> 吞掉异常 = 丢掉唯一现场，线上最难查。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>try{...}catch(Exception e){}</code>，线上出问题时日志一片空白。</li>
-    <li><strong>原因</strong>：吞掉异常等于丢掉了唯一的现场信息。</li>
-    <li><strong>正解</strong>：要么 <code>throw new BizException(msg, e)</code> 带上 cause 往上抛，要么至少 <code>log.error("xxx 失败", e)</code>。</li>
-  </ul>
-  <h3>6.4 Stream 的两个隐蔽坑</h3>
-  <p class="lead"><b>一句话定位</b>：流只能消费一次；lambda 里不能修改外部可变变量。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>流只能消费一次</strong>：terminal 后流水线关闭，复用同一 Stream 抛 <code>IllegalStateException</code>，需要时重新 <code>collection.stream()</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>lambda 里改外部变量</strong>：lambda 捕获的局部变量必须 final/等效 final；累加计数用 <code>mapToInt().sum()</code> 或 <code>summingInt</code>，别写 <code>int count=0; forEach(x->count++)</code>（编译不过且线程不安全）。</li>
-  </ul>
-  <h3>6.5 自动装箱的性能与 NPE</h3>
-  <p class="lead"><b>一句话定位</b>：<code>Integer i=null; int j=i;</code> 拆箱时对 null 调 <code>.intValue()</code> 直接 NPE。</p>
-  <ul>
-    <li><strong>现象</strong>：<code>Integer i=null; int j=i;</code> 抛 NPE。</li>
-    <li><strong>原因</strong>：基本类型与包装类型混用，自动拆箱在 null 上爆炸。</li>
-    <li><strong>正解</strong>：DTO 里可能为空的数值用包装类型、计算前判空；热点循环避免反复装箱，用 <code>LongAdder</code> 或 <code>mapToLong</code>。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 == 与 equals：Integer 缓存坑</h3>
+  <p><strong>现象</strong>：<code>Integer a=127,b=127; a==b</code> true，但 <code>a=200,b=200</code> false。<strong>原因</strong>：Integer 对 -128~127 缓存复用，超出每次 new。<strong>正解</strong>：值比较永远 equals 或拆箱比。<span class="tag-pit">面试高频</span>：equals 与 hashCode 必须同时重写（4.1）。</p>
+
+  <h3>7.2 ConcurrentModificationException：边遍历边删</h3>
+  <p><strong>原因</strong>：for-each 底层 Iterator 有 expectedModCount 校验，手动 remove 对不上。<strong>正解</strong>：<code>list.removeIf(r -&gt; r.isX())</code> 或 Iterator.remove()。</p>
+
+  <h3>7.3 异常吞噬</h3>
+  <p><strong>现象</strong>：catch(Exception e){}，线上出问题日志空白。<strong>正解</strong>：要么 throw new BizException(msg, e) 带 cause，要么至少 log.error("xxx 失败", e)。</p>
+
+  <h3>7.4 Stream 两个隐蔽坑</h3>
+  <p><strong>流只能消费一次</strong>：terminal 后流水线关闭，复用抛 IllegalStateException——重新 collection.stream()；<strong>lambda 改外部变量</strong>：捕获变量必须等效 final，累加用 mapToInt().sum()，别写 forEach(x-&gt;count++)。</p>
+
+  <h3>7.5 自动装箱的性能与 NPE</h3>
+  <p><code>Integer i=null; int j=i;</code> 拆箱 NPE。<strong>正解</strong>：DTO 可能空的数值用包装类型、计算前判空；热点循环避免反复装箱（LongAdder/mapToLong）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：== 与 equals 的区别？Integer 缓存坑是怎么回事？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<code>==</code> 对基本类型比值、对引用类型比<strong>对象地址</strong>；<code>equals()</code> 默认也是比地址，但 String/Integer 已重写为<strong>比内容</strong>——业务对象必须同时重写 equals 与 hashCode（只重写 equals，进 HashMap 后按 hashCode 散列错位找不到）。<strong>缓存坑</strong>：Integer 对 -128~127 缓存复用，<code>a=127,b=127; a==b</code> true、200 时 false——所以<strong>值比较永远用 equals 或拆箱</strong>，另注意拆箱 null 直接 NPE（用 Objects.equals 规避）。</p>
+
+  <p><strong>Q2：HashMap 的底层结构？为什么并发环境用 ConcurrentHashMap？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>数组+链表+红黑树</strong>：hash 定位数组桶，冲突挂链表，链表长度 ≥8 且数组长度 ≥64 转红黑树防退化 O(n)，负载因子 0.75、扩容 2 倍重散列。HashMap 线程不安全——并发 put 可能丢数据/死循环；<strong>ConcurrentHashMap</strong> JDK8 起 CAS + synchronized 锁单个桶头节点，粒度细并发好；<code>Hashtable</code> 方法级全表锁是 JDK 1.0 遗留——<strong>并发场景一律 ConcurrentHashMap</strong>。选型心智：顺序 List、去重 Set、按键查 Map、并发用并发容器。</p>
+
+  <p><strong>Q3：泛型擦除是什么？带来哪些限制？record 适合什么场景？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>泛型只存在于编译期</strong>，编译后被擦除——<code>List&lt;String&gt;</code> 与 <code>List&lt;Integer&gt;</code> 字节码里是同一个 List；运行期拿不到泛型参数（不能 new T()、不能 instanceof List&lt;String&gt;），它的价值是编译期约束容器类型、消灭 ClassCastException。通配符 <strong>PECS</strong>：Producer-Extends（上界只读）、Consumer-Super（下界只写）。<strong>record</strong>：一行声明不可变数据载体（自动生成构造器/访问器/equals/hashCode/toString），适合 DTO/VO——<strong>不适合 JPA 实体</strong>（要无参构造+setter 可变）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>字节码与 JIT？为什么服务要预热？</li>
+    <li>== 与 equals？hashCode 契约？</li>
+    <li>HashMap 结构与转红黑树条件？并发容器选型？</li>
+    <li>擦除的限制？PECS 是什么？</li>
+    <li>Stream 两个隐蔽坑？异常吞噬为什么致命？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>Oracle Java 语言规范与 JDK 文档（Java 17）：<a href="https://docs.oracle.com/en/java/javase/17/" rel="noopener">docs.oracle.com/en/java/javase/17</a></li>
-    <li>OpenJDK 官方源码与构建：<a href="https://openjdk.org/" rel="noopener">openjdk.org</a></li>
-    <li>Java 教程（Oracle 官方 Trail）：<a href="https://dev.java/learn/" rel="noopener">dev.java/learn</a></li>
+    <li>Oracle JDK 17 文档：<a href="https://docs.oracle.com/en/java/javase/17/" rel="noopener">docs.oracle.com/en/java/javase/17</a>；dev.java/learn；OpenJDK：openjdk.org</li>
+    <li>《Effective Java（第3版）》——集合/equals/hashCode/异常每条都是 review 判据；《Java 核心技术》系统补语法。</li>
   </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《Effective Java（第 3 版）》（Joshua Bloch）——Java 工程实践圣经，集合、equals/hashCode、异常、泛型每条都是面试与 code review 的判据。</li>
-    <li>《Java 核心技术（Core Java，卷一/卷二）》（Cay S. Horstmann）——系统补语法与标准库的正典。</li>
-  </ul>
-  <h3>实战参考</h3>
-  <ul>
-    <li>Baeldung（Java/Spring 高质量实操文章，按主题检索）：<a href="https://www.baeldung.com/" rel="noopener">baeldung.com</a></li>
-    <li>《Java 编程的智慧》（王垠，在线免费）——对语言设计取舍的批判性视角，适合有了工程经验后读：<a href="https://www.yinwang.org/" rel="noopener">yinwang.org</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>复现 Integer 127/200 缓存坑与拆箱 NPE；用 removeIf 修复边遍历边删；</li>
+    <li>用 Stream 重写一段双层 for 分组统计（groupingBy + counting）；</li>
+    <li>把一个手写 getter/setter 的 DTO 改成 record，观察 equals/hashCode 自动生成。</li>
+  </ol>
 </section>
 
 </main>
