@@ -548,25 +548,26 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：索引优化就是回答三个问题——这条 SQL 用没用上索引？回表多不多？分页是不是在越界扫描？</p>
-  <ul>
-    <li><strong>核心三问</strong>：用没用索引 → 回表次数 → 分页是否越界扫描。</li>
-    <li><strong>它解决什么</strong>：数据量一大，违反最左前缀、大量回表、深分页 offset 巨大，会让查询从毫秒退化到秒级。</li>
-  </ul>
-  <h3>横向对比：索引生效 vs 失效的典型写法（联合索引 a,b,c）</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：索引优化的三个问题</h3>
+  <p><strong>索引优化就是回答三个问题</strong>——①这条 SQL <strong>用没用上索引</strong>？②<strong>回表多不多</strong>？③<strong>分页是不是在越界扫描</strong>？数据量一大，违反最左前缀、大量回表、深分页 offset 巨大，会让查询从毫秒退化到秒级。</p>
+
+  <h3>1.2 横向对比：索引生效 vs 失效的典型写法（联合索引 a,b,c）</h3>
   <table>
     <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
     <thead><tr><th>查询条件</th><th>是否走索引</th><th>说明</th></tr></thead>
@@ -574,11 +575,107 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>WHERE a=? AND b=? AND c=?</td><td>全列用上</td><td>最左前缀完整命中</td></tr>
       <tr><td>WHERE a=? AND b=?</td><td>用到 a,b</td><td>截断在最左连续列</td></tr>
       <tr><td>WHERE b=? AND c=?（缺 a）</td><td>用不上</td><td>跳过最左列，B+树无法定位</td></tr>
-      <tr><td>WHERE a=? AND c=?（缺中间 b）</td><td>只用 a</td><td>跳过中间列，其后列在索引中不再有序</td></tr>
-      <tr><td>WHERE a=? AND b LIKE '%x'</td><td>只用 a</td><td>'%x' 是前导通配，b 列无法做索引定位；后导通配 'x%' 才可范围扫</td></tr>
+      <tr><td>WHERE a=? AND c=?（缺中间 b）</td><td>只用 a</td><td>跳过中间列，其后列不再有序</td></tr>
+      <tr><td>WHERE a=? AND b LIKE '%x'</td><td>只用 a</td><td>'%x' 前导通配无法定位；'x%' 后导才可范围扫</td></tr>
       <tr><td>WHERE LEFT(a,1)=?</td><td>用不上</td><td>对索引列套函数，索引失效</td></tr>
     </tbody>
   </table>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>背下<strong>失效场景清单</strong>（最左前缀/套函数/隐式转换/前导模糊/OR）；</li>
+    <li>会用<strong>覆盖索引</strong>消回表、<strong>ICP</strong> 减回表；</li>
+    <li>掌握<strong>深分页三方案</strong>（offset/延迟关联/游标）；</li>
+    <li>建立<strong>慢查询闭环</strong>（日志→EXPLAIN→改→验证）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 MySQL（B+树/回表）。<strong>难度</strong>：★★★★☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>最左前缀</strong>→ <strong>失效写法</strong>→ <strong>回表与覆盖索引</strong>→ <strong>ICP</strong>→ <strong>深分页三方案</strong>→ <strong>慢查询流程与优化器</strong>。</p>
+
+  <h3>2.1 最左前缀：断点即失效</h3>
+  <p>联合索引 (a,b,c) 按 a→b→c 排序，查询必须<strong>从最左列连续使用</strong>才能定位；中间断了（跳过 b 只查 a,c），断掉之后的列用不上——"索引为什么没生效"的第一原因。</p>
+
+  <h3>2.2 失效写法清单</h3>
+  <p>除跳最左列外：①<strong>套函数/计算</strong> WHERE DATE(create_time)=…；②<strong>隐式类型转换</strong> varchar 列用数字查；③<strong>前导模糊</strong> LIKE '%x'；④<strong>OR 连接非索引列</strong>——都让优化器放弃索引走全表。</p>
+
+  <h3>2.3 回表与覆盖索引</h3>
+  <p>查询要的列都在某个二级索引里就免回表——Extra 出现 <span class="tag-key">Using index</span>；<strong>经典优化</strong>：把高频查询列并进联合索引形成覆盖索引。</p>
+
+  <h3>2.4 索引下推（ICP）</h3>
+  <p>MySQL 5.6+ 在<strong>索引遍历过程中先过滤</strong>不满足条件的行，减少回表次数——Extra 出现 <code>Using index condition</code> 即 ICP 生效。</p>
+
+  <h3>2.5 深分页三方案</h3>
+  <p><strong>offset</strong>：limit 100000,20 先扫描丢弃前 10 万行——越翻越慢；<strong>延迟关联</strong>：先在覆盖索引上定位 20 个主键再回表取整行；<span class="tag-key">游标（seek）</span>：记住上一页最后位置，<code>WHERE id &gt; ? LIMIT 20</code>——深翻也稳定快，代价不支持跳页。</p>
+
+  <h3>2.6 慢查询流程与优化器</h3>
+  <p>标准入口：<strong>慢查询日志 → EXPLAIN → 定位 → 改</strong>——先有清单再逐条分析不凭感觉。优化器按成本估算选索引有时选错——先 ANALYZE TABLE 更新统计信息；<span class="tag-pit">FORCE INDEX</span> 慎用——绕过优化器，数据分布变化后可能反而变慢。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：时间+状态组合索引</h3>
+<pre class="code" data-lang="sql"><code>-- 大屏告警按"时间范围 + 状态"筛：status 等值、create_time 范围
+-- 索引列顺序：等值列在前、范围列在后
+KEY idx_status_time (status, create_time)
+
+SELECT * FROM t_alert
+WHERE status = 'OPEN' AND create_time BETWEEN '2026-10-01' AND '2026-10-06'
+ORDER BY create_time DESC LIMIT 20;</code></pre>
+  <div class="note"><span class="tag-key">等值列在前、范围列在后</span>——把范围列放前面，它之后的列就用不上索引了。</div>
+
+  <h3>3.2 场景二：覆盖索引免回表</h3>
+<pre class="code" data-lang="sql"><code>-- 列表只要 id、title、status、create_time，全放进索引：
+KEY idx_list (status, create_time, id, title)
+-- Extra 出现 Using index：直接从索引拿，不回聚簇索引。</code></pre>
+
+  <h3>3.3 场景三：深分页改写</h3>
+<pre class="code" data-lang="sql"><code>-- 慢：直接 limit 100000,20，先扫 10 万行
+SELECT * FROM t_alert ORDER BY id LIMIT 100000, 20;
+
+-- 快：延迟关联——先在覆盖索引上定位 20 个主键，再回表
+SELECT a.* FROM t_alert a
+JOIN (SELECT id FROM t_alert ORDER BY id LIMIT 100000, 20) t
+ON a.id = t.id;
+
+-- 更好：游标分页——记住上一页最后 id=888，从它后面开始
+SELECT * FROM t_alert WHERE id &lt; 888 ORDER BY id DESC LIMIT 20;
+-- 无论翻到第几页都是一次定位，耗时稳定。</code></pre>
+
+  <h3>3.4 场景四：慢查询分析闭环</h3>
+  <ol>
+    <li><strong>发现</strong>：慢查询日志给出可疑 SQL；</li>
+    <li><strong>看计划</strong>：EXPLAIN 看 type 是否 ALL、key 是否 NULL、rows 多大；</li>
+    <li><strong>定位</strong>：没走索引？回表太多？还是深分页？</li>
+    <li><strong>改并验证</strong>：改索引/SQL 后再 EXPLAIN + 实测对比——<strong>先测量再动手，改完必须验证</strong>。</li>
+  </ol>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：失效清单与深分页已会。</p>
+
+  <h3>4.1 EXPLAIN 字段速查与 type 等级</h3>
+  <p>type 从好到差：<strong>const &gt; eq_ref &gt; ref &gt; range &gt; index &gt; ALL</strong>——至少优化到 range；key/rows/Extra 组合判读；MySQL 8.0 <strong>EXPLAIN ANALYZE</strong> 显示真实执行耗时（估值变实测）。</p>
+
+  <h3>4.2 索引的成本模型</h3>
+  <p>优化器按"扫描行数 × IO/内存成本"估算选路——统计信息过期（大变动后未 ANALYZE）会选错索引；<strong>区分度</strong>（基数/行数）决定索引价值：性别列区分度低索引意义小，联合索引把区分度高的放前面。</p>
+
+  <h3>4.3 前缀索引与索引长度</h3>
+  <p>长字符串列用 <code>KEY idx (col(n))</code> 前缀索引省空间——代价是无法覆盖索引与排序；用"不同前缀长度的区分度曲线"选 n；VARCHAR 长度也影响单页键数与树高。</p>
+
+  <h3>4.4 order by 与 filesort</h3>
+  <p>排序列与索引顺序一致则免排序（索引天然有序）；不一致触发 filesort（Extra 警示）——排序内存不足还落盘 temporary；<strong>联合索引把等值+排序一起设计</strong>：where 等值列 + order by 列按序排列。</p>
+
+  <h3>4.5 在线 DDL 与大表变更</h3>
+  <p>MySQL 8.0 大多 ALTER 走 INPLACE 不锁表（INSTANT 加列秒级）；大表加索引仍要低峰执行并盯主从延迟；变更前 <strong>pt-online-schema-change/gh-ost</strong> 是传统方案——"索引变更在低峰上线"的工程依据。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="索引生效与失效对比图">
       <defs>
@@ -587,15 +684,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">索引什么时候生效、什么时候失效？（示意）</text>
-
-      <!-- 生效 -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">✅ 索引生效</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">从最左列开始连续使用：a=? / a=? and b=? / a=? and b=? and c=?</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">后导通配 LIKE 'x%'、索引列不套函数</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#047857">B+树快速定位，扫描行数少</text>
-
-      <!-- 失效 -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">❌ 索引失效</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">跳过最左列：where b=? / where c=?</text>
@@ -618,31 +711,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="130" y="135" text-anchor="middle" font-size="12.5" fill="#047857">真正要的 20 行</text>
       <text x="400" y="175" text-anchor="middle" font-size="13" fill="#4f6348">offset 越大，前面白白扫描丢弃的行越多 → 越翻越慢。</text>
     </svg>
-    <p class="diagram-caption">图 1 深分页 offset 的浪费：扫描在前、丢弃在前（示意）</p>
+    <p class="diagram-caption">图 2 深分页 offset 的浪费：扫描在前、丢弃在前（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 最左前缀原则</h3>
-  <p class="lead"><b>一句话定位</b>：联合索引 <code>(a,b,c)</code> 按 a→b→c 排序，查询必须从最左列连续使用才能定位。</p>
-  <ul>
-    <li><strong>断点即失效</strong>：中间断了（如跳过 b 只查 a,c），断掉之后的列就用不上索引。</li>
-    <li><strong>地位</strong>：这是"索引为什么没生效"的第一原因。</li>
-  </ul>
-  <h3>2.2 索引失效的常见写法</h3>
-  <p class="lead"><b>一句话定位</b>：除了跳过最左列，套函数、隐式转换、前导模糊、OR 都让优化器放弃索引走全表。</p>
-  <ul>
-    <li><strong>套函数/计算</strong>：<code>WHERE DATE(create_time)=...</code>。</li>
-    <li><strong>隐式类型转换</strong>：phone 是 varchar 却 <code>WHERE phone=13800000000</code>。</li>
-    <li><strong>前导模糊</strong>：<code>LIKE '%x'</code>。</li>
-    <li><strong>OR 连接非索引列</strong>。</li>
-  </ul>
-  <h3>2.3 回表与覆盖索引</h3>
-  <p class="lead"><b>一句话定位</b>：查询要的列都在某个二级索引里就不用回表——Extra 出现 <code>Using index</code> 即是。</p>
-  <ul>
-    <li><strong>经典优化</strong>：把高频查询列并进联合索引形成覆盖索引。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 170" role="img" aria-label="回表与覆盖索引对比图">
       <defs>
@@ -651,53 +721,19 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">回表 vs 覆盖索引（示意）</text>
-
-      <!-- 回表 -->
       <rect x="30" y="45" width="350" height="110" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">需要回表</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">二级索引查到主键 → 再回聚簇索引查整行</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">多一次 B+树查找，性能差</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#b45309">Extra: 没有 Using index</text>
-
-      <!-- 覆盖索引 -->
       <rect x="420" y="45" width="350" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">覆盖索引（免回表）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">查询要的列，二级索引里全都有</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">直接从索引拿数据，不用回表</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">Extra: Using index（性能好）</text>
     </svg>
-    <p class="diagram-caption">图 2 回表 vs 覆盖索引（示意）</p>
+    <p class="diagram-caption">图 3 回表 vs 覆盖索引（示意）</p>
   </div>
-  <h3>2.4 索引下推（ICP, Index Condition Pushdown）</h3>
-  <p class="lead"><b>一句话定位</b>：MySQL 5.6+ 在索引遍历过程中就先过滤掉不满足条件的行，减少回表次数。</p>
-  <ul>
-    <li><strong>标志</strong>：Extra 里 <code>Using index condition</code> 就是 ICP 生效。</li>
-  </ul>
-  <h3>2.5 深分页与延迟关联</h3>
-  <p class="lead"><b>一句话定位</b>：<code>limit 100000,20</code> 要先扫描丢弃前 10 万行——延迟关联先用覆盖索引定位主键再回表。</p>
-  <ul>
-    <li><strong>做法</strong>：先在覆盖索引上查这 20 行的主键，再拿主键回表取整行。</li>
-  </ul>
-  <h3>2.6 游标（seek）分页</h3>
-  <p class="lead"><b>一句话定位</b>：记住"上一页最后一条位置"，下一页 <code>WHERE id &gt; ? LIMIT 20</code>，深翻也稳定快。</p>
-  <ul>
-    <li><strong>代价</strong>：不支持跳页。</li>
-  </ul>
-  <h3>2.7 慢查询日志与分析流程</h3>
-  <p class="lead"><b>一句话定位</b>：开启 slow_query_log 记录超阈值 SQL，用 EXPLAIN 定位——先有清单再逐条分析，不凭感觉猜。</p>
-  <ul>
-    <li><strong>标准入口</strong>：慢查询日志 → EXPLAIN → 定位 → 改。</li>
-  </ul>
-  <h3>2.8 优化器的索引选择</h3>
-  <p class="lead"><b>一句话定位</b>：优化器估算成本选索引，有时会选错——先 ANALYZE TABLE 更新统计信息。</p>
-  <ul>
-    <li><strong>FORCE INDEX</strong>：可强制，但要谨慎——它绕过优化器，数据分布变化后可能反而变慢。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 慢查询分析的标准流程</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="慢查询分析流程图">
       <defs>
@@ -722,139 +758,103 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="705" y="102" text-anchor="middle" font-size="11" fill="#4f6348">再 EXPLAIN 验证</text>
       <text x="400" y="155" text-anchor="middle" font-size="13" fill="#4f6348">原则：先测量、再动手；改完必须用 EXPLAIN + 实测耗时验证，不能"改了就算优化"。</text>
     </svg>
-    <p class="diagram-caption">图 2 慢查询从发现到验证的闭环（示意）</p>
+    <p class="diagram-caption">图 4 慢查询从发现到验证的闭环（示意）</p>
   </div>
-  <ol>
-    <li><strong>发现</strong>：慢查询日志给出可疑 SQL。</li>
-    <li><strong>看计划</strong>：EXPLAIN 看 type 是否 ALL、key 是否 NULL、rows 多大。</li>
-    <li><strong>定位</strong>：是没走索引？回表太多？还是深分页？</li>
-    <li><strong>改并验证</strong>：加/改索引、改 SQL，再 EXPLAIN + 实测对比耗时。</li>
-  </ol>
+  <p><strong>读图要点</strong>：①图 1 失效清单是面试高频背诵点；②图 2 深分页的本质——<strong>扫描在前、丢弃在前</strong>，offset 越大浪费越大；③图 4 闭环纪律——先测量再动手、改完必验证。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 时间+状态组合索引（告警查询）</h3>
-<pre class="code" data-lang="sql"><code>-- 大屏告警常按"时间范围 + 状态"筛：create_time 范围、status 等值
--- 建索引时等值列在前、范围列在后：
-KEY idx_status_time (status, create_time)
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——电力大屏历史告警（百万~千万行估算）：我负责告警查询的慢 SQL 分析、索引设计与分页方式改造；大屏与运维要查最近告警并翻页。</p>
 
--- 查询：status 等值精确定位，再在 create_time 上范围扫
-SELECT * FROM t_alert
-WHERE status = 'OPEN' AND create_time BETWEEN '2026-10-01' AND '2026-10-06'
-ORDER BY create_time DESC LIMIT 20;</code></pre>
-  <div class="note">索引列顺序讲究：<strong>等值条件列放前面，范围条件列放后面</strong>。把范围列(create_time)放前面，它之后的列就用不上索引了。</div>
-  <h3>4.2 覆盖索引免回表</h3>
-<pre class="code" data-lang="sql"><code>-- 列表只要 id、title、status、create_time，把它们都放进索引：
-KEY idx_list (status, create_time, id, title)
--- Extra 出现 Using index：查这几列直接从索引拿，不回聚簇索引整行。</code></pre>
-  <h3>4.3 深分页：延迟关联</h3>
-<pre class="code" data-lang="sql"><code>-- 慢：直接 limit 100000,20，先扫 10 万行
-SELECT * FROM t_alert ORDER BY id LIMIT 100000, 20;
-
--- 快：先在覆盖索引上定位 20 个主键，再回表
-SELECT a.* FROM t_alert a
-JOIN (SELECT id FROM t_alert ORDER BY id LIMIT 100000, 20) t
-ON a.id = t.id;</code></pre>
-  <h3>4.4 游标分页（更好）</h3>
-<pre class="code" data-lang="sql"><code>-- 记住上一页最后一条的 id，下一页从它后面开始，不扫前面
--- 第一页：ORDER BY id DESC LIMIT 20
--- 第二页（假设上一页最后 id=888）：
-SELECT * FROM t_alert WHERE id &lt; 888 ORDER BY id DESC LIMIT 20;
--- 无论翻到第几页，都是一次定位，耗时稳定。</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：电力大屏历史告警数据量大，按"时间范围 + 告警状态"组合查询与列表深分页逐渐变慢。</p>
-  <ul><li><strong>业务量级</strong>：告警表随时间累积到百万~千万行（估算），大屏与运维要查最近告警并翻页。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：负责告警查询的慢 SQL 分析、索引设计与分页方式改造。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：MySQL InnoDB + 应用层；慢查询日志 + explain 作为分析工具。</li></ul>
-  <h3>4 落地设计</h3>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>组合索引</strong>：为"时间范围 + 状态"建联合索引，让常用过滤命中。</li>
-    <li><strong>覆盖索引</strong>：列表只取几列时，让索引覆盖查询，避免回表。</li>
-    <li><strong>深分页</strong>：<code>LIMIT 100000,20</code> 翻页慢，改游标/延迟关联。</li>
+    <li><strong>组合索引</strong>："时间范围+状态"联合索引让常用过滤命中；</li>
+    <li><strong>覆盖索引</strong>：列表只取几列时索引覆盖查询免回表；</li>
+    <li><strong>深分页</strong>：LIMIT 100000,20 翻页慢改游标/延迟关联。</li>
   </ul>
-  <h3>5 关键实现要点</h3>
 <pre class="code" data-lang="sql"><code>-- 组合索引：(level, ts) 命中"按级别过滤 + 时间范围"
 SELECT id, ts, level, title
 FROM alarm
 WHERE level = ? AND ts &gt;= ? AND ts &lt; ?
 ORDER BY ts DESC LIMIT 20;
 
--- 深分页：游标分页（记住上一页最后一条 ts/id），避免 OFFSET 扫大量行
+-- 深分页：游标分页（记住上一页最后一条 ts/id）
 WHERE (ts, id) &lt; (?, ?) ORDER BY ts DESC, id DESC LIMIT 20;</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>深分页越翻越慢</strong>：<code>LIMIT 100000,20</code> 要先扫前 10 万行再丢弃——改游标分页，翻到后面耗时稳定。</li>
-    <li><span class="tag-pit">坑</span><strong>order by 不在索引</strong>：filesort 拖慢——把排序列纳入索引顺序。</li>
-    <li><span class="tag-point">要点</span><strong>索引下推 ICP</strong>：回表前先用索引列过滤，减少回表行数。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>告警组合查询走索引后由全表扫降到毫秒级；深分页翻到靠后页从约数百毫秒级（估算）稳定到几十毫秒级。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>慢查询从慢日志定位，与前端确认是否真需要翻深页（否则加时间范围收敛）；索引变更在低峰上线。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>先 explain 再优化</strong>：不凭感觉加索引。</li><li><strong>深分页用游标</strong>：OFFSET 深翻是已知坑。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"大屏告警表我按时间+状态建联合索引、用覆盖索引减少回表，并把深分页从 OFFSET 改游标分页，靠 explain 定位全表扫和 filesort。"</p>
 
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 违反最左前缀</h3>
-  <p class="lead"><b>一句话定位</b>：建了联合索引，查询却没命中——where 条件要从最左列连续写起。</p>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>正解</strong>：where 条件从最左列连续写起；范围列放联合索引最后。</li>
+    <li><span class="tag-pit">坑</span><strong>深分页越翻越慢</strong>：LIMIT 100000,20 先扫前 10 万行再丢——改游标分页后翻到后面耗时稳定；</li>
+    <li><span class="tag-pit">坑</span><strong>order by 不在索引</strong>：filesort 拖慢——把排序列纳入索引顺序；</li>
+    <li><span class="tag-point">要点</span><strong>索引下推 ICP</strong>：回表前先用索引列过滤减少回表行数。</li>
   </ul>
-  <h3>6.2 对索引列套函数/运算</h3>
-  <p class="lead"><b>一句话定位</b>：<code>WHERE DATE(create_time)=...</code>、<code>WHERE id+1=10</code>——索引列被包起来就失效。</p>
-  <ul>
-    <li><strong>正解</strong>：改写成范围比较或不包函数，让列本身裸出现在条件里。</li>
-  </ul>
-  <h3>6.3 隐式类型转换导致失效</h3>
-  <p class="lead"><b>一句话定位</b>：varchar 列用数字查，索引失效。</p>
-  <ul>
-    <li><strong>正解</strong>：查询值类型与列类型一致。</li>
-  </ul>
-  <h3>6.4 回表过多却没建覆盖索引</h3>
-  <p class="lead"><b>一句话定位</b>：走了二级索引但还要大量回表，仍慢。</p>
-  <ul>
-    <li><strong>正解</strong>：把高频查询列并进联合索引，让它成为覆盖索引（Extra: Using index）。</li>
-  </ul>
-  <h3>6.5 深分页用大 offset</h3>
-  <p class="lead"><b>一句话定位</b>：翻页越翻越慢——能游标分页就游标，必须跳页用延迟关联。</p>
-  <ul>
-    <li><strong>正解</strong>：能游标分页就游标；必须跳页用延迟关联。</li>
-  </ul>
-  <h3>6.6 盲目加索引 / 从不看执行计划</h3>
-  <p class="lead"><b>一句话定位</b>：索引不是越多越好——每个索引都拖慢写入、占空间。</p>
-  <ul>
-    <li><strong>正解</strong>：先 EXPLAIN 确认瓶颈，再针对性建/改索引，定期清理无用索引。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：告警组合查询由全表扫降到毫秒级；深分页靠后页从约数百毫秒稳定到几十毫秒（估算）；</li>
+    <li><strong>协作</strong>：与前端确认是否真需要翻深页（否则加时间范围收敛）；索引变更低峰上线；</li>
+    <li><strong>可复用经验</strong>：先 explain 再优化不凭感觉加索引；深分页用游标。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 违反最左前缀</h3>
+  <p><strong>正解</strong>：where 条件从最左列连续写起；范围列放联合索引最后。</p>
+
+  <h3>7.2 对索引列套函数/运算</h3>
+  <p><strong>现象</strong>：WHERE DATE(create_time)=…、WHERE id+1=10。<strong>正解</strong>：改写成范围比较，让列本身裸出现在条件里。</p>
+
+  <h3>7.3 隐式类型转换</h3>
+  <p><strong>现象</strong>：varchar 列用数字查索引失效。<strong>正解</strong>：查询值类型与列类型一致。</p>
+
+  <h3>7.4 回表过多没建覆盖索引</h3>
+  <p><strong>现象</strong>：走了二级索引仍慢。<strong>正解</strong>：高频查询列并进联合索引（Extra: Using index）。</p>
+
+  <h3>7.5 深分页大 offset</h3>
+  <p><strong>正解</strong>：能游标分页就游标；必须跳页用延迟关联。</p>
+
+  <h3>7.6 盲目加索引/不看执行计划</h3>
+  <p><strong>原因</strong>：每个索引都拖慢写入、占空间。<strong>正解</strong>：先 EXPLAIN 确认瓶颈，针对性建改索引，定期清理无用索引。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：索引失效的场景有哪些？为什么套函数就失效？</strong></p>
+  <p class="note"><strong>参考答案</strong>：五类——①<strong>违反最左前缀</strong>：跳过最左列（where b=?）或中间断点；②<strong>对索引列套函数/计算</strong>：WHERE DATE(create_time)=…；③<strong>隐式类型转换</strong>：varchar 列用数字查；④<strong>前导模糊</strong>：LIKE '%x'（后导 'x%' 可范围扫）；⑤<strong>OR 连接非索引列</strong>。<strong>套函数失效的原理</strong>：索引存的是原始列值的有序结构，DATE(col) 对每行计算后的值在索引里没有对应排序——优化器只能全表逐行算；正解是改写成范围条件（create_time &gt;= 当日零点 AND &lt; 次日零点），让列本身裸出现。</p>
+
+  <p><strong>Q2：什么是覆盖索引？为什么它重要？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>覆盖索引</strong>=查询所需的全部列都包含在某个二级索引里，直接从索引拿数据无需回聚簇索引查整行——EXPLAIN 的 Extra 出现 <strong>Using index</strong>。<strong>为什么重要</strong>：回表是"每命中一行多一次 B+树查找"，二级索引命中 N 行就要 N 次回表，列表查询回表成本远超索引本身收益；覆盖索引把 N 次回表砍成 0 次。<strong>经典做法</strong>：把高频查询列并进联合索引（如 idx_list(status, create_time, id, title)）——代价是索引变大拖慢写入，只对高频查询这么建。</p>
+
+  <p><strong>Q3：深分页为什么慢？延迟关联和游标分页分别怎么解？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>慢的根源</strong>：limit 100000,20 要先逐行扫描前 10 万行再丢弃——<strong>扫描在前、丢弃在前</strong>，offset 越大浪费越大。<strong>延迟关联</strong>：先用覆盖索引（只含主键，轻量）定位这 20 个主键，再拿主键回表取整行——白扫的部分只扫索引不回表，快一个量级；仍支持跳页。<strong>游标（seek）分页</strong>：记住上一页最后一条位置，下一页 WHERE id &lt; ? ORDER BY id DESC LIMIT 20——每页都是一次精确定位，<strong>耗时与页深无关</strong>，代价是不支持跳页。<strong>选型</strong>：连续滚动浏览（信息流/大屏列表）用游标；必须跳页用延迟关联；顺便用时间范围收敛减少数据量。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>失效五类场景？套函数失效的原理？</li>
+    <li>覆盖索引的标志？代价是什么？</li>
+    <li>ICP 解决什么？Extra 怎么看？</li>
+    <li>深分页三方案的取舍？</li>
+    <li>等值列与范围列在联合索引里怎么排？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>MySQL 8.0 索引优化与 EXPLAIN 官方手册：<a href="https://dev.mysql.com/doc/refman/8.0/en/optimization.html" rel="noopener">dev.mysql.com/doc/optimization</a></li>
-    <li>Index Condition Pushdown（ICP）官方说明：<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-index-conditions.html" rel="noopener">dev.mysql.com</a></li>
+    <li>MySQL 8.0 优化与 EXPLAIN 手册：<a href="https://dev.mysql.com/doc/refman/8.0/en/optimization.html" rel="noopener">dev.mysql.com/doc/optimization</a>；ICP 官方说明</li>
+    <li>《高性能 MySQL》——执行计划/索引策略权威；《MySQL 是怎样运行的》——面试复习通俗首选。</li>
   </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《高性能 MySQL》（Baron Schwartz）——执行计划、索引策略、深分页优化的权威参考。</li>
-    <li>《MySQL 是怎样运行的》（小孩子4919）——用通俗方式讲索引与 B+树，适合面试复习。</li>
-  </ul>
-  <h3>工具</h3>
-  <ul>
-    <li>慢查询日志与 mysqldumpslow / pt-query-digest（分析慢日志）：可搜索 "pt-query-digest"。</li>
-    <li>EXPLAIN ANALYZE（MySQL 8.0 实际执行计划）：真实测量每一步耗时。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>百万行表上逐一复现失效五场景，用 EXPLAIN 观察 type 变化；</li>
+    <li>实测 limit 100000,20 vs 延迟关联 vs 游标分页三者耗时曲线；</li>
+    <li>用 EXPLAIN ANALYZE（8.0）对比估算行数与真实耗时，体会统计信息偏差。</li>
+  </ol>
 </section>
 
 </main>

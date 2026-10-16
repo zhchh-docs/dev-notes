@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/10_SSH框架【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../08_数据库与建模/02_MySQL进阶_索引与SQL优化【深入】.html">下一篇 →</a>
 </nav>
@@ -548,26 +548,26 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：开源关系型数据库，插件式存储引擎架构；生产默认 InnoDB——支持事务、行级锁、外键。本套技术栈均用 InnoDB。</p>
-  <ul>
-    <li><strong>数据可靠</strong>：redo log/binlog 保证崩溃不丢数据。</li>
-    <li><strong>检索高效</strong>：InnoDB 通过 B+树索引把"全表扫描"变成"树查找"。</li>
-    <li><strong>读写不互堵</strong>：MVCC 让读写不互相阻塞。</li>
-  </ul>
-  <h3>横向对比：InnoDB 与 MyISAM（为什么现在都用 InnoDB）</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：插件式存储引擎的关系型数据库</h3>
+  <p><strong>MySQL = 开源关系型数据库 + 插件式存储引擎架构</strong>；生产默认 <strong>InnoDB</strong>（事务/行级锁/外键），本套技术栈均用 InnoDB。三大支柱：①<strong>数据可靠</strong>——redo log/binlog 崩溃不丢；②<strong>检索高效</strong>——B+树索引把"全表扫描"变"树查找"；③<strong>读写不互堵</strong>——MVCC 让读写不互相阻塞。</p>
+
+  <h3>1.2 横向对比：InnoDB vs MyISAM</h3>
   <table>
     <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
     <thead><tr><th>维度</th><th>InnoDB（默认）</th><th>MyISAM（已淘汰）</th></tr></thead>
@@ -578,6 +578,93 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>崩溃恢复</td><td>redo log 自动恢复</td><td>损坏恢复慢</td></tr>
     </tbody>
   </table>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立<strong>页/行格式/B+树</strong>的存储心智；</li>
+    <li>吃透<strong>聚簇/二级索引与回表</strong>（InnoDB 核心考点）；</li>
+    <li>掌握<strong>联合索引最左前缀</strong>与建表四要素（类型/字符集/引擎/主键）；</li>
+    <li>会用 EXPLAIN 验证索引。</li>
+  </ol>
+  <p><strong>前置知识</strong>：无（数据库模块地基）。<strong>难度</strong>：★★★☆☆。<strong>本篇不涉及</strong>：索引调优细节（02 篇）、事务锁（03 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>页</strong>（最小存取单位）→ <strong>行格式</strong>→ <strong>B+树</strong>→ <strong>聚簇/二级索引与回表</strong>→ <strong>最左前缀</strong>→ <strong>类型字符集与范式</strong>。</p>
+
+  <h3>2.1 页：最小存取单位</h3>
+  <p>InnoDB 按<strong>页（默认 16KB）</strong>而非按行读写磁盘——整页加载进 Buffer Pool。<span class="tag-key">推论</span>：B+树叶子是连续的页，范围查询一次读多个连续页——"顺序 IO 快、随机 IO 慢"的根因。</p>
+
+  <h3>2.2 行格式：DYNAMIC 溢出</h3>
+  <p>现代 MySQL 用 <code>DYNAMIC</code>：行放不下时把最长可变长列（VARCHAR/TEXT）<strong>整列搬到溢出页</strong>，页内只留 20 字节指针（老式 COMPACT 留 768 字节前缀）——避免一行过大撑爆页。</p>
+
+  <h3>2.3 B+树：矮胖多叉 + 叶子有序链表</h3>
+  <p>一个节点放很多索引键（树矮，3~4 层索引千万行）；<strong>数据只在叶子</strong>（非叶子只存导航键+子指针）；<strong>叶子双向链表相连</strong>——&gt;/&lt;/between 范围查询顺着链表扫。</p>
+
+  <h3>2.4 聚簇索引：主键即数据</h3>
+  <p><strong>主键索引就是数据本身</strong>——叶子直接存整行，数据按主键物理聚集；一张表只有一个聚簇索引（数据只能按一种顺序物理排列）。<span class="tag-key">推论</span>：强烈建议自增主键——顺序插入不让页频繁分裂。</p>
+
+  <h3>2.5 二级索引与回表、最左前缀</h3>
+  <p><strong>二级索引</strong>叶子存"索引列+主键值"——查到主键还要回聚簇索引查整行（<strong>回表</strong>）；查询列二级索引里都有则免回表（<strong>覆盖索引</strong>，优化关键）。<span class="tag-key">联合索引 (a,b,c)</span> 按"先 a 再 b 再 c"排序，查询必须从最左列开始：<code>where b=?</code> 用不上——"条件没走索引"的首要原因。</p>
+
+  <h3>2.6 类型、字符集与范式</h3>
+  <p>数字用整型、<strong>金额用 decimal</strong>（float 精度丢失）、时间 datetime；<span class="tag-pit">字符集必须 utf8mb4</span>——MySQL 的 utf8 是残缺 3 字节存不下 emoji；范式减冗余、<strong>反范式换性能</strong>（热点展示字段冗余省 join），设计完用 EXPLAIN 确认。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：标准建表</h3>
+<pre class="code" data-lang="sql"><code>CREATE TABLE t_requirement (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  title       VARCHAR(128)    NOT NULL COMMENT '需求标题',
+  status      VARCHAR(16)     NOT NULL DEFAULT 'DRAFT' COMMENT '状态',
+  team_id     BIGINT UNSIGNED NOT NULL COMMENT '所属团队',
+  price       DECIMAL(12,2)   NOT NULL DEFAULT 0 COMMENT '金额（不用float）',
+  create_time DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_team_status (team_id, status)          -- 联合索引
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;</code></pre>
+
+  <h3>3.2 场景二：EXPLAIN 验证执行计划</h3>
+<pre class="code" data-lang="sql"><code>EXPLAIN SELECT * FROM t_requirement WHERE team_id = 3 AND status = 'OPEN';
+-- type：const/ref 好；ALL = 全表扫描（差）
+-- key：实际用到的索引（NULL 表示没走索引）
+-- rows：预估扫描行数
+-- Extra：Using index（覆盖索引，好）；Using filesort/temporary（警惕）</code></pre>
+
+  <h3>3.3 场景三：范式与反范式取舍</h3>
+<pre class="code" data-lang="sql"><code>-- 范式：团队名单独一张表，需求只存 team_id，查名字要 join
+-- 反范式：热点列表频繁显示 team_name，冗余进需求表省 join
+ALTER TABLE t_requirement ADD COLUMN team_name VARCHAR(64) COMMENT '冗余：团队名';
+-- 代价：团队改名要同步更新冗余字段——事务或异步保证一致。</code></pre>
+  <div class="note"><strong>经验</strong>：写多读少、严格一致的核心数据走范式；读多写少、展示用字典字段适度反范式，空间换查询性能。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：B+树与回表已懂。</p>
+
+  <h3>4.1 Buffer Pool 与 LRU 变种</h3>
+  <p>Buffer Pool 是内存缓存区（读页先查池、写页先改池再刷盘）；用<strong>改良 LRU</strong>（young/old 区，新页先进 old 区停留后才进 young）——防全表扫描把热点数据冲掉。</p>
+
+  <h3>4.2 三大日志的分工</h3>
+  <p><strong>redo log</strong>（InnoDB 层，物理日志，崩溃恢复+WAL 顺序写提速）、<strong>undo log</strong>（回滚+MVCC 版本链）、<strong>binlog</strong>（Server 层，逻辑日志，主从复制+归档）——两阶段提交（redo prepare→写 binlog→redo commit）保证两日志一致。</p>
+
+  <h3>4.3 自增主键用尽与页分裂</h3>
+  <p>BIGINT 自增上限极难用尽；无序主键（UUID）插入随机落在任意页——<strong>页分裂+碎片化</strong>，写入慢空间碎；UUID 要存则用二进制或雪花 ID。</p>
+
+  <h3>4.4 count(*) 的选择与精度</h3>
+  <p>InnoDB count(*) 无缓存计数（MVCC 下"同一时刻的行数"因事务不同而不同，没有单一正确值）——大表计数走估算（EXPLAIN rows）或计数表/Redis。</p>
+
+  <h3>4.5 字段设计的长尾细节</h3>
+  <p>VARCHAR 长度按实际需要（索引长度限制与内存排序都受影响）；NULL 列影响索引与统计（建议 NOT NULL DEFAULT）；状态枚举用 tinyint+字典表比长字符串省索引空间。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="InnoDB与MyISAM对比图">
       <defs>
@@ -586,15 +673,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">为什么生产都用 InnoDB？（示意）</text>
-
-      <!-- InnoDB -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">InnoDB（默认）</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">支持事务 ACID、行级锁并发好</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">崩溃自动恢复、聚簇索引</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#047857">现在生产标配</text>
-
-      <!-- MyISAM -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">MyISAM（已淘汰）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">不支持事务、表级锁并发差</text>
@@ -624,91 +707,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="200" y="186" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">叶子节点：排好序的数据/主键</text>
       <text x="400" y="200" text-anchor="middle" font-size="11.5" fill="#7a8a70">叶子节点之间双向链表相连 → 范围查询很快；非叶子节点只存索引不存数据 → 树矮，3~4 层即可存千万行</text>
     </svg>
-    <p class="diagram-caption">图 1 B+树：矮胖、叶子有序链表相连（示意）</p>
+    <p class="diagram-caption">图 2 B+树：矮胖、叶子有序链表相连（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 页（Page）是 InnoDB 的最小存取单位</h3>
-  <p class="lead"><b>一句话定位</b>：InnoDB 按页（默认 16KB）而非按行读写磁盘——整页加载进 Buffer Pool。</p>
-  <ul>
-    <li><strong>含义</strong>：一行存在"页"里，一个页装很多行。</li>
-    <li><strong>推论</strong>：B+树叶子是连续的页，范围查询一次读多个连续页——这就是"顺序 IO 快、随机 IO 慢"的根因。</li>
-  </ul>
-  <h3>2.2 行格式（Row Format）</h3>
-  <p class="lead"><b>一句话定位</b>：现代 MySQL 用 <code>DYNAMIC</code> 行格式——超长字段溢出到"溢出页"，页里只留指针。</p>
-  <ul>
-    <li><strong>做法</strong>：行放不下时，InnoDB 把最长的可变长列（VARCHAR/TEXT）整列搬到"溢出页"，页内只留 20 字节指针（不再像老式 COMPACT 行格式那样在页内留约 768 字节前缀）。</li>
-    <li><strong>由来</strong>：避免一行过大撑爆页，这就是建表 <code>ROW_FORMAT=DYNAMIC</code> 的原因。</li>
-  </ul>
-  <h3>2.3 B+树索引结构</h3>
-  <p class="lead"><b>一句话定位</b>：InnoDB 索引用"矮胖多叉"B+树，3~4 层即可索引千万级行，数据只在叶子。</p>
-  <ul>
-    <li><strong>矮胖多叉</strong>：一个节点放很多索引键，树很矮。</li>
-    <li><strong>数据只在叶子</strong>：非叶子只存"导航键+子指针"。</li>
-    <li><strong>叶子双向链表相连</strong>：<code>&gt;/&lt;/between</code> 范围查询顺着链表扫即可。</li>
-  </ul>
-  <h3>2.4 聚簇索引（主键索引）</h3>
-  <p class="lead"><b>一句话定位</b>：InnoDB 主键索引就是数据本身——叶子节点直接存整行，数据按主键物理聚集。</p>
-  <ul>
-    <li><strong>唯一</strong>：一张表只有一个聚簇索引（数据只能按一种顺序物理排列）。</li>
-  </ul>
-  <p class="key-sentence">所以 InnoDB 表强烈建议用自增主键：顺序插入不会让页频繁分裂。</p>
-  <h3>2.5 二级索引与回表</h3>
-  <p class="lead"><b>一句话定位</b>：二级索引叶子存"索引列+主键值"，查到主键后还要回主键索引查整行——这叫回表。</p>
-  <ul>
-    <li><strong>回表</strong>：二级索引 → 拿主键 → 回聚簇索引查整行。</li>
-    <li><strong>覆盖索引</strong>：查询要的列二级索引里都有，就不用回表——这是索引优化的关键技巧。</li>
-  </ul>
-  <h3>2.6 联合索引与最左前缀</h3>
-  <p class="lead"><b>一句话定位</b>：<code>(a,b,c)</code> 按"先 a 再 b 再 c"排序，查询必须从最左列开始才能用上索引。</p>
-  <ul>
-    <li><strong>能用</strong>：<code>where a=? and b=?</code>。</li>
-    <li><strong>用不上</strong>：<code>where b=?</code>（跳过最左列）——这是"条件没走索引"的首要原因。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 170" role="img" aria-label="联合索引最左前缀原理图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">联合索引 (a, b, c) 最左前缀原则（示意）</text>
-
-      <!-- 索引结构 -->
-      <rect x="60" y="45" width="680" height="40" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="400" y="70" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">索引列顺序：a → b → c（先按 a 排，a 相同再按 b 排，b 相同再按 c 排）</text>
-
-      <!-- 能用的情况 -->
-      <rect x="60" y="100" width="330" height="55" rx="6" fill="#f0fdf4" stroke="#047857"/>
-      <text x="225" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✅ 能用索引</text>
-      <text x="225" y="142" text-anchor="middle" font-size="11" fill="#4f6348">where a=? / where a=? and b=? / where a=? and b=? and c=?</text>
-
-      <!-- 用不上的情况 -->
-      <rect x="410" y="100" width="330" height="55" rx="6" fill="#fef2f2" stroke="#dc2626"/>
-      <text x="575" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#b91c1c">❌ 用不上索引</text>
-      <text x="575" y="142" text-anchor="middle" font-size="11" fill="#4f6348">where b=? / where c=? / where b=? and c=?（跳过了 a）</text>
-    </svg>
-    <p class="diagram-caption">图 2 联合索引最左前缀原则（示意）</p>
-  </div>
-  <h3>2.7 字段类型与字符集</h3>
-  <p class="lead"><b>一句话定位</b>：建表选对类型——数字用整型、金额用 decimal、字符集统一 utf8mb4。</p>
-  <ul>
-    <li><strong>类型</strong>：能用 <code>bigint/int</code> 不用字符串存数字；金额用 <code>decimal</code> 不用 float（精度丢失）。</li>
-  </ul>
-  <p class="pit-sentence">字符集必须 <code>utf8mb4</code>——MySQL 的 utf8 是残缺 3 字节、存不下 emoji，4 字节的 utf8mb4 才是完整 UTF-8。</p>
-  <h3>2.8 范式与反范式、执行计划</h3>
-  <p class="lead"><b>一句话定位</b>：范式减冗余，反范式换性能——设计完用 EXPLAIN 确认索引真生效。</p>
-  <ul>
-    <li><strong>反范式</strong>：为查询性能冗余一些字段（如把团队名冗余进需求表，省 join）。</li>
-    <li><strong>EXPLAIN</strong>：看 type、key、rows，判断索引是否真生效。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次主键查询 vs 二级索引查询</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 260" role="img" aria-label="聚簇索引与二级索引回表示意图">
       <defs>
@@ -733,142 +733,121 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="595" y="160" text-anchor="middle" font-size="12" fill="#b45309">再拿 id 去聚簇索引查整行 = 回表</text>
       <text x="595" y="182" text-anchor="middle" font-size="11.5" fill="#7a8a70">多一次 B+树查找；覆盖索引可避免</text>
     </svg>
-    <p class="diagram-caption">图 2 主键索引直达整行；二级索引需回表（示意）</p>
+    <p class="diagram-caption">图 3 主键索引直达整行；二级索引需回表（示意）</p>
   </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 170" role="img" aria-label="联合索引最左前缀原理图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">联合索引 (a, b, c) 最左前缀原则（示意）</text>
+      <rect x="60" y="45" width="680" height="40" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="70" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">索引列顺序：a → b → c（先按 a 排，a 相同再按 b 排，b 相同再按 c 排）</text>
+      <rect x="60" y="100" width="330" height="55" rx="6" fill="#f0fdf4" stroke="#047857"/>
+      <text x="225" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">✅ 能用索引</text>
+      <text x="225" y="142" text-anchor="middle" font-size="11" fill="#4f6348">where a=? / where a=? and b=? / where a=? and b=? and c=?</text>
+      <rect x="410" y="100" width="330" height="55" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+      <text x="575" y="122" text-anchor="middle" font-size="12" font-weight="600" fill="#b91c1c">❌ 用不上索引</text>
+      <text x="575" y="142" text-anchor="middle" font-size="11" fill="#4f6348">where b=? / where c=? / where b=? and c=?（跳过了 a）</text>
+    </svg>
+    <p class="diagram-caption">图 4 联合索引最左前缀原则（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 2 B+树两特性——矮胖（3~4 层千万行）+叶子链表（范围查询快）；②图 3 是"回表"的定义图——二级索引叶子只有主键，查整行要再走一次聚簇树，<strong>覆盖索引就是为了砍掉这一步</strong>；③图 4 最左前缀——跳过最左列整个索引用不上。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统与数据编排平台业务数据落 MySQL；我参与建表与字段类型选择、为高频查询设计索引、配合慢查询排查。读多写少列表查询频繁。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><strong>字段类型</strong>：状态/枚举用短 varchar/tinyint，时间 datetime，金额 decimal 不用 float；</li>
+    <li><strong>字符集</strong>：统一 utf8mb4 避免 emoji/生僻字乱码；</li>
+    <li><strong>索引</strong>：按高频 where/order by 建联合索引，遵循最左前缀；</li>
+    <li><strong>协作</strong>：表结构与 DBA 评审；新增查询条件同步评估加索引，避免事后补。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>索引没命中</strong>：列表查询全表扫——explain 发现 type=ALL，按查询条件补联合索引后走 ref；</li>
+    <li><span class="tag-pit">坑</span><strong>隐式类型转换</strong>：字符串字段用数字去查索引失效——保持类型一致；</li>
+    <li><span class="tag-point">要点</span><strong>范式与反范式</strong>：展示用团队名高频 join，必要时冗余字段换读性能。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>查主键</strong>：在聚簇索引 B+树从根走到叶子，叶子就是整行，一次搞定。</li>
-    <li><strong>查二级索引</strong>：先在二级索引树找到目标，叶子只给了主键。</li>
-    <li><strong>回表</strong>：拿主键再去聚簇索引树查一次，才拿到整行。</li>
-    <li><strong>覆盖索引</strong>：若查询列都在二级索引里，第 3 步省略——这是优化器愿意选二级索引的原因。</li>
+    <li><strong>量化</strong>：高频列表查询补联合索引后从全表扫降到走索引（约秒级→毫秒级，随数据量估算）；</li>
+    <li><strong>可复用经验</strong>：索引跟着查询走（先有高频 SQL 再设计索引）；类型与字符集统一（utf8mb4+无隐式转换）；</li>
+    <li><strong>一句话抓手</strong>："按高频查询设计联合索引、统一 utf8mb4，靠 explain 抓全表扫补索引，列表查询从秒级优化到毫秒级。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 建表：字符集、引擎、行格式、主键</h3>
-<pre class="code" data-lang="sql"><code>CREATE TABLE t_requirement (
-  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-  title       VARCHAR(128)    NOT NULL COMMENT '需求标题',
-  status      VARCHAR(16)     NOT NULL DEFAULT 'DRAFT' COMMENT '状态',
-  team_id     BIGINT UNSIGNED NOT NULL COMMENT '所属团队',
-  price       DECIMAL(12,2)   NOT NULL DEFAULT 0 COMMENT '金额（不用float）',
-  create_time DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_team_status (team_id, status)          -- 联合索引
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;</code></pre>
-  <h3>4.2 用 EXPLAIN 看执行计划</h3>
-<pre class="code" data-lang="sql"><code>EXPLAIN SELECT * FROM t_requirement WHERE team_id = 3 AND status = 'OPEN';
--- 关注：
---   type：const/ref 好；ALL = 全表扫描（差）
---   key：实际用到的索引（NULL 表示没走索引）
---   rows：预估扫描行数
---   Extra：Using index（覆盖索引，好）；Using filesort/temporary（要警惕）</code></pre>
-  <h3>4.3 范式 vs 反范式的取舍</h3>
-<pre class="code" data-lang="sql"><code>-- 范式：团队名单独一张表，需求只存 team_id，查名字要 join
--- 反范式：热点列表频繁显示 team_name，就冗余进需求表，省一次 join
-ALTER TABLE t_requirement ADD COLUMN team_name VARCHAR(64) COMMENT '冗余：团队名';
--- 代价：团队改名时要同步更新冗余字段——用事务或异步保证一致。</code></pre>
-  <div class="note">经验：写多读少、需要严格一致的核心数据走范式；读多写少、展示用的字典字段可适度反范式冗余，以空间换查询性能。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 与数据编排平台的业务数据落在 MySQL，表设计、字段类型、索引直接决定接口性能。</p>
-  <ul><li><strong>业务量级</strong>：需求/团队/配置/权限等核心表，读多写少，列表查询频繁（估算）。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：参与建表与字段类型选择，为高频查询设计索引，配合慢查询排查。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：MySQL（InnoDB 引擎）+ MyBatis + 应用层缓存 Redis。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>字段类型</strong>：状态/枚举用短 varchar/tinyint，时间用 datetime，金额用 decimal 不用 float。</li>
-    <li><strong>字符集</strong>：统一 utf8mb4，避免 emoji/生僻字乱码。</li>
-    <li><strong>索引</strong>：按高频 where/order by 建联合索引，遵循最左前缀。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="sql"><code>CREATE TABLE t_requirement (
-  id        BIGINT PRIMARY KEY AUTO_INCREMENT,
-  title     VARCHAR(128) NOT NULL,
-  status    VARCHAR(16)  NOT NULL,
-  team_id   BIGINT       NOT NULL,
-  create_time DATETIME   NOT NULL,
-  KEY idx_status_team (status, team_id)   -- 高频按状态+团队查
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>索引没命中</strong>：列表查询全表扫——explain 发现 type=ALL，按查询条件补联合索引后走 ref。</li>
-    <li><span class="tag-pit">坑</span><strong>隐式类型转换</strong>：字符串字段用数字去查，索引失效——保持类型一致。</li>
-    <li><span class="tag-point">要点</span><strong>范式与反范式</strong>：展示用的团队名高频 join，必要时冗余字段换读性能。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>高频列表查询补联合索引后从全表扫降到走索引（约秒级→毫秒级，随数据量，估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>表结构与 DBA/后端评审；新增查询条件时同步评估是否要加索引，避免事后补。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>索引跟着查询走</strong>：先有高频 SQL 再设计索引。</li><li><strong>类型与字符集统一</strong>：utf8mb4 + 无隐式转换。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统/数据编排平台的 MySQL 表我按高频查询设计联合索引、统一 utf8mb4，靠 explain 抓全表扫补索引，把列表查询从秒级优化到毫秒级。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 用 utf8 而不是 utf8mb4</h3>
-  <p class="lead"><b>一句话定位</b>：存 emoji 或生僻字报错/变问号——建库建表一律 utf8mb4。</p>
-  <ul>
-    <li><strong>正解</strong>：建库建表一律 <code>utf8mb4</code>，连接串字符集也要对应。</li>
-  </ul>
-  <h3>6.2 主键用业务字段/随机字符串</h3>
-  <p class="lead"><b>一句话定位</b>：聚簇索引按主键物理排序，无序主键导致页频繁分裂、写入慢。</p>
-  <ul>
-    <li><strong>正解</strong>：用自增 BIGINT 当聚簇主键，业务唯一键放普通唯一索引。</li>
-  </ul>
-  <h3>6.3 索引失效（违反最左前缀）</h3>
-  <p class="lead"><b>一句话定位</b>：联合索引 (a,b,c) 却 <code>where b=?</code>，索引用不上。</p>
-  <ul>
-    <li><strong>正解</strong>：查询条件从联合索引最左列开始；详见 MySQL 进阶专题。</li>
-  </ul>
-  <h3>6.4 字段类型选错（金额用 float、字符串存数字）</h3>
-  <p class="lead"><b>一句话定位</b>：float 精度丢失；用字符串存数字既占空间、比较/索引效率又差。</p>
-  <ul>
-    <li><strong>正解</strong>：金额 decimal、数字用整型、时间用 datetime。</li>
-  </ul>
-  <h3>6.5 过度范式导致大量 join</h3>
-  <p class="lead"><b>一句话定位</b>：一切严格拆表，一个列表查 5 张表——读多写少的展示字段应适度反范式。</p>
-  <ul>
-    <li><strong>正解</strong>：读多写少的展示字段适度反范式冗余，换查询性能。</li>
-  </ul>
-  <h3>6.6 从不看执行计划</h3>
-  <p class="lead"><b>一句话定位</b>：以为建了索引就快，实际没生效——慢查询先 EXPLAIN。</p>
-  <ul>
-    <li><strong>正解</strong>：慢查询先 <code>EXPLAIN</code>，看 type/key/rows/Extra 再优化。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 用 utf8 而不是 utf8mb4</h3>
+  <p><strong>现象</strong>：存 emoji/生僻字报错变问号。<strong>正解</strong>：建库建表一律 utf8mb4，连接串字符集对应。</p>
+
+  <h3>7.2 主键用业务字段/随机字符串</h3>
+  <p><strong>原因</strong>：聚簇索引按主键物理排序，无序主键页频繁分裂写入慢。<strong>正解</strong>：自增 BIGINT 聚簇主键，业务唯一键放普通唯一索引。</p>
+
+  <h3>7.3 索引失效（违反最左前缀）</h3>
+  <p><strong>现象</strong>：联合索引 (a,b,c) 却 where b=?。<strong>正解</strong>：条件从最左列开始（失效场景大全见 02 篇）。</p>
+
+  <h3>7.4 字段类型选错</h3>
+  <p><strong>现象</strong>：金额用 float 精度丢失；字符串存数字占空间且比较/索引低效。<strong>正解</strong>：金额 decimal、数字整型、时间 datetime。</p>
+
+  <h3>7.5 过度范式大量 join</h3>
+  <p><strong>现象</strong>：一个列表查 5 张表。<strong>正解</strong>：读多写少的展示字段适度反范式冗余换查询性能。</p>
+
+  <h3>7.6 从不看执行计划</h3>
+  <p><strong>误区</strong>：以为建了索引就快。<strong>正解</strong>：慢查询先 EXPLAIN 看 type/key/rows/Extra 再优化。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：InnoDB 为什么用 B+树？和 B 树/哈希的区别？</strong></p>
+  <p class="note"><strong>参考答案</strong>：B+树三个适配点——①<strong>矮胖多叉</strong>：节点按 16KB 页装大量索引键，3~4 层可索引千万行（树高=磁盘 IO 次数，越矮 IO 越少）；②<strong>数据只在叶子</strong>：非叶子只存导航键，一页能放更多键进一步压矮树；③<strong>叶子双向链表</strong>：范围查询（&gt;/&lt;/between/order by）顺着链表顺序扫，配合页的连续性走顺序 IO。<strong>对比</strong>：B 树非叶子也存数据（每节点键少树更高、范围查询要中序回溯）；哈希只能等值查不支持范围/排序——所以数据库索选用 B+树。</p>
+
+  <p><strong>Q2：什么是聚簇索引？什么是回表、覆盖索引？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>聚簇索引</strong>：InnoDB 主键索引就是数据本身——叶子节点直接存整行，数据按主键物理聚集，一张表只有一个。<strong>二级索引</strong>叶子存"索引列+主键值"——用它查整行要拿主键回聚簇索引再查一次，即<strong>回表</strong>（多一次 B+树查找）。<strong>覆盖索引</strong>：查询所需列都在二级索引里（如 idx_team_status 查 team_id+status），无需回表——EXPLAIN 出现 Using index；这是"select 具体列好于 select *"的底层原因，也是联合索引设计的核心目标。推论：<strong>自增主键</strong>让插入按顺序追加叶子不分裂页。</p>
+
+  <h3>联合索引最左前缀原则是什么？</h3>
+  <p class="note"><strong>参考答案</strong>：联合索引 (a,b,c) 的排序规则是<strong>先按 a 排、a 相同再按 b、再按 c</strong>——索引本质是按这个复合顺序组织的有序结构。所以查询条件必须<strong>从最左列开始连续匹配</strong>才能利用有序性：<code>where a=? and b=?</code> 能用，<code>where b=?</code> 或 <code>where b=? and c=?</code>（跳过 a）用不上——因为只有 b 值在全表是无序的。<strong>设计推论</strong>：把最高频、等值查询的列放最左；遇到范围查询（&gt;/&lt;/like 前缀）后面的列不再参与索引定位。验证手段：EXPLAIN 看 key 与 rows。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>页是什么？为什么顺序 IO 快？</li>
+    <li>B+树三特性？与 B 树/哈希的对比？</li>
+    <li>聚簇/二级索引/回表/覆盖索引的完整链条？</li>
+    <li>最左前缀原则？为什么 where b=? 用不上？</li>
+    <li>utf8 与 utf8mb4 的差异？自增主键为什么重要？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>MySQL 8.0 官方参考手册（InnoDB/索引/行格式权威）：<a href="https://dev.mysql.com/doc/refman/8.0/en/" rel="noopener">dev.mysql.com/doc</a></li>
-    <li>InnoDB 存储引擎架构专章：<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb.html" rel="noopener">dev.mysql.com/innodb</a></li>
+    <li>MySQL 8.0 官方手册（InnoDB/索引/行格式权威）：<a href="https://dev.mysql.com/doc/refman/8.0/en/" rel="noopener">dev.mysql.com/doc</a></li>
+    <li>《高性能 MySQL》——索引与调优经典；《MySQL 技术内幕：InnoDB 存储引擎》（姜承尧）——底层较深。</li>
   </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《高性能 MySQL》（Baron Schwartz 等）——InnoDB 架构、索引与调优的经典必读。</li>
-    <li>《MySQL 技术内幕：InnoDB 存储引擎》（姜承尧）——国内讲 InnoDB 底层较深的书。</li>
-  </ul>
-  <h3>工具</h3>
-  <ul>
-    <li>EXPLAIN 可视化（explain.depesz 等）：辅助解读执行计划，可搜索 "explain analyze mysql"。</li>
-    <li>DBeaver / MySQL Workbench：连接与执行计划查看，本套技术栈用 DBeaver 管理 MySQL。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>建 3.1 的表插入 10 万行，分别用主键/二级索引/无索引条件查询，对比 EXPLAIN 的 type/rows；</li>
+    <li>构造 where b=? 复现最左前缀失效，再用覆盖索引消除回表；</li>
+    <li>故意用 UUID 主键与自增主键分别批量插入，对比耗时与页分裂。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/10_SSH框架【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../08_数据库与建模/02_MySQL进阶_索引与SQL优化【深入】.html">下一篇 →</a>
 </nav>
