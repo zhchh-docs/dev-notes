@@ -822,7 +822,7 @@ window.KB_MANIFEST = {
           "d": "std"
         },
         {
-          "t": "Web安全与系统设计",
+          "t": "安全与系统设计",
           "f": "06_安全与系统设计【精讲】.html",
           "u": "12_全栈技术路线图/06_安全与系统设计【精讲】.html",
           "d": "std"
@@ -834,7 +834,39 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ]
+    },
+    {
+      "key": "13_Python",
+      "name": "Python",
+      "icon": "🐍",
+      "desc": "入门语法 / 工程化与 FastAPI / GIL 与并发 / asyncio / 性能调优",
+      "arts": [
+        {
+          "t": "Python模块导览【精讲】",
+          "f": "00_Python模块导览【精讲】.html",
+          "u": "13_Python/00_Python模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
+          "t": "Python入门·核心语法与数据结构【基础】",
+          "f": "01_Python入门_核心语法与数据结构【基础】.html",
+          "u": "13_Python/01_Python入门_核心语法与数据结构【基础】.html",
+          "d": "basic"
+        },
+        {
+          "t": "Python标准篇·工程化与常用库【标准】",
+          "f": "02_Python标准篇_工程化与常用库【标准】.html",
+          "u": "13_Python/02_Python标准篇_工程化与常用库【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Python深入篇·性能与并发【深入】",
+          "f": "03_Python深入篇_性能与并发【深入】.html",
+          "u": "13_Python/03_Python深入篇_性能与并发【深入】.html",
+          "d": "deep"
+        }
+      ]
     }
   ],
-  "total": 123
+  "total": 127
 };
