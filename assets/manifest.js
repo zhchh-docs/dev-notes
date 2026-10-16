@@ -241,6 +241,66 @@ window.KB_MANIFEST = {
           "f": "028_第28章_数据结构选型实战.html",
           "u": "14_从0到精通/javascript/30_第三篇_数据集合/028_第28章_数据结构选型实战.html",
           "d": "std"
+        },
+        {
+          "t": "第 29 章 函数是一等公民：函数作为值｜JavaScript 从 0 到精通",
+          "f": "029_第29章_函数是一等公民.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/029_第29章_函数是一等公民.html",
+          "d": "std"
+        },
+        {
+          "t": "第 30 章 作用域与作用域链：词法作用域｜JavaScript 从 0 到精通",
+          "f": "030_第30章_作用域与作用域链.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/030_第30章_作用域与作用域链.html",
+          "d": "std"
+        },
+        {
+          "t": "第 31 章 变量提升与 TDZ：声明行为全景｜JavaScript 从 0 到精通",
+          "f": "031_第31章_变量提升与TDZ.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/031_第31章_变量提升与TDZ.html",
+          "d": "std"
+        },
+        {
+          "t": "第 32 章 闭包：原理、应用与内存｜JavaScript 从 0 到精通",
+          "f": "032_第32章_闭包.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/032_第32章_闭包.html",
+          "d": "std"
+        },
+        {
+          "t": "第 33 章 this 全解：四条绑定规则｜JavaScript 从 0 到精通",
+          "f": "033_第33章_this全解.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/033_第33章_this全解.html",
+          "d": "std"
+        },
+        {
+          "t": "第 34 章 call / apply / bind：手动绑定｜JavaScript 从 0 到精通",
+          "f": "034_第34章_call_apply_bind.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/034_第34章_call_apply_bind.html",
+          "d": "std"
+        },
+        {
+          "t": "第 35 章 箭头函数再深入：this 之外的差异｜JavaScript 从 0 到精通",
+          "f": "035_第35章_箭头函数再深入.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/035_第35章_箭头函数再深入.html",
+          "d": "deep"
+        },
+        {
+          "t": "第 36 章 生成器与迭代器协议：自定义迭代｜JavaScript 从 0 到精通",
+          "f": "036_第36章_生成器与迭代器.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/036_第36章_生成器与迭代器.html",
+          "d": "std"
+        },
+        {
+          "t": "第 37 章 递归与调用栈：爆栈与优化｜JavaScript 从 0 到精通",
+          "f": "037_第37章_递归与调用栈.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/037_第37章_递归与调用栈.html",
+          "d": "std"
+        },
+        {
+          "t": "第 38 章 高阶函数实战：once / memoize / debounce / throttle｜JavaScript 从 0 到精通",
+          "f": "038_第38章_高阶函数实战.html",
+          "u": "14_从0到精通/javascript/40_第四篇_函数与作用域/038_第38章_高阶函数实战.html",
+          "d": "std"
         }
       ],
       "planned": 97,
@@ -264,7 +324,7 @@ window.KB_MANIFEST = {
         {
           "name": "第四篇 函数与作用域深潜",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第五篇 对象与原型",
@@ -297,7 +357,7 @@ window.KB_MANIFEST = {
           "state": "plan"
         }
       ],
-      "done": 28,
+      "done": 38,
       "order": 2
     },
     {
@@ -1743,5 +1803,5 @@ window.KB_MANIFEST = {
       "order": 24
     }
   ],
-  "total": 177
+  "total": 187
 };
