@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/02_Java并发与JVM【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../07_后端开发/05_SpringBoot框架【标准】.html">下一篇 →</a>
 </nav>
@@ -548,35 +548,154 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：Spring 内核 = <strong>IOC</strong>（对象容器，负责创建/装配 Bean）+ <strong>AOP</strong>（动态代理织入横切逻辑）；本项目用 Spring 6（对应 Spring Boot 3，最低 Java 17）。</p>
-  <ul>
-    <li><strong>IOC 解决什么</strong>：没有它时 <code>Service</code> 里 <code>new Dao()</code>，类与类硬编码耦合，换实现、做单测都要改业务代码；IOC 把"谁创建谁"反转给容器，业务类只声明依赖、由容器注入。</li>
-    <li><strong>AOP 解决什么</strong>：没有它时每个方法都手写"记日志、开事务、校验权限"，重复且易漏；AOP 把这些收敛成一个切面，声明式切到所有匹配方法上。</li>
-  </ul>
-  <h3>横向对比：Spring IOC/AOP 与替代方案的取舍</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：IOC 容器 + AOP 代理的双内核</h3>
+  <p><strong>Spring 内核 = IOC（对象容器，创建/装配 Bean）+ AOP（动态代理织入横切逻辑）</strong>；本套技术栈用 Spring 6（Boot 3，最低 Java 17）。<strong>IOC 解决</strong>：没有它 Service 里 new Dao() 硬编码耦合，换实现/做单测都要改业务代码——IOC 把"谁创建谁"反转给容器；<strong>AOP 解决</strong>：每个方法手写记日志/开事务/校验权限重复易漏——收敛成一个切面声明式切上。</p>
+
+  <h3>1.2 横向对比：替代方案取舍</h3>
   <table>
     <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
     <thead><tr><th>方案</th><th>做法</th><th>取舍</th></tr></thead>
     <tbody>
-      <tr><td>手动 new + 工厂</td><td>业务代码里自己 new 依赖，或写简单工厂</td><td>零框架成本，但耦合在源码里、难测试、难统一管理；只适合极小脚本。</td></tr>
-      <tr><td>Spring IOC/AOP</td><td>容器托管 Bean + 注解/JavaConfig 装配 + 动态代理切面</td><td>生态最大、注解声明式、切面与事务开箱即用；代价是启动慢、理解成本高、"魔法"出问题难调。本套技术栈选型。</td></tr>
-      <tr><td>Guice / HK2</td><td>轻量级 JSR-330 注入容器</td><td>更轻、更显式，但生态小、没有事务/AOP 全家桶，国内后端极少单独用。</td></tr>
-      <tr><td>EJB（传统）</td><td>早期重量级组件模型，配置繁琐</td><td>已基本被 Spring 淘汰，仅在遗留大型系统偶见；SSH 时代之后就退出主流。</td></tr>
+      <tr><td>手动 new + 工厂</td><td>业务代码里自己 new 依赖</td><td>零框架成本，但耦合源码、难测试；只适合极小脚本</td></tr>
+      <tr><td><strong>Spring IOC/AOP</strong></td><td>容器托管 + 注解装配 + 动态代理切面</td><td>生态最大、事务/切面开箱即用；代价启动慢、"魔法"难调——本套选型</td></tr>
+      <tr><td>Guice / HK2</td><td>轻量 JSR-330 注入容器</td><td>更轻更显式，但生态小、无事务/AOP 全家桶</td></tr>
+      <tr><td>EJB（传统）</td><td>重量级组件模型</td><td>已基本被 Spring 淘汰，遗留系统偶见</td></tr>
     </tbody>
   </table>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 <strong>Bean 生命周期与代理生成时机</strong>（Spring 内核面试核心）；</li>
+    <li>逐条说出 <strong>@Transactional 失效五场景</strong>；</li>
+    <li>理解<strong>三级缓存</strong>为什么救不了构造器循环依赖；</li>
+    <li>落地构造器注入 + 切面横切的工程姿势。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 Java 基础。<strong>难度</strong>：★★★★☆。<strong>本篇不涉及</strong>：Boot 自动配置（05 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>七个核心模型：<strong>IOC 与 DI</strong>（总纲）→ <strong>容器两级</strong>→ <strong>Bean 定义与作用域</strong>→ <strong>生命周期</strong>→ <strong>AOP 切点模型</strong>→ <strong>动态代理</strong>→ <strong>三级缓存与歧义</strong>。</p>
+
+  <h3>2.1 IOC 与三种注入方式</h3>
+  <p>IOC 是"对象创建权交给容器"的思想，DI 是实现手段。<span class="tag-key">构造器注入（推荐）</span>：依赖 final 不可变、启动缺依赖直接报错、便于单测——Spring 4.3+ 单构造器省略 @Autowired；Setter 用于可选依赖；字段注入最省事但不利于测试与不可变。</p>
+
+  <h3>2.2 BeanFactory 与 ApplicationContext</h3>
+  <p><strong>BeanFactory</strong>：底层极简容器（getBean/依赖解析，懒加载）；<strong>ApplicationContext</strong>：企业级增强——启动一次性实例化所有单例 + 国际化/事件/AOP/注解驱动。关系：BeanFactory 是底层 SPI，ApplicationContext 是面向应用的增强版。</p>
+
+  <h3>2.3 BeanDefinition 与作用域</h3>
+  <p>容器不直接 new——先有 <strong>BeanDefinition</strong>（类/作用域/依赖/懒加载元信息），按定义实例化。<strong>singleton（默认）</strong>整容器一个实例；<strong>prototype</strong> 每次 getBean 都 new；Web 还有 request/session。<span class="tag-pit">"默认 singleton"是诸多坑的前提</span>（6.4 单例注入 prototype 不生效）。</p>
+
+  <h3>2.4 AOP 切点模型</h3>
+  <p><strong>Aspect</strong>（横切模块）+ <strong>JoinPoint</strong>（可拦截的方法调用）+ <strong>Pointcut</strong>（表达式选出连接点）+ <strong>Advice</strong>（Before/After/Around/AfterThrowing）。<span class="tag-key">@Around 最强大</span>：控制是否执行原方法、改参数改返回值——<strong>@Transactional 本质就是一个环绕通知</strong>。</p>
+
+  <h3>2.5 动态代理：JDK vs CGLIB</h3>
+  <p><strong>JDK 代理</strong>基于接口（目标必须实现接口）；<strong>CGLIB</strong> 生成子类覆写方法（无需接口，但 final 类/方法代理不了）。<strong>Spring Boot 2.x+ 默认 CGLIB</strong>（proxyTargetClass=true）。</p>
+
+  <h3>2.6 循环依赖与三级缓存</h3>
+  <p>A 依赖 B、B 依赖 A：一级 singletonObjects（成品）、二级 earlySingletonObjects（半成品）、三级 singletonFactories（工厂，需要代理则提前生成）——A 实例化后先放"能产出 A 的工厂"，B 要 A 时拿早期引用。<span class="tag-pit">构造器注入的循环依赖无解</span>（对象没实例化就互相要），Boot 2.6+ 默认直接报错。</p>
+
+  <h3>2.7 自动装配歧义</h3>
+  <p>同接口多实现时 @Autowired 抛 NoUniqueBeanDefinitionException——<strong>@Primary</strong> 标首选、<strong>@Qualifier("name")</strong> 指定名字。多数据源/多策略实现每天都要面对。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：构造器注入（推荐装配方式）</h3>
+<pre class="code" data-lang="java"><code>@Service
+public class RequirementService {
+    private final RequirementMapper requirementMapper;
+    private final EventPublisher eventPublisher;
+
+    // 单构造器可省略 @Autowired；final + 构造器：不可变、启动缺依赖报错、便于 new 出来单测
+    public RequirementService(RequirementMapper requirementMapper,
+                              EventPublisher eventPublisher) {
+        this.requirementMapper = requirementMapper;
+        this.eventPublisher = eventPublisher;
+    }
+}</code></pre>
+
+  <h3>3.2 场景二：声明一个切面</h3>
+<pre class="code" data-lang="java"><code>@Aspect
+@Component
+public class WebLogAspect {
+    // 切点：controller 包下所有 public 方法
+    @Pointcut("execution(public * com.dcp.controller..*.*(..))")
+    public void controllerPoint() {}
+
+    @Around("controllerPoint()")
+    public Object around(ProceedingJoinPoint pjp) throws Throwable {
+        long start = System.currentTimeMillis();
+        try {
+            return pjp.proceed();                 // 放行到真实方法
+        } finally {
+            long cost = System.currentTimeMillis() - start;
+            log.info("{} 耗时 {}ms", pjp.getSignature().toShortString(), cost);
+        }
+    }
+}</code></pre>
+
+  <h3>3.3 场景三：@Transactional 声明式事务</h3>
+<pre class="code" data-lang="java"><code>@Transactional(rollbackFor = Exception.class)   // 默认只回滚 RuntimeException，受检异常要显式
+public void changeStatus(Long id, Status next) {
+    mapper.updateStatus(id, next);
+    eventPublisher.publish(new StatusChanged(id, next));
+    // 若抛 RuntimeException → 上面 updateStatus 一并回滚
+}</code></pre>
+  <p><strong>传播行为</strong>：默认 <code>REQUIRED</code>（有就加入无则新建）；<code>REQUIRES_NEW</code> 挂起外层独立新开（操作日志独立提交不受外层回滚牵连）；<code>NESTED</code> 保存点部分回滚——<strong>REQUIRES_NEW 同样必须走代理</strong>，自调用一样失效。</p>
+
+  <h3>3.4 场景四：自调用失效与修复</h3>
+<pre class="code" data-lang="java"><code>// 坏：this.changeStatus() 走原始对象，事务切面被绕过，不回滚
+public void batchChange(List&lt;Long&gt; ids, Status next) {
+    for (Long id : ids) this.changeStatus(id, next);   // ← this 不是代理！
+}
+
+// 好：注入自身代理（@Lazy @Autowired private RequirementService self;）
+public void batchChange(List&lt;Long&gt; ids, Status next) {
+    for (Long id : ids) self.changeStatus(id, next);
+}</code></pre>
+  <div class="note"><strong>Boot 2.6+ 默认禁止循环依赖</strong>（allow-circular-references=false）——启动报循环依赖时<strong>优先重构拆依赖</strong>，而不是开回开关。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：生命周期与事务失效五场景已会。</p>
+
+  <h3>4.1 BeanPostProcessor：Spring 扩展的万能钩子</h3>
+  <p>生命周期里"初始化前后"的两个钩子——@Autowired 注入、@PostConstruct 调度、AOP 代理生成全靠它；理解它就理解了"注解是怎么生效的"：都是某个 PostProcessor 在对应阶段扫描处理。自定义注解 + PostProcessor 是框架式封装的标准姿势。</p>
+
+  <h3>4.2 事件机制 ApplicationEvent</h3>
+  <p><code>ApplicationEventPublisher.publish()</code> + <code>@EventListener</code>——进程内解耦（状态变更后发事件，统计/通知模块各自监听）；<strong>@TransactionalEventListener</strong> 可绑定事务提交后才执行（AFTER_COMMIT），避免"事务回滚了通知已发出"的事故。</p>
+
+  <h3>4.3 @Async 与线程池绑定</h3>
+  <p>@Async 同样走 AOP 代理（自调用失效同款）；默认用 SimpleAsyncTaskExecutor（不池化）——<strong>必须自定义 Executor 并 @Async("name") 指定</strong>，否则高并发下线程失控（02 篇线程池纪律在 Spring 里的延续）。</p>
+
+  <h3>4.4 Bean 覆盖与条件装配</h3>
+  <p>@ConditionalOnProperty/@ConditionalOnMissingBean——条件化装配是 starter 生态的基石（05 篇自动配置展开）；测试时用 @MockBean 替换容器中的 Bean，走同一条注入链路。</p>
+
+  <h3>4.5 AOP 的适用边界</h3>
+  <p>Spring AOP 是<strong>方法级代理</strong>——字段访问/构造器/静态方法/final 方法织不进去；需要字段级/更细粒度用 AspectJ 编译期织入（成本高）；先问"是不是真需要"，多数场景方法级够了。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="IOC 容器在分层架构中的位置示意图">
       <defs>
@@ -600,72 +719,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 IOC 反转"谁创建对象"的控制权（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 IOC 与 DI（Inversion of Control / Dependency Injection）</h3>
-  <p class="lead"><b>一句话定位</b>：IOC 是"把对象创建权交给容器"的设计思想，DI（依赖注入）是它的实现手段。</p>
-  <ul>
-    <li><strong>构造器注入（推荐）</strong>：依赖 <code>final</code> 不可变、启动时缺依赖直接报错、便于单测。Spring 4.3+ 单构造器可省略 <code>@Autowired</code>。</li>
-    <li><strong>Setter 注入</strong>：用于可选依赖。</li>
-    <li><strong>字段注入</strong>：<code>@Autowired</code> 直接标字段，最省事，但不利于测试与不可变。</li>
-  </ul>
-  <h3>2.2 BeanFactory 与 ApplicationContext</h3>
-  <p class="lead"><b>一句话定位</b>：<code>BeanFactory</code> 是底层极简容器，<code>ApplicationContext</code> 是它的企业级增强版——项目组日常用的是后者。</p>
-  <ul>
-    <li><strong>BeanFactory</strong>：最顶层接口，提供 getBean、依赖解析，懒加载、功能精简。</li>
-    <li><strong>ApplicationContext</strong>：启动时一次性实例化所有单例 Bean，额外提供国际化、事件发布、AOP、注解驱动（<code>@ComponentScan</code>）。</li>
-  </ul>
-  <p class="key-sentence">关系：BeanFactory 是底层 SPI，ApplicationContext 是面向应用的增强版。</p>
-  <h3>2.3 Bean 定义与作用域（BeanDefinition &amp; Scope）</h3>
-  <p class="lead"><b>一句话定位</b>：容器里的对象不是直接 new 出来的，而是先有一份"Bean 定义"，容器按定义再实例化。</p>
-  <ul>
-    <li><strong>BeanDefinition</strong>：描述这个 Bean 的类、作用域、构造参数、依赖、是否懒加载等元信息。</li>
-    <li><strong>singleton（默认）</strong>：整个容器一个实例。</li>
-    <li><strong>prototype</strong>：每次 getBean 都 new 新的；Web 环境还有 request/session/application。</li>
-  </ul>
-  <p class="pit-sentence">记住"默认 singleton"——这是后面很多坑（单例注入 prototype 不生效）的前提。</p>
-  <h3>2.4 Bean 生命周期（Bean Lifecycle）</h3>
-  <p class="lead"><b>一句话定位</b>：实例化 → 属性填充 → Aware 回调 → 初始化 → 后置处理（这里生成 AOP 代理）→ 就绪 → 销毁。</p>
-  <ul>
-    <li><strong>关键节点顺序</strong>：new → 注入依赖 → BeanNameAware 等回调 → <code>@PostConstruct</code>/init → BeanPostProcessor 后置（生成代理）→ 就绪 → 容器关闭时 <code>@PreDestroy</code>。</li>
-  </ul>
-  <p class="pit-sentence">AOP 代理是在"初始化后的后置处理"阶段才生成的——所以在 <code>@PostConstruct</code> 里调本类的 <code>@Transactional</code> 方法不会走代理。</p>
-  <h3>2.5 AOP 与连接点模型（Aspect &amp; Join Point）</h3>
-  <p class="lead"><b>一句话定位</b>：用切点表达式选出一批方法，再把通知（前置/后置/环绕）切上去。</p>
-  <ul>
-    <li><strong>Aspect（切面）</strong>：横切逻辑的模块；<strong>JoinPoint（连接点）</strong>：可被拦截的方法调用。</li>
-    <li><strong>Pointcut（切点）</strong>：用表达式选出一批连接点（如"所有 Service 方法"）。</li>
-    <li><strong>Advice（通知）</strong>：切上去做什么——Before/After/Around/AfterThrowing。</li>
-  </ul>
-  <p class="key-sentence"><code>@Around</code> 最强大，能控制是否执行原方法、改参数、改返回值；<code>@Transactional</code> 本质就是一个环绕通知。</p>
-  <h3>2.6 动态代理：JDK 代理 vs CGLIB</h3>
-  <p class="lead"><b>一句话定位</b>：Spring AOP 运行期给目标 Bean 生成代理对象；JDK 代理基于接口，CGLIB 基于继承。</p>
-  <ul>
-    <li><strong>JDK 动态代理</strong>：目标类必须实现接口，代理实现同一组接口。</li>
-    <li><strong>CGLIB</strong>：生成目标类的子类，无需接口，但不能代理 final 类/方法。</li>
-    <li><strong>Spring Boot 2.x+ 默认 CGLIB</strong>（<code>proxyTargetClass=true</code>），即使类实现了接口也走子类代理。</li>
-  </ul>
-  <h3>2.7 循环依赖与三级缓存（Circular Dependency &amp; Three-level Cache）</h3>
-  <p class="lead"><b>一句话定位</b>：A 依赖 B、B 又依赖 A 时，Spring 用三级缓存放"早期引用"打破循环；但构造器注入的循环依赖无解。</p>
-  <ul>
-    <li><strong>三级缓存</strong>：一级 singletonObjects（成品）、二级 earlySingletonObjects（早期半成品）、三级 singletonFactories（对象工厂）。</li>
-    <li><strong>破解过程</strong>：A 实例化后先把"能产出 A 的工厂"放进三级缓存，B 反过来要 A 时就拿 A 的早期引用（需要代理则工厂里提前生成）。</li>
-  </ul>
-  <p class="pit-sentence">构造器注入的循环依赖无解（对象还没实例化就互相要），Spring Boot 2.6+ 默认直接报错。</p>
-  <h3>2.8 自动装配的歧义与限定符</h3>
-  <p class="lead"><b>一句话定位</b>：同一接口有多个实现时，<code>@Autowired</code> 不知道注哪个，会抛 NoUniqueBeanDefinitionException。</p>
-  <ul>
-    <li><strong>解决手段</strong>：<code>@Primary</code> 标首选、<code>@Qualifier("name")</code> 指定名字、或配合 <code>@Named</code>。</li>
-  </ul>
-  <p class="key-sentence">这是多数据源、多策略实现里每天都要面对的问题。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Bean 完整生命周期：从 BeanDefinition 到就绪</h3>
-  <p class="lead"><b>一句话定位</b>：这是 Spring 内核面试的核心图——理解它，就能解释"为什么 @PostConstruct 里拿不到代理""为什么 @Async 自调用不生效"。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 360" role="img" aria-label="Spring Bean 生命周期流程图">
       <defs>
@@ -699,14 +752,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Bean 生命周期与 AOP 代理生成时机（示意）</p>
   </div>
-  <ol>
-    <li><strong>实例化</strong>：用构造器 new 出对象（此时属性还没填）。这一步若发生在循环依赖里，三级缓存就开始介入。</li>
-    <li><strong>属性填充</strong>：按 @Autowired/构造器参数解析并注入依赖。注入 B 时会触发 B 的完整生命周期。</li>
-    <li><strong>Aware 与初始化</strong>：回调 BeanNameAware 等，再执行 <code>@PostConstruct</code>。此时对象仍是原始对象，代理还没生成。</li>
-    <li><strong>后置处理生成代理</strong>：<code>AbstractAutoProxyCreator</code> 判断这个 Bean 是否需要切面（有 @Transactional/@Aspect 切点命中），需要就用 JDK/CGLIB 生成代理对象替换原始对象。</li>
-    <li><strong>投入使用</strong>：放入 singletonObjects，业务拿到的其实是代理。只有走代理调用，切面逻辑才会执行。</li>
-  </ol>
-  <h3>3.2 动态代理调用链：一次 @Transactional 方法调用背后发生了什么</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 260" role="img" aria-label="AOP 动态代理调用链示意图">
       <defs>
@@ -733,192 +778,93 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 AOP 代理拦截调用链与"自调用失效"原理（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 IOC 的本质——控制权反转换来"换实现/加 Mock 业务代码不动"；②图 2 生命周期顺序是全篇钥匙——<strong>代理在最后才生成</strong>，所以 @PostConstruct 里调本类切面方法不生效；③图 3 自调用失效的原理——this 走原始对象绕过代理。</p>
 </section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 构造器注入：Spring 推荐的装配方式</h3>
-<pre class="code" data-lang="java"><code>@Service
-public class RequirementService {
-    private final RequirementMapper requirementMapper;
-    private final EventPublisher eventPublisher;
-
-    // 单构造器可省略 @Autowired：Spring 自动按类型注入
-    // 用 final + 构造器：依赖不可变、启动时缺依赖直接报错、便于 new 出来单测
-    public RequirementService(RequirementMapper requirementMapper,
-                              EventPublisher eventPublisher) {
-        this.requirementMapper = requirementMapper;
-        this.eventPublisher = eventPublisher;
-    }
-}</code></pre>
-  <h3>4.2 声明一个切面：日志/鉴权/事务通知</h3>
-<pre class="code" data-lang="java"><code>@Aspect
-@Component
-public class WebLogAspect {
-    // 切点：切到 controller 包下所有 public 方法
-    @Pointcut("execution(public * com.dcp.controller..*.*(..))")
-    public void controllerPoint() {}
-
-    @Around("controllerPoint()")
-    public Object around(ProceedingJoinPoint pjp) throws Throwable {
-        long start = System.currentTimeMillis();
-        try {
-            return pjp.proceed();                 // 放行到真实方法
-        } finally {
-            long cost = System.currentTimeMillis() - start;
-            log.info("{} 耗时 {}ms", pjp.getSignature().toShortString(), cost);
-        }
-    }
-}</code></pre>
-  <h3>4.3 @Transactional：声明式事务（及其失效边界）</h3>
-<pre class="code" data-lang="java"><code>@Service
-public class RequirementService {
-    // 只有"通过代理对象调用"且方法是 public、抛 RuntimeException 才回滚
-    @Transactional(rollbackFor = Exception.class)   // 默认只回滚 RuntimeException，受检异常要显式 rollbackFor
-    public void changeStatus(Long id, Status next) {
-        mapper.updateStatus(id, next);
-        eventPublisher.publish(new StatusChanged(id, next));
-        // 若这里抛 RuntimeException → 上面 updateStatus 一并回滚
-    }
-}</code></pre>
-  <p class="lead"><b>传播行为</b>：<code>@Transactional(propagation = ...)</code> 决定事务如何嵌套——默认 <code>REQUIRED</code>（有事务就加入、无则新建）；<code>REQUIRES_NEW</code> 挂起外层事务、新开独立事务（如记录操作日志要独立提交，不受外层回滚牵连）；<code>NESTED</code> 基于保存点做部分回滚。注意 <code>REQUIRES_NEW</code> 同样必须走代理对象，自调用时一样失效。</p>
-  <h3>4.4 两种写法对比：自调用 vs 注入自身代理</h3>
-<pre class="code" data-lang="java"><code>// 坏：this.changeStatus() 走原始对象，事务切面被绕过，不回滚
-public void batchChange(List&lt;Long&gt; ids, Status next) {
-    for (Long id : ids) {
-        this.changeStatus(id, next);   // ← this 不是代理！
-    }
-}
-
-// 好：注入自身代理（或 AopContext.currentProxy()），让调用走切面
-public void batchChange(List&lt;Long&gt; ids, Status next) {
-    for (Long id : ids) {
-        self.changeStatus(id, next);  // self 是注入进来的代理对象
-    }
-}
-// 注入自身：@Lazy @Autowired private RequirementService self;</code></pre>
-  <div class="note">经验：Spring Boot 2.6+ 默认<strong>禁止循环依赖</strong>（<code>spring.main.allow-circular-references=false</code>）。如果启动报 " circular references between beans"，优先重构拆依赖，而不是开回这个开关——构造器注入的循环依赖本就该在设计上消除。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 与数据编排平台后端都是 Spring 容器托管的分层应用，IOC 组装 Bean、AOP 横切日志/鉴权/事务。</p>
-  <ul>
-    <li><strong>业务量级</strong>：需求流转、团队权限、工作流节点，涉及多处"进接口先鉴权、写操作加事务、关键操作记日志"。</li>
-  </ul>
-  <h3>2 我的角色与职责</h3>
-  <ul>
-    <li><strong>分工</strong>：负责分层架构落地（Controller/Service/Mapper），编写鉴权切面、日志切面与事务边界。</li>
-  </ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot 3 + Java 17 + MyBatis + Redis；AOP 用 Spring 自带代理。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>构造器注入</strong>：Service 依赖用构造器注入，字段注入 <code>@Autowired</code> 仅在测试临时用，保证可测试与不可变。</li>
-    <li><strong>切面横切</strong>：登录态校验、操作日志、事务分别抽成切面/注解，业务代码不写样板。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>@Service
-@RequiredArgsConstructor                       // 构造器注入，依赖不可变
-public class ReqService {
-    private final ReqMapper reqMapper;
-    private final ReqAssembler assembler;
-
-    @Transactional(rollbackFor = Exception.class)   // 状态流转加事务
-    public void review(Long id, ReviewCmd cmd) {
-        Req r = reqMapper.selectById(id);
-        r.apply(cmd);
-        reqMapper.updateById(r);
-    }
-}
-
-// 操作日志切面：对 @OpLog 注解的方法记录入参与结果
-@Around("@annotation(opLog)")
-public Object around(ProceedingJoinPoint pjp, OpLog opLog) throws Throwable { ... }</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>@Transactional 自调用失效</strong>：同类内 <code>this.otherMethod()</code> 调带注解方法，代理不生效、事务没开——把调用拆到另一个 Bean 或注入自己。</li>
-    <li><span class="tag-pit">坑</span><strong>默认只回滚 RuntimeException</strong>：受检异常不回滚——显式 <code>rollbackFor = Exception.class</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>JDK 动态代理只代理接口</strong>：CGLIB 代理的类不能是 final；两者选择影响切面能否织入。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>鉴权/日志/事务横切抽成切面后，业务 Service 方法不再夹带样板，单个方法平均少写 5-8 行重复代码（估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>切面统一在后端模块内维护，前端/接口定义不变；事务边界与 DBA 在评审"状态流转"用例时确认。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>横切一律切面化</strong>：日志/鉴权/事务不进业务方法。</li>
-    <li><strong>事务边界要清醒</strong>：自调用、异常类型是最高频失效点。</li>
-  </ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 用构造器注入做分层，把鉴权/日志/事务抽成切面；实践中常见的坑包括过 @Transactional 自调用失效和默认不回滚受检异常的坑，靠 rollbackFor 与拆 Bean 解决。"</p>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 @Transactional 为什么失效（最常考）</h3>
-  <p class="lead"><b>一句话定位</b>：事务失效的根因是"没走代理"或"异常没抛出来"——五种典型场景要能逐条说出为什么。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统与数据编排平台后端（SpringBoot 3 + Java 17 + MyBatis + Redis）；我负责分层架构落地、鉴权/日志切面与事务边界。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>自调用</strong>：<code>this.method()</code> 绕过代理。</li>
-    <li><span class="tag-pit">坑</span><strong>方法不是 public</strong>：代理增强不到非 public 方法。</li>
-    <li><span class="tag-pit">坑</span><strong>异常被 catch 吞掉</strong>没抛出。</li>
-    <li><span class="tag-pit">坑</span><strong>受检异常没配 rollbackFor</strong>：默认只回滚 RuntimeException，需显式 <code>rollbackFor=Exception.class</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>存储引擎不支持事务</strong>：如 MyISAM。</li>
+    <li><strong>构造器注入</strong>：@RequiredArgsConstructor + final 依赖，可测试不可变；</li>
+    <li><strong>切面横切</strong>：登录态校验/操作日志/事务分别抽切面或注解（@OpLog + @Around("@annotation(opLog)")），业务不写样板；</li>
+    <li><strong>事务边界</strong>：状态流转方法 @Transactional(rollbackFor=Exception.class)，与 DBA 评审确认。</li>
   </ul>
-  <h3>6.2 循环依赖：三级缓存只解单例 setter/字段注入</h3>
-  <p class="lead"><b>一句话定位</b>：构造器互相注入，三级缓存也插不进手——只能重构，别盲目开开关。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>现象</strong>：A、B 互相构造器注入，Spring 直接报循环依赖错误。</li>
-    <li><strong>原因</strong>：构造器注入时对象还没实例化就要对方引用，三级缓存需要对象先实例化才有早期引用。</li>
-    <li><strong>正解</strong>：抽公共服务、用 <code>@Lazy</code> 延迟一方、改 setter 注入，而不是开 <code>allow-circular-references=true</code>。</li>
+    <li><span class="tag-pit">坑</span><strong>@Transactional 自调用失效</strong>：同类内 this.otherMethod() 调带注解方法，代理不生效——拆到另一个 Bean 或注入自身代理；</li>
+    <li><span class="tag-pit">坑</span><strong>默认只回滚 RuntimeException</strong>：受检异常不回滚——显式 rollbackFor=Exception.class；</li>
+    <li><span class="tag-pit">坑</span><strong>代理方式边界</strong>：JDK 代理只代理接口方法；CGLIB 代理不了 final 类/方法——影响切面能否织入。</li>
   </ul>
-  <h3>6.3 JDK 代理 vs CGLIB 怎么选</h3>
-  <p class="lead"><b>一句话定位</b>：JDK 代理只能增强接口方法，CGLIB 靠继承覆写——所以 final 方法加 @Transactional 不生效。</p>
-  <ul>
-    <li><strong>考点</strong>：目标类有接口默认走 JDK 代理（Spring Boot 2.x+ 默认 CGLIB）。</li>
-    <li><span class="tag-pit">坑</span><strong>final 类/方法加 @Transactional 不生效</strong>：CGLIB 靠继承覆写，final 覆写不了。</li>
-  </ul>
-  <h3>6.4 singleton 里注入 prototype 不生效</h3>
-  <p class="lead"><b>一句话定位</b>：单例只在启动时注入一次 prototype，之后拿到的永远是同一个实例。</p>
-  <ul>
-    <li><strong>现象</strong>：单例 Bean 里注入了 prototype Bean，每次拿到的还是同一个实例。</li>
-    <li><strong>原因</strong>：单例只被创建一次，注入发生在启动时。</li>
-    <li><strong>正解</strong>：用 <code>ObjectFactory&lt;T&gt;</code> 或 <code>@Lookup</code> 每次取新实例。</li>
-  </ul>
-  <h3>6.5 切面顺序：多个切面谁先谁后</h3>
-  <p class="lead"><b>一句话定位</b>：多个 @Aspect 默认顺序不确定，要用 <code>@Order(n)</code> 指定——数值小的在外层。</p>
-  <ul>
-    <li><strong>现象</strong>：日志切面与事务切面叠加时，日志没记到事务内的异常。</li>
-    <li><strong>正解</strong>：用 <code>@Order(n)</code> 指定优先级，数值小的先进入（外层）；事务切面包住业务、日志切面再包住事务。</li>
-  </ul>
-  <h3>6.6 @PostConstruct 里调本类切面方法不生效</h3>
-  <p class="lead"><b>一句话定位</b>：@PostConstruct 在生成代理之前执行，此时 self 还是原始对象。</p>
-  <ul>
-    <li><strong>现象</strong>：初始化方法里调本类 @Transactional/@Async 方法，切面没起作用。</li>
-    <li><strong>原因</strong>：@PostConstruct 在 BeanPostProcessor 生成代理之前执行。</li>
-    <li><strong>正解</strong>：初始化逻辑放到 <code>ApplicationReadyEvent</code>，或注入自身代理后再调。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：鉴权/日志/事务横切切面化后，单个 Service 方法平均少写 5-8 行重复代码（估算）；</li>
+    <li><strong>可复用经验</strong>：横切一律切面化不进业务方法；事务边界清醒（自调用/异常类型是最高频失效点）；</li>
+    <li><strong>一句话抓手</strong>："构造器注入做分层，鉴权/日志/事务抽成切面；踩过 @Transactional 自调用失效和默认不回滚受检异常的坑，靠 rollbackFor 与拆 Bean 解决。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 @Transactional 失效五场景（最常考）</h3>
+  <p><strong>根因是"没走代理"或"异常没抛出来"</strong>：①自调用 this.method() 绕过代理；②方法不是 public（代理增强不到）；③异常被 catch 吞掉；④受检异常没配 rollbackFor；⑤存储引擎不支持事务（MyISAM）。</p>
+
+  <h3>7.2 循环依赖</h3>
+  <p><strong>构造器互相注入三级缓存也救不了</strong>（对象没实例化就互相要）——<strong>正解</strong>：抽公共服务/@Lazy 延迟一方/改 setter 注入，别盲目开 allow-circular-references=true。</p>
+
+  <h3>7.3 final 加 @Transactional 不生效</h3>
+  <p><strong>原因</strong>：CGLIB 靠继承覆写，final 覆写不了（JDK 代理只增强接口方法）。<strong>正解</strong>：切面目标方法别用 final。</p>
+
+  <h3>7.4 singleton 注入 prototype 不生效</h3>
+  <p><strong>原因</strong>：单例启动时注入一次，之后永远同一实例。<strong>正解</strong>：ObjectFactory&lt;T&gt; 或 @Lookup 每次取新实例。</p>
+
+  <h3>7.5 多切面顺序</h3>
+  <p><strong>现象</strong>：日志切面没记到事务内异常。<strong>正解</strong>：@Order(n) 数值小的在外层——日志包住事务，事务包住业务。</p>
+
+  <h3>7.6 @PostConstruct 里调切面方法不生效</h3>
+  <p><strong>原因</strong>：初始化在代理生成之前，此时 self 还是原始对象。<strong>正解</strong>：挪到 ApplicationReadyEvent，或注入自身代理后再调。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：IOC 和 DI 的关系？为什么推荐构造器注入？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>IOC 是设计思想</strong>——把"谁创建对象"的控制权从业务代码反转给容器（业务只声明"我需要 OrderDao"）；<strong>DI 是实现手段</strong>——容器按依赖描述注入。<strong>构造器注入的三个理由</strong>：①依赖可声明为 final 不可变；②启动时缺依赖直接报错（fail-fast），字段注入要到运行时才 NPE；③不依赖容器也能 new 出来，单测友好。Spring 4.3+ 单构造器免 @Autowired。对比：字段注入最省事但不可变性与可测性都差，仅测试临时用。</p>
+
+  <p><strong>Q2：Bean 生命周期的关键节点？为什么 @PostConstruct 里调本类 @Transactional 方法不生效？</strong></p>
+  <p class="note"><strong>参考答案</strong>：顺序——<strong>实例化 → 属性填充（注入依赖）→ Aware 回调 → 初始化（@PostConstruct）→ BeanPostProcessor 后置处理 → 就绪 → @PreDestroy</strong>。<strong>AOP 代理在后置处理阶段才生成</strong>：AbstractAutoProxyCreator 判断 Bean 是否命中切点，需要则生成 JDK/CGLIB 代理替换原始对象放入一级缓存。所以 @PostConstruct 执行时对象还是原始对象——调本类 @Transactional/@Async 方法走的是 this，绕过代理切面全失效；正解是挪到 ApplicationReadyEvent 或注入自身代理。</p>
+
+  <p><strong>Q3：@Transactional 失效的场景？三级缓存怎么打破循环依赖？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>失效五场景</strong>：①自调用（this 绕过代理）；②方法非 public；③异常被 catch 吞掉；④受检异常没配 rollbackFor（默认只回滚 RuntimeException）；⑤存储引擎不支持（MyISAM）。<strong>三级缓存</strong>：一级成品、二级早期半成品、三级对象工厂（需代理则提前生成代理）——A 实例化后先放工厂进三级缓存，B 依赖 A 时拿 A 的早期引用，打破"先有 A 还是先有 B"的循环；<strong>但构造器注入无解</strong>（对象还没实例化就互相要）——正解是重构拆依赖/@Lazy，Boot 2.6+ 默认禁止循环依赖别轻易开回。传播行为：REQUIRED 加入/新建、REQUIRES_NEW 独立提交（日志不受外层回滚牵连）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>IOC 与 DI 的关系？构造器注入三理由？</li>
+    <li>生命周期顺序？代理在哪个阶段生成？</li>
+    <li>事务失效五场景？rollbackFor 什么时候必须加？</li>
+    <li>三级缓存两级为什么不够？构造器循环依赖为什么无解？</li>
+    <li>JDK 代理与 CGLIB 的边界？final 方法为什么织不进？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>Spring Framework 官方参考文档（IoC 容器 / AOP 章节）：<a href="https://docs.spring.io/spring-framework/reference/" rel="noopener">docs.spring.io/spring-framework/reference</a></li>
-    <li>Spring Boot 参考（自动配置与事务管理）：<a href="https://docs.spring.io/spring-boot/reference/" rel="noopener">docs.spring.io/spring-boot/reference</a></li>
-    <li>Spring 源码仓库（GitHub，看 spring-context 模块）：<a href="https://github.com/spring-projects/spring-framework" rel="noopener">github.com/spring-projects/spring-framework</a></li>
+    <li>Spring Framework 官方文档（Core/ Beans/AOP）：<a href="https://docs.spring.io/spring-framework/reference/" rel="noopener">docs.spring.io/spring-framework/reference</a></li>
+    <li>《Spring 源码深度解析》；Spring 官方 guides（github.com/spring-guides）——动手向。</li>
   </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《Spring 实战（第 6 版）》（Craig Walls）——快速建立 Spring 使用体系。</li>
-    <li>《Spring 源码深度解析（第 2 版）》（郝佳）——中文圈讲 Bean 生命周期、三级缓存、AOP 代理生成最系统的书。</li>
-  </ul>
-  <h3>实战文章</h3>
-  <ul>
-    <li>Baeldung Spring 专题（注解、事务、切面按主题检索）：<a href="https://www.baeldung.com/" rel="noopener">baeldung.com</a></li>
-    <li>Spring 官方博客（新版本特性与迁移说明）：<a href="https://spring.io/blog" rel="noopener">spring.io/blog</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>复现 @Transactional 自调用失效（打日志确认事务没开），用注入自身代理修复；</li>
+    <li>故意写构造器循环依赖看启动报错，用 @Lazy 与拆 Bean 两种方式修复；</li>
+    <li>写一个 @OpLog 注解 + @Around 切面，记录方法入参出参与耗时。</li>
+  </ol>
 </section>
 
 </main>

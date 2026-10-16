@@ -540,32 +540,121 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/02_Java并发与JVM【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/08_Swagger与OpenAPI接口契约【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/04_Spring核心_IOC与AOP【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：Tomcat 是实现 Servlet 规范的 Web 容器——接收解析 HTTP、调用你的 Servlet、再写回响应；Spring Boot 默认内嵌它。Jetty 更轻、长连接更好。</p>
-  <ul>
-    <li><strong>它做什么</strong>：业务只写 Servlet/Controller，网络协议、连接管理、线程调度都由容器处理。</li>
-    <li><strong>定位</strong>：它是"一个 Java Web 应用能被外部 HTTP 访问"的最后一公里。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：Servlet 容器——Web 应用的最后一公里</h3>
+  <p><strong>Tomcat 是实现 Servlet 规范的 Web 容器</strong>：接收解析 HTTP、调用你的 Servlet、写回响应；业务只写 Controller，网络协议/连接管理/线程调度全由容器处理。<strong>Spring Boot 默认内嵌它</strong>；<strong>Jetty</strong> 更轻、长连接更好。它是"一个 Java Web 应用能被外部 HTTP 访问"的最后一公里。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>分清 <strong>Connector 与 Container</strong> 两大组件；</li>
+    <li>吃透 <strong>maxConnections / maxThreads / acceptCount 三层限流</strong>；</li>
+    <li>理解<strong>内嵌 vs 外置容器</strong>的取舍（Boot 为什么选内嵌）；</li>
+    <li>会配 application.yml 内嵌 Tomcat 参数、知道何时换 Jetty。</li>
+  </ol>
+  <p><strong>前置知识</strong>：02 并发（线程池心智通用）。<strong>难度</strong>：★★☆☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>Connector 与 Container</strong>→ <strong>三层限流</strong>→ <strong>内嵌 vs 外置</strong>→ <strong>HTTP 与 AJP</strong>。</p>
+
+  <h3>2.1 Connector 与 Container 两大组件</h3>
+  <p><strong>Connector</strong> 管"对外通信"（监听端口/收发字节/解析 HTTP）；<strong>Container（Catalina）</strong>管"对内处理"——按 Engine→Host→Context→Wrapper 层层定位到具体 Servlet；一个 Tomcat 可多 Connector（HTTP 8080 + AJP 8009）。</p>
+
+  <h3>2.2 三层限流：连接 → 线程 → 队列</h3>
+  <p><span class="tag-key">maxConnections</span> 管同时接多少连接；<span class="tag-key">maxThreads</span> 管同时处理多少请求（阻塞模型下一请求占一线程直到响应完）；<span class="tag-key">acceptCount</span> 是线程都忙时的排队长度，队满拒绝。<strong>IO 密集可适度调大 maxThreads</strong>，但线程过多上下文切换反而拖慢——要与下游 DB 连接池匹配。</p>
+
+  <h3>2.3 内嵌 vs 外置容器</h3>
+  <p><strong>外置</strong>（传统）：单独装 Tomcat，多 war 共用一个容器，打 war→丢 webapps→重启；<strong>内嵌</strong>（Boot）：容器作依赖打进 jar，<code>java -jar</code> 自起，容器版本与应用绑定——部署单元变成一个进程，<strong>天然适合 Docker</strong>；代价是一应用一 JVM，不共享。</p>
+
+  <h3>2.4 HTTP 与 AJP</h3>
+  <p>HTTP 标准浏览器协议；<strong>AJP</strong> 是早年 Nginx 转发后端的紧凑二进制协议——2020 年 <strong>Ghostcat（CVE-2020-1938）</strong>可致读文件甚至 RCE，<span class="tag-pit">现在 AJP 端口默认不开放</span>，前后端一律 HTTP/反向代理。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Spring Boot 内嵌 Tomcat 调优</h3>
+<pre class="code" data-lang="yaml"><code># application.yml：内嵌 Tomcat 的连接/线程配置
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200              # 工作线程数（默认 200）
+      min-spare: 10         # 常驻空闲线程
+    max-connections: 10000  # 最大同时连接数（默认 8192）
+    accept-count: 2048      # 连接达到上限后排队的长度
+    connection-timeout: 5s  # 连接超时</code></pre>
+
+  <h3>3.2 场景二：换成 Jetty（可选）</h3>
+<pre class="code" data-lang="xml"><code>&lt;!-- pom.xml：排除默认 Tomcat，引入 Jetty --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+  &lt;exclusions&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-boot-starter-tomcat&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+  &lt;/exclusions&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-jetty&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+  <div class="note"><strong>经验</strong>：绝大多数业务默认 Tomcat 就够；只有长连接/WebSocket 密集场景才考虑 Jetty——换容器前先确认是真瓶颈。<span class="tag-pit">配置命名空间</span>：换 Jetty 后 <code>server.tomcat.*</code> 全部失效，要改 <code>server.jetty.*</code>——"配置写了却不生效"的高频坑。</div>
+
+  <h3>3.3 场景三：一次请求的完整接力</h3>
+  <ol>
+    <li><strong>接连接</strong>：Connector accept，受 maxConnections 约束；</li>
+    <li><strong>分配线程</strong>：进入处理队列，工作线程池取一线程执行；</li>
+    <li><strong>路由</strong>：Container 按 Context 与路径找到 DispatcherServlet → Spring MVC 路由到 Controller；</li>
+    <li><strong>返回</strong>：响应交回 Connector 写回客户端，<strong>线程释放回池</strong>——请求完成前线一直被占着，这就是"慢接口拖垮并发"的原因。</li>
+  </ol>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：三层限流已懂。</p>
+
+  <h3>4.1 NIO Connector 与阻塞模型</h3>
+  <p>Tomcat 8+ 默认 <strong>NIO Connector</strong>：连接接收用 Selector 多路复用（连接数可以远大于线程数），但<strong>请求处理仍是"一请求一线程"阻塞模型</strong>——maxThreads 决定并发处理上限的本质没变；真正的"少线程高并发"要上响应式栈（WebFlux），代价是调试复杂度。</p>
+
+  <h3>4.2 线程数与下游容量的联动公式</h3>
+  <p>经验起点：maxThreads ≈ 每秒请求数 × 平均响应秒数（Little's Law）+ 缓冲；但<strong>上限受下游约束</strong>——若 HikariCP 池只有 20 连接，200 个 Web 线程中 180 个在等连接白耗内存；<strong>全链路一起规划</strong>：Web 线程 → DB 连接池 → 下游接口并发限额。</p>
+
+  <h3>4.3 优雅停机与部署脚本</h3>
+  <p>Boot 配 <code>server.shutdown: graceful</code> + <code>spring.lifecycle.timeout-per-shutdown-phase</code>——kill 时先停止接新请求、把手头请求处理完再退；配合部署脚本"先查端口再起"防端口占用。</p>
+
+  <h3>4.4 容器级监控指标</h3>
+  <p>Actuator + Micrometer 暴露 <code>tomcat.threads.busy</code>（繁忙线程数）、<code>tomcat.connections.current</code>（当前连接数）——busy 长期贴着 max 就是容量告警信号，比出事后看日志提前得多。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="Tomcat 请求处理链路示意图">
       <defs>
@@ -594,23 +683,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Tomcat 从接到请求到交给业务 Servlet 的链路（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 Connector 与 Container</h3>
-  <p class="lead"><b>一句话定位</b>：Connector 管"对外通信"（收字节、解析协议），Container 管"对内处理"（找 Servlet、调用它）。</p>
-  <ul>
-    <li><strong>Connector</strong>：监听端口、收发字节、解析 HTTP。</li>
-    <li><strong>Container（Catalina）</strong>：按 Engine→Host→Context→Wrapper 一层层定位到具体 Servlet。</li>
-    <li><strong>多 Connector</strong>：一个 Tomcat 可同时监听 HTTP 8080 与 AJP 8009。</li>
-  </ul>
-  <h3>2.2 连接数与工作线程池</h3>
-  <p class="lead"><b>一句话定位</b>：maxConnections 管"同时接多少连接"，maxThreads 管"同时处理多少请求"——线程数直接决定并发能力。</p>
-  <ul>
-    <li><strong>阻塞模型</strong>：一个请求占一个工作线程直到响应完。</li>
-    <li><strong>IO 密集可调大</strong>：大量等 DB/外部接口时可把 maxThreads 调大，但线程过多上下文切换反而拖慢。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="Tomcat连接数线程数队列关系图">
       <defs>
@@ -619,18 +691,13 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">maxConnections / maxThreads / acceptCount 三层关系（示意）</text>
-
-      <!-- 进来的连接 -->
       <rect x="40" y="60" width="140" height="120" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="110" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">进来的请求</text>
       <text x="110" y="108" text-anchor="middle" font-size="11" fill="#4f6348">maxConnections</text>
       <text x="110" y="126" text-anchor="middle" font-size="11" fill="#4f6348">= 10000</text>
       <text x="110" y="150" text-anchor="middle" font-size="10.5" fill="#7a8a70">最多同时接</text>
       <text x="110" y="168" text-anchor="middle" font-size="10.5" fill="#7a8a70">1 万个连接</text>
-
       <line x1="180" y1="120" x2="230" y2="120" stroke="#7a8a70" marker-end="url(#arr)"/>
-
-      <!-- 工作线程 -->
       <rect x="235" y="50" width="200" height="140" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="335" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#4f8a63">工作线程池</text>
       <text x="335" y="98" text-anchor="middle" font-size="11" fill="#4f6348">maxThreads = 200</text>
@@ -640,30 +707,19 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="380" y="122" text-anchor="middle" font-size="10" fill="#4f8a63">线程2 处理中</text>
       <text x="335" y="155" text-anchor="middle" font-size="10.5" fill="#7a8a70">同时最多处理 200 个请求</text>
       <text x="335" y="175" text-anchor="middle" font-size="10.5" fill="#b45309">慢请求会占住线程不放</text>
-
       <line x1="435" y1="120" x2="485" y2="120" stroke="#7a8a70" marker-end="url(#arr)"/>
-
-      <!-- 队列 -->
       <rect x="490" y="60" width="150" height="120" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="565" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">等待队列</text>
       <text x="565" y="108" text-anchor="middle" font-size="11" fill="#4f6348">acceptCount = 2048</text>
       <text x="565" y="135" text-anchor="middle" font-size="10.5" fill="#7a8a70">线程都忙时</text>
       <text x="565" y="153" text-anchor="middle" font-size="10.5" fill="#7a8a70">在队列里排队</text>
       <text x="565" y="173" text-anchor="middle" font-size="10.5" fill="#b91c1c">队列也满就拒绝</text>
-
       <text x="680" y="125" text-anchor="middle" font-size="11" fill="#7a8a70">三层：</text>
       <text x="680" y="145" text-anchor="middle" font-size="11" fill="#7a8a70">连接→线程→排队</text>
       <text x="680" y="165" text-anchor="middle" font-size="11" fill="#7a8a70">一层层限流</text>
     </svg>
     <p class="diagram-caption">图 2 连接数/线程数/队列三层关系（示意）</p>
   </div>
-  <h3>2.3 内嵌容器 vs 外置容器</h3>
-  <p class="lead"><b>一句话定位</b>：Spring Boot 把容器打进 jar，<code>java -jar</code> 自起——部署单元变成一个进程，天然适合 Docker。</p>
-  <ul>
-    <li><strong>外置</strong>：单独装 Tomcat，war 丢进去，多应用共用一个容器。</li>
-    <li><strong>内嵌（Boot 采用）</strong>：容器作依赖打进 jar，容器版本与应用绑定。</li>
-    <li><strong>代价</strong>：一个应用一个 JVM，不像外置那样多应用共享。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="内嵌容器vs外置容器对比图">
       <defs>
@@ -672,8 +728,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">内嵌容器 vs 外置容器（示意）</text>
-
-      <!-- 外置 -->
       <rect x="30" y="50" width="350" height="130" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">外置 Tomcat（传统）</text>
       <rect x="50" y="88" width="310" height="25" rx="4" fill="#fff" stroke="#dc2626"/>
@@ -686,8 +740,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="305" y="135" text-anchor="middle" font-size="10" fill="#b91c1c">app3.war</text>
       <text x="205" y="165" text-anchor="middle" font-size="11" fill="#7a8a70">部署：打 war→丢进 webapps→重启 Tomcat</text>
       <text x="205" y="182" text-anchor="middle" font-size="11" fill="#7a8a70">多应用共享一个 JVM 容器</text>
-
-      <!-- 内嵌 -->
       <rect x="420" y="50" width="350" height="130" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">内嵌容器（Spring Boot）</text>
       <rect x="440" y="88" width="150" height="25" rx="4" fill="#fff" stroke="#047857"/>
@@ -700,143 +752,94 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 内嵌 vs 外置容器（示意）</p>
   </div>
-  <h3>2.4 HTTP 与 AJP 协议</h3>
-  <p class="lead"><b>一句话定位</b>：AJP 是早年 Nginx 转发后端的紧凑二进制协议，因 Ghostcat 漏洞现在默认不开放。</p>
-  <ul>
-    <li><strong>HTTP</strong>：标准浏览器协议。</li>
-    <li><strong>AJP</strong>：二进制协议，比 HTTP 紧凑；2020 年 Ghostcat（CVE-2020-1938）可致读文件甚至 RCE。</li>
-  </ul>
-  <p class="pit-sentence">现在前后端之间一律走 HTTP/反向代理，AJP 端口默认不开放。</p>
+  <p><strong>读图要点</strong>：①图 1 请求接力——Connector 收协议→线程池派线程→Container 定位 Servlet；②图 2 三层层层限流——<strong>"慢请求会占住线程不放"</strong>是并发能力的本质约束；③图 3 部署形态分野——Boot 选内嵌是为"一 jar 一进程"的 Docker 友好。</p>
 </section>
 
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一个请求在 Tomcat 内的完整接力</h3>
-  <p class="lead"><b>一句话定位</b>：请求完成前一直占着一个工作线程——这就是"慢接口会拖垮并发"的原因。</p>
-  <p>结合图 1，一个请求的完整接力是：Connector accept 连接 → 把 HTTP 报文解析成 Request/Response → 线程池分配工作线程 → 沿 Container 层级定位到 DispatcherServlet → Spring MVC 路由到 Controller → 响应原路写回 → 线程释放回池。</p>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统/数据编排平台 SpringBoot 服务默认内嵌 Tomcat，jar 部署；我负责打包、JVM 与连接参数调整，配合运维部署。内部系统并发不高但要稳定常驻。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><strong>内嵌优于外置</strong>：Tomcat 打进 jar 一条命令起服务，省去外部容器与 war 部署；</li>
+    <li><strong>连接参数按需调</strong>：threads.max 与 accept-count 匹配内部系统并发，不盲目开大；</li>
+    <li><strong>协作约定</strong>：端口/线程数在配置里可调，不写死代码；部署脚本先查端口再起。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>端口占用起不来</strong>：上次进程没退干净——部署脚本先查端口再起（配 graceful 停机根治）；</li>
+    <li><span class="tag-point">要点</span><strong>内嵌 vs 外置选型</strong>：新项目一律内嵌；多应用共用一个容器才考虑外置。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>接连接</strong>：Connector 在指定端口 accept 连接，受 maxConnections 上限约束。</li>
-    <li><strong>分配线程</strong>：连接进入处理队列，由工作线程池取一个线程执行。</li>
-    <li><strong>路由到 Servlet</strong>：Container 按 Context（Web 应用）与路径找到 DispatcherServlet。</li>
-    <li><strong>执行业务并返回</strong>：Spring MVC 处理完，响应交回 Connector 写回客户端。</li>
+    <li><strong>量化</strong>：启动从"打 war→部署外部容器→重启"简化为一条 java -jar；</li>
+    <li><strong>可复用经验</strong>：SpringBoot 项目不折腾外置容器；连接参数按并发调，内部系统不盲目开大线程；</li>
+    <li><strong>一句话抓手</strong>："SpringBoot 内嵌 Tomcat 打 jar 部署，按内部系统并发调过线程数与 accept-count，理解内嵌与外置的取舍。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Spring Boot 内嵌 Tomcat 调优参数</h3>
-<pre class="code" data-lang="yaml"><code># application.yml：内嵌 Tomcat 的连接/线程配置
-server:
-  port: 8080
-  tomcat:
-    threads:
-      max: 200            # 工作线程数（默认 200）
-      min-spare: 10       # 常驻空闲线程
-    max-connections: 10000  # 最大同时连接数（默认 8192）
-    accept-count: 2048      # 连接达到上限后排队的长度
-    connection-timeout: 5s  # 连接超时</code></pre>
-  <h3>4.2 换成 Jetty（可选）</h3>
-<pre class="code" data-lang="xml"><code>&lt;!-- pom.xml：排除默认 Tomcat，引入 Jetty --&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-  &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
-  &lt;exclusions&gt;
-    &lt;exclusion&gt;
-      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-      &lt;artifactId&gt;spring-boot-starter-tomcat&lt;/artifactId&gt;
-    &lt;/exclusion&gt;
-  &lt;/exclusions&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-  &lt;artifactId&gt;spring-boot-starter-jetty&lt;/artifactId&gt;
-&lt;/dependency&gt;</code></pre>
-  <div class="note">经验：绝大多数业务系统默认 Tomcat 就够；只有长连接/WebSocket 密集场景才考虑 Jetty。换容器前先确认是不是真瓶颈。</div>
-  <p class="lead"><b>注意配置命名空间</b>：换成 Jetty 后，<code>server.tomcat.*</code> 系列配置不再生效，线程数等参数要改用 <code>server.jetty.*</code>——这是换容器后最常见的"配置写了却不生效"坑。</p>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统/数据编排平台 SpringBoot 服务默认内嵌 Tomcat，打包成 jar 直接运行，部署在应用服务器上。</p>
-  <ul><li><strong>业务量级</strong>：内部管理系统，并发量不高但要稳定常驻，偶尔有多人同时操作。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：负责服务打包、JVM 与连接参数调整，配合运维把 jar 部署到服务器。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot 内嵌 Tomcat（Web 容器）+ jar 部署；外置 Tomcat 仅作了解。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>内嵌优于外置</strong>：SpringBoot 把 Tomcat 打进 jar，一条命令起服务，省去外部容器与 war 部署。</li>
-    <li><strong>连接参数</strong>：按需调整 server.tomcat.threads.max 与连接超时，匹配内部系统并发。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="yaml"><code>server:
-  port: 8080
-  tomcat:
-    threads:
-      max: 200
-      min-spare: 10
-    accept-count: 100</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>端口占用起不来</strong>：上次进程没退干净——部署脚本先查端口再起。</li>
-    <li><span class="tag-point">要点</span><strong>内嵌 vs 外置</strong>：新项目一律内嵌；多应用共用一个容器才考虑外置 Tomcat。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>服务启动从"打 war→部署外部容器→重启"简化为一条 java -jar（约几分钟→一条命令）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>部署方式与运维约定：jar + 启动脚本，端口/线程数在配置里可调，不写死在代码。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>优先内嵌</strong>：SpringBoot 项目不折腾外置容器。</li><li><strong>连接参数按并发调</strong>：内部系统不必盲目开大线程。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"SpringBoot 服务用内嵌 Tomcat 打 jar 部署，我按内部系统并发调过线程数与 accept-count，理解了内嵌与外置容器的取舍。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 以为线程越多越快</h3>
-  <p class="lead"><b>一句话定位</b>：把 maxThreads 调到几千提并发是误区——线程多了切换、内存、GC 都成开销。</p>
-  <ul>
-    <li><strong>真相</strong>：IO 密集可适度调，但要和下游 DB 连接池容量匹配，否则把压力全转给数据库。</li>
-  </ul>
-  <h3>6.2 maxThreads 与数据库连接池不匹配</h3>
-  <p class="lead"><b>一句话定位</b>：Web 线程很多却都卡在等数据库连接——工作线程数要和 HikariCP 池一起规划。</p>
-  <ul>
-    <li><strong>正解</strong>：工作线程数要和 DB 连接池（如 HikariCP maximumPoolSize）一起规划。</li>
-  </ul>
-  <h3>6.3 AJP 端口暴露</h3>
-  <p class="lead"><b>一句话定位</b>：遗留外置 Tomcat 开着 AJP 8009，可能被 Ghostcat 类漏洞利用。</p>
-  <ul>
-    <li><strong>正解</strong>：不用 AJP 就关掉该 Connector，前后端统一走 HTTP + Nginx 反向代理。</li>
-  </ul>
-  <h3>6.4 内嵌与外置混淆</h3>
-  <p class="lead"><b>一句话定位</b>：Spring Boot 应用还去找外部 Tomcat 的 server.xml 改配置——内嵌容器的配置在 application.yml。</p>
-  <ul>
-    <li><strong>正解</strong>：内嵌容器配置在 <code>server.tomcat.*</code>，改外部 server.xml 对内嵌 jar 无效。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑。</p>
+
+  <h3>7.1 以为线程越多越快</h3>
+  <p><strong>误区</strong>：maxThreads 调几千提并发。<strong>真相</strong>：线程多了切换/内存/GC 都成开销，且要与下游 DB 连接池容量匹配，否则把压力全转给数据库。</p>
+
+  <h3>7.2 maxThreads 与 DB 连接池不匹配</h3>
+  <p><strong>现象</strong>：Web 线程很多却都卡在等数据库连接。<strong>正解</strong>：工作线程数与 HikariCP maximumPoolSize 一起规划（4.2 联动公式）。</p>
+
+  <h3>7.3 AJP 端口暴露</h3>
+  <p><strong>风险</strong>：遗留外置 Tomcat 开着 8009 可被 Ghostcat 类漏洞利用。<strong>正解</strong>：不用 AJP 就关掉该 Connector，统一 HTTP + Nginx 反代。</p>
+
+  <h3>7.4 内嵌外置混淆</h3>
+  <p><strong>现象</strong>：Boot 应用去找外部 server.xml 改配置。<strong>正解</strong>：内嵌配置在 application.yml 的 server.tomcat.*——改外部 server.xml 对内嵌 jar 无效。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：一个 HTTP 请求在 Tomcat 内经过什么？为什么慢接口会拖垮并发？</strong></p>
+  <p class="note"><strong>参考答案</strong>：接力链——<strong>Connector</strong> accept 连接并把 HTTP 报文解析成 Request/Response（NIO Connector 让连接数可远大于线程数）→ 工作线程池分配线程 → <strong>Container</strong> 按 Context/Wrapper 定位到 DispatcherServlet → Spring MVC 路由到 Controller → 响应写回，<strong>线程释放回池</strong>。阻塞模型下一个请求从头到尾占一个工作线程——慢接口（等 DB/外部接口）会让线程池耗尽，后续请求全部排队甚至拒绝，这就是"慢接口拖垮并发"的机制。</p>
+
+  <p><strong>Q2：maxConnections、maxThreads、acceptCount 三者关系？怎么调？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层限流——<strong>maxConnections</strong> 管同时接受的连接数（默认 8192）；<strong>maxThreads</strong> 管同时处理的请求数（默认 200）；<strong>acceptCount</strong> 是线程都忙时 OS 层排队长度，队满拒绝。<strong>调优口径</strong>：线程数不是越大越好（上下文切换/内存/GC 开销），经验起点 Little's Law（QPS×平均响应时间），但<strong>上限受下游约束</strong>——要和 HikariCP 连接池一起规划，否则 200 个线程里 180 个在等连接白耗资源。监控上盯 tomcat.threads.busy 贴满 max 的容量告警。</p>
+
+  <p><strong>Q3：内嵌与外置容器的取舍？换 Jetty 要注意什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>外置</strong>（传统）：独立 Tomcat 多 war 共用，打 war→webapps→重启；<strong>内嵌</strong>（Boot）：容器打进 jar，java -jar 自起、容器版本与应用绑定——部署单元是一进程，<strong>天然适合 Docker</strong>，代价是一应用一 JVM。<strong>新项目一律内嵌</strong>；换 Jetty 仅限长连接/WebSocket 密集场景且要先确认是真瓶颈——<strong>换容器后 server.tomcat.* 配置全部失效</strong>要改 server.jetty.*，这是"配置不生效"的高频坑。另：AJP 因 Ghostcat（CVE-2020-1938）默认不开放，前后端统一 HTTP+Nginx 反代。</p>
+
+  <p><strong>Q5：自测 5 问</strong></p>
+  <ol>
+    <li>Connector 与 Container 各管什么？</li>
+    <li>三层限流各是什么？慢接口为什么拖垮并发？</li>
+    <li>线程数调大的约束是什么？</li>
+    <li>内嵌 vs 外置的取舍与 Docker 的关系？</li>
+    <li>为什么 AJP 现在默认不开放？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>Apache Tomcat 官方文档（配置/Connector/线程池）：<a href="https://tomcat.apache.org/tomcat-10.1-doc/" rel="noopener">tomcat.apache.org</a></li>
-    <li>Eclipse Jetty 官方文档：<a href="https://www.eclipse.org/jetty/documentation/" rel="noopener">eclipse.org/jetty/documentation</a></li>
+    <li>Apache Tomcat（Connector/线程池配置）：<a href="https://tomcat.apache.org/tomcat-10.1-doc/" rel="noopener">tomcat.apache.org</a>；Jetty：eclipse.org/jetty/documentation</li>
     <li>Spring Boot 内嵌服务器配置参考：<a href="https://docs.spring.io/spring-boot/reference/" rel="noopener">docs.spring.io/spring-boot/reference</a></li>
   </ul>
-  <h3>书籍与实践</h3>
-  <ul>
-    <li>《深入分析 Java Web 技术内幕》（许令波）——讲 Tomcat 架构与请求处理较深入。</li>
-    <li>Ghostcat 漏洞说明（CVE-2020-1938）：了解为何 AJP 端口不应暴露，可搜索该 CVE 编号。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>起一个 Boot 应用，用压测工具打满 maxThreads，观察 acceptCount 排队与拒绝行为；</li>
+    <li>把 HikariCP 池改小，观察 Web 线程等待连接的线程 dump；</li>
+    <li>换 Jetty 体验 server.tomcat.* 失效坑，再用 server.jetty.* 修复。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/02_Java并发与JVM【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/08_Swagger与OpenAPI接口契约【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/04_Spring核心_IOC与AOP【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Tomcat与Jetty服务器【基础】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
