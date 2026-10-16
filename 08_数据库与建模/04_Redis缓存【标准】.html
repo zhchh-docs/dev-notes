@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../08_数据库与建模/09_Oracle【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/03_MySQL事务与锁【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../08_数据库与建模/05_Redis进阶_缓存策略与分布式锁【深入】.html">下一篇 →</a>
 </nav>
@@ -548,24 +548,115 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：Redis 是内存键值数据库——数据在内存所以极快，还能当分布式锁、计数器、排行榜、消息队列用。</p>
-  <ul>
-    <li><strong>它解决什么</strong>：MySQL 扛不住高频读时，热点数据放内存挡在前面，读走 Redis、miss 才回源 MySQL 并回填。</li>
-    <li><strong>代价</strong>：引入了缓存一致性问题——这是用缓存必须面对的。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：内存键值数据库，缓存挡板 + 多面手</h3>
+  <p><strong>Redis 是内存键值数据库</strong>——数据在内存所以极快（微秒级命中），还能当<strong>分布式锁、计数器、排行榜、消息队列</strong>用。<strong>它解决什么</strong>：MySQL 扛不住高频读时，热点数据放内存挡在前面——读走 Redis、miss 才回源 MySQL 并回填。<span class="tag-pit">代价</span>：引入了<strong>缓存一致性</strong>问题——用缓存必须面对。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>五大数据结构<strong>各配什么场景</strong>；</li>
+    <li>掌握<strong>旁路缓存 Cache-Aside</strong>（读穿透写删缓存）；</li>
+    <li>分清 <strong>RDB 与 AOF</strong> 的取舍与"缓存 vs 主存储"定位；</li>
+    <li>知道<strong>过期/淘汰策略</strong>与必设 TTL 的纪律。</li>
+  </ol>
+  <p><strong>前置知识</strong>：无。<strong>难度</strong>：★★☆☆☆。<strong>进阶内容</strong>：穿透/击穿/雪崩与分布式锁（05 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>五大数据结构</strong>→ <strong>过期与淘汰</strong>→ <strong>持久化 RDB/AOF</strong>→ <strong>旁路缓存</strong>。</p>
+
+  <h3>2.1 五大数据结构与主场</h3>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>结构</th><th>特点</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>String</td><td>最简单 key-value</td><td>缓存对象(JSON)、计数器、分布式锁</td></tr>
+      <tr><td>Hash</td><td>field-value 散列表</td><td>存对象（用户信息），改单字段方便</td></tr>
+      <tr><td>List</td><td>双向链表，可栈可队列</td><td>简单消息队列、最新列表</td></tr>
+      <tr><td>Set</td><td>无序不重复</td><td>标签、共同好友（交并差）</td></tr>
+      <tr><td>ZSet</td><td>带分数有序集合</td><td>排行榜、延时队列</td></tr>
+    </tbody>
+  </table>
+  <p><span class="tag-key">选对结构就是选对数据模型</span>——排行榜硬用 String 存 JSON 排序就是灾难。</p>
+
+  <h3>2.2 过期与淘汰策略</h3>
+  <p>key 设 EXPIRE 到期自动删；内存满了由<strong>淘汰策略</strong>决定丢谁：默认 <code>noeviction</code>（写报错不淘汰）；做缓存常用 <span class="tag-key">allkeys-lru</span>；4.0+ 还有 allkeys-lfu（按频次）、volatile-*（只淘汰设过期的 key）。<span class="tag-point">推论</span>：缓存本就该"可丢"——丢了回源重建。</p>
+
+  <h3>2.3 持久化：RDB vs AOF</h3>
+  <p><strong>RDB 定时快照</strong>：恢复快文件小，但可能丢最后一次快照后的数据——适合缓存场景；<strong>AOF 追加日志</strong>：记每条写命令重放恢复——更安全但文件大恢复慢，当主存储才认真配；生产常两者混用。本套技术栈把 Redis 当缓存+辅助存储（黑名单/refresh token 也容忍过期重建或短期丢失）。</p>
+
+  <h3>2.4 旁路缓存 Cache-Aside：写是"删"不是"更"</h3>
+  <p><strong>读</strong>：先读缓存→命中返回；未命中读库并写回（带过期）；<strong>写</strong>：先更库，<strong>再删缓存</strong>（不是更新缓存）——并发写时更新缓存容易算错，删了等下次读重建更简单可靠；<strong>兜底</strong>：过期时间是最后防线。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Spring Data Redis 读写</h3>
+<pre class="code" data-lang="java"><code>String key = "req:" + id;
+// 读缓存
+ReqVO vo = (ReqVO) redisTemplate.opsForValue().get(key);
+if (vo == null) {
+    vo = requirementMapper.selectVo(id);          // 回源
+    redisTemplate.opsForValue().set(key, vo, 30, TimeUnit.MINUTES); // 回填+过期
+}
+// 写：更库后删缓存
+requirementMapper.update(req);
+redisTemplate.delete(key);</code></pre>
+
+  <h3>3.2 场景二：原子计数与简单锁</h3>
+<pre class="code" data-lang="java"><code>// 原子计数（incr 是原子的，不用先读后写）
+Long cnt = redisTemplate.opsForValue().increment("alert:unread:count");
+
+// 简单锁：setnx + 过期（生产建议用 Redisson，见 05 篇）
+Boolean ok = redisTemplate.opsForValue()
+    .setIfAbsent("lock:req:" + id, "1", 10, TimeUnit.SECONDS);</code></pre>
+
+  <h3>3.3 场景三：序列化选择</h3>
+<pre class="code" data-lang="java"><code>// 默认 JDK 序列化可读性差、体积大；生产常配 JSON 序列化
+// 配置 RedisTemplate 的 valueSerializer 为 Jackson2JsonRedisSerializer
+// 好处：缓存值是可读 JSON，跨语言/排查方便，体积更小。</code></pre>
+  <div class="note"><strong>经验</strong>：序列化要与版本兼容一起考虑——改了类字段后旧 JSON 反序列化可能失败，要留版本号或容忍旧数据过期自然淘汰。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：Cache-Aside 已会。</p>
+
+  <h3>4.1 Redis 为什么快（单线程的理解）</h3>
+  <p>内存操作 + 单线程命令执行（无锁无上下文切换）+ IO 多路复用（epoll）+ 高效结构（SDS/跳表/压缩列表）；6.0 引入多线程<strong>仅用于网络 IO</strong>，命令执行仍单线程——"单线程"是并发安全的根基，也是大 key 拖慢全实例的原因。</p>
+
+  <h3>4.2 跳表：ZSet 的引擎</h3>
+  <p>ZSet 用<strong>跳表</strong>（多层链表，查找 O(logN)）+ 哈希表双结构——跳表支持范围查询且实现比平衡树简单，<strong>排行榜 zrevrange/zincrby 就是跳表主场</strong>。</p>
+
+  <h3>4.3 过期删除的两种机制</h3>
+  <p><strong>惰性删除</strong>（访问时发现过期才删）+ <strong>定期删除</strong>（周期性抽样删）组合——单独任何一种都不够；这就是"过期 key 不一定立即消失"的原因，也是内存统计与过期数对不上的解释。</p>
+
+  <h3>4.4 Pipeline 与 Lua 的位置</h3>
+  <p><strong>Pipeline</strong> 打包多条命令一次往返（省 RTT，批量读写必用）；<strong>Lua 脚本</strong>把"读-改-写"原子化（判断+扣减等复合逻辑）——05 篇分布式锁的看门狗/释放锁就用 Lua 保证原子。</p>
+
+  <h3>4.5 key 设计纪律</h3>
+  <p>命名用冒号分层（业务:实体:id，如 req:12/dict:code）便于 scan 与排查；禁止 KEYS *（阻塞全实例）用 SCAN 渐进遍历；<strong>大 key</strong>（超大 hash/list）拆分或压缩，<strong>热 key</strong> 用本地缓存兜底——细节在 05 篇展开。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="Redis 缓存挡在 MySQL 前示意图">
       <defs>
@@ -588,70 +679,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Redis 作为缓存层挡在 MySQL 前（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 五大数据结构与适用场景</h3>
-  <p class="lead"><b>一句话定位</b>：String/Hash/List/Set/ZSet 五种结构各有主场——选对结构就是选对数据模型。</p>
-  <table>
-    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
-    <thead><tr><th>结构</th><th>特点</th><th>典型场景</th></tr></thead>
-    <tbody>
-      <tr><td>String</td><td>最简单的 key-value</td><td>缓存对象(JSON)、计数器、分布式锁</td></tr>
-      <tr><td>Hash</td><td>field-value 散列表</td><td>存对象（用户信息），改单字段方便</td></tr>
-      <tr><td>List</td><td>双向链表，可做栈/队列</td><td>简单消息队列、最新列表</td></tr>
-      <tr><td>Set</td><td>无序不重复集合</td><td>标签、共同好友（交并差）</td></tr>
-      <tr><td>ZSet</td><td>带分数的有序集合</td><td>排行榜、延时队列</td></tr>
-    </tbody>
-  </table>
-  <h3>2.2 过期与淘汰策略</h3>
-  <p class="lead"><b>一句话定位</b>：key 设 EXPIRE 到期自动删；内存满了由淘汰策略（常用 allkeys-lru）决定丢谁。</p>
-  <ul>
-    <li><strong>推论</strong>：缓存本就该"可丢"——丢了回源重建即可。</li>
-    <li><strong>淘汰策略全集</strong>：maxmemory 满后由 maxmemory-policy 决定，默认是 <code>noeviction</code>（写报错、不淘汰）；做缓存常用 <code>allkeys-lru</code>，4.0+ 还提供 <code>allkeys-lfu</code>（按频次）、<code>volatile-lru/volatile-lfu/volatile-ttl</code>（只在设了过期的 key 里淘汰）等。</li>
-  </ul>
-  <h3>2.3 持久化：RDB 与 AOF</h3>
-  <p class="lead"><b>一句话定位</b>：RDB 是定时快照（恢复快但可能丢最后一次快照后数据），AOF 记每条写命令（耐丢但文件大恢复慢）。</p>
-  <ul>
-    <li><strong>当缓存用</strong>：数据丢了能从 MySQL 重建，持久化要求没那么高。</li>
-    <li><strong>当主存储用</strong>：才要认真配 AOF。生产常两者混用。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 160" role="img" aria-label="RDB与AOF持久化对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">RDB vs AOF 怎么选？（示意）</text>
-
-      <!-- RDB -->
-      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">RDB（定时快照）</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">定时把全量数据快照存盘</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">恢复快、文件小，但可能丢最后一次快照后数据</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">适合：缓存场景、对丢数据不敏感</text>
-
-      <!-- AOF -->
-      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">AOF（追加日志）</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">记录每条写命令，重放恢复</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">数据更安全，但文件大、恢复慢</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">适合：当主存储用、不能丢数据</text>
-    </svg>
-    <p class="diagram-caption">图 1 RDB vs AOF（示意）</p>
-  </div>
-  <h3>2.4 缓存更新：旁路缓存（Cache-Aside）</h3>
-  <p class="lead"><b>一句话定位</b>：读——先读缓存，没有再读库并写回；写——先更库，再删缓存（不是更新缓存）。</p>
-  <ul>
-    <li><strong>为什么写是"删"不是"更"</strong>：并发写时更新缓存容易算错，删了等下次读重建更简单可靠。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 旁路缓存的读写流程</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="旁路缓存读写流程图">
       <defs>
@@ -680,57 +707,41 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 旁路缓存：读时回填、写时删缓存（示意）</p>
   </div>
-  <ol>
-    <li><strong>读</strong>：先查 Redis；命中即返回；未命中查 MySQL，把结果写回 Redis（带过期时间）。</li>
-    <li><strong>写</strong>：先更新 MySQL，再删除对应缓存 key。</li>
-    <li><strong>兜底</strong>：缓存过期时间是最后防线——即使删缓存失败，过期后也会重建。</li>
-  </ol>
+  <div class="diagram">
+    <svg viewBox="0 0 800 160" role="img" aria-label="RDB与AOF持久化对比图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">RDB vs AOF 怎么选？（示意）</text>
+      <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">RDB（定时快照）</text>
+      <text x="50" y="95" font-size="11" fill="#4f6348">定时把全量数据快照存盘</text>
+      <text x="50" y="117" font-size="11" fill="#4f6348">恢复快、文件小，但可能丢最后一次快照后数据</text>
+      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">适合：缓存场景、对丢数据不敏感</text>
+      <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">AOF（追加日志）</text>
+      <text x="440" y="95" font-size="11" fill="#4f6348">记录每条写命令，重放恢复</text>
+      <text x="440" y="117" font-size="11" fill="#4f6348">数据更安全，但文件大、恢复慢</text>
+      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">适合：当主存储用、不能丢数据</text>
+    </svg>
+    <p class="diagram-caption">图 3 RDB vs AOF（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 挡板定位——命中不碰库；②图 2 Cache-Aside 全貌——<strong>写是删缓存不是更缓存</strong>（并发下更安全）；③图 3 持久化取舍随"缓存 vs 主存储"定位而变。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Spring Data Redis 常用操作</h3>
-<pre class="code" data-lang="java"><code>String key = "req:" + id;
-// 读缓存
-ReqVO vo = (ReqVO) redisTemplate.opsForValue().get(key);
-if (vo == null) {
-    vo = requirementMapper.selectVo(id);          // 回源
-    redisTemplate.opsForValue().set(key, vo, 30, TimeUnit.MINUTES); // 回填+过期
-}
-// 写：更库后删缓存
-requirementMapper.update(req);
-redisTemplate.delete(key);</code></pre>
-  <h3>4.2 计数器与分布式锁基础</h3>
-<pre class="code" data-lang="java"><code>// 原子计数（incr 是原子的，不用先读后写）
-Long cnt = redisTemplate.opsForValue().increment("alert:unread:count");
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统：Redis 做热点数据缓存、登录会话/黑名单与计数器；我负责接入 Redis、设计缓存 key/过期策略/更新方式。</p>
 
-// 简单锁：setnx + 过期（生产建议用 Redisson，见下一页）
-Boolean ok = redisTemplate.opsForValue()
-    .setIfAbsent("lock:req:" + id, "1", 10, TimeUnit.SECONDS);</code></pre>
-  <h3>4.3 序列化选择</h3>
-<pre class="code" data-lang="java"><code>// 默认 JDK 序列化可读性差、体积大；生产常配 JSON 序列化
-// 配置 RedisTemplate 的 valueSerializer 为 Jackson2JsonRedisSerializer
-// 好处：缓存里的值是可读 JSON，跨语言/排查方便，体积更小。</code></pre>
-  <div class="note">经验：序列化方式要和缓存可读性、版本兼容一起考虑——改了类字段后旧的 JSON 反序列化可能失败，要留版本号或容忍旧数据过期自然淘汰。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 用 Redis 做热点数据缓存、登录会话/黑名单与计数器，减轻 MySQL 压力。</p>
-  <ul><li><strong>业务量级</strong>：字典/权限/热点配置读多写少；登录态与计数频繁访问。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：接入 Redis，设计缓存 key、过期策略与缓存更新方式。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot Data Redis + Redisson + MySQL。</li></ul>
-  <h3>4 落地设计</h3>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>热点缓存</strong>：字典/配置先查缓存，miss 再查库并回写。</li>
-    <li><strong>会话/黑名单</strong>：JWT 黑名单、refresh token 存 Redis，带过期时间。</li>
-    <li><strong>计数</strong>：浏览量/计数用 incr，不落库实时算。</li>
+    <li><strong>热点缓存</strong>：字典/配置先查缓存，miss 再查库回写；</li>
+    <li><strong>会话/黑名单</strong>：JWT 黑名单、refresh token 存 Redis 带 TTL（09 篇呼应）；</li>
+    <li><strong>计数</strong>：浏览量用 incr，不落库实时算；</li>
+    <li><strong>协作</strong>：key 命名规范后端统一；缓存失效策略与数据变更点一起评审。</li>
   </ul>
-  <h3>5 关键实现要点</h3>
 <pre class="code" data-lang="java"><code>public Dict getDict(String code) {
     String key = "dict:" + code;
     String json = redis.get(key);
@@ -739,72 +750,83 @@ Boolean ok = redisTemplate.opsForValue()
     redis.setex(key, 3600, JSON.stringify(d)); // 回写 + 1h 过期
     return d;
 }</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>缓存与库不一致</strong>：更新库后忘了删缓存——写操作后删缓存（Cache-Aside）而非更新缓存。</li>
-    <li><span class="tag-pit">坑</span><strong>序列化</strong>：对象直接存 JDK 序列化体积大、跨语言不可读——用 JSON 字符串。</li>
-    <li><span class="tag-point">要点</span><strong>必设过期</strong>：key 不设 TTL 会无限堆积。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>热点字典查询大部分命中缓存，MySQL 读压力下降（缓存命中率约九成，估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>key 命名规范后端统一；缓存失效策略与数据变更点一起评审。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>Cache-Aside + 删缓存</strong>：读穿透、写删缓存。</li><li><strong>JSON 序列化 + TTL</strong>。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 实践中常采用 Redis 做字典缓存、JWT 黑名单和计数，Cache-Aside 读穿透写删缓存，踩过库更新后缓存不一致和序列化的坑。"</p>
 
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 缓存不设过期</h3>
-  <p class="lead"><b>一句话定位</b>：脏数据永久驻留，内存也只增不减——每个缓存 key 都要设过期。</p>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>正解</strong>：每个缓存 key 都设过期时间。</li>
+    <li><span class="tag-pit">坑</span><strong>缓存与库不一致</strong>：更新库后忘删缓存——写操作后删缓存（Cache-Aside）而非更新缓存；</li>
+    <li><span class="tag-pit">坑</span><strong>序列化</strong>：JDK 序列化体积大跨语言不可读——用 JSON 字符串；</li>
+    <li><span class="tag-point">要点</span><strong>必设过期</strong>：key 不设 TTL 无限堆积。</li>
   </ul>
-  <h3>6.2 写库后更新缓存而非删缓存</h3>
-  <p class="lead"><b>一句话定位</b>：并发写时更新缓存易错乱——写库后删缓存、下次读重建。</p>
-  <ul>
-    <li><strong>正解</strong>：写库后删缓存，下次读重建。</li>
-  </ul>
-  <h3>6.3 把 Redis 当唯一数据源却没配好持久化</h3>
-  <p class="lead"><b>一句话定位</b>：Redis 重启丢数据——当缓存可丢，当主存储要配 AOF、重要数据仍落库。</p>
-  <ul>
-    <li><strong>正解</strong>：当缓存可丢；当主存储要配 AOF，重要数据仍要落库。</li>
-  </ul>
-  <h3>6.4 计数器先 get 再 set</h3>
-  <p class="lead"><b>一句话定位</b>：并发下计数丢失——用 INCR 原子操作。</p>
-  <ul>
-    <li><strong>正解</strong>：用 INCR 原子操作。</li>
-  </ul>
-  <h3>6.5 大 key / 热 key 问题</h3>
-  <p class="lead"><b>一句话定位</b>：超大 hash 占大量内存、超热点 key 把单线程 Redis 打满。</p>
-  <ul>
-    <li><strong>正解</strong>：大 key 拆分/压缩，热 key 本地缓存兜底（进阶话题，见下一页）。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：热点字典查询大部分命中缓存（命中率约九成，估算），MySQL 读压力下降；</li>
+    <li><strong>可复用经验</strong>：Cache-Aside + 删缓存（读穿透写删缓存）；JSON 序列化 + TTL；</li>
+    <li><strong>一句话抓手</strong>："Redis 做字典缓存、JWT 黑名单和计数，Cache-Aside 读穿透写删缓存，踩过库更新后缓存不一致和序列化的坑。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 缓存不设过期</h3>
+  <p><strong>后果</strong>：脏数据永久驻留，内存只增不减。<strong>正解</strong>：每个缓存 key 都设过期时间。</p>
+
+  <h3>7.2 写库后更新缓存而非删缓存</h3>
+  <p><strong>原因</strong>：并发写时更新缓存易错乱。<strong>正解</strong>：写库后删缓存，下次读重建。</p>
+
+  <h3>7.3 把 Redis 当唯一数据源却没配好持久化</h3>
+  <p><strong>风险</strong>：Redis 重启丢数据。<strong>正解</strong>：当缓存可丢；当主存储配 AOF，重要数据仍落库。</p>
+
+  <h3>7.4 计数器先 get 再 set</h3>
+  <p><strong>原因</strong>：并发下计数丢失。<strong>正解</strong>：INCR 原子操作。</p>
+
+  <h3>7.5 大 key / 热 key</h3>
+  <p><strong>现象</strong>：超大 hash 占内存、超热 key 把单线程 Redis 打满。<strong>正解</strong>：大 key 拆分/压缩，热 key 本地缓存兜底（05 篇展开）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Redis 五大数据结构各适合什么场景？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>String</strong>——缓存对象 JSON/计数器/分布式锁；<strong>Hash</strong>——存对象且常改单字段（hset 单字段比整对象覆盖省）；<strong>List</strong>——简单消息队列/最新列表（双向）；<strong>Set</strong>——去重与集合运算（共同好友用交集）；<strong>ZSet</strong>——带分数有序（排行榜 zrevrange、延时队列按分数存执行时间戳）。<strong>选型原则</strong>：结构即数据模型——排行榜硬用 String 存整块 JSON 再取出排序是灾难；ZSet 跳表结构天然支持按分数范围与排名查询。</p>
+
+  <p><strong>Q2：Cache-Aside 为什么写是"删缓存"不是"更新缓存"？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>读路径</strong>：先读缓存，命中返回；未命中查库并写回（带 TTL）。<strong>写路径</strong>：先更新 MySQL，再<strong>删除</strong>缓存 key——下次读自动重建。<strong>删而不更的原因</strong>：①并发写两个事务各自算出的新值与提交顺序可能错配，更新缓存会把旧计算结果覆盖回去（竞态写坏）；②删除是幂等简单操作，重建交给读路径懒加载；③很多场景写后未必被读，更新缓存是白写。最后防线：TTL 过期必然重建——即使删缓存失败也只是脏到过期为止。</p>
+
+  <p><strong>Q3：RDB 和 AOF 怎么选？Redis 当缓存和当主存储的配置差异？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>RDB 定时快照</strong>：全量存盘、恢复快文件小，但丢最后一次快照后的数据；<strong>AOF 追加日志</strong>：记每条写命令重放恢复、更安全，但文件大恢复慢。<strong>定位决定配置</strong>：当<strong>缓存</strong>用——数据可丢可从 MySQL 重建，RDB 甚至关掉都行；当<strong>主存储</strong>用——必须 AOF（appendfsync everysec 折中），重要数据仍应落 MySQL。生产常 RDB+AOF 混用（AOF 保安全、RDB 加速重启恢复）。另：淘汰策略默认 noeviction（满了写报错），缓存场景改 allkeys-lru/lfu。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>五结构各自主场？排行榜用什么结构为什么？</li>
+    <li>Cache-Aside 读写流程？删缓存的三个理由？</li>
+    <li>RDB/AOF 取舍？"当缓存可丢"的含义？</li>
+    <li>淘汰策略默认是什么？缓存场景配什么？</li>
+    <li>为什么计数用 INCR 不能先读后写？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
     <li>Redis 官方文档（数据结构/命令/持久化权威）：<a href="https://redis.io/docs/" rel="noopener">redis.io/docs</a></li>
-    <li>Redis 数据结构教程：<a href="https://redis.io/docs/latest/developeredp/data-types/" rel="noopener">redis.io data-types</a></li>
+    <li>《Redis 设计与实现》（黄健宏）——内部结构与持久化原理；《Redis 开发与运维》——实战与坑。</li>
   </ul>
-  <h3>Spring 集成</h3>
-  <ul>
-    <li>Spring Data Redis 参考文档：<a href="https://docs.spring.io/spring-data/redis/reference/" rel="noopener">docs.spring.io/spring-data/redis</a></li>
-  </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《Redis 设计与实现》（黄健宏）——讲 Redis 内部数据结构与持久化原理，面试复习友好。</li>
-    <li>《Redis 开发与运维》——缓存实战与常见坑。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>用五种结构各实现一个小场景（缓存/对象/队列/共同好友/排行榜）；</li>
+    <li>实现 Cache-Aside 读穿透写删缓存，并发更新验证一致性行为；</li>
+    <li>分别用 get+set 与 incr 做计数，压测对比并发丢失。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../08_数据库与建模/09_Oracle【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/03_MySQL事务与锁【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../08_数据库与建模/05_Redis进阶_缓存策略与分布式锁【深入】.html">下一篇 →</a>
 </nav>

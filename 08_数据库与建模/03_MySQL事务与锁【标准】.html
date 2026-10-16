@@ -542,30 +542,130 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../08_数据库与建模/02_MySQL进阶_索引与SQL优化【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/09_Oracle【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/04_Redis缓存【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：事务是一组数据库操作的执行单元，具备 ACID——多步操作同生共死，并发事务互不干扰。</p>
-  <ul>
-    <li><strong>它解决什么</strong>：没有事务时多步操作中途失败会留"改了一半"的脏数据；并发时两个事务同时改同一行会互相覆盖。</li>
-    <li><strong>InnoDB 实现</strong>：undo log 保原子性、redo log 保持久性、锁+MVCC 保隔离性。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：ACID + 并发控制</h3>
+  <p><strong>事务是一组数据库操作的执行单元，具备 ACID</strong>——多步操作同生共死、并发事务互不干扰。解决两件事：没有事务多步操作中途失败留"改了一半"的脏数据；并发时两事务同时改同一行互相覆盖。<strong>InnoDB 实现</strong>：undo log 保原子性、redo log 保持久性、锁+MVCC 保隔离性。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 <strong>ACID 各靠什么实现</strong>；</li>
+    <li>背下<strong>三类并发问题与四种隔离级别</strong>；</li>
+    <li>理解<strong>行锁加在索引上</strong>与间隙锁防幻读；</li>
+    <li>落地<strong>条件更新（乐观锁）</strong>防丢失更新。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01/02 MySQL。<strong>难度</strong>：★★★★☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>ACID 四性</strong>→ <strong>三类并发问题</strong>→ <strong>四种隔离级别</strong>→ <strong>锁粒度</strong>→ <strong>MVCC</strong>。</p>
+
+  <h3>2.1 ACID 四性：各靠什么实现</h3>
+  <p><strong>原子性</strong>靠 undo log（反向回滚"怎么做回去"）；<strong>持久性</strong>靠 redo log（先写日志后落盘，宕机重放）；<strong>隔离性</strong>靠锁+MVCC；<strong>一致性</strong>是前三者共同保证的目标。</p>
+
+  <h3>2.2 三类并发问题</h3>
+  <p><span class="tag-key">脏读</span>：读到别的事务<strong>未提交</strong>的数据；<span class="tag-key">不可重复读</span>：同一事务两次读<strong>同一行</strong>结果不同（被改并提交）；<span class="tag-key">幻读</span>：两次按条件查<strong>行数变了</strong>（被插入/删除）。记忆锚点：不可重复读是"内容变"，幻读是"行数变"。</p>
+
+  <h3>2.3 四种隔离级别</h3>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:24%"><col style="width:24%"><col style="width:26%"></colgroup>
+    <thead><tr><th>隔离级别</th><th>脏读</th><th>不可重复读</th><th>幻读</th></tr></thead>
+    <tbody>
+      <tr><td>读未提交 READ UNCOMMITTED</td><td>会</td><td>会</td><td>会</td></tr>
+      <tr><td>读已提交 READ COMMITTED</td><td>防住</td><td>会</td><td>会</td></tr>
+      <tr><td>可重复读 REPEATABLE READ（MySQL 默认）</td><td>防住</td><td>防住</td><td>InnoDB 基本防住*</td></tr>
+      <tr><td>串行化 SERIALIZABLE</td><td>防住</td><td>防住</td><td>防住（并发最低）</td></tr>
+    </tbody>
+  </table>
+  <p>* InnoDB 在默认 RR 级别下用 MVCC + 间隙锁基本解决了幻读——比标准 SQL 定义更严。<strong>越高越安全但并发越低</strong>；RC 是 Oracle 默认。</p>
+
+  <h3>2.4 锁粒度：行锁加在索引上</h3>
+  <p><span class="tag-pit">行锁加在索引上</span>——UPDATE 没走索引时对<strong>扫描到的每一行（及间隙）</strong>逐行加记录锁/next-key 锁，<strong>等效锁全表</strong>（本质仍是行锁+间隙锁，不是真表锁）；<strong>间隙锁</strong>锁索引记录之间的空隙防插入——RR 防幻读的手段；表锁只在 DDL 或显式指定时出现。</p>
+
+  <h3>2.5 MVCC：读写不互堵</h3>
+  <p>每行隐藏存版本号，读操作读对应<strong>版本快照</strong>——读写不互相阻塞（InnoDB 高并发关键）。<strong>快照读不加锁</strong>：普通 SELECT 走快照读；只有 <code>SELECT ... FOR UPDATE</code> 这类才是加锁的<strong>当前读</strong>。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Spring 声明式事务</h3>
+<pre class="code" data-lang="java"><code>@Service
+public class RequirementService {
+    @Transactional(rollbackFor = Exception.class)  // 默认只回滚 RuntimeException
+    public void submit(Long reqId) {
+        requirementMapper.updateStatus(reqId, "REVIEWING");  // 1 改状态
+        logMapper.insert(...);                               // 2 写日志
+        counterMapper.incr("reviewing");                     // 3 更新计数
+        // 任一步抛异常 → 整体回滚
+    }
+}</code></pre>
+  <div class="danger-box"><strong>@Transactional 默认只对 RuntimeException/Error 回滚，受检异常不回滚</strong>——必须显式 rollbackFor = Exception.class；同类内自调用（this.xxx()）绕过代理事务失效——Spring 事务最经典坑（04 篇 Spring 核心呼应）。</div>
+
+  <h3>3.2 场景二：指定隔离级别</h3>
+<pre class="code" data-lang="java"><code>@Transactional(isolation = Isolation.READ_COMMITTED)
+public void someMethod() { ... }
+// MySQL 默认 RR；大多数业务用默认即可，不必盲目拉高。</code></pre>
+
+  <h3>3.3 场景三：并发更新用条件更新（乐观锁）兜底</h3>
+<pre class="code" data-lang="sql"><code>-- 状态流转要"条件更新"，避免两个请求同时改：
+UPDATE t_requirement
+SET status = 'REVIEWING', version = version + 1
+WHERE id = 12 AND status = 'DRAFT' AND version = 3;
+-- 影响行数=0 说明已被别人改过，业务层提示"状态已变化，请刷新"。</code></pre>
+
+  <h3>3.4 场景四：死锁的解</h3>
+  <ol>
+    <li><strong>根因</strong>：多事务以不同顺序锁定同一组行（A 锁 1 等 2，B 锁 2 等 1）；InnoDB 自动检测回滚其中一个；</li>
+    <li><strong>应对一</strong>：所有事务<strong>按相同顺序</strong>访问行（如都按 id 升序），从源头消除交叉；</li>
+    <li><strong>应对二</strong>：事务短小——不在事务里做 RPC/慢操作，缩短持锁时间；</li>
+    <li><strong>应对三</strong>：业务层捕获死锁异常<strong>有限重试</strong>（通常重试就成功）。</li>
+  </ol>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：隔离级别与条件更新已会。</p>
+
+  <h3>4.1 MVCC 的实现拼图</h3>
+  <p>三件套：<strong>隐藏列</strong>（trx_id 事务号/roll_pointer 回滚指针）+ <strong>undo log 版本链</strong>（每行的历史版本串成链）+ <strong>ReadView</strong>（读视图判断哪个版本可见）——RR 在事务首次读时生成一次 ReadView（全程复用所以可重复读），RC 每次读都生成（所以能读到别人新提交的）。</p>
+
+  <h3>4.2 RR 下幻读的两面性</h3>
+  <p><strong>快照读</strong>靠 MVCC 天然看不到新插入；<strong>当前读</strong>（for update）靠间隙锁挡住插入——但"先快照读再当前读"混用仍会出现幻影行；严格防幻读要么全程当前读，要么业务用条件更新规避。</p>
+
+  <h3>4.3 next-key 锁 = 记录锁 + 间隙锁</h3>
+  <p>RR 级别当前读加的是 next-key 锁（记录锁+其前间隙）；等值命中唯一索引退化为纯记录锁；<strong>锁范围大小直接决定并发度</strong>——这就是"更新条件务必走索引"的锁层面依据。</p>
+
+  <h3>4.4 传播行为在事务嵌套中的位置</h3>
+  <p>@Transactional(propagation)：REQUIRED 加入/新建（默认）、REQUIRES_NEW 挂起外层独立提交（日志类独立于主流程回滚）、NESTED 保存点部分回滚——与 04 篇 Spring 核心呼应；<strong>REQUIRES_NEW 同样走代理，自调用失效同款</strong>。</p>
+
+  <h3>4.5 锁等待的排查路径</h3>
+  <p><code>SHOW ENGINE INNODB STATUS</code> 看 LATEST DETECTED DEADLOCK；information_schema 的 INNODB_TRX/INNODB_LOCK_WAITS 看当前事务与等待链；<strong>长事务排查</strong>：trx_started 早于几分钟的就是嫌疑。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="事务边界与提交回表示意图">
       <defs>
@@ -587,35 +687,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 事务：成功提交、失败整体回滚（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 ACID 四性</h3>
-  <p class="lead"><b>一句话定位</b>：原子性靠 undo log、持久性靠 redo log、隔离性靠锁+MVCC，一致性是前三者共同保证的目标。</p>
-  <ul>
-    <li><strong>undo log</strong>：失败时反向回滚（"我怎么做回去"）。</li>
-    <li><strong>redo log</strong>：提交后先写日志，宕机可重放（"实践中通常做过什么"，防丢）。</li>
-  </ul>
-  <h3>2.2 并发下的三类问题</h3>
-  <p class="lead"><b>一句话定位</b>：脏读读未提交、不可重复读同行内容变、幻读符合条件的行数变。</p>
-  <ul>
-    <li><strong>脏读</strong>：读到别的事务未提交的数据。</li>
-    <li><strong>不可重复读</strong>：同一事务两次读同一行，结果不同（被别的事务改并提交）。</li>
-    <li><strong>幻读</strong>：同一事务两次按条件查，行数变了（别的事务插入/删除符合条件的行）。</li>
-  </ul>
-  <h3>2.3 四种隔离级别</h3>
-  <p class="lead"><b>一句话定位</b>：隔离级别越高越防脏读/不可重复读/幻读，但并发越低——MySQL 默认 RR。</p>
-  <table>
-    <colgroup><col style="width:26%"><col style="width:24%"><col style="width:24%"><col style="width:26%"></colgroup>
-    <thead><tr><th>隔离级别</th><th>脏读</th><th>不可重复读</th><th>幻读</th></tr></thead>
-    <tbody>
-      <tr><td>读未提交 READ UNCOMMITTED</td><td>会</td><td>会</td><td>会</td></tr>
-      <tr><td>读已提交 READ COMMITTED</td><td>防住</td><td>会</td><td>会</td></tr>
-      <tr><td>可重复读 REPEATABLE READ（MySQL 默认）</td><td>防住</td><td>防住</td><td>InnoDB 基本防住*</td></tr>
-      <tr><td>串行化 SERIALIZABLE</td><td>防住</td><td>防住</td><td>防住（并发最低）</td></tr>
-    </tbody>
-  </table>
   <div class="diagram">
     <svg viewBox="0 0 800 150" role="img" aria-label="四种隔离级别对比图">
       <defs>
@@ -624,53 +695,25 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">隔离级别越高，并发越低（示意）</text>
-
-      <!-- 读未提交 -->
       <rect x="30" y="45" width="170" height="80" rx="8" fill="#fee2e2" stroke="#dc2626"/>
       <text x="115" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">读未提交</text>
       <text x="115" y="92" text-anchor="middle" font-size="11" fill="#4f6348">脏读/不可重复读/幻读 都会</text>
       <text x="115" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#b91c1c">并发最高</text>
-
-      <!-- 读已提交 -->
       <rect x="215" y="45" width="170" height="80" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="300" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">读已提交</text>
       <text x="300" y="92" text-anchor="middle" font-size="11" fill="#4f6348">防脏读，不防不可重复读/幻读</text>
       <text x="300" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#b45309">Oracle 默认</text>
-
-      <!-- 可重复读 -->
       <rect x="400" y="45" width="170" height="80" rx="8" fill="#d1fae5" stroke="#047857"/>
       <text x="485" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">可重复读</text>
       <text x="485" y="92" text-anchor="middle" font-size="11" fill="#4f6348">防脏读/不可重复读，基本防幻读</text>
       <text x="485" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">MySQL 默认</text>
-
-      <!-- 串行化 -->
       <rect x="585" y="45" width="180" height="80" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
       <text x="675" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">串行化</text>
       <text x="675" y="92" text-anchor="middle" font-size="11" fill="#4f6348">全部防住</text>
       <text x="675" y="115" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">并发最低</text>
     </svg>
-    <p class="diagram-caption">图 1 四种隔离级别：从低到高（示意）</p>
+    <p class="diagram-caption">图 2 四种隔离级别：从低到高（示意）</p>
   </div>
-  <p style="font-size:13.5px;color:var(--ink-3)">* InnoDB 在默认 RR 级别下用 MVCC + 间隙锁基本解决了幻读，这是它比标准 SQL 定义做得更严的地方。</p>
-  <h3>2.4 锁粒度：行锁、间隙锁、表锁</h3>
-  <p class="lead"><b>一句话定位</b>：InnoDB 默认行级锁、只锁命中行，但行锁加在索引上——没走索引时会对扫描到的每一行（及间隙）逐行加记录锁/next-key 锁，效果等效锁全表，但本质仍是行锁+间隙锁，不是真正的表锁。</p>
-  <ul>
-    <li><strong>行锁加在索引上</strong>：更新语句没走索引 → 逐行加记录锁/间隙锁，等效锁全表（并非升级为 MDL 表锁）。</li>
-    <li><strong>间隙锁</strong>：锁索引记录之间的"空隙"，防止间隙插入——这正是 RR 级别防幻读的手段。</li>
-    <li><strong>表锁</strong>：粒度大、并发差，一般只在 DDL 或显式指定时出现。</li>
-  </ul>
-  <h3>2.5 MVCC</h3>
-  <p class="lead"><b>一句话定位</b>：每行隐藏存版本号，读操作读对应版本快照——读写不互相阻塞，这是 InnoDB 高并发关键。</p>
-  <ul>
-    <li><strong>快照读不加锁</strong>：普通 SELECT 走快照读；只有 <code>SELECT ... FOR UPDATE</code> 这类才是加锁的当前读。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 死锁怎么产生、怎么解</h3>
-  <p class="lead"><b>一句话定位</b>：死锁是两个事务互相等对方手里的锁；根因是"加锁顺序不一致"。</p>
-  <p>A 锁了行 1 等行 2，B 锁了行 2 等行 1，互相僵持。InnoDB 会自动检测并回滚其中一个事务打破死锁。下图是典型死锁场景。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="死锁形成示意图">
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">两个事务交叉持锁 = 死锁（示意）</text>
@@ -686,125 +729,98 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="590" y="158" text-anchor="middle" font-size="11.5" fill="#7a8a70">→ 卡住</text>
       <text x="400" y="190" text-anchor="middle" font-size="12.5" fill="#b91c1c">InnoDB 检测到后回滚其中一个事务；根因是"加锁顺序不一致"。</text>
     </svg>
-    <p class="diagram-caption">图 2 死锁：交叉持锁、互相等待（示意）</p>
+    <p class="diagram-caption">图 3 死锁：交叉持锁、互相等待（示意）</p>
   </div>
-  <ol>
-    <li><strong>死锁根因</strong>：多事务以不同顺序锁定相同的一组行。</li>
-    <li><strong>应对一</strong>：约定所有事务按<strong>相同顺序</strong>访问行（如都按 id 升序加锁），从源头消除交叉。</li>
-    <li><strong>应对二</strong>：保持事务短小，别在事务里做 RPC/慢操作，缩短持锁时间。</li>
-    <li><strong>应对三</strong>：业务层捕获死锁异常（重试即可，通常重试就成功）。</li>
-  </ol>
+  <p><strong>读图要点</strong>：①图 1 原子性直观——多步同生共死；②图 2 级别与并发成反比；③图 3 死锁根因是<strong>加锁顺序不一致</strong>——解法是约定统一顺序+短事务+有限重试。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Spring 声明式事务</h3>
-<pre class="code" data-lang="java"><code>@Service
-public class RequirementService {
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统需求状态流转（提交→评审→通过/驳回）：一次动作改状态+写流转记录，多人同时处理同一需求存在并发更新；我负责事务包裹与并发冲突处理。</p>
 
-    @Transactional(rollbackFor = Exception.class)  // 默认只回滚 RuntimeException
-    public void submit(Long reqId) {
-        requirementMapper.updateStatus(reqId, "REVIEWING");  // 1 改状态
-        logMapper.insert(...);                               // 2 写日志
-        counterMapper.incr("reviewing");                     // 3 更新计数
-        // 任一步抛异常 → 整体回滚
-    }
-}</code></pre>
-  <div class="danger-box"><code>@Transactional</code> 默认只对 <code>RuntimeException</code>/Error 回滚，受检异常不回滚！所以要显式写 <code>rollbackFor = Exception.class</code>。另外本类内部自调用（this.xxx()）会绕过代理导致事务失效——这是 Spring 事务最经典的坑（见 Spring IOC/AOP 页）。</div>
-  <h3>4.2 指定隔离级别</h3>
-<pre class="code" data-lang="java"><code>@Transactional(isolation = Isolation.READ_COMMITTED)
-public void someMethod() { ... }
--- MySQL 默认 REPEATABLE READ；大多数业务用默认即可，不必盲目拉高。</code></pre>
-  <h3>4.3 并发更新：乐观锁兜底</h3>
-<pre class="code" data-lang="sql"><code>-- 状态流转要"条件更新"，避免两个请求同时改：
-UPDATE t_requirement
-SET status = 'REVIEWING', version = version + 1
-WHERE id = 12 AND status = 'DRAFT' AND version = 3;
--- 影响行数=0 说明已被别人改过，业务层提示"状态已变化，请刷新"。</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 需求要走"提交→评审→通过/驳回"状态流转，一个动作里要同时改状态、写流转记录，且可能并发抢同一条。</p>
-  <ul><li><strong>业务量级</strong>：多人同时处理同一需求时存在并发更新（估算）。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：用事务包裹状态流转，处理并发更新冲突与隔离级别选择。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：Spring @Transactional + MySQL InnoDB（默认 REPEATABLE READ）。</li></ul>
-  <h3>4 落地设计</h3>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>事务边界</strong>：一次状态流转 = 改需求状态 + 插流转记录，放一个事务。</li>
-    <li><strong>并发控制</strong>：更新带乐观锁版本号或 <code>where status=期望态</code>，避免两人同时改覆盖。</li>
+    <li><strong>事务边界</strong>：一次状态流转 = 改需求状态 + 插流转记录，一个事务；</li>
+    <li><strong>并发控制</strong>：更新带乐观锁版本号或 where status=期望态，防两人同时改互相覆盖；</li>
+    <li><strong>协作</strong>：状态机与产品确认；冲突返回 409 前端引导刷新，错误码约定。</li>
   </ul>
-  <h3>5 关键实现要点</h3>
 <pre class="code" data-lang="java"><code>@Transactional(rollbackFor = Exception.class)
 public void review(Long id, String next) {
     int rows = reqMapper.casUpdateStatus(id, "REVIEW", next); // where status=期望态
     if (rows == 0) throw new BizException("状态已被他人变更", 40909);
     flowLogMapper.insert(new FlowLog(id, "REVIEW", next));
 }</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>丢失更新</strong>：两人同时读到旧状态再各写回，后写覆盖先写——用条件更新 where status=期望态兜底。</li>
-    <li><span class="tag-pit">坑</span><strong>死锁</strong>：两个事务以不同顺序更新多行导致死锁——固定加锁顺序，缩小事务。</li>
-    <li><span class="tag-point">要点</span><strong>隔离级别够用即可</strong>：业务用默认 RR，幻读风险点用条件更新规避。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>并发改同一需求不再互相覆盖，冲突时返回明确提示让用户刷新（冲突率极低，估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>状态机与产品确认；冲突返回 409 后前端引导刷新，与前端约定错误码。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>状态流转必带条件</strong>：乐观条件更新防丢失更新。</li><li><strong>事务尽量短</strong>：减少锁持有时间与死锁面。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 需求状态流转实践中常采用事务包住状态变更+流转记录，用 where status=期望态的条件更新防并发丢失更新，也处理过加锁顺序导致的死锁。"</p>
 
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 @Transactional 失效（自调用）</h3>
-  <p class="lead"><b>一句话定位</b>：同类里 A 方法调本类加了 @Transactional 的 B 方法，事务没生效——this 调用绕过了代理。</p>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>正解</strong>：事务方法被外部类调用，或注入自己/拆到另一个 Bean。</li>
+    <li><span class="tag-pit">坑</span><strong>丢失更新</strong>：两人同时读旧状态各写回，后写覆盖先写——条件更新 where status=期望态兜底；</li>
+    <li><span class="tag-pit">坑</span><strong>死锁</strong>：两事务不同顺序更新多行——固定加锁顺序、缩小事务；</li>
+    <li><span class="tag-point">要点</span><strong>隔离级别够用即可</strong>：默认 RR，幻读风险点用条件更新规避。</li>
   </ul>
-  <h3>6.2 漏写 rollbackFor</h3>
-  <p class="lead"><b>一句话定位</b>：@Transactional 默认不回滚受检异常——统一显式写 rollbackFor。</p>
-  <ul>
-    <li><strong>正解</strong>：统一 <code>@Transactional(rollbackFor = Exception.class)</code>。</li>
-  </ul>
-  <h3>6.3 长事务持锁过久</h3>
-  <p class="lead"><b>一句话定位</b>：事务里做 RPC/慢查询，锁一直占着，并发上来就锁等待。</p>
-  <ul>
-    <li><strong>正解</strong>：事务只包数据库操作，慢/外部调用挪出去。</li>
-  </ul>
-  <h3>6.4 更新不走索引会逐行加锁、等效锁全表</h3>
-  <p class="lead"><b>一句话定位</b>：UPDATE 的 where 没走索引，InnoDB 对扫描到的每一行加记录锁/next-key 锁，等效锁全表，并发暴跌（注意：仍是行锁+间隙锁，不是真正的表锁）。</p>
-  <ul>
-    <li><strong>正解</strong>：更新条件务必走索引。</li>
-  </ul>
-  <h3>6.5 死锁不处理</h3>
-  <p class="lead"><b>一句话定位</b>：偶发死锁报错业务直接失败——统一加锁顺序、缩短事务、有限重试。</p>
-  <ul>
-    <li><strong>正解</strong>：统一加锁顺序缩短事务，业务捕获死锁做有限次重试。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：并发改同一需求不再互相覆盖，冲突返回明确提示（冲突率极低，估算）；</li>
+    <li><strong>可复用经验</strong>：状态流转必带条件（乐观条件更新防丢失更新）；事务尽量短（减少锁持有与死锁面）；</li>
+    <li><strong>一句话抓手</strong>："事务包住状态变更+流转记录，用 where status=期望态的条件更新防并发丢失更新，也处理过加锁顺序导致的死锁。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 @Transactional 失效（自调用）</h3>
+  <p><strong>原因</strong>：this 调用绕过代理。<strong>正解</strong>：事务方法被外部类调用，或注入自身/拆另一个 Bean。</p>
+
+  <h3>7.2 漏写 rollbackFor</h3>
+  <p><strong>原因</strong>：默认不回滚受检异常。<strong>正解</strong>：统一 rollbackFor = Exception.class。</p>
+
+  <h3>7.3 长事务持锁过久</h3>
+  <p><strong>现象</strong>：事务里做 RPC/慢查询，锁一直占着，并发上来就锁等待。<strong>正解</strong>：事务只包数据库操作，慢/外部调用挪出去。</p>
+
+  <h3>7.4 更新不走索引等效锁全表</h3>
+  <p><strong>原因</strong>：行锁加在索引上，UPDATE 条件没走索引就对扫描到的每行加记录锁/next-key 锁（仍是行锁+间隙锁，非真表锁）。<strong>正解</strong>：更新条件务必走索引。</p>
+
+  <h3>7.5 死锁不处理</h3>
+  <p><strong>现象</strong>：偶发死锁业务直接失败。<strong>正解</strong>：统一加锁顺序、缩短事务、业务捕获死锁有限重试。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：ACID 各靠什么实现？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>原子性</strong>靠 undo log——失败时按反向操作回滚（记录"怎么改回去"）；<strong>持久性</strong>靠 redo log——提交先写日志（WAL 顺序写）再慢慢刷盘，宕机后重放恢复；<strong>隔离性</strong>靠锁 + MVCC——写写用行锁互斥、读写靠版本快照不阻塞；<strong>一致性</strong>是前三者与应用层共同保证的目标（C 是目的，AID 是手段）。</p>
+
+  <p><strong>Q2：三种并发问题与四种隔离级别的对应？RR 为什么基本防住幻读？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>三类问题</strong>——脏读（读到未提交）、不可重复读（同行内容变）、幻读（符合条件行数变）；记忆锚：不可重复读是"内容变"，幻读是"行数变"。<strong>四级</strong>：RU 全会；RC 防脏读；<strong>RR（MySQL 默认）</strong>防脏读+不可重复读、基本防幻读；SERIALIZABLE 全防但并发最低。<strong>RR 防幻读的两板斧</strong>：快照读靠 MVCC（ReadView 只看事务开始时的版本，天然看不到新插入）；当前读（for update）靠<strong>间隙锁</strong>锁住索引空隙挡住插入——比标准 SQL 的 RR 定义更严，但"快照读与当前读混用"仍可能看到幻影行。</p>
+
+  <p><strong>Q3：为什么说"行锁加在索引上"？MVCC 的机制？</strong></p>
+  <p class="note"><strong>参考答案</strong>：InnoDB 行锁<strong>锁定的是索引记录</strong>——UPDATE 的 where 走索引只锁命中行；没走索引就对扫描到的每一行（及间隙）逐行加记录锁/next-key 锁，<strong>等效锁全表</strong>（注意本质仍是行锁+间隙锁，不是升级为表锁）——并发暴跌，所以"更新条件务必走索引"既是性能要求也是锁要求。<strong>MVCC</strong>：每行隐藏 trx_id 与 roll_pointer，历史版本由 undo log 串成版本链；读时生成 ReadView 判断可见版本——<strong>快照读不加锁</strong>（普通 SELECT），只有 FOR UPDATE/FOR SHARE 才是加锁的当前读；RR 与 RC 的差别就在 ReadView 生成时机（事务首读一次 vs 每次读）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>ACID 各靠什么实现？</li>
+    <li>三类并发问题怎么区分？四级各防什么？</li>
+    <li>间隙锁与幻读的关系？next-key 锁是什么？</li>
+    <li>MVCC 三件套？RR 与 RC 的 ReadView 差异？</li>
+    <li>死锁的三层应对？丢失更新怎么防？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>MySQL 8.0 事务与隔离级别官方手册：<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-model.html" rel="noopener">dev.mysql.com/innodb-transaction</a></li>
-    <li>InnoDB 锁与间隙锁说明：<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html" rel="noopener">dev.mysql.com/innodb-locking</a></li>
+    <li>MySQL 8.0 事务模型与锁：<a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html" rel="noopener">dev.mysql.com/innodb-locking</a></li>
+    <li>《高性能 MySQL》事务锁 MVCC 章节；《MySQL 是怎样运行的》图示讲隔离级别，面试友好。</li>
   </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《高性能 MySQL》——事务、锁、MVCC 章节深入且贴近实战。</li>
-    <li>《MySQL 是怎样运行的》——用大量图示讲隔离级别与幻读，面试复习友好。</li>
-  </ul>
-  <h3>Spring 事务</h3>
-  <ul>
-    <li>Spring Framework 声明式事务官方文档：<a href="https://docs.spring.io/spring-framework/reference/data-access/transaction.html" rel="noopener">docs.spring.io</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>双开客户端复现脏读（RU）与不可重复读（RC），切 RR 后观察差异；</li>
+    <li>两事务按不同顺序更新两行复现死锁，用 SHOW ENGINE INNODB STATUS 定位，再统一顺序修复；</li>
+    <li>故意让 UPDATE 条件不走索引，观察锁等待扩大，再补索引验证。</li>
+  </ol>
 </section>
 
 </main>
@@ -812,7 +828,7 @@ public void review(Long id, String next) {
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../08_数据库与建模/02_MySQL进阶_索引与SQL优化【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/09_Oracle【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/04_Redis缓存【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · MySQL事务与锁【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
