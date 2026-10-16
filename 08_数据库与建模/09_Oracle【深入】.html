@@ -540,33 +540,34 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../08_数据库与建模/03_MySQL事务与锁【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/08_MongoDB与NoSQL【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/04_Redis缓存【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/10_PowerDesigner数据库建模【基础】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：Oracle 是企业级商业数据库，"实例（内存+后台进程）+ 数据库（磁盘文件）"架构，强事务、高并发、企业特性丰富。</p>
-  <ul>
-    <li><strong>企业特性</strong>：RAC 集群、分区表、Data Guard 容灾。</li>
-    <li><strong>对后端的价值</strong>：理解它与 MySQL 的关键差异——接手/迁移时知道"主键怎么生成、分页怎么写、锁等待怎么看"。</li>
-  </ul>
-  <h3>横向对比：Oracle 与 MySQL 的关键差异</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：企业级商业数据库</h3>
+  <p><strong>Oracle 是企业级商业数据库</strong>——"实例（内存+后台进程）+ 数据库（磁盘文件）"架构，强事务、高并发、企业特性丰富（RAC 集群、分区表、Data Guard 容灾）。<strong>对后端的价值</strong>：理解它与 MySQL 的关键差异——接手/迁移时知道"主键怎么生成、分页怎么写、锁等待怎么看"。</p>
+
+  <h3>1.2 横向对比：Oracle vs MySQL 关键差异</h3>
   <table>
     <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
     <thead><tr><th>维度</th><th>Oracle</th><th>MySQL(InnoDB)</th></tr></thead>
@@ -579,6 +580,95 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>并发表</td><td>分区表/RAC 集群成熟</td><td>分库分表靠中间件(ShardingSphere)</td></tr>
     </tbody>
   </table>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>掌握"从 MySQL 切到 Oracle 要改的四个习惯"（<strong>序列/分页/空值/隔离级别</strong>）；</li>
+    <li>理解 <strong>SGA/PGA 内存划分</strong>与共享池软硬解析；</li>
+    <li>会用 <strong>绑定变量</strong>（高并发基本功课）；</li>
+    <li>知道方言差异集中在 Mapper 层适配的工程做法。</li>
+  </ol>
+  <p><strong>难度</strong>：★★★☆☆。<strong>本篇实战性质</strong>：与 MySQL 差异对照的自学走读（未列企业履历，诚实声明见 6）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>实例/数据库</strong>→ <strong>SGA/PGA</strong>→ <strong>四类文件与表空间</strong>→ <strong>Sequence 与 ROWNUM</strong>→ <strong>锁与读一致性</strong>→ <strong>分区/RAC</strong>。</p>
+
+  <h3>2.1 实例与数据库分离</h3>
+  <p>实例=后台进程+共享内存(SGA)，数据库=磁盘物理文件——一个实例同一时间只挂一个库；<span class="tag-key">RAC</span>：多实例共享同一套存储（Oracle 高可用核心）。MySQL 没有这么明确的"实例/文件"分离概念。</p>
+
+  <h3>2.2 SGA 与 PGA：调优两块主战场</h3>
+  <p><strong>SGA 全实例共享</strong>：共享池（缓存 SQL 文本与执行计划——相同 SQL 硬解析只做一次）、数据库缓冲缓存（热点数据块，类似 Buffer Pool）、Redo 日志缓冲；<strong>PGA 每会话私有</strong>：排序、会话变量、游标私有区——<span class="tag-key">调优很大程度就是调这两块大小</span>。</p>
+
+  <h3>2.3 四类文件：数据/控制/Redo/Undo</h3>
+  <p>数据文件存表、控制文件记结构、Redo 崩溃恢复、<strong>Undo 回滚+读一致性</strong>；<span class="tag-pit">undo 表空间满是常见运维事故</span>——要单独管理。</p>
+
+  <h3>2.4 表空间与 Sequence 主键</h3>
+  <p><strong>表空间</strong>由一或多个数据文件组成，表建在表空间里——比 MySQL 更"重"的存储组织（DBA 要规划配额/undo/临时表空间）。<strong>Oracle 没有 AUTO_INCREMENT</strong>：主键靠独立 Sequence，插入时 <code>seq.NEXTVAL</code> 取值——序列与表解耦可多表共享，高并发下 cache 缓存序列值提性能。</p>
+
+  <h3>2.5 ROWNUM 分页与锁</h3>
+  <p>12c 前用 ROWNUM 套两层子查询（写法绕），12c 起标准 OFFSET-FETCH——<span class="tag-pit">MySQL limit 不能照搬</span>。锁：默认 RC，通过 <strong>undo 实现读一致性</strong>——读不阻塞写、写不阻塞读；锁等待/死锁查 <code>V$SESSION</code>、<code>V$LOCK</code> 动态性能视图。</p>
+
+  <h3>2.6 分区表与 RAC：相对 MySQL 中间件的优势</h3>
+  <p>超大表用<strong>分区表</strong>（只扫相关分区），高可用 <strong>RAC+Data Guard</strong>——这是 Oracle 相对"MySQL 分库分表靠中间件"的方案级优势；适用海量、核心场景。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Sequence 生成主键插入</h3>
+<pre class="code" data-lang="sql"><code>-- 建序列
+CREATE SEQUENCE seq_requirement START WITH 1 INCREMENT BY 1 CACHE 100;
+
+-- 插入时取 nextval（替代 MySQL 的 AUTO_INCREMENT）
+INSERT INTO t_requirement (id, title, status)
+VALUES (seq_requirement.NEXTVAL, '登录页改版', 'DRAFT');</code></pre>
+
+  <h3>3.2 场景二：分页两种写法</h3>
+<pre class="code" data-lang="sql"><code>-- 12c 起（推荐，标准 OFFSET-FETCH）
+SELECT * FROM t_requirement
+ORDER BY id OFFSET 20 ROWS FETCH NEXT 20 ROWS ONLY;
+
+-- 12c 之前（经典两层 ROWNUM 写法）
+SELECT * FROM (
+  SELECT t.*, ROWNUM rn FROM (
+    SELECT * FROM t_requirement ORDER BY id
+  ) t WHERE ROWNUM &lt;= 40
+) WHERE rn &gt; 20;</code></pre>
+
+  <h3>3.3 场景三：软解析流程与绑定变量</h3>
+  <p>SQL 进来先在共享池找有没有相同文本的执行计划——有就<strong>软解析</strong>（快），没有就<strong>硬解析</strong>（贵）。这就是 Oracle 强调绑定变量的原因：<code>WHERE id = :1</code> 让相同结构的 SQL 复用计划，避免每条都硬解析。</p>
+
+  <h3>3.4 场景四：跨库迁移的方言隔离</h3>
+  <div class="note"><strong>经验</strong>：现代项目多通过 MyBatis 的 databaseIdProvider 或 JPA 方言隔离 Oracle/MySQL 差异——业务 SQL 尽量写标准 SQL，<span class="tag-key">方言差异集中在少数分页/主键处处理</span>。</div>
+<pre class="code" data-lang="sql"><code>-- 空值：Oracle 里 '' 就是 NULL，判断要用 IS NULL，不能 = ''
+-- 分页：MySQL limit → Oracle OFFSET-FETCH
+-- 主键：MySQL AUTO_INCREMENT → Oracle SEQUENCE</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：SGA/PGA 与 Sequence/分页差异已会。</p>
+
+  <h3>4.1 undo 的双重角色：回滚 + 一致性读</h3>
+  <p>Undo 不仅回滚——<strong>RC 下每个查询按 undo 构造"查询时刻"的旧版本</strong>，实现读不阻塞写；长查询会因旧版本被覆盖报 ORA-01555 快照过旧——<strong>长事务+长查询是 undo 表空间的两大杀手</strong>。</p>
+
+  <h3>4.2 执行计划与 CBO 优化器</h3>
+  <p>EXPLAIN PLAN / AUTOTRACE 看执行计划；基于成本的优化器（CBO）依赖统计信息——<strong>统计信息过期会导致计划突变</strong>（与 MySQL ANALYZE 同理，02/03 篇呼应）；Hint 是最后的干预手段。</p>
+
+  <h3>4.3 数据字典与 V$ 动态视图</h3>
+  <p>USER_/ALL_/DBA_ 前缀字典看元数据；V$ 动态视图看运行态——<span class="tag-key">排障三板斧：V$SESSION 找会话 → V$LOCK 找等待链 → V$SQL 找慢 SQL</span>。</p>
+
+  <h3>4.4 RAC 与 Data Guard 的分工</h3>
+  <p><strong>RAC</strong>：多实例挂同一存储，解决"实例层故障"（节点挂了另一个接管）；<strong>Data Guard</strong>：主备库复制，解决"站点级容灾"（机房故障异地切换）——组合是企业级高可用完整答案（与 06 篇 MySQL 主从/MHA 分层对比）。</p>
+
+  <h3>4.5 12c 多租户一句话</h3>
+  <p>12c 起 CDB（容器库）+ PDB（可插拔库）——一个 CDB 挂多个 PDB，像"一台服务器跑多个逻辑库"，简化整合与克隆迁移。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="Oracle与MySQL对比图">
       <defs>
@@ -587,15 +677,11 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">从 MySQL 切到 Oracle，要改哪些习惯？（示意）</text>
-
-      <!-- Oracle -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Oracle（企业级商业库）</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">主键靠 Sequence、分页写法绕</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">SGA/PGA 显式调优、RAC 集群成熟</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">大型核心系统常用</text>
-
-      <!-- MySQL -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">MySQL（开源主流）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">主键 AUTO_INCREMENT、limit 分页直接</text>
@@ -624,62 +710,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="182" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">PGA（Program Global Area）：每个会话私有</text>
       <text x="400" y="200" text-anchor="middle" font-size="11.5" fill="#4f6348">排序、会话变量、游标私有区</text>
     </svg>
-    <p class="diagram-caption">图 1 Oracle 实例的 SGA 与 PGA 划分（示意）</p>
+    <p class="diagram-caption">图 2 Oracle 实例的 SGA 与 PGA 划分（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 实例（Instance）与数据库（Database）</h3>
-  <p class="lead"><b>一句话定位</b>：实例=后台进程+共享内存(SGA)，数据库=磁盘物理文件——一个实例同一时间只挂一个库。</p>
-  <ul>
-    <li><strong>RAC</strong>：多实例共享同一套存储，是 Oracle 高可用核心。</li>
-    <li><strong>与 MySQL 区别</strong>：MySQL 没有这么明确的"实例/文件"分离概念。</li>
-  </ul>
-  <h3>2.2 SGA 与 PGA</h3>
-  <p class="lead"><b>一句话定位</b>：SGA 是实例级共享内存（缓存 SQL/计划、数据块、redo），PGA 是每个会话私有——调优很大程度就是调这两块大小。</p>
-  <ul>
-    <li><strong>共享池</strong>：缓存 SQL 文本与执行计划，相同 SQL 硬解析只做一次。</li>
-    <li><strong>缓冲缓存</strong>：热点数据块，类似 MySQL Buffer Pool。</li>
-    <li><strong>PGA</strong>：排序、会话变量、游标私有区。</li>
-  </ul>
-  <h3>2.3 数据文件、控制文件、Redo、Undo</h3>
-  <p class="lead"><b>一句话定位</b>：数据文件存表、控制文件记结构、Redo 崩溃恢复、Undo 回滚+读一致性。</p>
-  <ul>
-    <li><strong>Undo</strong>：Oracle 的 undo 独立且要单独管理表空间——undo 表空间满是常见运维事故。</li>
-  </ul>
-  <h3>2.4 表空间（Tablespace）</h3>
-  <p class="lead"><b>一句话定位</b>：表空间由一个或多个数据文件组成，表建在表空间里——比 MySQL 更"重"的存储组织。</p>
-  <ul>
-    <li><strong>DBA 要规划</strong>：表空间配额、undo 表空间、临时表空间。</li>
-  </ul>
-  <h3>2.5 序列（Sequence）生成主键</h3>
-  <p class="lead"><b>一句话定位</b>：Oracle 没有 AUTO_INCREMENT，主键靠独立 sequence，插入时 <code>seq.NEXTVAL</code> 取值。</p>
-  <ul>
-    <li><strong>特点</strong>：序列与表解耦、多表共享；高并发下 cache 缓存序列值提性能。</li>
-  </ul>
-  <h3>2.6 分页：ROWNUM 与 OFFSET-FETCH</h3>
-  <p class="lead"><b>一句话定位</b>：12c 前用 ROWNUM 套两层子查询（写法绕），12c 起支持标准 OFFSET-FETCH。</p>
-  <ul>
-    <li><strong>迁移注意</strong>：MySQL 的 limit 不能照搬到 Oracle。</li>
-  </ul>
-  <h3>2.7 锁与并发：读一致、行锁</h3>
-  <p class="lead"><b>一句话定位</b>：Oracle 默认 RC，通过 undo 实现读一致性——读不阻塞写、写不阻塞读。</p>
-  <ul>
-    <li><strong>排查工具</strong>：锁等待/死锁要查 <code>V$SESSION</code>、<code>V$LOCK</code> 动态性能视图。</li>
-  </ul>
-  <h3>2.8 分区表与 RAC</h3>
-  <p class="lead"><b>一句话定位</b>：超大表用分区表（只扫相关分区），高可用用 RAC+Data Guard——这是 Oracle 相对 MySQL 中间件方案的优势。</p>
-  <ul>
-    <li><strong>适用</strong>：海量、核心场景。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次 SQL 在 Oracle 中的处理</h3>
-  <p class="lead"><b>一句话定位</b>：SQL 先在共享池找相同计划——有就软解析（快），没有就硬解析（贵），所以 Oracle 圈强调绑定变量。</p>
-  <p>SQL 进来先在共享池找有没有相同文本的执行计划。这就是为什么 Oracle 强调"多用绑定变量（bind variable）"：<code>WHERE id = :1</code> 让相同结构的 SQL 复用计划，避免每条都硬解析。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 190" role="img" aria-label="Oracle SQL 软解析与硬解析示意图">
       <defs>
@@ -687,6 +719,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
           <path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/>
         </marker>
       </defs>
+      <text x="400" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">软解析 vs 硬解析：绑定变量减少硬解析（示意）</text>
       <rect x="40" y="60" width="140" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="110" y="82" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2d6a3f">SQL 到达</text>
       <text x="110" y="100" text-anchor="middle" font-size="11" fill="#4f6348">查共享池</text>
@@ -704,126 +737,110 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="525" y="137" text-anchor="middle" font-size="11" fill="#4f6348">重新优化，贵</text>
       <text x="400" y="172" text-anchor="middle" font-size="13" fill="#4f6348">结论：用绑定变量 WHERE id = :1，让计划可复用——这是 Oracle 高并发的基本功课。</text>
     </svg>
-    <p class="diagram-caption">图 2 Oracle 的软解析/硬解析：绑定变量减少硬解析（示意）</p>
+    <p class="diagram-caption">图 3 Oracle 的软解析/硬解析（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 迁移总纲——四个习惯（主键/分页/空值/调优）；②图 3 主线——<strong>共享池命中软解析、绑定变量是复用前提</strong>。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 序列生成主键插入</h3>
-<pre class="code" data-lang="sql"><code>-- 建序列
-CREATE SEQUENCE seq_requirement START WITH 1 INCREMENT BY 1 CACHE 100;
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：实际项目均以 MySQL 为主，未列 Oracle 项目——本节为 Oracle 与 MySQL 差异对照的自学走读笔记（安装/基础语法/特性对比验证），非企业履历。</p>
 
--- 插入时取 nextval（替代 MySQL 的 AUTO_INCREMENT）
-INSERT INTO t_requirement (id, title, status)
-VALUES (seq_requirement.NEXTVAL, '登录页改版', 'DRAFT');</code></pre>
-  <h3>4.2 分页写法对比</h3>
-<pre class="code" data-lang="sql"><code>-- 12c 起（推荐，标准 OFFSET-FETCH）
-SELECT * FROM t_requirement
-ORDER BY id OFFSET 20 ROWS FETCH NEXT 20 ROWS ONLY;
-
--- 12c 之前（经典两层 ROWNUM 写法）
-SELECT * FROM (
-  SELECT t.*, ROWNUM rn FROM (
-    SELECT * FROM t_requirement ORDER BY id
-  ) t WHERE ROWNUM &lt;= 40
-) WHERE rn &gt; 20;</code></pre>
-  <h3>4.3 与 MySQL 的迁移注意</h3>
-<pre class="code" data-lang="sql"><code>-- 空值：Oracle 里 '' 就是 NULL，判断要用 IS NULL，不能 = ''
--- 分页函数：MySQL limit → Oracle OFFSET-FETCH
--- 主键：MySQL AUTO_INCREMENT → Oracle SEQUENCE
--- 现在主流用 MyBatis/JPA，跨库差异多在 Mapper 层做方言适配。</code></pre>
-  <div class="note">经验：现代项目多通过 MyBatis 的 databaseIdProvider 或 JPA 方言隔离 Oracle/MySQL 差异，业务 SQL 尽量写标准 SQL，把方言差异集中在少数分页/主键处处理。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-
-  <div class="warn-box"><b>诚实说明：</b>实际项目均以 MySQL 为主，未列 Oracle 项目。本节为 Oracle 与 MySQL 差异对照的自学走读笔记（安装/基础语法/特性对比验证），非企业履历。</div>
-  <h3>1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"从 MySQL 切到 Oracle 要改哪些习惯"的认知，应对企业大型系统可能用到 Oracle 的场景。</p>
-  <ul><li><strong>缺口</strong>：分页、序列、锁、数据字典都和 MySQL 不一样，需要对照验证。</li></ul>
-  <h3>2 搭建的 demo 是什么</h3>
+  <h3>6.1 Demo 设计</h3>
   <ul>
-    <li><strong>结构</strong>：本地 Oracle（或免费 XE 版）建一张业务表，把 MySQL 里跑过的 CRUD 用 Oracle 语法重写对照。</li>
-    <li><strong>规模</strong>：单表 + 序列 + 分页查询，验证差异点。</li>
+    <li><strong>结构</strong>：本地 Oracle（或免费 XE 版）建一张业务表，把 MySQL 跑过的 CRUD 用 Oracle 语法重写对照；</li>
+    <li><strong>动机</strong>：分页、序列、锁、数据字典都和 MySQL 不一样，需要对照验证。</li>
   </ul>
-  <h3>3 落地步骤</h3>
-<pre class="code" data-lang="sql"><code>-- Oracle：自增靠序列 + 触发器，不是 AUTO_INCREMENT
+<pre class="code" data-lang="sql"><code>-- Oracle：自增靠序列，不是 AUTO_INCREMENT
 CREATE SEQUENCE seq_req START WITH 1 INCREMENT BY 1;
 INSERT INTO req(id, title) VALUES(seq_req.NEXTVAL, '评审');
 
--- Oracle 分页：用 ROWNUM / 子查询（MySQL 是 LIMIT）
+-- Oracle 分页：ROWNUM 子查询（MySQL 是 LIMIT）
 SELECT * FROM (
   SELECT t.*, ROWNUM rn FROM req t WHERE ROWNUM &lt;= 20
 ) WHERE rn &gt; 0;</code></pre>
-  <h3>4 自学过程中遇到的坑与解决</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>分页语法不同</strong>：习惯了 LIMIT 10,20，Oracle 要套 ROWNUM 子查询——改写并验证结果一致。</li>
-    <li><span class="tag-pit">坑</span><strong>空字符串即 NULL</strong>：Oracle 里 <code>''</code> 等价 NULL，判空逻辑要注意。</li>
-    <li><span class="tag-point">要点</span><strong>共享池/SGA</strong>：调优思路与 MySQL buffer pool 不同，要先理解 SGA/PGA。</li>
-  </ul>
-  <h3>5 成果</h3>
-  <ul><li>能对照讲清 Oracle 与 MySQL 在分页、序列、锁、调优（SGA/PGA）上的关键差异，迁移 SQL 时知道改哪里。</li></ul>
-  <h3>6 与真实项目的差异</h3>
-  <ul><li>本地单机验证，未上生产；真实大型 Oracle 系统的 RAC/表空间/权限模型仅作概念了解。</li></ul>
-  <h3>7 面试讲法</h3>
-  <p class="key-sentence">"实践中常采用本地 Oracle 把 MySQL 常用 CRUD 对照重写过，清楚序列、ROWNUM 分页、空串即 NULL 这些差异，迁移 SQL 能快速上手。"</p>
 
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 把 MySQL 语法照搬到 Oracle</h3>
-  <p class="lead"><b>一句话定位</b>：用 limit 分页、用 AUTO_INCREMENT，直接报错。</p>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>正解</strong>：分页用 OFFSET-FETCH/ROWNUM，主键用 sequence。</li>
+    <li><span class="tag-pit">坑</span><strong>分页语法不同</strong>：习惯 LIMIT 10,20，Oracle 要套 ROWNUM 子查询——改写并验证结果一致；</li>
+    <li><span class="tag-pit">坑</span><strong>空字符串即 NULL</strong>：<code>''</code> 等价 NULL，判空逻辑要注意；</li>
+    <li><span class="tag-point">要点</span><strong>共享池/SGA</strong>：调优思路与 Buffer Pool 不同，先理解 SGA/PGA。</li>
   </ul>
-  <h3>6.2 空字符串当非空</h3>
-  <p class="lead"><b>一句话定位</b>：Oracle 里 '' 就是 NULL，<code>WHERE col=''</code> 永远查不到。</p>
-  <ul>
-    <li><strong>正解</strong>：判空一律 <code>IS NULL</code>。</li>
-  </ul>
-  <h3>6.3 不绑绑定变量导致硬解析泛滥</h3>
-  <p class="lead"><b>一句话定位</b>：每条 SQL 拼接常量，共享池无法复用，硬解析消耗大。</p>
-  <ul>
-    <li><strong>正解</strong>：用绑定变量 <code>:1</code>，让 SQL 文本一致、计划可复用。</li>
-  </ul>
-  <h3>6.4 忽略 undo/临时表空间</h3>
-  <p class="lead"><b>一句话定位</b>：长事务撑爆 undo、大排序撑爆临时表空间，业务报错。</p>
-  <ul>
-    <li><strong>正解</strong>：监控表空间，保持事务短小，大排序走索引。</li>
-  </ul>
-  <h3>6.5 以为 MySQL 和 Oracle 事务隔离默认一样</h3>
-  <p class="lead"><b>一句话定位</b>：MySQL InnoDB 默认 RR，Oracle 默认 RC——跨库迁移别依赖默认。</p>
-  <ul>
-    <li><strong>正解</strong>：跨库迁移时显式确认隔离级别，别依赖默认。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>能力</strong>：对照讲清分页/序列/锁/调优（SGA/PGA）关键差异，迁移 SQL 知道改哪里；</li>
+    <li><strong>与真实差异</strong>：本地单机验证未上生产；RAC/表空间/权限模型仅概念了解；</li>
+    <li><strong>一句话抓手</strong>："本地把 MySQL 常用 CRUD 用 Oracle 对照重写过，清楚序列、ROWNUM 分页、空串即 NULL 这些差异，迁移 SQL 能快速上手。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 把 MySQL 语法照搬</h3>
+  <p><strong>现象</strong>：limit 分页、AUTO_INCREMENT 直接报错。<strong>正解</strong>：分页 OFFSET-FETCH/ROWNUM，主键 sequence。</p>
+
+  <h3>7.2 空字符串当非空</h3>
+  <p><strong>现象</strong>：<code>WHERE col=''</code> 永远查不到（'' 就是 NULL）。<strong>正解</strong>：判空一律 <code>IS NULL</code>。</p>
+
+  <h3>7.3 不绑绑定变量硬解析泛滥</h3>
+  <p><strong>原因</strong>：每条 SQL 拼接常量，共享池无法复用。<strong>正解</strong>：绑定变量 <code>:1</code>，让 SQL 文本一致、计划可复用。</p>
+
+  <h3>7.4 忽略 undo/临时表空间</h3>
+  <p><strong>现象</strong>：长事务撑爆 undo、大排序撑爆临时表空间，业务报错。<strong>正解</strong>：监控表空间，事务短小，大排序走索引。</p>
+
+  <h3>7.5 以为隔离级别默认一样</h3>
+  <p><strong>原因</strong>：MySQL 默认 RR，Oracle 默认 RC。<strong>正解</strong>：跨库迁移显式确认隔离级别，别依赖默认。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：从 MySQL 迁移到 Oracle，要改哪些习惯？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>四大习惯</strong>——①主键：AUTO_INCREMENT 换独立 <strong>Sequence</strong>（seq.NEXTVAL，与表解耦可共享，cache 提性能）；②分页：limit 换 <strong>OFFSET-FETCH</strong>（12c+）或 ROWNUM 两层子查询；③空值：<strong>Oracle '' 就是 NULL</strong>，判空全改 IS NULL；④隔离：MySQL 默认 RR、Oracle 默认 <strong>RC</strong>——显式确认别依赖默认。工程做法：MyBatis databaseIdProvider / JPA 方言隔离，业务 SQL 写标准 SQL，方言差异集中在分页/主键处。</p>
+
+  <p><strong>Q2：Oracle 的内存架构？为什么强调绑定变量？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>SGA 全实例共享</strong>——共享池（SQL 文本+执行计划缓存）、数据库缓冲缓存（类比 Buffer Pool）、Redo 缓冲；<strong>PGA 会话私有</strong>（排序/游标/会话变量）——调优就是调这两块。绑定变量：<code>WHERE id=:1</code> 让同结构 SQL 文本一致——<strong>共享池命中软解析直接复用计划</strong>；拼常量则每条硬解析（重新解析+优化，耗 CPU 且污染共享池），高并发下是灾难。与 MySQL PreparedStatement 复用的思想一致，但 Oracle 对硬解析代价更敏感。</p>
+
+  <p><strong>Q3：Oracle 高可用怎么做的？和 MySQL 方案比呢？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>RAC</strong>——多实例共享同一存储，实例层故障无感接管（节点挂了另一个扛）；<strong>Data Guard</strong>——主备复制，站点级容灾（异地切换）；<strong>分区表</strong>内置解决超大表（只扫相关分区）。对比 MySQL：分库分表靠 ShardingSphere 中间件、高可用靠主从+MHA/MGR——<strong>Oracle 是内置的企业级方案，MySQL 是开源组合拳</strong>；代价是商业许可贵、运维门槛高。排障上 Oracle 有成熟的 V$ 视图体系（V$SESSION/V$LOCK/V$SQL 三板斧）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>四大迁移习惯分别是什么？'' 在 Oracle 里是什么？</li>
+    <li>SGA 三大块？PGA 存什么？</li>
+    <li>软解析/硬解析差异？绑定变量为什么关键？</li>
+    <li>undo 的两个角色？ORA-01555 什么原因？</li>
+    <li>RAC 与 Data Guard 各解决什么层故障？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>Oracle 数据库官方文档（概念/管理员指南）：<a href="https://docs.oracle.com/en/database/" rel="noopener">docs.oracle.com/en/database</a></li>
-    <li>Oracle SQL 语言参考（分页/序列/函数）：<a href="https://docs.oracle.com/en/database/oracle/oracle-database/" rel="noopener">docs.oracle.com</a></li>
+    <li>Oracle 官方文档：<a href="https://docs.oracle.com/en/database/" rel="noopener">docs.oracle.com/en/database</a>；SQL 语言参考（分页/序列/函数）</li>
+    <li>《Oracle 数据库编程艺术》（Tom Kyte）——SGA/undo/绑定变量经典；《Oracle 高性能 SQL 调优》——执行计划实践。</li>
   </ul>
-  <h3>书籍</h3>
+  <h3>跨库对比与练习</h3>
   <ul>
-    <li>《Oracle 数据库编程艺术》（Tom Kyte）——Oracle 架构与机制的经典，深入讲 SGA/undo/绑定变量。</li>
-    <li>《Oracle 高性能 SQL 调优》——执行计划与调优实践。</li>
+    <li>速查 "Oracle vs MySQL syntax differences"；MyBatis databaseIdProvider 多方言适配：mybatis.org</li>
   </ul>
-  <h3>跨库对比</h3>
-  <ul>
-    <li>MySQL 与 Oracle 语法差异速查：可搜索 "Oracle vs MySQL syntax differences"。</li>
-    <li>MyBatis databaseIdProvider（多数据库方言适配）：<a href="https://mybatis.org/" rel="noopener">mybatis.org</a></li>
-  </ul>
+  <ol>
+    <li>本地 XE 建表+序列，把 MySQL CRUD 重写对照（分页/主键/空值三点各验证一次）；</li>
+    <li>故意写 <code>WHERE col=''</code> 复现查不到，再改 IS NULL；</li>
+    <li>用拼接常量 vs 绑定变量各跑一千次插入，观察 V$SQL 中解析差异。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../08_数据库与建模/03_MySQL事务与锁【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/08_MongoDB与NoSQL【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/04_Redis缓存【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/10_PowerDesigner数据库建模【基础】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Oracle【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
