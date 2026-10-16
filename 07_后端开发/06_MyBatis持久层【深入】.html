@@ -540,43 +540,160 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/10_SSH框架【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/05_SpringBoot框架【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：MyBatis 把 SQL 控制权交回开发者——SQL 你写，参数绑定与结果映射它做；本项目数据编排平台用 <code>mybatis-spring-boot-starter</code> 集成。</p>
-  <ul>
-    <li><strong>它做的三件脏活</strong>：传入参数、执行 SQL、把 ResultSet 映射成 Java 对象。</li>
-    <li><strong>卡在中间的定位</strong>：相比 JdbcTemplate 裸 SQL 它有结果映射与动态 SQL；相比 Hibernate/JPA 全自动，它把 SQL 最终控制权留给开发者。</li>
-  </ul>
-  <p class="key-sentence">SQL 可控可优化 + 省掉样板映射——这正是它在国内复杂业务系统中取代 Hibernate 的原因。</p>
-  <h3>横向对比：三种持久层方案的取舍</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：SQL 控制权在开发者手里的持久层</h3>
+  <p><strong>MyBatis 把 SQL 控制权交回开发者</strong>——SQL 你写，参数绑定与结果映射它做（三件脏活：传参/执行/映射 ResultSet）。<strong>卡在中间的定位</strong>：比 JdbcTemplate 多结果映射与动态 SQL；比 Hibernate/JPA 少"全自动"但保住 SQL 最终控制权。<span class="tag-key">SQL 可控可优化 + 省掉样板映射</span>——这正是它在国内复杂业务系统取代 Hibernate 的原因。本套技术栈用 mybatis-spring-boot-starter。</p>
+
+  <h3>1.2 横向对比：三种持久层方案</h3>
   <table>
     <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
     <thead><tr><th>方案</th><th>特点</th><th>取舍</th></tr></thead>
     <tbody>
-      <tr><td>JdbcTemplate</td><td>Spring 提供的薄封装，SQL 全手写、手动映射结果</td><td>最轻、最透明，但每个查询都要手动行映射，样板多。</td></tr>
-      <tr><td>MyBatis</td><td>SQL 手写 + 参数绑定 + 结果映射 + 动态 SQL</td><td>SQL 可控、复杂查询友好，国内主流；代价是要维护 XML/注解。本套技术栈选型。</td></tr>
-      <tr><td>Hibernate / JPA</td><td>全自动 ORM，实体映射表，框架生成 SQL</td><td>简单 CRUD 极快、面向对象；复杂查询与 SQL 调优不透明，N+1 风险。</td></tr>
+      <tr><td>JdbcTemplate</td><td>薄封装，SQL 全手写、手动映射</td><td>最轻最透明，但每查询手动行映射样板多</td></tr>
+      <tr><td><strong>MyBatis</strong></td><td>SQL 手写 + 参数绑定 + 结果映射 + 动态 SQL</td><td>SQL 可控、复杂查询友好，国内主流；代价维护 XML——本套选型</td></tr>
+      <tr><td>Hibernate / JPA</td><td>全自动 ORM，框架生成 SQL</td><td>简单 CRUD 极快；复杂查询与调优不透明，N+1 风险</td></tr>
     </tbody>
   </table>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清 <strong>Mapper 代理执行链</strong>（接口没实现类为什么能跑）；</li>
+    <li>吃透 <strong>#{} vs ${}</strong>（安全第一考点）；</li>
+    <li>落地<strong>动态 SQL/批量插入/分页/结果映射</strong>四件套；</li>
+    <li>知道<strong>一级缓存的失效时机</strong>与 N+1 的解法。</li>
+  </ol>
+  <p><strong>前置知识</strong>：05 SpringBoot。<strong>难度</strong>：★★★☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>Factory 与 Session</strong>→ <strong>Mapper 代理</strong>→ <strong>动态 SQL 与 #{} ${}</strong>→ <strong>结果映射</strong>→ <strong>Executor</strong>→ <strong>缓存与分页</strong>。</p>
+
+  <h3>2.1 SqlSessionFactory 与 SqlSession</h3>
+  <p><strong>Factory</strong> 应用级单例（配置+数据源+Mapper XML 构建一次）；<strong>SqlSession</strong> 请求级会话入口——Spring 下与事务绑定，开发者基本不直接 new，只注入 Mapper 接口。</p>
+
+  <h3>2.2 Mapper 代理：接口为什么没实现类</h3>
+  <p>MyBatis 运行期为接口生成<strong>动态代理</strong>：调用 <code>mapper.selectById(1L)</code> 时，代理把"<strong>接口全限定名+方法名</strong>"拼成 statementId（如 com.dcp.RequirementMapper.selectById），按 id 找到 XML/注解里的 SQL 执行并映射结果——Spring 把代理 Bean 注入 Service。</p>
+
+  <h3>2.3 动态 SQL 与 #{} ${}</h3>
+  <p><code>&lt;if&gt;/&lt;where&gt;/&lt;foreach&gt;/&lt;choose&gt;</code> 运行期按参数拼 SQL——一套 SQL 适配多查询条件。<span class="tag-key">#{}（默认）</span>= PreparedStatement 占位符防注入；<span class="tag-pit">${}（慎用）</span>= 原样字符串替换有注入风险——只用于表名/列名/排序字段等占位符语法位置，且<strong>必须白名单校验</strong>。两者区别是 MyBatis 面试与安全的第一考点。</p>
+
+  <h3>2.4 结果映射</h3>
+  <p>列名与属性对不上（user_name vs userName）用 resultMap 显式映射；一对一/一对多用 <code>&lt;association&gt;/&lt;collection&gt;</code>；简单场景开 <code>mapUnderscoreToCamelCase=true</code> 自动驼峰即可。</p>
+
+  <h3>2.5 Executor 执行器</h3>
+  <p>Simple（默认，每语句新 Statement）/ Reuse（复用）/ <strong>Batch</strong>（攒一批一次 flush——批量写性能远好于循环单条）。</p>
+
+  <h3>2.6 缓存与分页</h3>
+  <p><strong>一级缓存</strong>（SqlSession 级）：同会话相同查询命中，<strong>任何写操作或提交即清空</strong>；Spring 下每请求一个 SqlSession，只在同事务内重复查见效。<strong>二级缓存</strong>（Mapper 级跨会话）：需手动开+序列化，多表易脏、分布式不一致——<strong>生产少用，跨请求缓存交给 Redis</strong>。分页：RowBounds 是内存分页（不推荐），真分页靠 PageHelper 插件改写 SQL 加 limit。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：动态 SQL 多条件查询</h3>
+<pre class="code" data-lang="xml"><code>&lt;!-- RequirementMapper.xml：传哪个条件拼哪个 --&gt;
+&lt;select id="search" resultType="Requirement"&gt;
+  SELECT id, title, status, team_id
+  FROM t_requirement
+  &lt;where&gt;
+    &lt;if test="title != null and title != ''"&gt;
+      AND title LIKE CONCAT('%', #{title}, '%')
+    &lt;/if&gt;
+    &lt;if test="status != null"&gt;
+      AND status = #{status}
+    &lt;/if&gt;
+  &lt;/where&gt;
+  ORDER BY id DESC
+&lt;/select&gt;</code></pre>
+<pre class="code" data-lang="java"><code>// 接口只声明，MyBatis 生成代理
+public interface RequirementMapper {
+    List&lt;Requirement&gt; search(@Param("title") String title,
+                              @Param("status") String status);
+}</code></pre>
+
+  <h3>3.2 场景二：批量插入与主键回填</h3>
+<pre class="code" data-lang="xml"><code>&lt;!-- 一次拼多 values，比循环单条快一个数量级 --&gt;
+&lt;insert id="batchInsert" useGeneratedKeys="true" keyProperty="id"&gt;
+  INSERT INTO t_requirement (title, status, team_id) VALUES
+  &lt;foreach collection="list" item="r" separator=","&gt;
+    (#{r.title}, #{r.status}, #{r.teamId})
+  &lt;/foreach&gt;
+&lt;/insert&gt;</code></pre>
+  <p><strong>自增主键回填</strong>：useGeneratedKeys="true" keyProperty="id"——执行后入参对象 id 被回填，无需再查一次。<span class="tag-pit">注意 max_allowed_packet</span>：foreach 别一次太大，按几百条分批。</p>
+
+  <h3>3.3 场景三：PageHelper 分页 + join 消 N+1</h3>
+<pre class="code" data-lang="java"><code>public PageInfo&lt;ConfigItem&gt; query(ConfigQuery q) {
+    PageHelper.startPage(q.getPage(), q.getSize());   // 必须紧跟下一条查询
+    List&lt;ConfigItem&gt; list = configMapper.search(q);
+    return new PageInfo&lt;&gt;(list);
+}</code></pre>
+<pre class="code" data-lang="xml"><code>&lt;resultMap id="reqVoMap" type="RequirementVO"&gt;
+  &lt;id property="id" column="id"/&gt;
+  &lt;result property="teamName" column="team_name"/&gt;
+  &lt;result property="assigneeName" column="assignee_name"/&gt;
+&lt;/resultMap&gt;
+&lt;select id="listVo" resultMap="reqVoMap"&gt;
+  SELECT r.*, t.team_name, u.user_name AS assignee_name
+  FROM t_requirement r
+  LEFT JOIN t_team t ON r.team_id = t.id
+  LEFT JOIN t_user u ON r.assignee = u.id
+  WHERE r.status = #{status}
+&lt;/select&gt;</code></pre>
+
+  <h3>3.4 场景四：配置与驼峰映射</h3>
+<pre class="code" data-lang="yaml"><code>mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true   # user_name → userName</code></pre>
+  <div class="danger-box"><strong>高危</strong>：排序字段必须用 ${}，但它有注入风险——正解是 Service 层<strong>白名单</strong>：只允许预定义列名进 ${}，绝不能把前端传来的字符串直接拼进去。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：动态 SQL 与缓存已会。</p>
+
+  <h3>4.1 插件机制与 PageHelper 原理</h3>
+  <p>MyBatis 允许拦截 Executor/StatementHandler 等四大对象（Interceptor + @Intercepts）——PageHelper 就是拦截 Executor 把 limit 追加进 SQL；分页参数走 <strong>ThreadLocal</strong>，这解释了"startPage 必须紧跟目标查询"的坑（中间插别的 SQL 会被错误分页）。</p>
+
+  <h3>4.2 MyBatis-Plus 的定位</h3>
+  <p>国内流行增强：BaseMapper 通用 CRUD/LambdaQueryWrapper 条件构造/自动分页——<strong>简单 CRUD 交给 Plus，复杂 SQL 仍写 XML</strong>，两者共存是主流姿势；注意 Plus 的逻辑删除/乐观锁插件要显式配置。</p>
+
+  <h3>4.3 延迟加载与 association 的 N+1</h3>
+  <p>&lt;association&gt; 嵌套查询（select 指向另一条 SQL）默认立即加载会触发 N+1——配 lazyLoadingEnabled 延迟加载，或干脆像 3.3 那样一次 join 拉平；<strong>"列表场景先想 join"</strong>是铁律。</p>
+
+  <h3>4.4 多数据源与事务的边界</h3>
+  <p>多数据源靠分包扫描（两套 SqlSessionFactory）或 dynamic-datasource 组件；<span class="tag-pit">跨库事务不在 MyBatis 能力内</span>——需要强一致用 Seata，最终一致走消息/对账，别指望 @Transactional 跨两个数据源回滚。</p>
+
+  <h3>4.5 SQL 日志与慢查询定位</h3>
+  <p>开发环境 logging.level.mapper 包=debug 打印 SQL 与参数；生产用 p6spy 或 Druid SQL 监控；深分页/大 offset 优化（延迟关联/游标）属 MySQL 专题（08 模块呼应）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="MyBatis 在持久层中的位置示意图">
       <defs>
@@ -605,89 +722,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 MyBatis 在 Service 与数据库之间的位置（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 SqlSessionFactory 与 SqlSession</h3>
-  <p class="lead"><b>一句话定位</b>：Factory 是整个应用一份的重量级对象，SqlSession 是请求级会话入口；Spring 集成下开发者只注入 Mapper 接口。</p>
-  <ul>
-    <li><strong>SqlSessionFactory</strong>：由配置（数据源、Mapper XML）构建一次，整个应用一个。</li>
-    <li><strong>SqlSession</strong>：一次会话/请求级对象，提供执行 SQL、获取 Mapper 的入口；Spring 下与事务绑定，开发者基本不直接 new。</li>
-  </ul>
-  <h3>2.2 Mapper 代理（Mapper Proxy）</h3>
-  <p class="lead"><b>一句话定位</b>：接口没有实现类——MyBatis 运行期为它生成动态代理，把方法调用翻译成 SQL 执行。</p>
-  <ul>
-    <li><strong>拼 statementId</strong>：调用 <code>mapper.selectById(1L)</code> 时，代理把"接口全限定名 + 方法名"拼成唯一标识（如 <code>com.dcp.RequirementMapper.selectById</code>）。</li>
-    <li><strong>找 SQL 执行</strong>：按 id 找到 XML/注解里的 SQL，执行并映射结果；Spring 把这个代理 Bean 注入 Service。</li>
-  </ul>
-  <h3>2.3 动态 SQL（Dynamic SQL）</h3>
-  <p class="lead"><b>一句话定位</b>：用 <code>&lt;if&gt;/&lt;where&gt;/&lt;foreach&gt;/&lt;choose&gt;</code> 在运行期按参数拼 SQL——一套 SQL 适配多种查询条件。</p>
-  <ul>
-    <li><strong>多条件查询</strong>：传了哪个条件就拼哪个 where。</li>
-    <li><strong>批量 in</strong>：<code>in (...)</code> 的列表靠 <code>&lt;foreach&gt;</code> 展开。</li>
-  </ul>
-  <h3>2.4 #{} 与 ${}（预编译 vs 字符串替换）</h3>
-  <p class="lead"><b>一句话定位</b>：<code>#{}</code> = PreparedStatement 占位符（防注入，默认该用）；<code>${}</code> = 原样字符串替换（有注入风险）。</p>
-  <ul>
-    <li><strong>#{}（默认）</strong>：编译成 JDBC <code>?</code>，参数安全绑定，防 SQL 注入。</li>
-    <li><strong>${}（慎用）</strong>：原样替换进 SQL，只用于表名/列名/排序字段等不能用占位符的语法位置（如 <code>order by ${sort}</code>），且必须白名单校验。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 150" role="img" aria-label="#{}与${}对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">#{} vs ${}（示意）</text>
-
-      <!-- #{} -->
-      <rect x="30" y="45" width="350" height="90" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">#{}（预编译占位符）</text>
-      <text x="50" y="92" font-size="11" fill="#4f6348">编译成 JDBC ?，参数安全绑定</text>
-      <text x="50" y="115" font-size="11" font-weight="600" fill="#047857">默认该用，防 SQL 注入</text>
-
-      <!-- ${} -->
-      <rect x="420" y="45" width="350" height="90" rx="8" fill="#fee2e2" stroke="#dc2626"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">${}（字符串直接替换）</text>
-      <text x="440" y="92" font-size="11" fill="#4f6348">原样拼进 SQL，有注入风险</text>
-      <text x="440" y="115" font-size="11" font-weight="600" fill="#b91c1c">仅用于表名/列名/排序字段</text>
-    </svg>
-    <p class="diagram-caption">图 1 #{} vs ${}（示意）</p>
-  </div>
-  <p class="pit-sentence">两者区别是 MyBatis 面试与安全的第一考点。</p>
-  <h3>2.5 结果映射 resultMap</h3>
-  <p class="lead"><b>一句话定位</b>：列名与属性名对不上（<code>user_name</code> vs <code>userName</code>）时，用 resultMap 显式映射。</p>
-  <ul>
-    <li><strong>关联映射</strong>：一对一/一对多用 <code>&lt;association&gt;/&lt;collection&gt;</code>。</li>
-    <li><strong>简单场景</strong>：开 <code>mapUnderscoreToCamelCase=true</code> 自动下划线转驼峰即可。</li>
-  </ul>
-  <h3>2.6 Executor 执行器</h3>
-  <p class="lead"><b>一句话定位</b>：SqlSession 内部用 Executor 真正执行 SQL；批量写场景要显式配 <code>ExecutorType.BATCH</code>。</p>
-  <ul>
-    <li><strong>SimpleExecutor（默认）</strong>：每条语句都新开 Statement。</li>
-    <li><strong>ReuseExecutor</strong>：复用 Statement。</li>
-    <li><strong>BatchExecutor</strong>：把一批 SQL 攒一起一次 flush，批量插入/更新性能远好于循环单条。</li>
-  </ul>
-  <h3>2.7 一级缓存与二级缓存</h3>
-  <p class="lead"><b>一句话定位</b>：一级缓存是 SqlSession 级（请求/事务内），二级缓存是 Mapper 级跨会话——生产中二级缓存用得很少。</p>
-  <ul>
-    <li><strong>一级缓存</strong>：同一会话内相同查询命中缓存；任何 insert/update/delete 或提交/关闭即清空。Spring 下每请求一个 SqlSession，只在"同一事务内重复查"时见效。</li>
-    <li><strong>二级缓存</strong>：Mapper(Namespace) 级跨 SqlSession，需手动开启并序列化；多表关联易脏、分布式下不一致，多由 Redis 承担缓存职责。</li>
-  </ul>
-  <h3>2.8 分页</h3>
-  <p class="lead"><b>一句话定位</b>：MyBatis 本身不做物理分页，靠分页插件（如 PageHelper）自动改写 SQL 加 <code>limit</code>。</p>
-  <ul>
-    <li><strong>RowBounds（不推荐）</strong>：内存分页，先全查再截取。</li>
-    <li><strong>真正的分页</strong>：落到 SQL 的 <code>limit offset, size</code>——深分页优化见 MySQL 专题。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次 Mapper 方法调用背后发生了什么</h3>
-  <p class="lead"><b>一句话定位</b>：接口没有实现类却能返回结果——下图就是代理把方法调用翻译成 SQL 执行的完整链路。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 300" role="img" aria-label="MyBatis Mapper 代理执行链路示意图">
       <defs>
@@ -725,166 +759,95 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Mapper 代理 → SqlSession → Executor → 结果映射（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 定位——Mapper 接口无实现类靠动态代理，SQL 手写可控；②图 2 执行链四步——代理拼 statementId → SqlSession 查一级缓存 → Executor 执行（#{} 转占位符、动态标签拼串）→ ResultSetHandler 按 resultMap 映射；<strong>任何写操作清空本会话一级缓存</strong>是"缓存时灵时不灵"的答案。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——数据编排平台与业务系统的持久层（SpringBoot3+MyBatis+PageHelper+MySQL）：动态 SQL、分页、批量与复杂结果映射；我负责 Mapper 接口/XML、分页接入与复杂映射。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><strong>动态 SQL</strong>：列表查询 &lt;where&gt;+&lt;if&gt;，前端传哪个拼哪个，一个接口覆盖组合筛选；</li>
+    <li><strong>批量写</strong>：节点配置批量保存改 foreach 多 values，按 500 条分批；</li>
+    <li><strong>避免 N+1</strong>：需求列表 join 出团队名/处理人名，resultMap 映射嵌套 DTO；</li>
+    <li><strong>协作</strong>：筛选条件随前端迭代动态 SQL 不加接口；分页参数与表格组件约定 page/size。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录（含量化对比）</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>PageHelper 作用错语句</strong>：startPage 后紧跟了无关 count 查询——它是 ThreadLocal，必须紧贴目标查询；</li>
+    <li><span class="tag-pit">坑</span><strong>N+1</strong>：每条需求再查团队，列表 100 行发 101 条 SQL 打开等两秒——改 join 后约 2s→&lt;300ms（估算）；</li>
+    <li><span class="tag-pit">坑</span><strong>join 后 id 列映射串</strong>：两表都有 id 混淆——给列起别名；</li>
+    <li><span class="tag-pit">坑</span><strong>单字符 status 的 OGNL</strong>：字符串条件写 status != null and status != ''。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>代理拦截</strong>：MapperProxy 把方法名解析成 statementId（接口全限定名.方法名），找到对应 SQL 节点。</li>
-    <li><strong>参数与动态 SQL</strong>：DynamicSqlSource 在运行期按 <code>&lt;if&gt;</code> 等标签把 SQL 拼好，<code>#{}</code> 转成 <code>?</code>。</li>
-    <li><strong>执行</strong>：Executor 先查一级缓存，未命中则通过 StatementHandler 用 PreparedStatement 执行。</li>
-    <li><strong>映射</strong>：ResultSetHandler 按 resultMap 把每行映射成对象（或列表）返回。</li>
+    <li><strong>量化</strong>：批量保存从循环逐条数秒降到几百毫秒；需求列表从 101 条 SQL 降到 1 条（估算）；</li>
+    <li><strong>可复用经验</strong>：列表先想 join（展示字段一次 join 出来不要 N+1）；批量必分批（几百条一批）；</li>
+    <li><strong>一句话抓手</strong>："动态 SQL 做组合查询、foreach 做批量、join+resultMap 消除 N+1；踩过 PageHelper 贴错语句和 N+1 各发 101 条 SQL 的坑。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Mapper 接口与动态 SQL</h3>
-<pre class="code" data-lang="xml"><code>&lt;!-- RequirementMapper.xml：多条件动态查询 --&gt;
-&lt;select id="search" resultType="Requirement"&gt;
-  SELECT id, title, status, team_id
-  FROM t_requirement
-  &lt;where&gt;
-    &lt;if test="title != null and title != ''"&gt;
-      AND title LIKE CONCAT('%', #{title}, '%')
-    &lt;/if&gt;
-    &lt;if test="status != null"&gt;
-      AND status = #{status}
-    &lt;/if&gt;
-  &lt;/where&gt;
-  ORDER BY id DESC
-&lt;/select&gt;</code></pre>
-<pre class="code" data-lang="java"><code>// 接口只声明，MyBatis 生成代理
-public interface RequirementMapper {
-    List&lt;Requirement&gt; search(@Param("title") String title,
-                              @Param("status") String status);
-}</code></pre>
-  <h3>4.2 批量插入：foreach 展开 in / values</h3>
-<pre class="code" data-lang="xml"><code>&lt;!-- 一次拼多 values，比循环单条 insert 快一个数量级 --&gt;
-&lt;insert id="batchInsert"&gt;
-  INSERT INTO t_requirement (title, status, team_id) VALUES
-  &lt;foreach collection="list" item="r" separator=","&gt;
-    (#{r.title}, #{r.status}, #{r.teamId})
-  &lt;/foreach&gt;
-&lt;/insert&gt;</code></pre>
-  <p class="lead"><b>自增主键回填</b>：insert 后要拿回数据库生成的主键，在 <code>&lt;insert&gt;</code> 上加 <code>useGeneratedKeys="true" keyProperty="id"</code>（或注解 <code>@Options(useGeneratedKeys = true)</code>），执行后入参对象的 id 即被回填，无需再单独查一次。</p>
-  <h3>4.3 两种写法对比：循环单条 vs 批量插入</h3>
-<pre class="code" data-lang="java"><code>// 坏：循环里逐条 insert，每条一次网络往返 + 一次提交
-for (Requirement r : list) { mapper.insert(r); }
-
-// 好：拼成一条多 values SQL（注意 MySQL 客户端 max_allowed_packet 限制，分批如每 500 条）
-mapper.batchInsert(sublist);</code></pre>
-  <h3>4.4 结果映射：下划线转驼峰</h3>
-<pre class="code" data-lang="yaml"><code># application.yml：开启自动驼峰映射，省去简单查询的 resultMap
-mybatis:
-  configuration:
-    map-underscore-to-camel-case: true   # user_name → userName</code></pre>
-  <div class="danger-box">高危：排序字段必须用 <code>${}</code>，但它有注入风险。正解是在 Service 层做白名单——只允许预定义的列名进 <code>${}</code>，绝不能把前端传来的字符串直接拼进去。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：数据编排平台（SpringBoot3+MyBatis+Redis）与 业务系统 的持久层都用 MyBatis，承担动态 SQL、分页、批量与复杂结果映射。</p>
-  <ul><li><strong>业务量级</strong>：配置项组合查询、需求列表 join 出团队/处理人，多为列表型读多写少（估算）。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：负责 Mapper 接口与 XML 编写、分页接入、复杂结果映射，与前端约定列表查询条件。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot 3 + MyBatis + PageHelper 分页插件 + MySQL。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>动态 SQL</strong>：列表查询用 <code>&lt;where&gt;+&lt;if&gt;</code>，前端传哪个条件拼哪个，一个接口覆盖组合筛选。</li>
-    <li><strong>批量写</strong>：节点配置批量保存改 <code>&lt;foreach&gt;</code> 多 values，按 500 条分批。</li>
-    <li><strong>避免 N+1</strong>：需求列表 join 出团队名/处理人名，resultMap 映射嵌套 DTO。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>public PageInfo&lt;ConfigItem&gt; query(ConfigQuery q) {
-    PageHelper.startPage(q.getPage(), q.getSize());   // 紧跟下一条查询
-    List&lt;ConfigItem&gt; list = configMapper.search(q);
-    return new PageInfo&lt;&gt;(list);
-}</code></pre>
-<pre class="code" data-lang="xml"><code>&lt;resultMap id="reqVoMap" type="RequirementVO"&gt;
-  &lt;id property="id" column="id"/&gt;
-  &lt;result property="teamName" column="team_name"/&gt;
-  &lt;result property="assigneeName" column="assignee_name"/&gt;
-&lt;/resultMap&gt;
-&lt;select id="listVo" resultMap="reqVoMap"&gt;
-  SELECT r.*, t.team_name, u.user_name AS assignee_name
-  FROM t_requirement r
-  LEFT JOIN t_team t ON r.team_id = t.id
-  LEFT JOIN t_user u ON r.assignee = u.id
-  WHERE r.status = #{status}
-&lt;/select&gt;</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>PageHelper 作用错语句</strong>：startPage 后紧跟了无关 count 查询——它是 ThreadLocal，必须紧贴目标查询。</li>
-    <li><span class="tag-pit">坑</span><strong>N+1</strong>：早期对每条需求再查团队，列表 100 行发 101 条 SQL、打开等两秒；改 join 后一条搞定（约 2s→<300ms，估算）。</li>
-    <li><span class="tag-pit">坑</span><strong>join 后 id 列映射串了</strong>：两表都有 id，<code>&lt;id column="id"&gt;</code> 混淆——给列起别名。</li>
-    <li><span class="tag-pit">坑</span><strong>单字符 status 的 OGNL</strong>：字符串条件要写 <code>status != null and status != ''</code>。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>批量保存从循环逐条数秒降到几百毫秒；需求列表从 101 条 SQL 降到 1 条，打开明显变快（均为估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>列表筛选条件随前端需求迭代，动态 SQL 让后端不必为每个新条件加接口；分页参数与前端表格组件约定 page/size。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul>
-    <li><strong>列表先想 join</strong>：展示字段能一次 join 出来就不要 N+1。</li>
-    <li><strong>批量必分批</strong>：foreach 一次别太大，按几百条一批。</li>
-  </ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"数据编排平台和 业务系统 都用 MyBatis，实践中常采用动态 SQL 做组合查询、foreach 做批量、join+resultMap 消除 N+1；踩过 PageHelper 贴错语句和 N+1 各发 101 条 SQL 的坑。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 #{} 与 ${} 用错导致 SQL 注入</h3>
-  <p class="lead"><b>一句话定位</b>：值参数一律 <code>#{}</code>；<code>${}</code> 只用于排序字段/表名且必须白名单。</p>
-  <ul>
-    <li><strong>现象</strong>：把参数写成 <code>${}</code>，恶意字符串拼进 SQL 被注入。</li>
-    <li><strong>原因</strong>：<code>${}</code> 是纯字符串替换，不做预编译转义。</li>
-  </ul>
-  <h3>6.2 一级缓存"时灵时不灵"</h3>
-  <p class="lead"><b>一句话定位</b>：一级缓存是 SqlSession 级，任何写操作或提交后就清空——别指望它做业务缓存。</p>
-  <ul>
-    <li><strong>原因</strong>：一级缓存（SqlSession 级）在任何 insert/update/delete 或 commit 后清空；跨请求是不同 SqlSession，本就不共享。</li>
-    <li><strong>正解</strong>：跨请求的缓存用 Redis。</li>
-  </ul>
-  <h3>6.3 resultMap 列名对不上，属性全是 null</h3>
-  <p class="lead"><b>一句话定位</b>：SQL 查出来了、字段却是 null——列名（下划线）与属性（驼峰）没对上。</p>
-  <ul>
-    <li><strong>正解</strong>：开 <code>map-underscore-to-camel-case</code>，或显式 resultMap。</li>
-  </ul>
-  <h3>6.4 批量写入性能差</h3>
-  <p class="lead"><b>一句话定位</b>：循环单条 insert 几千条跑很久——拼多 values 或配 Batch 执行器。</p>
-  <ul>
-    <li><strong>正解</strong>：用 <code>&lt;foreach&gt;</code> 拼多 values（分批控制大小），或配 <code>ExecutorType.BATCH</code>。</li>
-  </ul>
-  <h3>6.5 PageHelper 分页错乱</h3>
-  <p class="lead"><b>一句话定位</b>：startPage 与目标查询之间插了别的 SQL，ThreadLocal 作用到了错误语句。</p>
-  <ul>
-    <li><strong>正解</strong>：startPage 后必须紧跟目标查询，中间不要有其他 DB 调用。</li>
-  </ul>
-  <h3>6.6 多参数忘记 @Param</h3>
-  <p class="lead"><b>一句话定位</b>：接口多个参数时，XML 里 <code>#{xxx}</code> 取不到值——每个参数加 <code>@Param</code>。</p>
-  <ul>
-    <li><strong>正解</strong>：多参数方法每个参数加 <code>@Param("xxx")</code>，或封装成一个对象传。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 ${} 导致 SQL 注入</h3>
+  <p><strong>原因</strong>：${} 纯字符串替换不预编译转义。<strong>正解</strong>：值参数一律 #{}；${} 只用于排序字段/表名且 Service 层白名单。</p>
+
+  <h3>7.2 一级缓存"时灵时不灵"</h3>
+  <p><strong>原因</strong>：SqlSession 级缓存，任何写操作/commit 即清空；跨请求本就不共享。<strong>正解</strong>：跨请求缓存用 Redis，别指望一级缓存做业务缓存。</p>
+
+  <h3>7.3 列名对不上属性全 null</h3>
+  <p><strong>现象</strong>：SQL 查出来了字段 null。<strong>正解</strong>：开 map-underscore-to-camel-case 或显式 resultMap。</p>
+
+  <h3>7.4 批量写入性能差</h3>
+  <p><strong>原因</strong>：循环单条 insert 每条一次往返+提交。<strong>正解</strong>：foreach 拼多 values（分批），或配 ExecutorType.BATCH。</p>
+
+  <h3>7.5 PageHelper 分页错乱</h3>
+  <p><strong>原因</strong>：startPage 与目标查询之间插了别的 SQL，ThreadLocal 作用错语句。<strong>正解</strong>：startPage 后必须紧跟目标查询。</p>
+
+  <h3>7.6 多参数忘记 @Param</h3>
+  <p><strong>现象</strong>：XML 里 #{xxx} 取不到值。<strong>正解</strong>：多参数方法每个加 @Param("xxx")，或封装成对象传。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Mapper 接口没有实现类，为什么能执行 SQL？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>动态代理</strong>——MyBatis 运行期为 Mapper 接口生成 MapperProxy：调用方法时把"<strong>接口全限定名+方法名</strong>"拼成 statementId，按 id 找到 XML/注解里的 SQL；然后 DynamicSqlSource 在运行期按 &lt;if&gt; 等标签拼好 SQL、#{} 转成 PreparedStatement 占位符；Executor 先查一级缓存，未命中经 StatementHandler 执行；最后 ResultSetHandler 按 resultMap 把每行映射成对象返回。与 Spring 集成后代理 Bean 注入 Service，SqlSession 与事务绑定，开发者全程只面对接口。</p>
+
+  <p><strong>Q2：#{} 与 ${} 的区别？${} 什么场景必须用、怎么防注入？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>#{}</strong> 编译成 JDBC ? 占位符，参数安全绑定，防 SQL 注入——<strong>值参数默认一律用它</strong>；<strong>${}</strong> 是原样字符串替换直接拼进 SQL，有注入风险。<strong>必须用 ${} 的场景</strong>：表名/列名/排序字段等"占位符语法位置"（order by ${sort}）——占位符会给值加引号变成字符串而不是列名。<strong>防注入正解</strong>：Service 层白名单——只允许预定义列名集合进 ${}，绝不把前端传来的字符串直接拼；这是 MyBatis 面试与安全的第一考点。</p>
+
+  <p><strong>Q3：一级缓存为什么"时灵时不灵"？N+1 怎么解？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>一级缓存是 SqlSession 级</strong>（请求/事务内）——同一会话相同 statementId+参数命中，但<strong>任何 insert/update/delete 或 commit 都清空</strong>；Spring 下每请求一个 SqlSession，跨请求本就不共享——所以跨请求缓存交给 Redis，二级缓存（Mapper 级）多表易脏、分布式不一致，生产少用。<strong>N+1</strong>：列表对每行再发一条关联查询（100 行=101 条 SQL）——正解是<strong>一次 join + resultMap 映射</strong>拉平（实战 101 条→1 条，约 2s→&lt;300ms）；嵌套查询配延迟加载只是缓解，join 是根治。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>Mapper 代理执行链四步？statementId 怎么拼？</li>
+    <li>#{} 与 ${} 的底层差异？${} 的白名单怎么做？</li>
+    <li>一级缓存的失效时机？二级缓存为什么生产少用？</li>
+    <li>批量插入两种姿势？max_allowed_packet 注意什么？</li>
+    <li>PageHelper 为什么必须紧跟目标查询？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>MyBatis 3 官方文档（动态 SQL、缓存、XML 映射权威）：<a href="https://mybatis.org/mybatis-3/zh/index.html" rel="noopener">mybatis.org/mybatis-3/zh</a></li>
-    <li>MyBatis-Spring 集成文档：<a href="https://mybatis.org/spring/" rel="noopener">mybatis.org/spring</a></li>
-    <li>MyBatis 源码仓库（GitHub）：<a href="https://github.com/mybatis/mybatis-3" rel="noopener">github.com/mybatis/mybatis-3</a></li>
+    <li>MyBatis 3 官方文档（动态 SQL/缓存/XML 权威）：<a href="https://mybatis.org/mybatis-3/zh/index.html" rel="noopener">mybatis.org/mybatis-3/zh</a>；Spring 集成：mybatis.org/spring</li>
+    <li>MyBatis-Plus：<a href="https://baomidou.com/" rel="noopener">baomidou.com</a>；PageHelper：pagehelper.github.io</li>
   </ul>
-  <h3>常用增强工具</h3>
-  <ul>
-    <li>MyBatis-Plus（国内流行的增强 CRUD/分页工具）：<a href="https://baomidou.com/" rel="noopener">baomidou.com</a></li>
-    <li>PageHelper 分页插件：<a href="https://pagehelper.github.io/" rel="noopener">pagehelper.github.io</a></li>
-  </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《MyBatis 从入门到精通》（杨开振等）——国内较系统的 MyBatis 书籍。</li>
-    <li>《高性能 MySQL》（Baron Schwartz）——配合理解"为什么 SQL 要这样写、分页为什么慢"。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>写一个 &lt;where&gt;+&lt;if&gt; 动态查询与 foreach 批量插入，验证主键回填；</li>
+    <li>故意用 ${} 拼前端传参复现注入，再用白名单修复；</li>
+    <li>复现 N+1（100 行列表 101 条 SQL），用 join+resultMap 消除并对比耗时。</li>
+  </ol>
 </section>
 
 </main>
@@ -892,7 +855,7 @@ mybatis:
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../07_后端开发/10_SSH框架【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/03_Tomcat与Jetty服务器【基础】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · MyBatis持久层【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
