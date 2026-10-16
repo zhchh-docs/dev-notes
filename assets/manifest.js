@@ -73,15 +73,63 @@ window.KB_MANIFEST = {
           "f": "00_目录.html",
           "u": "14_从0到精通/javascript/00_目录.html",
           "d": "std"
+        },
+        {
+          "t": "第 1 章 初识 JavaScript｜JavaScript 从 0 到精通",
+          "f": "001_第1章_初识JavaScript.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/001_第1章_初识JavaScript.html",
+          "d": "std"
+        },
+        {
+          "t": "第 2 章 搭建环境｜JavaScript 从 0 到精通",
+          "f": "002_第2章_搭建环境.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/002_第2章_搭建环境.html",
+          "d": "std"
+        },
+        {
+          "t": "第 3 章 第一个程序与调试｜JavaScript 从 0 到精通",
+          "f": "003_第3章_第一个程序与调试.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/003_第3章_第一个程序与调试.html",
+          "d": "std"
+        },
+        {
+          "t": "第 4 章 程序的基本构成｜JavaScript 从 0 到精通",
+          "f": "004_第4章_程序的基本构成.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/004_第4章_程序的基本构成.html",
+          "d": "std"
+        },
+        {
+          "t": "第 5 章 变量与常量｜JavaScript 从 0 到精通",
+          "f": "005_第5章_变量与常量.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/005_第5章_变量与常量.html",
+          "d": "std"
+        },
+        {
+          "t": "第 6 章 数据类型总览｜JavaScript 从 0 到精通",
+          "f": "006_第6章_数据类型总览.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/006_第6章_数据类型总览.html",
+          "d": "std"
+        },
+        {
+          "t": "第 7 章 基础运算符｜JavaScript 从 0 到精通",
+          "f": "007_第7章_基础运算符.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/007_第7章_基础运算符.html",
+          "d": "basic"
+        },
+        {
+          "t": "第 8 章 类型转换与相等比较｜JavaScript 从 0 到精通",
+          "f": "008_第8章_类型转换与相等比较.html",
+          "u": "14_从0到精通/javascript/10_第一篇_入门与环境/008_第8章_类型转换与相等比较.html",
+          "d": "std"
         }
       ],
       "planned": 97,
-      "status": "plan",
+      "status": "doing",
       "parts": [
         {
           "name": "第一篇 入门与环境",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第二篇 语法核心",
@@ -129,7 +177,7 @@ window.KB_MANIFEST = {
           "state": "plan"
         }
       ],
-      "done": 0,
+      "done": 8,
       "order": 2
     },
     {
@@ -1575,5 +1623,5 @@ window.KB_MANIFEST = {
       "order": 24
     }
   ],
-  "total": 149
+  "total": 157
 };

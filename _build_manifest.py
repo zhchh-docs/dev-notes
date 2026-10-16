@@ -88,8 +88,8 @@ CAT_ORDER = {
 # ── 教科书元数据：planned 规划章数 / parts 篇结构(名,章数,状态) / status 书状态 ──
 # 篇状态：plan=规划中 doing=撰写中 done=已完成；每完成一篇批次更新对应状态，首页进度自动反映
 TUTORIAL_BOOKS = {
-    "14_从0到精通/javascript": {"planned": 97, "status": "plan", "parts": [
-        ("第一篇 入门与环境", 8, "plan"), ("第二篇 语法核心", 10, "plan"),
+    "14_从0到精通/javascript": {"planned": 97, "status": "doing", "parts": [
+        ("第一篇 入门与环境", 8, "done"), ("第二篇 语法核心", 10, "plan"),
         ("第三篇 数据集合", 10, "plan"), ("第四篇 函数与作用域深潜", 10, "plan"),
         ("第五篇 对象与原型", 10, "plan"), ("第六篇 异步与事件循环", 10, "plan"),
         ("第七篇 DOM 与浏览器", 10, "plan"), ("第八篇 现代语法与错误处理", 9, "plan"),
