@@ -159,10 +159,25 @@ main{max-width:780px;margin:0 auto;padding:80px 20px 60px;position:relative;z-in
   display:grid;place-items:center;font-size:11px;font-weight:700;
   background:linear-gradient(135deg,#6BA070,#3D7A4F);color:#fff;
 }
+.route-group{
+  display:inline-flex;align-items:center;font-size:12px;font-weight:700;
+  color:var(--forest-deep);padding:5px 6px 5px 2px;letter-spacing:.02em;
+}
+.route-group + .route-group{margin-left:8px}
 
-/* 贴纸墙 */
-.wall{display:grid;grid-template-columns:1fr;gap:26px}
-@media(min-width:680px){.wall{grid-template-columns:1fr 1fr;gap:30px}}
+/* 贴纸墙：按大区分块 */
+.wall{display:block}
+.gblock{margin:0 0 8px}
+.gblock + .gblock{margin-top:30px}
+.group-head{display:flex;align-items:center;gap:10px;margin:0 0 16px;cursor:pointer;user-select:none;padding:6px 2px}
+.group-head .g-ic{font-size:19px}
+.group-head h2{font-size:17.5px;font-weight:800;color:var(--forest-deep);letter-spacing:.01em}
+.group-head .g-cnt{font-size:11.5px;color:var(--ink-3);margin-left:auto;background:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.85);padding:3px 11px;border-radius:999px}
+.group-head .g-arrow{font-size:11px;color:var(--ink-3);transition:transform .2s}
+.gblock.folded .g-arrow{transform:rotate(-90deg)}
+.gblock .g-grid{display:grid;grid-template-columns:1fr;gap:26px}
+@media(min-width:680px){.gblock .g-grid{grid-template-columns:1fr 1fr;gap:30px}}
+.gblock.folded .g-grid{display:none}
 
 .sticky{
   position:relative;padding:22px 20px 18px;
@@ -373,9 +388,20 @@ let readSet;
 try{ readSet = new Set(JSON.parse(localStorage.getItem('kb_read') || '[]')); }
 catch(e){ readSet = new Set(); }
 
-/* 学习路径条 */
+/* 学习路径条：按大区分段 */
 const route = $('#route');
+const GMAP = {};
+(M.groups || []).forEach(g => GMAP[g.key] = g);
+let _lastG = null;
 M.cats.forEach((cat, idx) => {
+  const g = GMAP[cat.group];
+  if(g && g.key !== _lastG){
+    _lastG = g.key;
+    const sep = document.createElement('span');
+    sep.className = 'route-group';
+    sep.textContent = `${g.icon} ${g.name}`;
+    route.appendChild(sep);
+  }
   const a = document.createElement('a');
   a.className = 'route-chip';
   a.href = '#cat-' + encodeURIComponent(cat.key);
@@ -400,6 +426,8 @@ M.cats.forEach((cat, idx) => {
 function scrollToCat(key, flash = true){
   const el = wall.querySelector(`[data-cat="${key}"]`);
   if(!el) return;
+  const gb = el.closest('.gblock');
+  if(gb) gb.classList.remove('folded');
   el.scrollIntoView({behavior:'smooth', block:'center'});
   if(flash){
     el.classList.add('flash');
@@ -407,49 +435,71 @@ function scrollToCat(key, flash = true){
   }
 }
 
-/* 渲染贴纸墙 */
+/* 渲染贴纸墙：按大区分块 */
 const wall = $('#wall');
 let curDepth = 'all';
+let cardSeq = 0;
+function makeCard(cat, arts){
+  const n = cardSeq++ % 7;
+  const readCnt = cat.arts.filter(a => readSet.has(a.u)).length;
+  const card = document.createElement('div');
+  card.className = 'sticky s' + n;
+  card.dataset.cat = cat.key;
+  card.innerHTML = `
+    <div class="cat-head">
+      <div class="cat-ic">${cat.icon}</div>
+      <h3>${cat.name}</h3>
+      <span class="cnt">${readCnt > 0 ? '已读 ' + readCnt + '/' : ''}${arts.length} 篇</span>
+    </div>
+    <div class="desc">${cat.desc}</div>
+    <div class="prog"><i style="width:${arts.length ? Math.round(readCnt/arts.length*100) : 0}%"></i></div>
+    <ul class="arts"></ul>`;
+  const list = card.querySelector('.arts');
+  function makeLi(a){
+    const li = document.createElement('li');
+    const read = readSet.has(a.u);
+    li.innerHTML = `<span class="dot"></span><span class="t">${read ? '✓ ' : ''}${a.t}</span><span class="tag ${a.d}">${a.d==='deep'?'深入':a.d==='std'?'标准':'入门'}</span>`;
+    if(read) li.classList.add('read');
+    li.onclick = () => location.href = encodeURI(a.u);
+    return li;
+  }
+  arts.slice(0, 5).forEach(a => list.appendChild(makeLi(a)));
+  if(arts.length > 5){
+    const more = document.createElement('div');
+    more.className = 'more-btn';
+    more.textContent = `展开其余 ${arts.length - 5} 篇 ▾`;
+    more.onclick = () => {
+      arts.slice(5).forEach(a => list.appendChild(makeLi(a)));
+      more.remove();
+    };
+    list.appendChild(more);
+  }
+  return card;
+}
 function render(){
   wall.innerHTML = '';
-  M.cats.forEach((cat, idx) => {
-    const arts = cat.arts.filter(a => curDepth === 'all' || a.d === curDepth);
-    if(!arts.length) return;
-    const n = idx % 7;
-    const readCnt = cat.arts.filter(a => readSet.has(a.u)).length;
-    const card = document.createElement('div');
-    card.className = 'sticky s' + n;
-    card.dataset.cat = cat.key;
-    card.innerHTML = `
-      <div class="cat-head">
-        <div class="cat-ic">${cat.icon}</div>
-        <h3>${cat.name}</h3>
-        <span class="cnt">${readCnt > 0 ? '已读 ' + readCnt + '/' : ''}${arts.length} 篇</span>
-      </div>
-      <div class="desc">${cat.desc}</div>
-      <div class="prog"><i style="width:${arts.length ? Math.round(readCnt/arts.length*100) : 0}%"></i></div>
-      <ul class="arts"></ul>`;
-    const list = card.querySelector('.arts');
-    function makeLi(a){
-      const li = document.createElement('li');
-      const read = readSet.has(a.u);
-      li.innerHTML = `<span class="dot"></span><span class="t">${read ? '✓ ' : ''}${a.t}</span><span class="tag ${a.d}">${a.d==='deep'?'深入':a.d==='std'?'标准':'入门'}</span>`;
-      if(read) li.classList.add('read');
-      li.onclick = () => location.href = encodeURI(a.u);
-      return li;
+  cardSeq = 0;
+  const hasGroups = !!(M.groups && M.groups.length);
+  const groupList = hasGroups ? M.groups : [{key:'all', name:'', icon:'', order:0}];
+  groupList.forEach(g => {
+    const blocks = M.cats
+      .filter(c => !hasGroups || (c.group || 'misc') === g.key)
+      .map(cat => ({cat, arts: cat.arts.filter(a => curDepth === 'all' || a.d === curDepth)}))
+      .filter(b => b.arts.length);
+    if(!blocks.length) return;
+    const gb = document.createElement('section');
+    gb.className = 'gblock';
+    gb.dataset.group = g.key;
+    const totalArts = blocks.reduce((s, b) => s + b.arts.length, 0);
+    if(g.name){
+      gb.innerHTML = `<div class="group-head"><span class="g-ic">${g.icon}</span><h2>${g.name}</h2><span class="g-arrow">▼</span><span class="g-cnt">${totalArts} 篇</span></div><div class="g-grid"></div>`;
+      gb.querySelector('.group-head').onclick = () => gb.classList.toggle('folded');
+    } else {
+      gb.innerHTML = `<div class="g-grid"></div>`;
     }
-    arts.slice(0, 5).forEach(a => list.appendChild(makeLi(a)));
-    if(arts.length > 5){
-      const more = document.createElement('div');
-      more.className = 'more-btn';
-      more.textContent = `展开其余 ${arts.length - 5} 篇 ▾`;
-      more.onclick = () => {
-        arts.slice(5).forEach(a => list.appendChild(makeLi(a)));
-        more.remove();
-      };
-      list.appendChild(more);
-    }
-    wall.appendChild(card);
+    const grid = gb.querySelector('.g-grid');
+    blocks.forEach(b => grid.appendChild(makeCard(b.cat, b.arts)));
+    wall.appendChild(gb);
   });
 }
 render();

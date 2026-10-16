@@ -1,8 +1,47 @@
 // 自动生成的知识库清单，请勿手动编辑
 window.KB_MANIFEST = {
+  "groups": [
+    {
+      "key": "fe",
+      "name": "前端开发",
+      "icon": "🧱",
+      "order": 1
+    },
+    {
+      "key": "server",
+      "name": "服务端与数据",
+      "icon": "🖥️",
+      "order": 2
+    },
+    {
+      "key": "eng",
+      "name": "工程与交付",
+      "icon": "⚙️",
+      "order": 3
+    },
+    {
+      "key": "workflow",
+      "name": "研发与 AI",
+      "icon": "🤝",
+      "order": 4
+    },
+    {
+      "key": "meta",
+      "name": "体系与路线",
+      "icon": "🧭",
+      "order": 5
+    },
+    {
+      "key": "misc",
+      "name": "未分类",
+      "icon": "📁",
+      "order": 99
+    }
+  ],
   "cats": [
     {
       "key": "01_前端基础",
+      "group": "fe",
       "name": "前端基础",
       "icon": "🎨",
       "desc": "HTML5 / CSS3 / JavaScript / TypeScript / 浏览器原理 / HTTP",
@@ -91,13 +130,15 @@ window.KB_MANIFEST = {
           "u": "01_前端基础/13_HTTP进阶_HTTPS与HTTP2_3【深入】.html",
           "d": "deep"
         }
-      ]
+      ],
+      "order": 1
     },
     {
       "key": "02_前端框架与状态管理",
+      "group": "fe",
       "name": "框架与状态",
       "icon": "⚛️",
-      "desc": "Vue / React / 组件化 / Pinia / Redux / 微前端 / SSR",
+      "desc": "Vue / React / 组件化 / Pinia / 微前端 / SSR / 跨端",
       "arts": [
         {
           "t": "框架与状态 · 模块导览【精讲】",
@@ -177,137 +218,15 @@ window.KB_MANIFEST = {
           "u": "02_前端框架与状态管理/12_React工程实践与Hooks【标准】.html",
           "d": "std"
         }
-      ]
-    },
-    {
-      "key": "03_数据可视化",
-      "name": "数据可视化",
-      "icon": "📊",
-      "desc": "ECharts / AntV G6 / Three.js / Canvas / SVG / 大屏",
-      "arts": [
-        {
-          "t": "数据可视化 · 模块导览【精讲】",
-          "f": "00_数据可视化模块导览【精讲】.html",
-          "u": "03_数据可视化/00_数据可视化模块导览【精讲】.html",
-          "d": "std"
-        },
-        {
-          "t": "可视化技术选型与原理【标准】",
-          "f": "01_可视化技术选型与原理【标准】.html",
-          "u": "03_数据可视化/01_可视化技术选型与原理【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "ECharts【深入】",
-          "f": "02_ECharts【深入】.html",
-          "u": "03_数据可视化/02_ECharts【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "D3.js 与自定义可视化",
-          "f": "03_D3.js与自定义可视化【深入】.html",
-          "u": "03_数据可视化/03_D3.js与自定义可视化【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "AntV G6【深入】",
-          "f": "04_AntV_G6【深入】.html",
-          "u": "03_数据可视化/04_AntV_G6【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "GoJS【深入】",
-          "f": "05_GoJS【深入】.html",
-          "u": "03_数据可视化/05_GoJS【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "Three.js 3D可视化【深入】",
-          "f": "06_Three.js_3D可视化【深入】.html",
-          "u": "03_数据可视化/06_Three.js_3D可视化【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "GIS 地图可视化",
-          "f": "07_GIS地图可视化【标准】.html",
-          "u": "03_数据可视化/07_GIS地图可视化【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "大屏自适应方案",
-          "f": "08_大屏自适应方案【标准】.html",
-          "u": "03_数据可视化/08_大屏自适应方案【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "可视化性能优化与大数据渲染【深入】",
-          "f": "09_可视化性能优化与大数据渲染【深入】.html",
-          "u": "03_数据可视化/09_可视化性能优化与大数据渲染【深入】.html",
-          "d": "deep"
-        }
-      ]
-    },
-    {
-      "key": "04_实时通信",
-      "name": "实时通信",
-      "icon": "📡",
-      "desc": "WebSocket / SSE / WebRTC / Janus / 音视频协议",
-      "arts": [
-        {
-          "t": "实时通信 · 模块导览【精讲】",
-          "f": "00_实时通信模块导览【精讲】.html",
-          "u": "04_实时通信/00_实时通信模块导览【精讲】.html",
-          "d": "std"
-        },
-        {
-          "t": "音视频基础与流媒体协议【标准】",
-          "f": "01_音视频基础与流媒体协议【标准】.html",
-          "u": "04_实时通信/01_音视频基础与流媒体协议【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "WebSocket通用实时通信【基础】",
-          "f": "02_WebSocket通用实时通信【基础】.html",
-          "u": "04_实时通信/02_WebSocket通用实时通信【基础】.html",
-          "d": "basic"
-        },
-        {
-          "t": "SSE 服务器推送",
-          "f": "03_SSE服务器推送【标准】.html",
-          "u": "04_实时通信/03_SSE服务器推送【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "Socket.io 实战",
-          "f": "04_Socket.io实战【标准】.html",
-          "u": "04_实时通信/04_Socket.io实战【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "WebRTC【深入】",
-          "f": "05_WebRTC【深入】.html",
-          "u": "04_实时通信/05_WebRTC【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "Janus网关【深入】",
-          "f": "06_Janus网关【深入】.html",
-          "u": "04_实时通信/06_Janus网关【深入】.html",
-          "d": "deep"
-        },
-        {
-          "t": "MQTT 与物联网通信",
-          "f": "07_MQTT与物联网通信【进阶】.html",
-          "u": "04_实时通信/07_MQTT与物联网通信【进阶】.html",
-          "d": "std"
-        }
-      ]
+      ],
+      "order": 2
     },
     {
       "key": "05_前端常用工具库",
-      "name": "工具库",
+      "group": "fe",
+      "name": "组件与工具库",
       "icon": "🧰",
-      "desc": "Axios / vxe-table / JsPlumb / Monaco / VueUse / Lodash",
+      "desc": "Axios / vxe-table / Monaco / JsPlumb / VueUse / 文件处理",
       "arts": [
         {
           "t": "工具库 · 模块导览【精讲】",
@@ -375,90 +294,140 @@ window.KB_MANIFEST = {
           "u": "05_前端常用工具库/10_vue_draggable与v-code-diff【标准】.html",
           "d": "std"
         }
-      ]
+      ],
+      "order": 3
     },
     {
-      "key": "06_前端工程化与工具链",
-      "name": "工程化",
-      "icon": "⚙️",
-      "desc": "Vite / Webpack / Git / ESLint / 测试 / Monorepo",
+      "key": "03_数据可视化",
+      "group": "fe",
+      "name": "数据可视化",
+      "icon": "📊",
+      "desc": "ECharts / AntV G6 / Three.js / Canvas / SVG / 大屏",
       "arts": [
         {
-          "t": "工程化 · 模块导览【精讲】",
-          "f": "00_前端工程化与工具链模块导览【精讲】.html",
-          "u": "06_前端工程化与工具链/00_前端工程化与工具链模块导览【精讲】.html",
+          "t": "数据可视化 · 模块导览【精讲】",
+          "f": "00_数据可视化模块导览【精讲】.html",
+          "u": "03_数据可视化/00_数据可视化模块导览【精讲】.html",
           "d": "std"
         },
         {
-          "t": "npm与包管理【基础】",
-          "f": "01_npm与包管理【基础】.html",
-          "u": "06_前端工程化与工具链/01_npm与包管理【基础】.html",
+          "t": "可视化技术选型与原理【标准】",
+          "f": "01_可视化技术选型与原理【标准】.html",
+          "u": "03_数据可视化/01_可视化技术选型与原理【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "ECharts【深入】",
+          "f": "02_ECharts【深入】.html",
+          "u": "03_数据可视化/02_ECharts【深入】.html",
+          "d": "deep"
+        },
+        {
+          "t": "D3.js 与自定义可视化",
+          "f": "03_D3.js与自定义可视化【深入】.html",
+          "u": "03_数据可视化/03_D3.js与自定义可视化【深入】.html",
+          "d": "deep"
+        },
+        {
+          "t": "AntV G6【深入】",
+          "f": "04_AntV_G6【深入】.html",
+          "u": "03_数据可视化/04_AntV_G6【深入】.html",
+          "d": "deep"
+        },
+        {
+          "t": "GoJS【深入】",
+          "f": "05_GoJS【深入】.html",
+          "u": "03_数据可视化/05_GoJS【深入】.html",
+          "d": "deep"
+        },
+        {
+          "t": "Three.js 3D可视化【深入】",
+          "f": "06_Three.js_3D可视化【深入】.html",
+          "u": "03_数据可视化/06_Three.js_3D可视化【深入】.html",
+          "d": "deep"
+        },
+        {
+          "t": "GIS 地图可视化",
+          "f": "07_GIS地图可视化【标准】.html",
+          "u": "03_数据可视化/07_GIS地图可视化【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "大屏自适应方案",
+          "f": "08_大屏自适应方案【标准】.html",
+          "u": "03_数据可视化/08_大屏自适应方案【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "可视化性能优化与大数据渲染【深入】",
+          "f": "09_可视化性能优化与大数据渲染【深入】.html",
+          "u": "03_数据可视化/09_可视化性能优化与大数据渲染【深入】.html",
+          "d": "deep"
+        }
+      ],
+      "order": 4
+    },
+    {
+      "key": "04_实时通信",
+      "group": "fe",
+      "name": "实时通信",
+      "icon": "📡",
+      "desc": "WebSocket / SSE / WebRTC / Janus / 音视频协议",
+      "arts": [
+        {
+          "t": "实时通信 · 模块导览【精讲】",
+          "f": "00_实时通信模块导览【精讲】.html",
+          "u": "04_实时通信/00_实时通信模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
+          "t": "音视频基础与流媒体协议【标准】",
+          "f": "01_音视频基础与流媒体协议【标准】.html",
+          "u": "04_实时通信/01_音视频基础与流媒体协议【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "WebSocket通用实时通信【基础】",
+          "f": "02_WebSocket通用实时通信【基础】.html",
+          "u": "04_实时通信/02_WebSocket通用实时通信【基础】.html",
           "d": "basic"
         },
         {
-          "t": "Git版本控制【标准】",
-          "f": "02_Git版本控制【标准】.html",
-          "u": "06_前端工程化与工具链/02_Git版本控制【标准】.html",
+          "t": "SSE 服务器推送",
+          "f": "03_SSE服务器推送【标准】.html",
+          "u": "04_实时通信/03_SSE服务器推送【标准】.html",
           "d": "std"
         },
         {
-          "t": "ESLint与Prettier代码规范【标准】",
-          "f": "03_ESLint与Prettier代码规范【标准】.html",
-          "u": "06_前端工程化与工具链/03_ESLint与Prettier代码规范【标准】.html",
+          "t": "Socket.io 实战",
+          "f": "04_Socket.io实战【标准】.html",
+          "u": "04_实时通信/04_Socket.io实战【标准】.html",
           "d": "std"
         },
         {
-          "t": "Webpack【标准】",
-          "f": "04_Webpack【标准】.html",
-          "u": "06_前端工程化与工具链/04_Webpack【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "Babel 转译与 Polyfill",
-          "f": "05_Babel转译与Polyfill【标准】.html",
-          "u": "06_前端工程化与工具链/05_Babel转译与Polyfill【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "Vite【标准】",
-          "f": "06_Vite【标准】.html",
-          "u": "06_前端工程化与工具链/06_Vite【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "Monorepo_pnpm与Turborepo【标准】",
-          "f": "07_Monorepo_pnpm与Turborepo【标准】.html",
-          "u": "06_前端工程化与工具链/07_Monorepo_pnpm与Turborepo【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "前端性能优化_懒加载与虚拟列表【深入】",
-          "f": "08_前端性能优化_懒加载与虚拟列表【深入】.html",
-          "u": "06_前端工程化与工具链/08_前端性能优化_懒加载与虚拟列表【深入】.html",
+          "t": "WebRTC【深入】",
+          "f": "05_WebRTC【深入】.html",
+          "u": "04_实时通信/05_WebRTC【深入】.html",
           "d": "deep"
         },
         {
-          "t": "前端测试_Jest与Vitest【标准】",
-          "f": "09_前端测试_Jest与Vitest【标准】.html",
-          "u": "06_前端工程化与工具链/09_前端测试_Jest与Vitest【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "前端E2E测试_Playwright与Cypress【标准】",
-          "f": "10_前端E2E测试_Playwright与Cypress【标准】.html",
-          "u": "06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "Git进阶·分支模型与冲突恢复【深入】",
-          "f": "11_Git进阶_分支模型与冲突恢复【深入】.html",
-          "u": "06_前端工程化与工具链/11_Git进阶_分支模型与冲突恢复【深入】.html",
+          "t": "Janus网关【深入】",
+          "f": "06_Janus网关【深入】.html",
+          "u": "04_实时通信/06_Janus网关【深入】.html",
           "d": "deep"
+        },
+        {
+          "t": "MQTT 与物联网通信",
+          "f": "07_MQTT与物联网通信【进阶】.html",
+          "u": "04_实时通信/07_MQTT与物联网通信【进阶】.html",
+          "d": "std"
         }
-      ]
+      ],
+      "order": 5
     },
     {
       "key": "07_后端开发",
+      "group": "server",
       "name": "后端开发",
       "icon": "☕",
       "desc": "Java / Spring / Spring Boot / MyBatis / RESTful / JWT",
@@ -535,13 +504,15 @@ window.KB_MANIFEST = {
           "u": "07_后端开发/11_SpringBoot进阶_自动装配与启动流程【深入】.html",
           "d": "deep"
         }
-      ]
+      ],
+      "order": 6
     },
     {
       "key": "08_数据库与建模",
-      "name": "数据库",
+      "group": "server",
+      "name": "数据库与建模",
       "icon": "🗄️",
-      "desc": "MySQL / Redis / Oracle / ES / MongoDB / 分库分表",
+      "desc": "MySQL / Redis / Oracle / ES / MongoDB / 分库分表 / 建模",
       "arts": [
         {
           "t": "数据库 · 模块导览【精讲】",
@@ -621,11 +592,129 @@ window.KB_MANIFEST = {
           "u": "08_数据库与建模/12_Redis入门_数据结构与缓存初见【基础】.html",
           "d": "basic"
         }
-      ]
+      ],
+      "order": 7
+    },
+    {
+      "key": "13_Python",
+      "group": "server",
+      "name": "Python",
+      "icon": "🐍",
+      "desc": "入门语法 / 工程化与 FastAPI / GIL 与并发 / 性能调优",
+      "arts": [
+        {
+          "t": "Python模块导览【精讲】",
+          "f": "00_Python模块导览【精讲】.html",
+          "u": "13_Python/00_Python模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
+          "t": "Python入门·核心语法与数据结构【基础】",
+          "f": "01_Python入门_核心语法与数据结构【基础】.html",
+          "u": "13_Python/01_Python入门_核心语法与数据结构【基础】.html",
+          "d": "basic"
+        },
+        {
+          "t": "Python标准篇·工程化与常用库【标准】",
+          "f": "02_Python标准篇_工程化与常用库【标准】.html",
+          "u": "13_Python/02_Python标准篇_工程化与常用库【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Python深入篇·性能与并发【深入】",
+          "f": "03_Python深入篇_性能与并发【深入】.html",
+          "u": "13_Python/03_Python深入篇_性能与并发【深入】.html",
+          "d": "deep"
+        }
+      ],
+      "order": 8
+    },
+    {
+      "key": "06_前端工程化与工具链",
+      "group": "eng",
+      "name": "工程化与工具链",
+      "icon": "⚙️",
+      "desc": "Vite / Webpack / Git / ESLint / 测试 / Monorepo",
+      "arts": [
+        {
+          "t": "工程化 · 模块导览【精讲】",
+          "f": "00_前端工程化与工具链模块导览【精讲】.html",
+          "u": "06_前端工程化与工具链/00_前端工程化与工具链模块导览【精讲】.html",
+          "d": "std"
+        },
+        {
+          "t": "npm与包管理【基础】",
+          "f": "01_npm与包管理【基础】.html",
+          "u": "06_前端工程化与工具链/01_npm与包管理【基础】.html",
+          "d": "basic"
+        },
+        {
+          "t": "Git版本控制【标准】",
+          "f": "02_Git版本控制【标准】.html",
+          "u": "06_前端工程化与工具链/02_Git版本控制【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "ESLint与Prettier代码规范【标准】",
+          "f": "03_ESLint与Prettier代码规范【标准】.html",
+          "u": "06_前端工程化与工具链/03_ESLint与Prettier代码规范【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Webpack【标准】",
+          "f": "04_Webpack【标准】.html",
+          "u": "06_前端工程化与工具链/04_Webpack【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Babel 转译与 Polyfill",
+          "f": "05_Babel转译与Polyfill【标准】.html",
+          "u": "06_前端工程化与工具链/05_Babel转译与Polyfill【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Vite【标准】",
+          "f": "06_Vite【标准】.html",
+          "u": "06_前端工程化与工具链/06_Vite【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Monorepo_pnpm与Turborepo【标准】",
+          "f": "07_Monorepo_pnpm与Turborepo【标准】.html",
+          "u": "06_前端工程化与工具链/07_Monorepo_pnpm与Turborepo【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "前端性能优化_懒加载与虚拟列表【深入】",
+          "f": "08_前端性能优化_懒加载与虚拟列表【深入】.html",
+          "u": "06_前端工程化与工具链/08_前端性能优化_懒加载与虚拟列表【深入】.html",
+          "d": "deep"
+        },
+        {
+          "t": "前端测试_Jest与Vitest【标准】",
+          "f": "09_前端测试_Jest与Vitest【标准】.html",
+          "u": "06_前端工程化与工具链/09_前端测试_Jest与Vitest【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "前端E2E测试_Playwright与Cypress【标准】",
+          "f": "10_前端E2E测试_Playwright与Cypress【标准】.html",
+          "u": "06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html",
+          "d": "std"
+        },
+        {
+          "t": "Git进阶·分支模型与冲突恢复【深入】",
+          "f": "11_Git进阶_分支模型与冲突恢复【深入】.html",
+          "u": "06_前端工程化与工具链/11_Git进阶_分支模型与冲突恢复【深入】.html",
+          "d": "deep"
+        }
+      ],
+      "order": 9
     },
     {
       "key": "09_DevOps部署与运维",
-      "name": "DevOps",
+      "group": "eng",
+      "name": "部署与运维",
       "icon": "🚀",
       "desc": "Nginx / Docker / K8s / CI-CD / Linux / 监控",
       "arts": [
@@ -707,11 +796,13 @@ window.KB_MANIFEST = {
           "u": "09_DevOps部署与运维/12_Kubernetes进阶_核心对象与部署【标准】.html",
           "d": "std"
         }
-      ]
+      ],
+      "order": 10
     },
     {
       "key": "10_研发流程与AI辅助",
-      "name": "研发与AI",
+      "group": "workflow",
+      "name": "研发流程与 AI",
       "icon": "🤖",
       "desc": "敏捷 / 代码评审 / AI 编程 / RAG / 技术选型",
       "arts": [
@@ -763,13 +854,15 @@ window.KB_MANIFEST = {
           "u": "10_研发流程与AI辅助/07_LLM应用开发_RAG与FunctionCalling【标准】.html",
           "d": "std"
         }
-      ]
+      ],
+      "order": 11
     },
     {
       "key": "11_全面学习",
+      "group": "meta",
       "name": "体系精讲",
       "icon": "🎯",
-      "desc": "知识总纲 + 6 篇体系化精讲，全领域知识点分层覆盖",
+      "desc": "知识总纲 + 分领域体系化精讲",
       "arts": [
         {
           "t": "知识体系总纲 - 全面学习",
@@ -843,13 +936,15 @@ window.KB_MANIFEST = {
           "u": "11_全面学习/11_软技能与AI篇【精讲】.html",
           "d": "std"
         }
-      ]
+      ],
+      "order": 12
     },
     {
       "key": "12_全栈技术路线图",
+      "group": "meta",
       "name": "技术路线图",
       "icon": "🗺️",
-      "desc": "从计算机底层到项目实战：底层/前端/Node/数据库/中间件/安全/实战",
+      "desc": "从计算机底层到项目实战的路线地图",
       "arts": [
         {
           "t": "全栈技术路线图总览",
@@ -899,39 +994,8 @@ window.KB_MANIFEST = {
           "u": "12_全栈技术路线图/07_项目实战【精讲】.html",
           "d": "std"
         }
-      ]
-    },
-    {
-      "key": "13_Python",
-      "name": "Python",
-      "icon": "🐍",
-      "desc": "入门语法 / 工程化与 FastAPI / GIL 与并发 / asyncio / 性能调优",
-      "arts": [
-        {
-          "t": "Python模块导览【精讲】",
-          "f": "00_Python模块导览【精讲】.html",
-          "u": "13_Python/00_Python模块导览【精讲】.html",
-          "d": "std"
-        },
-        {
-          "t": "Python入门·核心语法与数据结构【基础】",
-          "f": "01_Python入门_核心语法与数据结构【基础】.html",
-          "u": "13_Python/01_Python入门_核心语法与数据结构【基础】.html",
-          "d": "basic"
-        },
-        {
-          "t": "Python标准篇·工程化与常用库【标准】",
-          "f": "02_Python标准篇_工程化与常用库【标准】.html",
-          "u": "13_Python/02_Python标准篇_工程化与常用库【标准】.html",
-          "d": "std"
-        },
-        {
-          "t": "Python深入篇·性能与并发【深入】",
-          "f": "03_Python深入篇_性能与并发【深入】.html",
-          "u": "13_Python/03_Python深入篇_性能与并发【深入】.html",
-          "d": "deep"
-        }
-      ]
+      ],
+      "order": 13
     }
   ],
   "total": 138
