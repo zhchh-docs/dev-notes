@@ -534,192 +534,76 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../08_数据库与建模/07_Elasticsearch搜索引擎【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/07_Elasticsearch搜索引擎【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/09_Oracle【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
-  <section id="sec1" class="card">
-    <h2><span class="num">1</span>技术点概览</h2>
-    <p class="lead"><b>一句话定位</b>：MongoDB 是面向文档的 NoSQL——数据存成 BSON（类 JSON）文档，无固定表结构，易水平扩展。</p>
-    <ul>
-      <li><strong>NoSQL 是什么</strong>：非关系型数据库的统称，放弃部分事务/join 能力，换灵活性与扩展能力。</li>
-      <li><strong>MongoDB 特点</strong>：文档模型（一个对象就是一条文档，不用拆多表）、Schema 自由、自带复制集与分片。</li>
-      <li><span class="tag-point">要点</span><strong>本人现状</strong>：项目用 MySQL；MongoDB 为学习与选型对比，未实际落地。</li>
-    </ul>
-    <table>
-      <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
-      <thead><tr><th>维度</th><th>关系型 MySQL</th><th>文档型 MongoDB</th></tr></thead>
-      <tbody>
-        <tr><td>数据模型</td><td>表/行/列，结构化</td><td>BSON 文档，嵌套灵活</td></tr>
-        <tr><td>Schema</td><td>先建表定字段</td><td>无固定 schema，字段可变</td></tr>
-        <tr><td>事务/join</td><td>强事务、多表 join</td><td>4.0+ 支持多文档 ACID 事务、4.2+ 支持分片集群分布式事务；但跨文档/跨集合事务与 join 开销大，官方仍建议按文档模型设计、少依赖</td></tr>
-        <tr><td>扩展</td><td>垂直为主，分片复杂</td><td>原生分片，水平扩展容易</td></tr>
-        <tr><td>适合</td><td>业务核心、关系复杂</td><td>结构多变、内容/日志、海量写入</td></tr>
-      </tbody>
-    </table>
-  </section>
 
-  <section id="sec2" class="card">
-    <h2><span class="num">2</span>核心概念</h2>
+<section id="sec1" class="card">
+  <h2><span class="num">1</span>简介与阅读指引</h2>
 
-    <h3>2.1 文档 / 集合（Document / Collection）</h3>
-    <p class="lead"><b>一句话定位</b>：文档相当于 MySQL 的一行，集合相当于一张表，但同一集合里的文档字段可以不一样。</p>
-    <ul>
-      <li><strong>嵌套</strong>：一个需求文档可以直接内嵌评论数组，不用像 MySQL 那样拆成两张表再 join。</li>
-    </ul>
-    <div class="diagram">
-      <svg viewBox="0 0 800 260" role="img" aria-label="MySQL拆表 vs MongoDB内嵌文档对比">
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同一个需求+评论：MySQL 拆表 vs MongoDB 内嵌（示意）</text>
+  <h3>1.1 定位：面向文档的 NoSQL</h3>
+  <p><strong>MongoDB 是面向文档的 NoSQL</strong>——数据存成 BSON（类 JSON）文档，无固定表结构，易水平扩展。<strong>NoSQL 是什么</strong>：非关系型数据库统称——放弃部分事务/join 能力，换灵活性与扩展能力。<strong>MongoDB 特点</strong>：文档模型（一个对象一条文档不用拆多表）、Schema 自由、自带复制集与分片。<span class="tag-point">要点</span>：本人项目用 MySQL——MongoDB 为学习与选型对比，未实际落地。</p>
 
-        <!-- MySQL侧 -->
-        <rect x="30" y="45" width="340" height="200" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
-        <text x="200" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">MySQL（关系型）：拆成两张表 + JOIN</text>
+  <h3>1.2 横向对比：MySQL vs MongoDB</h3>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>维度</th><th>关系型 MySQL</th><th>文档型 MongoDB</th></tr></thead>
+    <tbody>
+      <tr><td>数据模型</td><td>表/行/列，结构化</td><td>BSON 文档，嵌套灵活</td></tr>
+      <tr><td>Schema</td><td>先建表定字段</td><td>无固定 schema，字段可变</td></tr>
+      <tr><td>事务/join</td><td>强事务、多表 join</td><td>4.0+ 多文档 ACID、4.2+ 分片分布式事务；但开销大，官方建议按文档模型设计、少依赖</td></tr>
+      <tr><td>扩展</td><td>垂直为主，分片复杂</td><td>原生分片，水平扩展容易</td></tr>
+      <tr><td>适合</td><td>业务核心、关系复杂</td><td>结构多变、内容/日志、海量写入</td></tr>
+    </tbody>
+  </table>
 
-        <rect x="50" y="85" width="140" height="55" rx="6" fill="#fff" stroke="#3d7a4f"/>
-        <text x="120" y="107" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">t_requirement</text>
-        <text x="120" y="125" text-anchor="middle" font-size="10" fill="#4f6348">id, title, status</text>
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>理解<strong>内嵌 vs 拆表</strong>的建模差异（按读模型组织）；</li>
+    <li>知道<strong>复制集自动选举</strong>与<strong>原生分片自动均衡</strong>；</li>
+    <li>建立<strong>选型三问</strong>（事务？join？结构稳定性？）；</li>
+    <li>纠正"<strong>无 schema = 不用设计</strong>"的误区。</li>
+  </ol>
+  <p><strong>难度</strong>：★★☆☆☆。<strong>本篇实战性质</strong>：文档模型 CRUD 自学 demo（核心交易数据仍留 MySQL）。</p>
+</section>
 
-        <rect x="220" y="85" width="130" height="55" rx="6" fill="#fff" stroke="#3d7a4f"/>
-        <text x="285" y="107" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">t_comment</text>
-        <text x="285" y="125" text-anchor="middle" font-size="10" fill="#4f6348">id, req_id, text</text>
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>文档/集合</strong>→ <strong>复制集</strong>→ <strong>分片</strong>→ <strong>选型取舍</strong>。</p>
 
-        <line x1="190" y1="112" x2="220" y2="112" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#arr)"/>
-        <text x="205" y="105" text-anchor="middle" font-size="9.5" fill="#3d7a4f">外键</text>
+  <h3>2.1 文档 / 集合：内嵌 vs 拆表</h3>
+  <p>文档≈一行、集合≈一张表，<strong>同一集合里文档字段可以不一样</strong>。<span class="tag-key">内嵌</span>：需求文档直接内嵌评论数组——不像 MySQL 拆两张表再 join；一次写入一次读取。<strong>建模哲学差异</strong>：MySQL 按规范化范式拆表（写友好），MongoDB <strong>按"读模型"组织数据</strong>（读友好，随主文档一起读的子数据内嵌）。</p>
 
-        <text x="200" y="165" text-anchor="middle" font-size="11" fill="#4f6348">查需求+所有评论：</text>
-        <text x="200" y="185" text-anchor="middle" font-size="10.5" font-family="monospace" fill="#b91c1c">SELECT * FROM t_req JOIN t_comment ...</text>
-        <text x="200" y="215" text-anchor="middle" font-size="10.5" fill="#7a8a70">两次写入（req + comment）</text>
-        <text x="200" y="233" text-anchor="middle" font-size="10.5" fill="#7a8a70">读取要 JOIN，多表事务开销大</text>
+  <h3>2.2 复制集（Replica Set）</h3>
+  <p>一主多从同步复制，主写从读；<strong>主宕机从节点投票自动选举新主</strong>，应用无感切换——生产至少三节点。</p>
 
-        <!-- MongoDB侧 -->
-        <rect x="430" y="45" width="340" height="200" rx="10" fill="#f0fdf4" stroke="#047857"/>
-        <text x="600" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">MongoDB（文档型）：一个文档搞定</text>
+  <h3>2.3 分片（Sharding）</h3>
+  <p>数据按<strong>分片键</strong>分散到多台机器突破单机上限；架构三层：<strong>mongos 路由</strong>（知道数据在哪个分片）+ <strong>Config Server</strong>（存元数据/分片映射）+ 分片（每个分片实际是一个复制集）。<span class="tag-key">自动均衡</span>：MongoDB 自带数据在分片间迁移均衡——相对 MySQL 分片的省心之处。</p>
 
-        <rect x="460" y="85" width="280" height="120" rx="6" fill="#fff" stroke="#047857"/>
-        <text x="600" y="107" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">requirement 集合中的一条文档</text>
-        <text x="475" y="128" font-size="10.5" font-family="monospace" fill="#4f6348">{</text>
-        <text x="485" y="143" font-size="10.5" font-family="monospace" fill="#4f6348">title: "评审需求",</text>
-        <text x="485" y="158" font-size="10.5" font-family="monospace" fill="#4f6348">status: "REVIEW",</text>
-        <text x="485" y="173" font-size="10.5" font-family="monospace" fill="#4f6348">comments: [ {user:"张三", text:"同意"} ]</text>
-        <text x="475" y="188" font-size="10.5" font-family="monospace" fill="#4f6348">}</text>
+  <h3>2.4 选型取舍：三问</h3>
+  <p>数据结构稳定、关系复杂、要事务 → <strong>MySQL</strong>；结构多变、写入海量、关系简单 → <strong>MongoDB</strong>。<span class="tag-pit">常见误判</span>：为"新潮"上 MongoDB 结果业务到处要 join 与事务反而更痛苦。<span class="tag-key">选型一句话</span>：先问"要不要事务、要不要多表 join、结构稳不稳定"——要就 MySQL，都不要才考虑 MongoDB。</p>
+</section>
 
-        <text x="600" y="225" text-anchor="middle" font-size="10.5" fill="#047857">一次写入、一次读取，无需 JOIN</text>
-      </svg>
-      <p class="diagram-caption">图 2 MySQL 拆表 vs MongoDB 内嵌文档对比（示意）</p>
-    </div>
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
 
-    <h3>2.2 复制集（Replica Set）</h3>
-    <p class="lead"><b>一句话定位</b>：一主多从同步复制，主写从读，主挂自动选举新主，保证高可用。</p>
-    <ul>
-      <li><strong>选举</strong>：主节点宕机，从节点投票选出新主，应用无感切换。</li>
-    </ul>
-
-    <h3>2.3 分片（Sharding）</h3>
-    <p class="lead"><b>一句话定位</b>：数据按分片键分散到多台机器，突破单机容量与吞吐上限。</p>
-    <ul>
-      <li><strong>自动均衡</strong>：MongoDB 自带把数据在分片间迁移均衡，这是它相对 MySQL 分片的省心之处。</li>
-    </ul>
-    <div class="diagram">
-      <svg viewBox="0 0 800 240" role="img" aria-label="MongoDB分片架构图">
-        <defs>
-          <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">MongoDB 分片集群架构（示意）</text>
-
-        <!-- 应用层 -->
-        <rect x="300" y="45" width="200" height="45" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-        <text x="400" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">应用程序</text>
-
-        <line x1="400" y1="90" x2="400" y2="110" stroke="#7a8a70" marker-end="url(#arr2)"/>
-
-        <!-- mongos -->
-        <rect x="300" y="113" width="200" height="45" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-        <text x="400" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">mongos（路由）</text>
-        <text x="400" y="151" text-anchor="middle" font-size="10" fill="#4f6348">知道数据在哪个分片</text>
-
-        <!-- config server -->
-        <rect x="560" y="113" width="180" height="45" rx="8" fill="#fefce8" stroke="#d97706"/>
-        <text x="650" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">Config Server</text>
-        <text x="650" y="151" text-anchor="middle" font-size="10" fill="#4f6348">存元数据/分片映射</text>
-        <line x1="500" y1="135" x2="560" y2="135" stroke="#7a8a70" stroke-dasharray="4,3"/>
-
-        <!-- 三个分片 -->
-        <line x1="350" y1="158" x2="150" y2="195" stroke="#7a8a70" marker-end="url(#arr2)"/>
-        <line x1="400" y1="158" x2="400" y2="195" stroke="#7a8a70" marker-end="url(#arr2)"/>
-        <line x1="450" y1="158" x2="650" y2="195" stroke="#7a8a70" marker-end="url(#arr2)"/>
-
-        <rect x="80" y="198" width="140" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
-        <text x="150" y="222" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">分片 Shard 1</text>
-
-        <rect x="330" y="198" width="140" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
-        <text x="400" y="222" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">分片 Shard 2</text>
-
-        <rect x="580" y="198" width="140" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
-        <text x="650" y="222" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">分片 Shard 3</text>
-
-        <text x="400" y="255" text-anchor="middle" font-size="11" fill="#7a8a70">按分片键（如 user_id）把数据分散到不同分片，每分片实际是一个复制集</text>
-      </svg>
-      <p class="diagram-caption">图 3 MongoDB 分片集群架构（示意）</p>
-    </div>
-
-    <h3>2.4 与关系型的取舍</h3>
-    <p class="lead"><b>一句话定位</b>：数据结构稳定、关系复杂、要事务选 MySQL；结构多变、写入海量、关系简单选 MongoDB。</p>
-    <ul>
-      <li><strong>常见误判</strong>：为"新潮"而上 MongoDB，结果业务到处要 join 与事务，反而更痛苦。</li>
-    </ul>
-    <p class="key-sentence">选型一句话：先问"数据要不要事务、要不要多表 join、结构稳不稳定"——要就 MySQL，都不要才考虑 MongoDB。</p>
-  </section>
-
-  <section id="sec3" class="card">
-    <h2><span class="num">3</span>工作原理与流程</h2>
-    <h3>3.1 复制集的主从同步与故障切换</h3>
-    <p class="lead"><b>一句话定位</b>：所有写走主节点，主节点把操作同步到从节点；主挂了从节点投票选新主。</p>
-    <div class="diagram">
-      <svg viewBox="0 0 800 200" role="img" aria-label="MongoDB 复制集结构图">
-        <defs>
-          <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/></marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">MongoDB 复制集：主写从同步（示意）</text>
-        <rect x="320" y="50" width="160" height="55" rx="10" fill="#fee2e2" stroke="#dc2626"/>
-        <text x="400" y="74" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">Primary 主</text>
-        <text x="400" y="92" text-anchor="middle" font-size="10.5" fill="#4f6348">接写请求</text>
-        <rect x="120" y="130" width="170" height="50" rx="10" fill="#d1fae5" stroke="#047857"/>
-        <text x="205" y="152" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">Secondary 从1</text>
-        <text x="205" y="169" text-anchor="middle" font-size="10.5" fill="#4f6348">同步数据/可读</text>
-        <rect x="510" y="130" width="170" height="50" rx="10" fill="#d1fae5" stroke="#047857"/>
-        <text x="595" y="152" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">Secondary 从2</text>
-        <text x="595" y="169" text-anchor="middle" font-size="10.5" fill="#4f6348">同步数据/可读</text>
-        <line x1="360" y1="105" x2="230" y2="128" stroke="#7a8a70" marker-end="url(#arr)"/>
-        <line x1="440" y1="105" x2="570" y2="128" stroke="#7a8a70" marker-end="url(#arr)"/>
-        <text x="400" y="195" text-anchor="middle" font-size="12" fill="#4f6348">主挂 → 从节点投票选出新 Primary；写读请求可指向新主。</text>
-      </svg>
-      <p class="diagram-caption">图 1 MongoDB 复制集主从与故障切换（示意）</p>
-    </div>
-  </section>
-
-  <section id="sec4" class="card">
-    <h2><span class="num">4</span>核心语法与 API 要点</h2>
-    <h3>4.1 文档结构与基本操作</h3>
-    <pre class="code" data-lang="json"><code>// 一条需求文档（集合 requirement）
+  <h3>3.1 场景一：文档结构与基本操作</h3>
+<pre class="code" data-lang="json"><code>// 一条需求文档（集合 requirement）
 {
   "_id": ObjectId("..."),
   "title": "评审需求",
@@ -727,85 +611,222 @@ p, li, h1, h2, h3, h4, h5, h6 {
   "tags": ["评审", "前端"],
   "comments": [ { "user": "张三", "text": "同意" } ]  // 内嵌评论
 }</code></pre>
-    <pre class="code" data-lang="java"><code>// Spring Data MongoDB 风格 Repository（类比 JPA）
+<pre class="code" data-lang="java"><code>// Spring Data MongoDB 风格 Repository（类比 JPA）
 public interface ReqRepository extends MongoRepository&lt;Req, String&gt; {
     List&lt;Req&gt; findByStatus(String status);
 }</code></pre>
-    <div class="note">经验：MongoDB 自带 id 是 ObjectId（含时间戳），不用自增主键；内嵌数组适合"读多写少、随主文档一起读"的子数据。</div>
-  </section>
+  <div class="note"><strong>经验</strong>：自带 id 是 <strong>ObjectId（含时间戳）</strong>，不用自增主键（分片友好）；内嵌数组适合"读多写少、随主文档一起读"的子数据。</div>
 
-  <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-
-  <div class="warn-box"><b>定位说明：</b>实际项目以 MySQL 为主，未实际使用 MongoDB。本节为文档模型 CRUD 自学 demo 与关系型选型对比。</div>
-  <h3>1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"文档型 NoSQL 怎么存、和关系型怎么选"的认知。</p>
-  <ul><li><strong>缺口</strong>：一直用表结构，不清楚嵌套文档、复制集分片的实际用法。</li></ul>
-  <h3>2 搭建的 demo 是什么</h3>
-  <ul>
-    <li><strong>结构</strong>：本地 MongoDB，建一个需求文档集合（内嵌评论数组），做 CRUD 与查询，对比同样数据在 MySQL 要拆几张表。</li>
-  </ul>
-  <h3>3 落地步骤</h3>
+  <h3>3.2 场景二：shell CRUD</h3>
 <pre class="code" data-lang="json"><code>db.requirement.insertOne({
   title: "评审需求", status: "REVIEW",
   comments: [ { user: "张三", text: "同意" } ]   // 内嵌评论，无需 join
 })
 db.requirement.find({ status: "REVIEW" })</code></pre>
-  <h3>4 自学过程中遇到的坑与解决</h3>
+
+  <h3>3.3 场景三：复制集与分片的运维姿势</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>查全集合</strong>：没建索引 find 全扫——为 status 等高频字段建索引。</li>
-    <li><span class="tag-point">要点</span><strong>无 schema 不等于不设计</strong>：字段乱存后期迁移困难，仍要约定结构。</li>
+    <li><strong>复制集</strong>：所有写走 Primary，操作同步到 Secondary；主挂投票选新主，读写请求指向新主；</li>
+    <li><strong>分片</strong>：按分片键（如 user_id）分散数据，mongos 路由 + Config Server 存映射；查询尽量带分片键（否则广播所有分片——与 MySQL 分片键选错同病）。</li>
   </ul>
-  <h3>5 成果</h3>
-  <ul><li>跑通文档 CRUD，能讲清"内嵌 vs 拆表"的取舍与复制集/分片的作用。</li></ul>
-  <h3>6 与真实项目的差异</h3>
-  <ul><li>单机 demo 无复制集/分片；真实选型上核心交易数据仍留 MySQL。</li></ul>
-  <h3>7 面试讲法</h3>
-  <p class="key-sentence">"我本地跑过 MongoDB 文档 CRUD，理解嵌套文档与复制集分片，能讲清什么时候用 NoSQL、什么时候必须留关系型。"</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：文档建模与选型三问已会。</p>
+
+  <h3>4.1 内嵌 vs 引用（人工 join）的边界</h3>
+  <p>内嵌上限：文档 <strong>16MB 上限</strong>、数组无限增长会让更新与索引变慢——"一对多且多端持续膨胀"（如评论）用<strong>引用+应用层拼装</strong>或独立集合；判断口诀：<strong>随主文档整体读→内嵌；独立生命周期→引用</strong>。</p>
+
+  <h3>4.2 多文档事务的定位</h3>
+  <p>4.0+ 支持副本集多文档 ACID、4.2+ 分片集群分布式事务——但开销大且多数场景可用"单文档原子性 + 应用层补偿"替代（单文档更新天然原子）——<strong>事务支持是"能用"，不是"该依赖"</strong>。</p>
+
+  <h3>4.3 WiredTiger 与写关注</h3>
+  <p>存储引擎 WiredTiger：文档级并发控制 + 压缩 + MVCC；<strong>write concern</strong>（w:1/w:majority）决定"写到几个节点才算成功"——majority 更安全但延迟高，按业务权衡（与 MySQL 半同步同款取舍，03/06 篇呼应）。</p>
+
+  <h3>4.4 聚合管道（Aggregation Pipeline）</h3>
+  <p>$match→$group→$sort 等阶段流式处理——类比 SQL 的 where/group by/order by 组合；大屏多维统计也可用 MongoDB 承担（但 ES 列式聚合在全文场景更强，两工具不冲突）。</p>
+
+  <h3>4.5 何时选 MongoDB 的真实场景</h3>
+  <p>典型：内容管理（字段多变）、IoT/日志海量写入、用户画像（稀疏字段）、地理位置（2dsphere）；<strong>反例</strong>：财务/订单强事务、复杂多表报表——留 MySQL。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 260" role="img" aria-label="MySQL拆表 vs MongoDB内嵌文档对比">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同一个需求+评论：MySQL 拆表 vs MongoDB 内嵌（示意）</text>
+      <rect x="30" y="45" width="340" height="200" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="200" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">MySQL（关系型）：拆成两张表 + JOIN</text>
+      <rect x="50" y="85" width="140" height="55" rx="6" fill="#fff" stroke="#3d7a4f"/>
+      <text x="120" y="107" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">t_requirement</text>
+      <text x="120" y="125" text-anchor="middle" font-size="10" fill="#4f6348">id, title, status</text>
+      <rect x="220" y="85" width="130" height="55" rx="6" fill="#fff" stroke="#3d7a4f"/>
+      <text x="285" y="107" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a3f">t_comment</text>
+      <text x="285" y="125" text-anchor="middle" font-size="10" fill="#4f6348">id, req_id, text</text>
+      <line x1="190" y1="112" x2="220" y2="112" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="205" y="105" text-anchor="middle" font-size="9.5" fill="#3d7a4f">外键</text>
+      <text x="200" y="165" text-anchor="middle" font-size="11" fill="#4f6348">查需求+所有评论：</text>
+      <text x="200" y="185" text-anchor="middle" font-size="10.5" font-family="monospace" fill="#b91c1c">SELECT * FROM t_req JOIN t_comment ...</text>
+      <text x="200" y="215" text-anchor="middle" font-size="10.5" fill="#7a8a70">两次写入（req + comment）</text>
+      <text x="200" y="233" text-anchor="middle" font-size="10.5" fill="#7a8a70">读取要 JOIN，多表事务开销大</text>
+      <rect x="430" y="45" width="340" height="200" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="600" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">MongoDB（文档型）：一个文档搞定</text>
+      <rect x="460" y="85" width="280" height="120" rx="6" fill="#fff" stroke="#047857"/>
+      <text x="600" y="107" text-anchor="middle" font-size="11" font-weight="600" fill="#047857">requirement 集合中的一条文档</text>
+      <text x="475" y="128" font-size="10.5" font-family="monospace" fill="#4f6348">{</text>
+      <text x="485" y="143" font-size="10.5" font-family="monospace" fill="#4f6348">title: "评审需求",</text>
+      <text x="485" y="158" font-size="10.5" font-family="monospace" fill="#4f6348">status: "REVIEW",</text>
+      <text x="485" y="173" font-size="10.5" font-family="monospace" fill="#4f6348">comments: [ {user:"张三", text:"同意"} ]</text>
+      <text x="475" y="188" font-size="10.5" font-family="monospace" fill="#4f6348">}</text>
+      <text x="600" y="225" text-anchor="middle" font-size="10.5" fill="#047857">一次写入、一次读取，无需 JOIN</text>
+    </svg>
+    <p class="diagram-caption">图 1 MySQL 拆表 vs MongoDB 内嵌文档对比（示意）</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="MongoDB 复制集结构图">
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/></marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">MongoDB 复制集：主写从同步（示意）</text>
+      <rect x="320" y="50" width="160" height="55" rx="10" fill="#fee2e2" stroke="#dc2626"/>
+      <text x="400" y="74" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">Primary 主</text>
+      <text x="400" y="92" text-anchor="middle" font-size="10.5" fill="#4f6348">接写请求</text>
+      <rect x="120" y="130" width="170" height="50" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="205" y="152" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">Secondary 从1</text>
+      <text x="205" y="169" text-anchor="middle" font-size="10.5" fill="#4f6348">同步数据/可读</text>
+      <rect x="510" y="130" width="170" height="50" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="595" y="152" text-anchor="middle" font-size="12" font-weight="600" fill="#047857">Secondary 从2</text>
+      <text x="595" y="169" text-anchor="middle" font-size="10.5" fill="#4f6348">同步数据/可读</text>
+      <line x1="360" y1="105" x2="230" y2="128" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <line x1="440" y1="105" x2="570" y2="128" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <text x="400" y="195" text-anchor="middle" font-size="12" fill="#4f6348">主挂 → 从节点投票选出新 Primary；写读请求可指向新主。</text>
+    </svg>
+    <p class="diagram-caption">图 2 复制集主从与故障切换（示意）</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="MongoDB分片架构图">
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">MongoDB 分片集群架构（示意）</text>
+      <rect x="300" y="45" width="200" height="45" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a3f">应用程序</text>
+      <line x1="400" y1="90" x2="400" y2="110" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <rect x="300" y="113" width="200" height="45" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="400" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="#4f8a63">mongos（路由）</text>
+      <text x="400" y="151" text-anchor="middle" font-size="10" fill="#4f6348">知道数据在哪个分片</text>
+      <rect x="560" y="113" width="180" height="45" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="650" y="135" text-anchor="middle" font-size="12" font-weight="600" fill="#b45309">Config Server</text>
+      <text x="650" y="151" text-anchor="middle" font-size="10" fill="#4f6348">存元数据/分片映射</text>
+      <line x1="500" y1="135" x2="560" y2="135" stroke="#7a8a70" stroke-dasharray="4,3"/>
+      <line x1="350" y1="158" x2="150" y2="195" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <line x1="400" y1="158" x2="400" y2="195" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <line x1="450" y1="158" x2="650" y2="195" stroke="#7a8a70" marker-end="url(#arr2)"/>
+      <rect x="80" y="198" width="140" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="150" y="222" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">分片 Shard 1</text>
+      <rect x="330" y="198" width="140" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="400" y="222" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">分片 Shard 2</text>
+      <rect x="580" y="198" width="140" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="650" y="222" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">分片 Shard 3</text>
+      <text x="400" y="255" text-anchor="middle" font-size="11" fill="#7a8a70">按分片键（如 user_id）把数据分散到不同分片，每分片实际是一个复制集</text>
+    </svg>
+    <p class="diagram-caption">图 3 MongoDB 分片集群架构（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 建模哲学分野——拆表 join vs 内嵌一次读写；②图 3 三层架构——mongos 路由 + Config 元数据 + 分片（各为复制集），<strong>自动均衡是相对 MySQL 分片的省心点</strong>。</p>
+</section>
 
 <section id="sec6" class="card">
-    <h2><span class="num">6</span>易错点与面试重点</h2>
-    <h3>6.1 把 MongoDB 当 MySQL 用到处 join</h3>
-    <p class="lead"><b>一句话定位</b>：MongoDB 不擅多表 join，拆得太碎反而要应用层拼数据。</p>
-    <ul>
-      <li><strong>正解</strong>：该内嵌的就内嵌文档，按"读模型"组织数据而非按规范化范式。</li>
-    </ul>
-    <h3>6.2 无索引扫集合</h3>
-    <p class="lead"><b>一句话定位</b>：查询没命中索引，全集合扫描，数据量大就慢。</p>
-    <ul>
-      <li><strong>正解</strong>：为高频查询字段建索引，定期 explain 看执行计划。</li>
-    </ul>
-    <h3>6.3 以为 NoSQL 就不需要 schema 设计</h3>
-    <p class="lead"><b>一句话定位</b>："随便存"后期字段混乱、迁移困难。</p>
-    <ul>
-      <li><strong>正解</strong>：无固定 schema 不等于不用设计，仍要有文档结构约定与版本管理。</li>
-    </ul>
-    <h3>6.4 单节点部署当生产</h3>
-    <p class="lead"><b>一句话定位</b>：单节点挂了数据就不可用。</p>
-    <ul>
-      <li><strong>正解</strong>：生产至少三节点复制集，主从故障自动切换。</li>
-    </ul>
-  </section>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：实际项目以 MySQL 为主，未使用 MongoDB——本节为文档模型 CRUD 自学 demo 与关系型选型对比。</p>
 
-  <section id="sec7" class="card">
-    <h2><span class="num">7</span>学习资源与参考</h2>
-    <h3>官方文档</h3>
-    <ul>
-      <li>MongoDB 官方文档：<a href="https://www.mongodb.com/docs/" rel="noopener">mongodb.com/docs</a></li>
-      <li>Spring Data MongoDB：<a href="https://spring.io/projects/spring-data-mongodb" rel="noopener">spring.io/projects/spring-data-mongodb</a></li>
-    </ul>
-    <h3>书籍</h3>
-    <ul>
-      <li>《MongoDB 权威指南》——文档模型、复制集与分片。</li>
-      <li>《数据密集型应用系统设计》——关系型与 NoSQL 的取舍。</li>
-    </ul>
-  </section>
+  <h3>6.1 Demo 设计</h3>
+  <ul>
+    <li><strong>结构</strong>：本地 MongoDB，需求文档集合（内嵌评论数组），做 CRUD 与查询；</li>
+    <li><strong>对比实验</strong>：同样数据在 MySQL 要拆几张表+join。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>查全集合</strong>：没建索引 find 全扫——为 status 等高频字段建索引；</li>
+    <li><span class="tag-point">要点</span><strong>无 schema 不等于不设计</strong>：字段乱存后期迁移困难，仍要约定结构。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>能力</strong>：跑通文档 CRUD，能讲清"内嵌 vs 拆表"取舍与复制集/分片作用；</li>
+    <li><strong>与真实差异</strong>：单机 demo 无复制集/分片；核心交易数据仍留 MySQL；</li>
+    <li><strong>一句话抓手</strong>："本地跑过 MongoDB 文档 CRUD，理解嵌套文档与复制集分片，能讲清什么时候用 NoSQL、什么时候必须留关系型。"</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑。</p>
+
+  <h3>7.1 把 MongoDB 当 MySQL 用到处 join</h3>
+  <p><strong>原因</strong>：不擅多表 join，拆太碎反而要应用层拼数据。<strong>正解</strong>：该内嵌就内嵌，按"读模型"组织数据而非规范化范式。</p>
+
+  <h3>7.2 无索引扫集合</h3>
+  <p><strong>现象</strong>：查询没命中索引全集合扫描。<strong>正解</strong>：高频查询字段建索引，定期 explain 看执行计划。</p>
+
+  <h3>7.3 以为 NoSQL 不需要 schema 设计</h3>
+  <p><strong>后果</strong>："随便存"后期字段混乱迁移困难。<strong>正解</strong>：无固定 schema 不等于不用设计——仍要文档结构约定与版本管理。</p>
+
+  <h3>7.4 单节点部署当生产</h3>
+  <p><strong>风险</strong>：单节点挂了数据不可用。<strong>正解</strong>：生产至少三节点复制集，故障自动切换。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：MongoDB 和 MySQL 怎么选？核心差异是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>三问定位</strong>——要不要事务？要不要多表 join？结构稳不稳定？<strong>要就 MySQL，都不要才考虑 MongoDB</strong>。核心差异：①数据模型——表行列结构化 vs BSON 文档嵌套灵活；②Schema——先建表 vs 自由字段；③事务——MySQL 完整 ACID vs MongoDB 4.0+ 才有多文档事务且开销大（官方建议按文档模型设计少依赖）；④扩展——MySQL 垂直为主 vs MongoDB 原生分片自动均衡。<strong>常见误判</strong>：为"新潮"上 MongoDB 结果业务到处要 join 与事务，反而更痛苦。典型适配：内容管理/IoT 日志/用户画像；反例：财务订单强事务。</p>
+
+  <p><strong>Q2：内嵌文档 vs 拆引用怎么取舍？MongoDB 的建模哲学与 MySQL 有何不同？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>MySQL 哲学是按规范化范式拆表</strong>（写友好、防冗余）；<strong>MongoDB 是按"读模型"组织</strong>（读友好）——随主文档整体读的子数据（需求+评论首屏）内嵌，一次写入一次读取无需 join。<strong>内嵌边界</strong>：单文档 16MB 上限；数组无限膨胀（评论持续增长）会让更新与索引变慢——用引用+应用层拼装或独立集合。<strong>判断口诀</strong>：随主文档整体读→内嵌；独立生命周期/持续膨胀→引用。<strong>前提纠正</strong>：无固定 schema ≠ 不用设计——仍要结构约定与版本管理，否则后期迁移灾难。</p>
+
+  <p><strong>Q3：MongoDB 的高可用与扩展架构？和 MySQL 分片比省在哪？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>复制集</strong>：一主多从，主挂从节点投票自动选举新主、应用无感——生产至少三节点；<strong>分片</strong>三层架构——mongos 路由 + Config Server（元数据/分片映射）+ 分片（每个分片本身是复制集），查询尽量带分片键否则广播。<strong>比 MySQL 省心点</strong>：自带数据在分片间自动均衡迁移，而 MySQL 分片（ShardingSphere）扩容要双写迁移 resharding；代价是生态/事务/复杂查询不如 MySQL 成熟。<strong>运维细节</strong>：ObjectId 自带时间戳不用自增主键；write concern（w:1/majority）是安全与延迟的权衡，与 MySQL 半同步同款取舍。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>选型三问？什么场景必须留 MySQL？</li>
+    <li>内嵌 vs 引用的判断口诀？16MB 上限？</li>
+    <li>复制集怎么选举？生产最少几节点？</li>
+    <li>分片三层架构？自动均衡省了什么？</li>
+    <li>多文档事务的定位（能用 vs 该依赖）？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
+  <ul>
+    <li>MongoDB 官方文档：<a href="https://www.mongodb.com/docs/" rel="noopener">mongodb.com/docs</a>；Spring Data MongoDB：spring.io/projects/spring-data-mongodb</li>
+    <li>《MongoDB 权威指南》——文档模型/复制集/分片；《DDIA》——关系型与 NoSQL 取舍。</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>本地建需求集合（内嵌评论），对比 MySQL 同数据的表结构与 join 查询；</li>
+    <li>故意不建索引查十万文档，explain 观察全扫，再建索引对比；</li>
+    <li>给评论数组的膨胀场景改造成引用+独立集合，体会内嵌边界。</li>
+  </ol>
+</section>
+
 </main>
 </div>
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../08_数据库与建模/07_Elasticsearch搜索引擎【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/07_Elasticsearch搜索引擎【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/09_Oracle【深入】.html">下一篇 →</a>
 </nav>
 
 <footer>全栈技术知识库 · MongoDB与NoSQL【基础】 · 基于实战经验编写</footer>

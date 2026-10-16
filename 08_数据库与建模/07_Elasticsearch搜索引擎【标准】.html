@@ -532,7 +532,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
 </header>
 
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../08_数据库与建模/10_PowerDesigner数据库建模【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/06_数据库高可用与分库分表【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../08_数据库与建模/08_MongoDB与NoSQL【基础】.html">下一篇 →</a>
 </nav>
@@ -540,196 +540,73 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
-  <section id="sec1" class="card">
-    <h2><span class="num">1</span>技术点概览</h2>
-    <p class="lead"><b>一句话定位</b>：ES 是基于 Lucene 的分布式搜索与分析引擎——把文档分词后建倒排索引，支持全文检索、相关度排序、聚合统计。</p>
-    <ul>
-      <li><strong>解决什么</strong>：MySQL 擅长精确查询与事务，不擅长全文模糊搜索与大规模聚合；ES 专攻这两块。</li>
-      <li><strong>典型用途</strong>：日志检索（ELK）、商品/内容搜索、监控指标聚合、大屏多维分析。</li>
-      <li><span class="tag-pit">坑</span><strong>不是数据库替代品</strong>：ES 不擅长事务与精确点查，常和 MySQL 配合——数据存 MySQL，检索冗余一份到 ES。</li>
-    </ul>
-    <table>
-      <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
-      <thead><tr><th>维度</th><th>MySQL</th><th>Elasticsearch</th></tr></thead>
-      <tbody>
-        <tr><td>索引结构</td><td>B+树，适合精确/范围查询</td><td>倒排索引，适合全文/相关度检索</td></tr>
-        <tr><td>模糊搜索</td><td>like '%x%' 全表扫，慢</td><td>分词后按词查，毫秒级</td></tr>
-        <tr><td>事务</td><td>完整 ACID</td><td>弱，仅简单的文档级一致性</td></tr>
-        <tr><td>聚合分析</td><td>group by 大表慢</td><td>列式聚合，天然适合统计</td></tr>
-        <tr><td>定位</td><td>真实数据权威源</td><td>检索/分析的加速层</td></tr>
-      </tbody>
-    </table>
-  </section>
 
-  <section id="sec2" class="card">
-    <h2><span class="num">2</span>核心概念</h2>
+<section id="sec1" class="card">
+  <h2><span class="num">1</span>简介与阅读指引</h2>
 
-    <h3>2.1 倒排索引（Inverted Index）</h3>
-    <p class="lead"><b>一句话定位</b>：正排是"文档→词"，倒排是"词→哪些文档含它"——搜词时直接命中文档列表，不必逐行扫。</p>
-    <ul>
-      <li><strong>为什么快</strong>：查"评审"时，先在词项字典（term dictionary，底层 FST/排序结构）上定位到该词项，再取出其倒排链（posting list）直接得到含该词的所有文档 id，不必像 MySQL 那样逐行扫。</li>
-      <li><strong>写入代价</strong>：写文档要先分词、建倒排，所以 ES 写入比 MySQL 重，近实时（约 1 秒可见）。</li>
-    </ul>
+  <h3>1.1 定位：基于 Lucene 的分布式搜索与分析引擎</h3>
+  <p><strong>ES 把文档分词后建倒排索引</strong>——支持全文检索、相关度排序（BM25）、聚合统计。解决 MySQL 的两个短板：全文模糊搜索（like '%x%' 全表扫）与大规模聚合（group by 大表慢）。<strong>典型用途</strong>：日志检索（ELK）、商品/内容搜索、监控指标聚合、大屏多维分析。<span class="tag-pit">不是数据库替代品</span>：ES 不擅长事务与精确点查——数据存 MySQL，检索冗余一份到 ES。</p>
 
-    <h3>2.2 分词（Analyzer）</h3>
-    <p class="lead"><b>一句话定位</b>：把一段文本切成一个个词项（term），中文要靠专门的分词器（如 IK）。</p>
-    <ul>
-      <li><strong>中文分词</strong>：英文按空格自然分；中文需 IK 分词器把"电力监控系统"切成"电力/监控/系统"。</li>
-      <li><strong>IK 两种模式</strong>：建索引用 <code>ik_max_word</code>（最细粒度切分、召回更全），查询时用 <code>ik_smart</code>（粗粒度、结果更准）；mapping 里可用 <code>analyzer</code> 指定索引分词、<code>search_analyzer</code> 指定查询分词。</li>
-      <li><strong>索引时与搜索时</strong>：两处用同一分词器才能对上，否则搜的词切出来和索引不一致就查不到。</li>
-    </ul>
+  <h3>1.2 横向对比：MySQL vs Elasticsearch</h3>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>维度</th><th>MySQL</th><th>Elasticsearch</th></tr></thead>
+    <tbody>
+      <tr><td>索引结构</td><td>B+树，适合精确/范围查询</td><td>倒排索引，适合全文/相关度检索</td></tr>
+      <tr><td>模糊搜索</td><td>like '%x%' 全表扫，慢</td><td>分词后按词查，毫秒级</td></tr>
+      <tr><td>事务</td><td>完整 ACID</td><td>弱，仅简单的文档级一致性</td></tr>
+      <tr><td>聚合分析</td><td>group by 大表慢</td><td>列式聚合，天然适合统计</td></tr>
+      <tr><td>定位</td><td>真实数据权威源</td><td>检索/分析的加速层</td></tr>
+    </tbody>
+  </table>
 
-    <h3>2.3 Document / Index / Type 映射</h3>
-    <p class="lead"><b>一句话定位</b>：Index 相当于数据库，Document 相当于一行记录，Mapping 定义字段类型与是否分词。</p>
-    <ul>
-      <li><strong>Mapping</strong>：声明某字段是 text（要分词）还是 keyword（不分词、精确匹配/排序）。</li>
-      <li><strong>动态映射陷阱</strong>：不给 Mapping，ES 会自动猜类型，常猜错，生产要显式定义。</li>
-    </ul>
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>倒排索引</strong>为什么快（词项字典+倒排链）；</li>
+    <li>掌握 <strong>IK 双模式</strong>（索引 ik_max_word / 查询 ik_smart）；</li>
+    <li>落地<strong>显式 Mapping</strong>（text vs keyword）与 filter/must 分工；</li>
+    <li>建立"<strong>MySQL 权威源 + ES 冗余检索层</strong>"的分工心智。</li>
+  </ol>
+  <p><strong>难度</strong>：★★★☆☆。<strong>本篇实战性质</strong>：本地自学 demo（真实项目未部署 ES，诚实声明见 6）。</p>
+</section>
 
-    <h3>2.4 聚合（Aggregation）</h3>
-    <p class="lead"><b>一句话定位</b>：像 SQL 的 group by + count/sum，但在海量数据上列式计算更快，适合大屏多维统计。</p>
-    <ul>
-      <li><strong>bucket + metric</strong>：先按维度分桶（按天/按状态），再在每桶里算指标（计数、平均值）。</li>
-    </ul>
-    <div class="diagram">
-      <svg viewBox="0 0 800 220" role="img" aria-label="ES聚合bucket+metric原理图">
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">聚合 = 先分桶（bucket）再算指标（metric）（示意）</text>
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>倒排索引</strong>→ <strong>分词器</strong>→ <strong>Document/Index/Mapping</strong>→ <strong>聚合</strong>→ <strong>相关度打分与分工</strong>。</p>
 
-        <!-- 原始数据 -->
-        <rect x="40" y="60" width="160" height="120" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-        <text x="120" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">告警文档</text>
-        <text x="120" y="108" text-anchor="middle" font-size="10.5" fill="#4f6348">doc1: crit, 10-08</text>
-        <text x="120" y="126" text-anchor="middle" font-size="10.5" fill="#4f6348">doc2: warn, 10-08</text>
-        <text x="120" y="144" text-anchor="middle" font-size="10.5" fill="#4f6348">doc3: crit, 10-07</text>
-        <text x="120" y="162" text-anchor="middle" font-size="10.5" fill="#4f6348">doc4: info, 10-07</text>
+  <h3>2.1 倒排索引：为什么快</h3>
+  <p>正排是"文档→词"，<strong>倒排是"词→哪些文档含它"</strong>——查"评审"时先在词项字典（term dictionary，FST 排序结构）定位词项，取出倒排链（posting list）直接得到文档 id 列表，不必逐行扫。<span class="tag-pit">写入代价</span>：写文档要先分词建倒排——ES 写入比 MySQL 重，<strong>近实时约 1 秒可见</strong>。</p>
 
-        <line x1="200" y1="120" x2="260" y2="120" stroke="#7a8a70" marker-end="url(#arr)"/>
-        <text x="230" y="112" text-anchor="middle" font-size="10" fill="#7a8a70">按天分桶</text>
+  <h3>2.2 分词器 Analyzer</h3>
+  <p>英文按空格自然分；<span class="tag-key">中文靠 IK 分词器</span>：把"电力监控系统"切成"电力/监控/系统"。<strong>IK 双模式</strong>：建索引用 <code>ik_max_word</code>（最细粒度、召回全），查询用 <code>ik_smart</code>（粗粒度、结果准）；mapping 里 analyzer 管索引分词、search_analyzer 管查询分词——<span class="tag-pit">两处必须一致</span>，否则切出的词对不上就查不到。</p>
 
-        <!-- bucket -->
-        <rect x="265" y="55" width="180" height="55" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-        <text x="355" y="78" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f8a63">桶：10-08</text>
-        <text x="355" y="98" text-anchor="middle" font-size="10.5" fill="#4f6348">doc1(crit), doc2(warn)</text>
+  <h3>2.3 Document / Index / Mapping</h3>
+  <p>Index≈数据库、Document≈一行、<strong>Mapping</strong> 定义字段类型与是否分词：<strong>text（要分词，全文匹配）vs keyword（不分词，精确匹配/排序）</strong>。<span class="tag-pit">动态映射陷阱</span>：不给 Mapping ES 自动猜类型常猜错——生产显式定义。</p>
 
-        <rect x="265" y="125" width="180" height="55" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-        <text x="355" y="148" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f8a63">桶：10-07</text>
-        <text x="355" y="168" text-anchor="middle" font-size="10.5" fill="#4f6348">doc3(crit), doc4(info)</text>
+  <h3>2.4 聚合：bucket + metric</h3>
+  <p>像 SQL 的 group by + count/sum，但海量数据上<strong>列式聚合更快</strong>——先按维度分桶（按天/按状态），再在每桶里算指标（计数/均值）。适合大屏多维统计。</p>
 
-        <line x1="445" y1="82" x2="500" y2="82" stroke="#7a8a70" marker-end="url(#arr)"/>
-        <line x1="445" y1="152" x2="500" y2="152" stroke="#7a8a70" marker-end="url(#arr)"/>
+  <h3>2.5 相关度打分与分工原则</h3>
+  <p>命中文档按 <strong>BM25 相关度</strong>打分排序，越匹配越靠前（ES 相对 MySQL 的核心优势）；boost 调字段权重。<span class="tag-key">分工原则</span>：权威源留 MySQL，ES 只存"为检索/聚合而冗余"的文档——通过同步（MQ/双写/binlog）保持最终一致，<strong>ES 挂了不影响业务（可从 MySQL 重建索引），写操作永远走 MySQL</strong>。</p>
+</section>
 
-        <!-- metric结果 -->
-        <rect x="505" y="55" width="250" height="55" rx="8" fill="#f0fdf4" stroke="#047857"/>
-        <text x="630" y="78" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">10-08: 共 2 条</text>
-        <text x="630" y="98" text-anchor="middle" font-size="10.5" fill="#4f6348">crit=1, warn=1</text>
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
 
-        <rect x="505" y="125" width="250" height="55" rx="8" fill="#f0fdf4" stroke="#047857"/>
-        <text x="630" y="148" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">10-07: 共 2 条</text>
-        <text x="630" y="168" text-anchor="middle" font-size="10.5" fill="#4f6348">crit=1, info=1</text>
-
-        <text x="400" y="205" text-anchor="middle" font-size="12" fill="#7a8a70">等价 SQL：SELECT day, level, count(*) FROM alarm GROUP BY day, level —— ES 列式聚合快得多</text>
-      </svg>
-      <p class="diagram-caption">图 2 聚合 bucket + metric（示意）</p>
-    </div>
-
-    <h3>2.5 相关度打分（_score）</h3>
-    <p class="lead"><b>一句话定位</b>：命中文档按相关度（BM25）打分排序，越匹配排越前——这是 ES 相对 MySQL 的核心优势。</p>
-    <ul>
-      <li><strong>控制</strong>：可用 boost 调权重，让某些字段命中更重要。</li>
-    </ul>
-    <p class="key-sentence">分工原则：数据的权威源留在 MySQL，ES 只存"为了检索/聚合而冗余"的文档；两者通过同步（MQ/双写/binlog）保持最终一致。</p>
-    <div class="diagram">
-      <svg viewBox="0 0 800 200" role="img" aria-label="MySQL与ES数据同步架构图">
-        <defs>
-          <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-          </marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">MySQL 存权威数据，ES 存检索冗余（示意）</text>
-
-        <rect x="60" y="70" width="180" height="80" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
-        <text x="150" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">MySQL（权威源）</text>
-        <text x="150" y="120" text-anchor="middle" font-size="11" fill="#4f6348">业务读写都走这里</text>
-        <text x="150" y="138" text-anchor="middle" font-size="10.5" fill="#7a8a70">事务、精确点查</text>
-
-        <line x1="240" y1="110" x2="330" y2="110" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr2)"/>
-        <text x="285" y="100" text-anchor="middle" font-size="11" fill="#b45309">异步同步</text>
-        <text x="285" y="130" text-anchor="middle" font-size="10" fill="#7a8a70">binlog/MQ/双写</text>
-
-        <rect x="335" y="70" width="180" height="80" rx="10" fill="#fefce8" stroke="#d97706"/>
-        <text x="425" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">ES（检索层）</text>
-        <text x="425" y="120" text-anchor="middle" font-size="11" fill="#4f6348">全文搜索、聚合分析</text>
-        <text x="425" y="138" text-anchor="middle" font-size="10.5" fill="#7a8a70">近实时、可重建</text>
-
-        <line x1="515" y1="110" x2="605" y2="110" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr2)"/>
-        <text x="560" y="100" text-anchor="middle" font-size="11" fill="#047857">查询</text>
-
-        <rect x="610" y="70" width="150" height="80" rx="10" fill="#f0fdf4" stroke="#047857"/>
-        <text x="685" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">应用/大屏</text>
-        <text x="685" y="120" text-anchor="middle" font-size="11" fill="#4f6348">搜索、报表</text>
-        <text x="685" y="138" text-anchor="middle" font-size="10.5" fill="#7a8a70">读 ES 不读 MySQL</text>
-
-        <text x="400" y="180" text-anchor="middle" font-size="12" fill="#7a8a70">ES 挂了不影响业务（从 MySQL 重建索引即可）；写操作永远走 MySQL，不直接写 ES</text>
-      </svg>
-      <p class="diagram-caption">图 3 MySQL 与 ES 的分工与同步（示意）</p>
-    </div>
-  </section>
-
-  <section id="sec3" class="card">
-    <h2><span class="num">3</span>工作原理与流程</h2>
-    <h3>3.1 写入建索引与检索的流程</h3>
-    <p class="lead"><b>一句话定位</b>：写入时文档被分词、进倒排索引；检索时把查询词同样分词，去倒排索引找文档并打分排序。</p>
-    <div class="diagram">
-      <svg viewBox="0 0 800 240" role="img" aria-label="倒排索引写入与检索原理图">
-        <defs>
-          <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/></marker>
-        </defs>
-        <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">倒排索引：写入建索引 / 检索查词（示意）</text>
-        <rect x="30" y="55" width="150" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-        <text x="105" y="76" text-anchor="middle" font-size="11.5" font-weight="600" fill="#2d6a3f">原始文档</text>
-        <text x="105" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">"电力监控告警"</text>
-        <rect x="230" y="55" width="150" height="50" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
-        <text x="305" y="76" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f766e">分词</text>
-        <text x="305" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">电力/监控/告警</text>
-        <rect x="430" y="45" width="330" height="70" rx="8" fill="#fefce8" stroke="#d97706"/>
-        <text x="595" y="66" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b45309">倒排索引（词 → 文档列表）</text>
-        <text x="595" y="86" text-anchor="middle" font-size="10.5" fill="#4f6348">电力→[doc1,doc5]　监控→[doc1,doc2]　告警→[doc1]</text>
-        <text x="595" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">查"监控"直接命中 doc1,doc2，无需全表扫</text>
-        <line x1="180" y1="80" x2="228" y2="80" stroke="#7a8a70" marker-end="url(#arr)"/>
-        <line x1="380" y1="80" x2="428" y2="80" stroke="#7a8a70" marker-end="url(#arr)"/>
-        <text x="400" y="160" text-anchor="middle" font-size="12.5" fill="#4f6348">检索：用户输入"监控" → 同样分词 → 查倒排表 → 命中 doc1,doc2 → 按 BM25 打分排序返回。</text>
-        <text x="400" y="185" text-anchor="middle" font-size="12" fill="#b45309">近实时：文档写入后约 1 秒（refresh interval）才可被搜到，不是写立即可见。</text>
-        <text x="400" y="210" text-anchor="middle" font-size="12" fill="#4f6348">分片：大索引拆成多个 shard 分布在多节点，水平扩容与高可用。</text>
-      </svg>
-      <p class="diagram-caption">图 1 倒排索引的写入与检索过程（示意）</p>
-    </div>
-    <ol>
-      <li><strong>写入</strong>：文档进 ES，分词器切成词项，建立"词→文档列表"的倒排索引。</li>
-      <li><strong>refresh</strong>：默认每秒 refresh 一次，新文档才可被搜到（近实时）。</li>
-      <li><strong>检索</strong>：查询词同样分词，去倒排索引取命中文档集合。</li>
-      <li><strong>打分排序</strong>：按 BM25 相关度打分，返回排好序的结果。</li>
-    </ol>
-  </section>
-
-  <section id="sec4" class="card">
-    <h2><span class="num">4</span>核心语法与 API 要点</h2>
-    <h3>4.1 建索引与 Mapping</h3>
-    <pre class="code" data-lang="json"><code>PUT /alarm-index
+  <h3>3.1 场景一：建索引与显式 Mapping</h3>
+<pre class="code" data-lang="json"><code>PUT /alarm-index
 {
   "mappings": {
     "properties": {
@@ -740,8 +617,9 @@ p, li, h1, h2, h3, h4, h5, h6 {
     }
   }
 }</code></pre>
-    <h3>4.2 全文检索 + 按状态过滤 + 聚合</h3>
-    <pre class="code" data-lang="json"><code>GET /alarm-index/_search
+
+  <h3>3.2 场景二：全文检索 + filter 过滤 + 聚合</h3>
+<pre class="code" data-lang="json"><code>GET /alarm-index/_search
 {
   "query": {
     "bool": {
@@ -755,89 +633,220 @@ p, li, h1, h2, h3, h4, h5, h6 {
     }
   }
 }</code></pre>
-    <div class="note">经验：filter 只过滤不算分，比 must 更快且可被缓存；精确过滤（状态、id）放 filter，全文相关匹配放 must。</div>
-  </section>
+  <div class="note"><strong>经验</strong>：<span class="tag-key">filter 只过滤不算分</span>，比 must 快且可被缓存——精确过滤（状态/id）放 filter，全文相关匹配放 must。</div>
 
-  <section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
+  <h3>3.3 场景三：写入→refresh→检索四步链</h3>
+  <ol>
+    <li><strong>写入</strong>：文档分词后进倒排索引；</li>
+    <li><span class="tag-key">refresh</span>：默认每秒一次，新文档才可被搜到（<strong>近实时</strong>）；</li>
+    <li><strong>检索</strong>：查询词同样分词，去倒排索引取命中文档集合；</li>
+    <li><strong>打分排序</strong>：按 BM25 打分返回。大索引拆多个 shard 分布多节点——水平扩容与高可用。</li>
+  </ol>
+</section>
 
-  <div class="warn-box"><b>定位说明：</b>实际项目未实际部署 Elasticsearch。本节为本地 ES 检索自学 demo，验证索引/分词/查询/聚合，并模拟 MySQL 数据同步。</div>
-  <h3>1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"MySQL like 模糊查为什么慢、ES 倒排索引怎么解决"的认知，对应大屏告警/日志检索规划。</p>
-  <ul><li><strong>缺口</strong>：一直用 MySQL，没实际碰过分词与倒排索引。</li></ul>
-  <h3>2 搭建的 demo 是什么</h3>
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：倒排索引与 Mapping 已会。</p>
+
+  <h3>4.1 分片与副本：ES 的高可用模型</h3>
+  <p>索引拆成 primary shard（数量建索引时定死，不可改）+ replica shard（可调，容灾+读扩展）；主分片分布多节点，写入先到主分片再同步副本——<strong>扩容 = 加节点自动迁移分片</strong>；规划期就要预估数据量定分片数。</p>
+
+  <h3>4.2 近实时与 translog</h3>
+  <p>文档先进内存 buffer + translog（防宕机丢），refresh 后进 filesystem cache 可搜，flush 才真正落盘——<strong>refresh interval 是"写可见性"与"写入吞吐"的权衡旋钮</strong>（日志场景可调大 30s）。</p>
+
+  <h3>4.3 深分页三方案</h3>
+  <p>from+size（默认，from=10000 时协调节点收集各分片前 1 万条再排序——内存耗时暴涨）→ <strong>search_after</strong>（游标式，配合 PIT）→ <strong>scroll</strong>（快照导出用）——与 MySQL 深分页同款问题（02 篇呼应）。</p>
+
+  <h3>4.4 数据同步的三条路</h3>
+  <p>①<strong>双写</strong>（简单但有一致性窗口与代码侵入）；②<strong>MQ 异步</strong>（解耦、可重试，主流）；③<strong>binlog 订阅</strong>（Canal，业务零侵入）——失败重试+对账补偿保最终一致；<strong>全量重建</strong>永远是兜底（ES 可重建是它作为"加速层"的最大底气）。</p>
+
+  <h3>4.5 ELK 一句话定位</h3>
+  <p>日志场景：Filebeat 采集 → Logstash/ingest 管道清洗 → ES 存储 → Kibana 查询可视化；与业务搜索共用 ES 集群时用独立索引+ILM 生命周期（热温冷/按天滚动删除）管理日志量。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="倒排索引写入与检索原理图">
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#7a8a70"/></marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">倒排索引：写入建索引 / 检索查词（示意）</text>
+      <rect x="30" y="55" width="150" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="105" y="76" text-anchor="middle" font-size="11.5" font-weight="600" fill="#2d6a3f">原始文档</text>
+      <text x="105" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">"电力监控告警"</text>
+      <rect x="230" y="55" width="150" height="50" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="305" y="76" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f766e">分词</text>
+      <text x="305" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">电力/监控/告警</text>
+      <rect x="430" y="45" width="330" height="70" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="595" y="66" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b45309">倒排索引（词 → 文档列表）</text>
+      <text x="595" y="86" text-anchor="middle" font-size="10.5" fill="#4f6348">电力→[doc1,doc5]　监控→[doc1,doc2]　告警→[doc1]</text>
+      <text x="595" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">查"监控"直接命中 doc1,doc2，无需全表扫</text>
+      <line x1="180" y1="80" x2="228" y2="80" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <line x1="380" y1="80" x2="428" y2="80" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <text x="400" y="160" text-anchor="middle" font-size="12.5" fill="#4f6348">检索：用户输入"监控" → 同样分词 → 查倒排表 → 命中 doc1,doc2 → 按 BM25 打分排序返回。</text>
+      <text x="400" y="185" text-anchor="middle" font-size="12" fill="#b45309">近实时：文档写入后约 1 秒（refresh interval）才可被搜到，不是写立即可见。</text>
+      <text x="400" y="210" text-anchor="middle" font-size="12" fill="#4f6348">分片：大索引拆成多个 shard 分布在多节点，水平扩容与高可用。</text>
+    </svg>
+    <p class="diagram-caption">图 1 倒排索引的写入与检索过程（示意）</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="ES聚合bucket+metric原理图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">聚合 = 先分桶（bucket）再算指标（metric）（示意）</text>
+      <rect x="40" y="60" width="160" height="120" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="120" y="85" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">告警文档</text>
+      <text x="120" y="108" text-anchor="middle" font-size="10.5" fill="#4f6348">doc1: crit, 10-08</text>
+      <text x="120" y="126" text-anchor="middle" font-size="10.5" fill="#4f6348">doc2: warn, 10-08</text>
+      <text x="120" y="144" text-anchor="middle" font-size="10.5" fill="#4f6348">doc3: crit, 10-07</text>
+      <text x="120" y="162" text-anchor="middle" font-size="10.5" fill="#4f6348">doc4: info, 10-07</text>
+      <line x1="200" y1="120" x2="260" y2="120" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <text x="230" y="112" text-anchor="middle" font-size="10" fill="#7a8a70">按天分桶</text>
+      <rect x="265" y="55" width="180" height="55" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="355" y="78" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f8a63">桶：10-08</text>
+      <text x="355" y="98" text-anchor="middle" font-size="10.5" fill="#4f6348">doc1(crit), doc2(warn)</text>
+      <rect x="265" y="125" width="180" height="55" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
+      <text x="355" y="148" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f8a63">桶：10-07</text>
+      <text x="355" y="168" text-anchor="middle" font-size="10.5" fill="#4f6348">doc3(crit), doc4(info)</text>
+      <line x1="445" y1="82" x2="500" y2="82" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <line x1="445" y1="152" x2="500" y2="152" stroke="#7a8a70" marker-end="url(#arr)"/>
+      <rect x="505" y="55" width="250" height="55" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="630" y="78" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">10-08: 共 2 条</text>
+      <text x="630" y="98" text-anchor="middle" font-size="10.5" fill="#4f6348">crit=1, warn=1</text>
+      <rect x="505" y="125" width="250" height="55" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="630" y="148" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">10-07: 共 2 条</text>
+      <text x="630" y="168" text-anchor="middle" font-size="10.5" fill="#4f6348">crit=1, info=1</text>
+      <text x="400" y="205" text-anchor="middle" font-size="12" fill="#7a8a70">等价 SQL：SELECT day, level, count(*) FROM alarm GROUP BY day, level —— ES 列式聚合快得多</text>
+    </svg>
+    <p class="diagram-caption">图 2 聚合 bucket + metric（示意）</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="MySQL与ES数据同步架构图">
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">MySQL 存权威数据，ES 存检索冗余（示意）</text>
+      <rect x="60" y="70" width="180" height="80" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="150" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">MySQL（权威源）</text>
+      <text x="150" y="120" text-anchor="middle" font-size="11" fill="#4f6348">业务读写都走这里</text>
+      <text x="150" y="138" text-anchor="middle" font-size="10.5" fill="#7a8a70">事务、精确点查</text>
+      <line x1="240" y1="110" x2="330" y2="110" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr2)"/>
+      <text x="285" y="100" text-anchor="middle" font-size="11" fill="#b45309">异步同步</text>
+      <text x="285" y="130" text-anchor="middle" font-size="10" fill="#7a8a70">binlog/MQ/双写</text>
+      <rect x="335" y="70" width="180" height="80" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="425" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">ES（检索层）</text>
+      <text x="425" y="120" text-anchor="middle" font-size="11" fill="#4f6348">全文搜索、聚合分析</text>
+      <text x="425" y="138" text-anchor="middle" font-size="10.5" fill="#7a8a70">近实时、可重建</text>
+      <line x1="515" y1="110" x2="605" y2="110" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr2)"/>
+      <text x="560" y="100" text-anchor="middle" font-size="11" fill="#047857">查询</text>
+      <rect x="610" y="70" width="150" height="80" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="685" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">应用/大屏</text>
+      <text x="685" y="120" text-anchor="middle" font-size="11" fill="#4f6348">搜索、报表</text>
+      <text x="685" y="138" text-anchor="middle" font-size="10.5" fill="#7a8a70">读 ES 不读 MySQL</text>
+      <text x="400" y="180" text-anchor="middle" font-size="12" fill="#7a8a70">ES 挂了不影响业务（从 MySQL 重建索引即可）；写操作永远走 MySQL，不直接写 ES</text>
+    </svg>
+    <p class="diagram-caption">图 3 MySQL 与 ES 的分工与同步（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 两行主线——写入建倒排、检索查倒排，<strong>近实时 1 秒</strong>；②图 3 分工总纲——<strong>MySQL 权威源、ES 加速层、可重建</strong>。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：实际项目未部署 ES——本节为本地单节点 ES 检索自学 demo（万级模拟文档），验证索引/分词/查询/聚合并模拟 MySQL 数据同步；真实大屏告警检索是规划中的演进方向。</p>
+
+  <h3>6.1 Demo 设计</h3>
   <ul>
-    <li><strong>结构</strong>：本地单节点 ES，建告警索引（title 用 IK 分词），灌入一批模拟告警，跑全文查询 + 按天聚合。</li>
-    <li><strong>规模</strong>：万级模拟文档，验证查询与聚合延迟。</li>
+    <li><strong>结构</strong>：本地单节点 ES，告警索引 title 用 IK 分词，灌模拟告警，跑全文查询+按天聚合；</li>
+    <li><strong>动机</strong>：补"MySQL like 为什么慢、ES 倒排怎么解决"的认知缺口。</li>
   </ul>
-  <h3>3 落地步骤</h3>
 <pre class="code" data-lang="json"><code>PUT /alarm-index
 { "mappings": { "properties": {
     "title": { "type": "text", "analyzer": "ik_max_word" },
     "level": { "type": "keyword" },
     "ts":    { "type": "date" }
 }}}</code></pre>
-<pre class="code" data-lang="json"><code>GET /alarm-index/_search
-{ "query": { "match": { "title": "监控" } },
-  "aggs": { "by_day": { "date_histogram": { "field": "ts", "calendar_interval": "day" } } } }</code></pre>
-  <h3>4 自学过程中遇到的坑与解决</h3>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>中文没分词</strong>：默认分析器按单字切，召回不准——装 IK 分词器并在 mapping 指定。</li>
+    <li><span class="tag-pit">坑</span><strong>中文没分词</strong>：默认分析器按单字切召回不准——装 IK 并在 mapping 指定；</li>
     <li><span class="tag-pit">坑</span><strong>写完立即可查</strong>：写入后查不到——ES 近实时，等约 1 秒 refresh。</li>
   </ul>
-  <h3>5 成果</h3>
-  <ul><li>跑通建索引→分词→match 查询→聚合，验证了"按词查"比 MySQL like 快；理解与 MySQL 的分工。</li></ul>
-  <h3>6 与真实项目的差异</h3>
-  <ul><li>单节点无集群/监控；真实大屏告警检索是规划中的演进方向，数据同步需 MQ 异步。</li></ul>
-  <h3>7 面试讲法</h3>
-  <p class="key-sentence">"我本地用 ES 建告警索引、装 IK 分词、跑 match+聚合 demo，理解倒排索引为什么比 like 快，也清楚它和 MySQL 的分工与近实时特性。"</p>
 
-<section id="sec6" class="card">
-    <h2><span class="num">6</span>易错点与面试重点</h2>
-    <h3>6.1 用 like '%x%' 的思路写 match</h3>
-    <p class="lead"><b>一句话定位</b>：match 是分词后匹配，不是子串匹配，行为和 like 完全不同。</p>
-    <ul>
-      <li><strong>正解</strong>：理解 match 的分词语义；要精确/前缀再用 term/prefix。</li>
-    </ul>
-    <h3>6.2 text 字段上做排序/聚合</h3>
-    <p class="lead"><b>一句话定位</b>：text 字段被分词，直接 sort/aggs 报错或结果错乱。</p>
-    <ul>
-      <li><strong>正解</strong>：需要排序/精确值的字段额外建一个 keyword 子字段，对 keyword 排序。</li>
-    </ul>
-    <h3>6.3 以为 ES 写入立即可搜</h3>
-    <p class="lead"><b>一句话定位</b>：文档写入后要等 refresh（默认 1 秒）才可被搜到。</p>
-    <ul>
-      <li><strong>正解</strong>：对写入后立刻查的场景，业务上接受近实时或手动 refresh。</li>
-    </ul>
-    <h3>6.4 不给 Mapping 让 ES 猜类型</h3>
-    <p class="lead"><b>一句话定位</b>：动态映射常把数字猜成浮点、字符串猜成 text，排序聚合全乱。</p>
-    <ul>
-      <li><strong>正解</strong>：生产索引显式定义 Mapping，控制每字段类型与分词器。</li>
-    </ul>
-    <h3>6.5 深分页 from+size 翻到很深</h3>
-    <p class="lead"><b>一句话定位</b>：from=10000 时 ES 要协调节点收集各分片前 1 万条再排序，内存与耗时暴涨。</p>
-    <ul>
-      <li><strong>正解</strong>：深翻页用 search_after 或 scroll，不用大 from。</li>
-    </ul>
-  </section>
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>能力</strong>：跑通建索引→分词→match 查询→聚合，验证"按词查"比 like 快；理解与 MySQL 的分工；</li>
+    <li><strong>与真实差异</strong>：单节点无集群/监控；生产同步需 MQ 异步；</li>
+    <li><strong>一句话抓手</strong>："本地用 ES 建告警索引、装 IK 分词、跑 match+聚合 demo，理解倒排索引为什么比 like 快，也清楚它和 MySQL 的分工与近实时特性。"</li>
+  </ol>
+</section>
 
-  <section id="sec7" class="card">
-    <h2><span class="num">7</span>学习资源与参考</h2>
-    <h3>官方文档</h3>
-    <ul>
-      <li>Elasticsearch 官方文档：<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/" rel="noopener">elastic.co guide</a></li>
-      <li>IK 分词器（中文）：<a href="https://github.com/medcl/elasticsearch-analysis-ik" rel="noopener">github.com/medcl/elasticsearch-analysis-ik</a></li>
-    </ul>
-    <h3>书籍</h3>
-    <ul>
-      <li>《Elasticsearch 权威指南》（ES 官方指南中文版）——倒排索引与聚合。</li>
-      <li>《数据密集型应用系统设计》——检索系统与分布式存储视角。</li>
-    </ul>
-  </section>
+<section id="sec7" class="card">
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 用 like 思路写 match</h3>
+  <p><strong>原因</strong>：match 是分词后匹配不是子串匹配，行为与 like 完全不同。<strong>正解</strong>：理解分词语义；要精确/前缀用 term/prefix。</p>
+
+  <h3>7.2 text 字段上做排序/聚合</h3>
+  <p><strong>现象</strong>：text 分词后 sort/aggs 报错或乱。<strong>正解</strong>：需要排序/精确值的字段额外建 keyword 子字段（text 字段的 fields：keyword），对 keyword 排序。</p>
+
+  <h3>7.3 以为写入立即可搜</h3>
+  <p><strong>原因</strong>：refresh 默认 1 秒。<strong>正解</strong>：业务接受近实时，或测试场景手动 refresh。</p>
+
+  <h3>7.4 不给 Mapping 让 ES 猜类型</h3>
+  <p><strong>后果</strong>：动态映射把数字猜成浮点、字符串猜成 text，排序聚合全乱。<strong>正解</strong>：生产索引显式定义 Mapping。</p>
+
+  <h3>7.5 深分页 from+size 翻很深</h3>
+  <p><strong>原因</strong>：from=10000 时协调节点收集各分片前 1 万条再排序，内存耗时暴涨。<strong>正解</strong>：深翻页用 search_after 或 scroll。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：ES 为什么全文检索快？倒排索引的原理？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>倒排索引</strong>把"文档→词"反转为"词→文档列表"——写入时分词器把文本切成词项，建立词项字典（FST 排序结构）+ 每个词的 posting list；检索时查询词同样分词，在字典上定位词项后直接取文档 id 集合——<strong>不用像 MySQL like '%x%' 那样逐行扫描</strong>。命中后按 <strong>BM25</strong> 打分（词频/文档长度/逆文档频率）排序，越相关越靠前。<strong>代价</strong>：写入要分词建倒排（比 MySQL 重）、近实时约 1 秒 refresh——用"写入稍重 + 可见性延迟"换检索数量级提升。</p>
+
+  <p><strong>Q2：text 与 keyword 的区别？match 与 term 的区别？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>text</strong> 要分词（建倒排），用于全文相关匹配（match）；<strong>keyword</strong> 不分词整串存储，用于精确匹配/排序/聚合（term）。<strong>match</strong> 会对查询词分词后逐词匹配（or/and 控制）；<strong>term</strong> 不分词整值精确匹配——对 text 字段用 term 常查不到（因为索引里是切开的词），<strong>这是最经典的新手坑</strong>。工程上：状态/设备 id 这类精确值字段直接 keyword；标题/内容用 text+IK，需要排序时加 keyword 子字段（fields）。<strong>filter vs must</strong>：filter 只过滤不算分且可缓存——精确过滤放 filter。</p>
+
+  <p><strong>Q3：ES 和 MySQL 怎么分工？数据怎么同步？ES 挂了怎么办？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>分工</strong>——MySQL 是权威源（事务/精确点查），ES 是检索冗余加速层（全文搜索/聚合），应用读 ES 不读 MySQL；<strong>写永远走 MySQL 不直接写 ES</strong>。同步三条路：①双写（简单但有一致性窗口）；②<strong>MQ 异步</strong>（解耦可重试，主流）；③binlog 订阅（Canal，业务零侵入）——失败重试+对账补偿保最终一致。<strong>ES 挂了不影响业务</strong>：从 MySQL 全量重建索引即可——"可重建"是加速层定位的最大底气。另：分片数建索引时定死要预估容量；深分页用 search_after；refresh interval 是写入吞吐与可见性的权衡旋钮。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>倒排索引两步（写入/检索）？为什么比 like 快？</li>
+    <li>IK 双模式怎么配？两处分词器不一致会怎样？</li>
+    <li>text vs keyword？match vs term？对 text 用 term 会怎样？</li>
+    <li>filter 与 must 的差异？为什么 filter 快？</li>
+    <li>同步三方案？ES 可重建意味着什么定位？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
+  <ul>
+    <li>Elasticsearch 官方指南：<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/" rel="noopener">elastic.co guide</a>；IK 分词器：github.com/medcl/elasticsearch-analysis-ik</li>
+    <li>《Elasticsearch 权威指南》——倒排与聚合；《DDIA》——检索系统视角。</li>
+  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>本地装 ES+IK，建 6.1 索引灌万级模拟文档，对比 like 与 match 的语义差异；</li>
+    <li>故意对 text 字段用 term 查询复现"查不到"，再用 keyword 子字段修复；</li>
+    <li>写一个 from=10000 与 search_after 的对比测试，观察耗时差异。</li>
+  </ol>
+</section>
+
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../08_数据库与建模/10_PowerDesigner数据库建模【基础】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/06_数据库高可用与分库分表【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../08_数据库与建模/08_MongoDB与NoSQL【基础】.html">下一篇 →</a>
 </nav>
