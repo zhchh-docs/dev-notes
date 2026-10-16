@@ -548,25 +548,26 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：本页两块——缓存三大问题（穿透/击穿/雪崩）让"加缓存"反而变成打垮数据库的放大器；分布式锁让多实例能跨进程互斥。</p>
-  <ul>
-    <li><strong>缓存策略</strong>：缓存不是加上就万事大吉，恶意/异常请求会绕过缓存打垮数据库。</li>
-    <li><strong>分布式锁</strong>：单体时一个 JVM 锁就够；多实例后跨进程互斥要靠大家都认的协调者，Redis 就是最常用那个。</li>
-  </ul>
-  <h3>横向对比：缓存三大问题的区别与应对</h3>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：缓存安全 + 跨进程互斥</h3>
+  <p>两块内容——①<strong>缓存三大问题（穿透/击穿/雪崩）</strong>：缓存不是加上就万事大吉，恶意/异常请求会绕过缓存打垮数据库（"放大器"）；②<strong>分布式锁</strong>：单体时 JVM 锁够用，多实例后跨进程互斥要靠共享协调者——Redis 是最常用的那个。</p>
+
+  <h3>1.2 横向对比：缓存三大问题</h3>
   <table>
     <colgroup><col style="width:16%"><col style="width:42%"><col style="width:42%"></colgroup>
     <thead><tr><th>问题</th><th>现象</th><th>应对</th></tr></thead>
@@ -576,6 +577,98 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <tr><td>雪崩</td><td>大量 key 同时过期，瞬时全部回源</td><td>过期时间加随机抖动，错峰失效</td></tr>
     </tbody>
   </table>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>三问题<strong>现象与应对一一对应</strong>地背下来；</li>
+    <li>讲清 <strong>setnx 手写锁三坑</strong>与 Redisson 对应解法；</li>
+    <li>理解<strong>看门狗续期机制</strong>与 leaseTime 的互斥关系；</li>
+    <li>落地<strong>按业务 id 加锁 + tryLock + isHeldByCurrentThread</strong> 标准姿势。</li>
+  </ol>
+  <p><strong>前置知识</strong>：04 Redis 缓存。<strong>难度</strong>：★★★★☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>六个核心模型：<strong>三大问题</strong>（总纲）→ <strong>手写锁三坑</strong>→ <strong>Redisson 可重入与看门狗</strong>→ <strong>Lua 原子性</strong>→ <strong>公平锁/读写锁/红锁取舍</strong>。</p>
+
+  <h3>2.1 三大问题：现象→应对</h3>
+  <p><span class="tag-key">穿透</span>：查不存在的数据永远 miss——<strong>缓存空值（短过期）/布隆过滤器</strong>前置拦截；<span class="tag-key">击穿</span>：单个热点 key 过期瞬间并发齐回源——<strong>逻辑不过期（后台异步刷新）或加锁重建单飞</strong>；<span class="tag-key">雪崩</span>：大量 key 同时过期（或 Redis 宕机）瞬时全回源——<strong>过期加随机抖动错峰 + 集群高可用兜底</strong>。</p>
+
+  <h3>2.2 为什么不手写 setnx 锁：三坑</h3>
+  <p>①<strong>误删别人锁</strong>：锁过期被别人抢到，自己 finally 的 delete 把人家的删了——判断+删除要原子（Lua）；②<strong>业务没干完锁先过期</strong>：要自动续期；③<strong>不可重入</strong>——生产直接用 Redisson。</p>
+
+  <h3>2.3 Redisson 可重入与看门狗</h3>
+  <p><span class="tag-key">可重入</span>：同线程多次加同一把锁不锁死自己（hash 结构计次）；<span class="tag-key">看门狗</span>：未指定 leaseTime 时默认 TTL=30s（lockWatchdogTimeout），后台<strong>每 1/3 过期时间续一次</strong>直到业务显式释放——解决"业务没干完锁先过期"。<span class="tag-pit">显式传 leaseTime 则看门狗不生效</span>。</p>
+
+  <h3>2.4 Lua 保证原子</h3>
+  <p>加锁/判断 value/删锁是多步操作——<strong>Redis 单线程执行 Lua 天然原子</strong>，不会被中途插入其他命令；Redisson 的加锁续期解锁全用 Lua 合成一次调用。</p>
+
+  <h3>2.5 公平锁/读写锁/红锁取舍</h3>
+  <p><strong>公平锁</strong>按请求顺序排队防饥饿，吞吐略低；<strong>读写锁</strong>读共享写互斥；<span class="tag-pit">红锁（RedLock）</span>：多独立节点多数派加锁——理论抗单点但争议大（Kleppmann 与 antirez 著名争论），<strong>不必盲目上</strong>，绝大多数场景单实例主从+Redisson 够用。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：Redisson 标准加锁</h3>
+<pre class="code" data-lang="java"><code>@Autowired
+private RedissonClient redisson;
+
+public void submitReq(Long reqId) {
+    RLock lock = redisson.getLock("lock:req:" + reqId);
+    try {
+        lock.lock();                    // 不指定 leaseTime → 看门狗自动续期
+        requirementService.doSubmit(reqId);   // 并发提交同一条需求，串行化
+    } finally {
+        if (lock.isHeldByCurrentThread()) lock.unlock(); // 只解自己持有的锁
+    }
+}</code></pre>
+
+  <h3>3.2 场景二：tryLock 带超时（防堆积）</h3>
+<pre class="code" data-lang="java"><code>RLock lock = redisson.getLock("lock:req:" + reqId);
+try {
+    if (!lock.tryLock(3, 30, TimeUnit.SECONDS)) {
+        throw new BizException("该需求正在被处理，请稍后", 40909);
+    }
+    doReview(reqId, cmd);   // 临界区：查最新状态 → 校验 → 更新
+} finally {
+    if (lock.isHeldByCurrentThread()) lock.unlock();
+}</code></pre>
+
+  <h3>3.3 场景三：三大问题的代码应对</h3>
+<pre class="code" data-lang="java"><code>// 雪崩：过期时间加随机抖动错峰失效
+int ttl = 30 * 60 + new Random().nextInt(300);   // 30min + 0~5min 随机
+redisTemplate.opsForValue().set(key, vo, ttl, TimeUnit.SECONDS);
+
+// 击穿：热点 key 重建加锁单飞
+RLock lock = redisson.getLock("lock:build:" + key);
+// 查到空才尝试拿锁重建，其余请求短暂等待后读缓存</code></pre>
+  <div class="note"><strong>手写 setnx 对照（反例）</strong>：setIfAbsent 有过期但业务没跑完锁就到点；delete 不判断 value 会误删；判断+删除两步非原子必须 Lua——<strong>结论：直接用 Redisson，别手写</strong>。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：Redisson 标准姿势已会。</p>
+
+  <h3>4.1 布隆过滤器的原理与代价</h3>
+  <p>位数组+多个哈希函数：插入置位、查询全 1 才"可能存在"——<strong>误判率存在但不会漏判</strong>（说不存在就一定不存在）；代价是不支持删除（计数布隆除外）、位数组要预估容量——适合"挡住明显非法 key"的穿透防线。</p>
+
+  <h3>4.2 缓存与数据库一致性进阶</h3>
+  <p>Cache-Aside 仍有小概率不一致（删缓存失败/读写交错）——增强手段：延迟双删、订阅 binlog 异步删（Canal）、过期时间兜底；<strong>先更库再删缓存</strong>的次序不能反（先删后更窗口更大）。</p>
+
+  <h3>4.3 主从切换下的锁失效窗口</h3>
+  <p>Redisson 锁写在主上，主挂了从晋升——<strong>未同步的锁丢失</strong>，两个客户端同时持锁的窗口存在；RedLock 试图解决但争议大；务实做法：锁只做"降低冲突概率"而非绝对安全，<strong>关键资金类操作兜底靠 DB 层条件更新/唯一约束</strong>（03 篇乐观锁呼应）。</p>
+
+  <h3>4.4 分布式锁 vs 数据库锁的分工</h3>
+  <p>Redis 锁挡"重复执行"（幂等/防并发提交）；DB 条件更新挡"最终正确性"（CAS 更新 where status=期望态）——<strong>两层都上</strong>：Redis 锁挡量、DB 条件保底，单独依赖任何一层都有窗口。</p>
+
+  <h3>4.5 热 key 与本地缓存的组合</h3>
+  <p>超热 key 打满单线程 Redis——两级缓存：应用内 Caffeine 存最热子集（短 TTL）+ Redis 兜底；热 key 探测（监控命令频率）后针对性加载；与击穿的"逻辑不过期"组合使用。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 170" role="img" aria-label="缓存三大问题对比图">
       <defs>
@@ -584,22 +677,16 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">缓存三大问题：穿透、击穿、雪崩（示意）</text>
-
-      <!-- 穿透 -->
       <rect x="30" y="45" width="240" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="150" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">穿透</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">查不存在的数据</text>
       <text x="50" y="115" font-size="11" fill="#4f6348">缓存永远 miss</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">应对：布隆过滤器 / 缓存空值</text>
-
-      <!-- 击穿 -->
       <rect x="285" y="45" width="240" height="110" rx="8" fill="#fefce8" stroke="#d97706"/>
       <text x="405" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">击穿</text>
       <text x="305" y="95" font-size="11" fill="#4f6348">单个热点 key 过期</text>
       <text x="305" y="115" font-size="11" fill="#4f6348">大量并发同时回源</text>
       <text x="305" y="137" font-size="11" font-weight="600" fill="#b45309">应对：加锁重建 / 热点不过期</text>
-
-      <!-- 雪崩 -->
       <rect x="540" y="45" width="230" height="110" rx="8" fill="#fee2e2" stroke="#dc2626"/>
       <text x="655" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">雪崩</text>
       <text x="560" y="95" font-size="11" fill="#4f6348">大量 key 同时过期</text>
@@ -628,39 +715,8 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="700" y="78" text-anchor="middle" font-size="12.5" font-weight="600" fill="#b45309">MySQL 被瞬时打高</text>
       <text x="400" y="150" text-anchor="middle" font-size="13" fill="#4f6348">正解：只让一个请求去重建缓存（单飞/加锁），其余等重建结果。</text>
     </svg>
-    <p class="diagram-caption">图 1 缓存击穿：热点 key 过期瞬间并发回源（示意）</p>
+    <p class="diagram-caption">图 2 缓存击穿：热点 key 过期瞬间并发回源（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 缓存穿透</h3>
-  <p class="lead"><b>一句话定位</b>：查根本不存在的数据，缓存永远 miss、每次都打 DB——应对是缓存空值或布隆过滤器。</p>
-  <ul>
-    <li><strong>应对</strong>：查空也缓存一个短过期空值；前面加布隆过滤器，明显不存在的 key 直接挡掉。</li>
-  </ul>
-  <h3>2.2 缓存击穿（热点 key）</h3>
-  <p class="lead"><b>一句话定位</b>：极热点 key 过期那一刻，成千上万个并发同时 miss、同时回源。</p>
-  <ul>
-    <li><strong>应对</strong>：热点数据逻辑不过期（后台异步刷新）；或重建加锁，只放一个请求查库重建、其余等。</li>
-  </ul>
-  <h3>2.3 缓存雪崩</h3>
-  <p class="lead"><b>一句话定位</b>：大量 key 同一时刻集中过期（或 Redis 宕机），瞬时全部回源压垮 DB。</p>
-  <ul>
-    <li><strong>应对</strong>：过期时间加随机抖动错峰失效；Redis 集群高可用兜底。</li>
-  </ul>
-  <h3>2.4 为什么需要分布式锁</h3>
-  <p class="lead"><b>一句话定位</b>：JVM 锁只管一个进程，多实例后两个实例同时执行临界代码就管不到——需要大家共享的锁。</p>
-  <ul>
-    <li><strong>典型场景</strong>：同一需求的并发提交、库存扣减。</li>
-  </ul>
-  <h3>2.5 setnx 手写锁的坑</h3>
-  <p class="lead"><b>一句话定位</b>：最朴素的 <code>SET key NX EX</code> 手写会踩一串坑——所以生产直接用 Redisson。</p>
-  <ul>
-    <li><strong>坑一</strong>：value 不是自己的就误删别人锁（判断+删除要原子，得用 Lua）。</li>
-    <li><strong>坑二</strong>：业务没执行完锁就过期了（要自动续期）。</li>
-    <li><strong>坑三</strong>：不可重入。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="手写锁与Redisson锁对比图">
       <defs>
@@ -669,44 +725,19 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">为什么不手写 setnx 锁？（示意）</text>
-
-      <!-- 手写锁 -->
       <rect x="30" y="45" width="350" height="100" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">手写 setnx 锁（坑多）</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">业务没干完锁就过期、可能误删别人锁</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">判断+删除非原子、不可重入</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#b91c1c">容易出并发问题，不推荐</text>
-
-      <!-- Redisson -->
       <rect x="420" y="45" width="350" height="100" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Redisson 锁（生产标配）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">看门狗自动续期、Lua 原子删锁</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">可重入、判断自己持锁才释放</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">开箱即用，别重复造轮子</text>
     </svg>
-    <p class="diagram-caption">图 2 手写锁 vs Redisson（示意）</p>
+    <p class="diagram-caption">图 3 手写锁 vs Redisson（示意）</p>
   </div>
-  <h3>2.6 Redisson 可重入锁与看门狗</h3>
-  <p class="lead"><b>一句话定位</b>：可重入=同线程多次加同一把锁不锁死自己；看门狗=后台定时续期直到业务释放。</p>
-  <ul>
-    <li><strong>解决</strong>：看门狗解决"业务没干完锁先过期"的问题。</li>
-  </ul>
-  <h3>2.7 Lua 脚本保证原子</h3>
-  <p class="lead"><b>一句话定位</b>：加锁、判断 value、删锁要"多步原子"，Redisson 用 Lua 合成一次调用。</p>
-  <ul>
-    <li><strong>原理</strong>：Redis 单线程执行 Lua，天然原子，不会被中途插入别的命令。</li>
-  </ul>
-  <h3>2.8 公平锁、读写锁、红锁的取舍</h3>
-  <p class="lead"><b>一句话定位</b>：默认可重入锁够用；红锁理论抗单点但争议大，绝大多数场景单实例主从+Redisson 就够。</p>
-  <ul>
-    <li><strong>公平锁</strong>：按请求顺序排队避免饥饿，代价是吞吐略低。</li>
-    <li><strong>红锁（RedLock）</strong>：向多个独立节点加锁、多数成功才算成功；争议大（Kleppmann 与 antirez 有著名争论），不必盲目上。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 Redisson 加锁 / 看门狗续期 / 释放</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="Redisson 分布式锁工作流程图">
       <defs>
@@ -733,141 +764,96 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="150" text-anchor="middle" font-size="13" fill="#4f6348">关键：加锁/续期/解锁都由 Lua 脚本原子执行，不会误删别人的锁。</text>
       <text x="400" y="178" text-anchor="middle" font-size="13" fill="#b45309">注意：若显式指定了 leaseTime，看门狗就不续期了——业务比过期久会提前释放。</text>
     </svg>
-    <p class="diagram-caption">图 2 Redisson 可重入锁与看门狗续期（示意）</p>
+    <p class="diagram-caption">图 4 Redisson 可重入锁与看门狗续期（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 三问题按"不存在/单热点/大量"区分；②图 4 看门狗链路——<strong>显式传 leaseTime 看门狗即失效</strong>是最常考细节。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统需求并发操作（同一需求多人同时处理、幂等提交）：我用 Redisson 实现可重入分布式锁；后端多实例部署时临界区必须跨实例互斥。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><span class="tag-key">锁粒度</span>：按需求 id 加锁 lock:req:{id}——同一需求串行、不同需求并行；</li>
+    <li><strong>看门狗</strong>：默认续期防"业务没完锁先过期"；</li>
+    <li><strong>幂等</strong>：关键提交接口先抢锁/查幂等键防重复提交；</li>
+    <li><strong>协作</strong>：与前端约定 409"正在处理"提示；锁 key 规范与超时参数后端统一评审。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>手写 setnx 不释放</strong>：进程持锁后崩溃没删 key——Redisson 带过期+看门狗，不手写裸 setnx；</li>
+    <li><span class="tag-pit">坑</span><strong>解锁解到别人的锁</strong>：锁过期被别人抢到，finally 误删——isHeldByCurrentThread 判断；</li>
+    <li><span class="tag-point">要点</span><strong>锁内别做长事务</strong>：持锁做重活拉长临界区，锁内只做必要更新。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>加锁</strong>：Lua 脚本原子地"key 不存在则设置，存在则计数+1（可重入）"。</li>
-    <li><strong>续期</strong>：未指定 leaseTime 时，Redisson 的 lockWatchdogTimeout 默认 30000ms（即加锁默认 TTL=30 秒），看门狗每隔 30/3=10 秒执行一次续期、每次把 TTL 续回 30 秒，直到业务显式释放锁。</li>
-    <li><strong>执行</strong>：业务在锁内执行，锁不会中途过期。</li>
-    <li><strong>释放</strong>：Lua 脚本判断是自己的锁才删，并停掉看门狗。</li>
+    <li><strong>量化</strong>：同一需求并发提交不再状态覆盖，重复提交被挡在锁/幂等层；</li>
+    <li><strong>可复用经验</strong>：用成熟客户端（Redisson 解决续期/可重入）；锁内要短；</li>
+    <li><strong>一句话抓手</strong>："Redisson 按需求 id 加可重入锁、靠看门狗续期保证并发一致性，踩过手写 setnx 不释放和误删别人锁的坑，所以一律用成熟客户端。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 Redisson 加锁标准写法</h3>
-<pre class="code" data-lang="java"><code>@Autowired
-private RedissonClient redisson;
-
-public void submitReq(Long reqId) {
-    RLock lock = redisson.getLock("lock:req:" + reqId);
-    try {
-        // 不指定 leaseTime → 看门狗自动续期
-        lock.lock();
-        // 业务：并发提交同一条需求，串行化执行
-        requirementService.doSubmit(reqId);
-    } finally {
-        if (lock.isHeldByCurrentThread()) lock.unlock(); // 只解自己持有的锁
-    }
-}</code></pre>
-  <h3>4.2 对比：手写 setnx 锁的问题</h3>
-<pre class="code" data-lang="java"><code>// 朴素写法的坑：
-// 1) setIfAbsent 有过期，但业务没跑完锁就到点释放了
-// 2) delete 时不判断 value，可能把别人的锁删了
-// 3) 判断+删除要分两步，非原子 → 必须 Lua，自己写极易错
-// 结论：直接用 Redisson，别手写。</code></pre>
-  <h3>4.3 缓存三大问题的代码应对</h3>
-<pre class="code" data-lang="java"><code>// 雪崩：过期时间加随机抖动，错峰失效
-int ttl = 30 * 60 + new Random().nextInt(300); // 30min + 0~5min 随机
-redisTemplate.opsForValue().set(key, vo, ttl, TimeUnit.SECONDS);
-
-// 击穿：热点 key 重建时加锁，单飞
-RLock lock = redisson.getLock("lock:build:" + key);
-// 查到空才尝试拿锁重建，其余请求短暂等待后读缓存</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 需求并发操作（如同一需求被多人同时处理、幂等提交）需要分布式锁保证一致性，用 Redisson。</p>
-  <ul><li><strong>业务量级</strong>：后端虽为单体部署多实例时，临界区操作必须跨实例互斥（估算多实例）。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：用 Redisson 实现可重入分布式锁，处理需求并发提交与接口幂等。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot + Redisson（基于 Redis）+ MySQL。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>锁粒度</strong>：按需求 id 加锁 <code>lock:req:{id}</code>，同一需求串行处理，不同需求并行。</li>
-    <li><strong>看门狗</strong>：用 Redisson 默认看门狗自动续期，避免业务没执行完锁先过期。</li>
-    <li><strong>幂等</strong>：关键提交接口先抢锁/查幂等键，防重复提交。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>RLock lock = redisson.getLock("lock:req:" + reqId);
-try {
-    if (!lock.tryLock(3, 30, TimeUnit.SECONDS)) {
-        throw new BizException("该需求正在被处理，请稍后", 40909);
-    }
-    // 临界区：查最新状态 → 校验 → 更新
-    doReview(reqId, cmd);
-} finally {
-    if (lock.isHeldByCurrentThread()) lock.unlock();  // 只解自己持有的锁
-}</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>手写 setnx 锁不释放</strong>：进程持锁后崩溃没删 key——用 Redisson 带过期 + 看门狗，不手写裸 setnx。</li>
-    <li><span class="tag-pit">坑</span><strong>解锁解到别人的锁</strong>：锁过期后被别人抢到，自己 finally 误删——<code>isHeldByCurrentThread</code> 判断。</li>
-    <li><span class="tag-point">要点</span><strong>锁内别做长事务</strong>：持锁做重活会拉长临界区，锁内只做必要更新。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>同一需求并发提交不再出现状态覆盖，重复提交被挡在锁/幂等层（冲突被拦截，估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>与前端约定 409"正在处理"提示并引导刷新；锁 key 规范与超时参数后端统一评审。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>用成熟客户端</strong>：Redisson 而非手写 setnx，续期/可重入都解决了。</li><li><strong>锁内要短</strong>。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 实践中常采用 Redisson 按需求 id 加可重入锁、靠看门狗续期保证并发一致性，踩过手写 setnx 不释放和误删别人锁的坑，所以一律用成熟客户端。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 手写 setnx 锁不判断 value 就 delete</h3>
-  <p class="lead"><b>一句话定位</b>：误删别人的锁——用 Redisson（Lua 原子判断+删除），别手写。</p>
-  <ul>
-    <li><strong>正解</strong>：用 Redisson（Lua 原子判断+删除），别手写。</li>
-  </ul>
-  <h3>6.2 指定了 leaseTime 却依赖看门狗续期</h3>
-  <p class="lead"><b>一句话定位</b>：传了 leaseTime、业务没跑完锁就没了——显式指定 leaseTime 后看门狗不生效。</p>
-  <ul>
-    <li><strong>正解</strong>：不确定执行时长就别传 leaseTime，交给看门狗。</li>
-  </ul>
-  <h3>6.3 缓存不过期/过期时间都一样</h3>
-  <p class="lead"><b>一句话定位</b>：大量 key 同时失效造成雪崩——过期加随机抖动。</p>
-  <ul>
-    <li><strong>正解</strong>：过期加随机抖动。</li>
-  </ul>
-  <h3>6.4 对不存在数据每次都查库</h3>
-  <p class="lead"><b>一句话定位</b>：缓存穿透——缓存空值或布隆过滤器。</p>
-  <ul>
-    <li><strong>正解</strong>：缓存空值 / 布隆过滤器。</li>
-  </ul>
-  <h3>6.5 盲目上红锁</h3>
-  <p class="lead"><b>一句话定位</b>：红锁复杂且有争议，多数场景过度设计。</p>
-  <ul>
-    <li><strong>正解</strong>：单主从 + Redisson 够用；确有跨多节点强一致需求再评估。</li>
-  </ul>
-  <h3>6.6 锁范围过大、把锁当万能</h3>
-  <p class="lead"><b>一句话定位</b>：临界区包太大、把慢操作也锁进去，并发暴跌。</p>
-  <ul>
-    <li><strong>正解</strong>：锁只包真正需要互斥的最小临界区。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 手写 setnx 不判断 value 就 delete</h3>
+  <p><strong>后果</strong>：误删别人的锁。<strong>正解</strong>：Redisson（Lua 原子判断+删除），别手写。</p>
+
+  <h3>7.2 指定 leaseTime 却依赖看门狗</h3>
+  <p><strong>现象</strong>：传了 leaseTime、业务没跑完锁就没了。<strong>原因</strong>：显式指定后看门狗不生效。<strong>正解</strong>：不确定时长就别传，交给看门狗。</p>
+
+  <h3>7.3 缓存不过期/过期时间都一样</h3>
+  <p><strong>后果</strong>：大量 key 同时失效成雪崩。<strong>正解</strong>：过期加随机抖动。</p>
+
+  <h3>7.4 对不存在数据每次都查库</h3>
+  <p><strong>现象</strong>：缓存穿透。<strong>正解</strong>：缓存空值/布隆过滤器。</p>
+
+  <h3>7.5 盲目上红锁</h3>
+  <p><strong>原因</strong>：红锁复杂且有争议，多数场景过度设计。<strong>正解</strong>：单主从+Redisson 够用；确有跨多节点强一致需求再评估。</p>
+
+  <h3>7.6 锁范围过大</h3>
+  <p><strong>现象</strong>：临界区包太大、慢操作也锁进去，并发暴跌。<strong>正解</strong>：锁只包真正需要互斥的最小临界区。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：缓存穿透、击穿、雪崩的区别与应对？</strong></p>
+  <p class="note"><strong>参考答案</strong>：按"什么 miss"区分——<strong>穿透</strong>：查<strong>根本不存在</strong>的数据，缓存永远 miss 每次打 DB（恶意请求），应对：缓存空值（短过期）+布隆过滤器前置拦截（不会漏判，说不存在就一定不存在）；<strong>击穿</strong>：某个<strong>热点 key</strong> 过期瞬间大量并发同时回源，应对：热点逻辑不过期（后台异步刷新）或加锁重建单飞（只放一个请求查库，其余等结果）；<strong>雪崩</strong>：<strong>大量 key 同时过期</strong>（或 Redis 宕机）瞬时全部回源，应对：过期时间加随机抖动错峰失效+Redis 集群高可用。三者共同本质：绕过缓存直击 DB。</p>
+
+  <p><strong>Q2：手写 setnx 分布式锁有哪些坑？Redisson 怎么解决？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三坑——①<strong>误删别人锁</strong>：锁过期被别的客户端抢到，原持有者 finally 的 delete 把人家的删了——判断 value 是自己的再删，且判断+删除必须原子（Lua）；②<strong>业务没执行完锁先过期</strong>：需要自动续期；③<strong>不可重入</strong>。<strong>Redisson 对应</strong>：可重入锁（hash 计次）+ 看门狗（未指定 leaseTime 时默认 TTL 30s，后台每 10s 续回 30s 直到显式释放）+ 加锁/续期/解锁全 Lua 原子执行 + isHeldByCurrentThread 只解自己的锁——<strong>生产直接用 Redisson，别手写</strong>。<strong>易错细节</strong>：显式传 leaseTime 后看门狗不生效。</p>
+
+  <p><strong>Q3：分布式锁能保证绝对安全吗？和数据库条件更新怎么配合？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>不能绝对</strong>——Redisson 锁写在主节点，主挂从未同步时锁丢失，存在双客户端同时持锁的窗口（RedLock 试图解决但争议大）；<strong>务实分工</strong>：Redis 锁挡"重复执行/并发提交"（降低冲突概率、做幂等），<strong>DB 层条件更新兜底最终正确性</strong>（UPDATE … WHERE status=期望态/version=…，影响行数 0 即冲突）——关键状态流转两层都上：Redis 锁挡量、DB CAS 保底。另注意：锁粒度按业务 id（lock:req:{id}）不同资源并行、tryLock 带超时防请求堆积、锁内只放最小临界区。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>三问题的现象区分与应对？布隆过滤器为什么"不漏判"？</li>
+    <li>setnx 三坑与 Redisson 三解？</li>
+    <li>看门狗的默认 TTL 与续期节奏？leaseTime 的影响？</li>
+    <li>Lua 为什么能保证原子？</li>
+    <li>红锁的争议是什么？什么时候才考虑？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与深入阅读</h3>
   <ul>
-    <li>Redisson 官方文档（分布式锁/可重入/看门狗）：<a href="https://github.com/redisson/redisson/wiki" rel="noopener">github.com/redisson/redisson/wiki</a></li>
-    <li>Redis 官方分布式锁规范（Distributed Locks）：<a href="https://redis.io/docs/latest/developuse/patterns/distributed-locks/" rel="noopener">redis.io distributed-locks</a></li>
+    <li>Redisson Wiki（锁/看门狗）：<a href="https://github.com/redisson/redisson/wiki" rel="noopener">github.com/redisson/redisson/wiki</a>；Redis 分布式锁规范：redis.io distributed-locks</li>
+    <li>Kleppmann "How to do distributed locking" 与 antirez 回应——理解红锁争议两方观点。</li>
   </ul>
-  <h3>深入阅读</h3>
-  <ul>
-    <li>Martin Kleppmann 对 RedLock 的批评（"How to do distributed locking"）：可搜索标题。</li>
-    <li>antirez（Redis 作者）的回应：理解红锁争议的两方观点。</li>
-  </ul>
-  <h3>书籍</h3>
-  <ul>
-    <li>《Redis 开发与运维》——缓存穿透/击穿/雪崩与分布式锁的实战章节。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>手写 setnx 锁复现"误删别人锁"与"业务未完锁过期"两坑，再用 Redisson 修复；</li>
+    <li>压测同一 key：无抖动批量设置同 TTL vs 加随机抖动，观察回源峰值差异；</li>
+    <li>给热点 key 实现"加锁重建单飞"，对比无锁重建的 DB QPS。</li>
+  </ol>
 </section>
 
 </main>

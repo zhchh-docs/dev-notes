@@ -542,31 +542,125 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../08_数据库与建模/05_Redis进阶_缓存策略与分布式锁【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/10_PowerDesigner数据库建模【基础】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/07_Elasticsearch搜索引擎【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：两个方向——高可用（主从副本，主挂切从不宕机）、扩展性（读写分离分摊读、分库分表拆数据）。</p>
-  <ul>
-    <li><strong>高可用</strong>：主库挂了能切从库，不能单点挂。</li>
-    <li><strong>读写分离</strong>：读多写少时把读压力分摊到多个从库。</li>
-    <li><strong>分库分表</strong>：数据量超单机容量时把单表/单库拆开——层层递进，先优化单库、再读写分离、再分片。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：高可用 + 扩展性两个方向</h3>
+  <p>两件事——<strong>高可用</strong>：主从副本，主挂切从不宕机（不能单点）；<strong>扩展性</strong>：读写分离分摊读压力、分库分表拆数据。<strong>层层递进</strong>：先优化单库 → 再读写分离 → 最后分片——<span class="tag-key">分库分表是最后手段</span>，代价很高。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>讲清<strong>主从复制原理</strong>与异步/半同步差异；</li>
+    <li>理解<strong>主从延迟</strong>的应对（读自己写走主库）；</li>
+    <li>分清<strong>垂直拆分 vs 水平拆分</strong>与分片键选择；</li>
+    <li>建立"<strong>先归档再分片</strong>"的演进判断。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01-03 MySQL。<strong>难度</strong>：★★★☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>主从复制</strong>→ <strong>读写分离</strong>→ <strong>主从延迟</strong>→ <strong>垂直/水平拆分</strong>→ <strong>分片键与 ShardingSphere</strong>。</p>
+
+  <h3>2.1 主从复制原理</h3>
+  <p>主库把写操作记 <strong>binlog</strong>，从库拉取并重放保持一致。<strong>异步复制</strong>（MySQL 默认）：主写完就返回不等从库确认——性能好但宕机可能丢少量已提交数据；<strong>半同步</strong>：至少一个从库收到才返回——要强一致时选它。</p>
+
+  <h3>2.2 读写分离与主从延迟</h3>
+  <p>写走主、读走从，由中间件（ShardingSphere/ProxySQL）或应用层路由。<span class="tag-pit">主从延迟</span>：刚写完主库立刻读从库可能读不到——"我刚提交的怎么没了"。<strong>应对</strong>：关键操作后的"读自己写"走主库；或业务容忍短暂延迟。</p>
+
+  <h3>2.3 垂直拆分 vs 水平拆分</h3>
+  <p><strong>垂直</strong>：按业务切表——用户库/订单库/商品库各自独立（解决业务耦合、单库太大）；<strong>水平</strong>：按行拆——同一张大表按分片键拆成 t_order_0/1/2（解决单表数据量太大）。<span class="tag-key">记忆</span>：垂直是"按业务切"，水平是"按行切"。</p>
+
+  <h3>2.4 分片键与 ShardingSphere</h3>
+  <p>水平分片最关键是<strong>选分片键</strong>——绝大多数查询都带它，否则扫所有分片（广播查询比不分片还慢）；工具用 <strong>ShardingSphere</strong>（JDBC/Proxy 层）做分片路由与读写分离，侵入小。<span class="tag-pit">代价</span>：跨分片 join、分布式事务、全局唯一 id 都变复杂。</p>
+
+  <h3>2.5 分片算法与全局 ID</h3>
+  <p><strong>MOD 取模</strong>分布均匀但扩缩容要大规模迁移；<strong>范围分片</strong>（按时间区间）便于归档与范围查询；一致性哈希扩容只迁少量数据——按业务特征选。<strong>全局 id</strong>：分库后自增会冲突，用<strong>雪花算法</strong>（趋势递增、本地生成）；<span class="tag-pit">Snowflake 注意时钟回拨</span>——NTP 回拨可能重复 id，回拨小等待、大报错切号段，或用号段模式（美团 Leaf）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：演进顺序判断（什么时候才分库分表）</h3>
+  <ol>
+    <li><strong>先优化单库</strong>：加索引、优化慢 SQL、表结构——能扛就不拆；</li>
+    <li><strong>再加缓存+读写分离</strong>：Redis 挡热点、主从分摊读；</li>
+    <li><strong>数据量真到瓶颈才分库分表</strong>：单表千万级、单库 CPU/磁盘撑不住。<span class="tag-key">原则：能不拆就不拆</span>——分片引入分布式事务/跨分片查询/扩容再分片等新复杂度。</li>
+  </ol>
+
+  <h3>3.2 场景二：ShardingSphere-JDBC 分片配置</h3>
+<pre class="code" data-lang="yaml"><code># 逻辑表 t_order 按 order_id 取模分到两个库两表
+spring:
+  shardingsphere:
+    datasource:
+      names: ds0,ds1
+    rules:
+      sharding:
+        tables:
+          t_order:
+            actual-data-nodes: ds$-&gt;{0..1}.t_order_$-&gt;{0..1}
+            table-strategy:
+              standard:
+                sharding-column: order_id
+                sharding-algorithm-name: mod
+            key-generate:           # 分布式 id
+              column: order_id
+              key-generator-name: snowflake
+        sharding-algorithms:
+          mod:
+            type: MOD
+            props: { sharding-count: 4 }</code></pre>
+
+  <h3>3.3 场景三：历史数据归档（比分片先做）</h3>
+<pre class="code" data-lang="sql"><code>-- 按月归档：N 个月前的告警搬入归档表，在线表只留近期
+INSERT INTO alarm_archive_2026_06
+SELECT * FROM alarm WHERE ts &lt; '2026-07-01';
+DELETE FROM alarm WHERE ts &lt; '2026-07-01';
+-- 注意分批小事务，防止一次搬太多行长事务锁表。</code></pre>
+  <div class="note"><strong>经验</strong>：归档大事务要分批；<strong>先归档再谈分片</strong>——能用冷热分离解决就别上分片。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：主从与分片概念已会。</p>
+
+  <h3>4.1 主从延迟的量化与治理</h3>
+  <p><code>SHOW SLAVE STATUS</code> 的 Seconds_Behind_Master 看延迟；大事务/从库单线程重放/从库负载高是常见原因（并行复制可缓解）；治理：拆大事务、从库与主库同配置、监控告警延迟阈值。</p>
+
+  <h3>4.2 高可用切换方案谱系</h3>
+  <p><strong>MHA/Orchestrator</strong>（外部选主提升从库）→ <strong>MGR/组复制</strong>（MySQL 原生多数派）→ <strong>云托管高可用</strong>（云厂商自动切换）——切换都伴随"异步复制可能丢最后几笔"的窗口；选型按团队运维能力与 RPO 要求。</p>
+
+  <h3>4.3 跨分片查询与分布式事务</h3>
+  <p>跨分片 join 尽量在应用层组装（分片键相同的关联数据放同一分片=<strong>绑定表</strong>）；跨分片事务能避免就避免，必须时要 Seata 类方案——<strong>分片前先想清楚这类查询是否存在</strong>。</p>
+
+  <h3>4.4 扩容再平衡（resharding）</h3>
+  <p>分片数固定后扩容要重新分布数据——双写迁移（新旧分片同时写+数据搬迁+读切换）是标准姿势；<strong>这也是"初始分片数留余量"的原因</strong>（如按 2 的幂规划）。</p>
+
+  <h3>4.5 冷热分离与分区表的边界</h3>
+  <p><strong>分区表</strong>（MySQL partition）：单库内按分区裁剪扫描，不用引入中间件但仍是单机容量；<strong>冷热分离</strong>：热表在线+冷表归档/对象存储；两者常在分库分表<strong>之前</strong>就够用——"归档优先"的工具箱。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="主从复制与读写分离架构示意图">
       <defs>
@@ -590,31 +684,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 主从复制与读写分离架构（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 主从复制原理</h3>
-  <p class="lead"><b>一句话定位</b>：主库把写操作记 binlog，从库拉取并重放保持一致——MySQL 默认异步复制。</p>
-  <ul>
-    <li><strong>异步复制</strong>：主库写完就返回、不等从库确认，性能好但宕机可能丢少量已提交数据。</li>
-    <li><strong>半同步复制</strong>：至少一个从库收到才返回，要强一致时选它。</li>
-  </ul>
-  <h3>2.2 读写分离</h3>
-  <p class="lead"><b>一句话定位</b>：写走主库、读走从库，由中间件（ShardingSphere/ProxySQL）或应用层路由。</p>
-  <ul>
-    <li><strong>代价</strong>：主从延迟——刚写完主库立刻读从库，可能读不到。</li>
-  </ul>
-  <h3>2.3 主从延迟与一致性</h3>
-  <p class="lead"><b>一句话定位</b>：写完立刻读从库、数据还没同步，用户看到"我刚提交的怎么没了"。</p>
-  <ul>
-    <li><strong>应对</strong>：关键操作后的"读自己写"走主库；或业务容忍短暂延迟。</li>
-  </ul>
-  <h3>2.4 垂直拆分与水平拆分</h3>
-  <p class="lead"><b>一句话定位</b>：垂直分库按业务切表（用户库/订单库），水平分表按分片键把一张大表按行拆。</p>
-  <ul>
-    <li><strong>区分</strong>：垂直是"按业务切"，水平是"按行切"。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 170" role="img" aria-label="垂直拆分与水平拆分对比图">
       <defs>
@@ -623,40 +692,19 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">垂直拆分 vs 水平拆分（示意）</text>
-
-      <!-- 垂直拆分 -->
       <rect x="30" y="45" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">垂直拆分（按业务切表）</text>
       <text x="50" y="95" font-size="11" fill="#4f6348">用户库、订单库、商品库各自独立</text>
       <text x="50" y="117" font-size="11" fill="#4f6348">不同业务的表拆到不同库</text>
       <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">解决：业务耦合、单库太大</text>
-
-      <!-- 水平拆分 -->
       <rect x="420" y="45" width="350" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">水平拆分（按行拆表）</text>
       <text x="440" y="95" font-size="11" fill="#4f6348">同一张大表按分片键拆成 N 张表</text>
       <text x="440" y="117" font-size="11" fill="#4f6348">比如 t_order_0 / t_order_1 / t_order_2</text>
       <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">解决：单表数据量太大</text>
     </svg>
-    <p class="diagram-caption">图 1 垂直拆分 vs 水平拆分（示意）</p>
+    <p class="diagram-caption">图 2 垂直拆分 vs 水平拆分（示意）</p>
   </div>
-  <h3>2.5 分片键与 ShardingSphere</h3>
-  <p class="lead"><b>一句话定位</b>：水平分片最关键是选分片键——绝大多数查询都带它，否则要扫所有分片。</p>
-  <ul>
-    <li><strong>工具</strong>：Java 生态常用 ShardingSphere（JDBC/Proxy 层）做分片路由与读写分离，对业务侵入小。</li>
-    <li><strong>代价</strong>：跨分片 join、分布式事务、全局唯一 id 都变复杂。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 演进顺序：什么时候才需要分库分表</h3>
-  <p>分库分表是"最后手段"，代价很高。标准演进是：</p>
-  <ol>
-    <li><strong>先优化单库</strong>：加索引、优化慢 SQL、表结构——能扛就不拆。</li>
-    <li><strong>再加缓存 + 读写分离</strong>：把读压力分摊、用 Redis 挡热点。</li>
-    <li><strong>数据量真到瓶颈才分库分表</strong>：单表千万级、单库 CPU/磁盘撑不住。</li>
-  </ol>
   <div class="diagram">
     <svg viewBox="0 0 800 160" role="img" aria-label="数据库扩展演进路径图">
       <defs>
@@ -677,116 +725,91 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="650" y="99" text-anchor="middle" font-size="11" fill="#4f6348">代价高，慎入</text>
       <text x="400" y="140" text-anchor="middle" font-size="13" fill="#4f6348">原则：能不拆就不拆——分库分表会引入分布式事务、跨分片查询、扩容再分片等新复杂度。</text>
     </svg>
-    <p class="diagram-caption">图 2 数据库扩展性的递进演进（示意）</p>
+    <p class="diagram-caption">图 3 数据库扩展性的递进演进（示意）</p>
   </div>
+  <p><strong>读图要点</strong>：①图 1 延迟标注——异步复制是延迟的根源；②图 3 演进是<strong>递进的</strong>——每一步的代价递增，"能不拆就不拆"。</p>
 </section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 ShardingSphere-JDBC 分片配置</h3>
-<pre class="code" data-lang="yaml"><code># 逻辑表 order 按 order_id 取模分到两个库
-spring:
-  shardingsphere:
-    datasource:
-      names: ds0,ds1
-    rules:
-      sharding:
-        tables:
-          t_order:
-            actual-data-nodes: ds$->{0..1}.t_order_$->{0..1}
-            table-strategy:
-              standard:
-                sharding-column: order_id
-                sharding-algorithm-name: mod
-            key-generate:           # 分布式 id
-              column: order_id
-              key-generator-name: snowflake
-        sharding-algorithms:
-          mod:
-            type: MOD
-            props: { sharding-count: 4 }</code></pre>
-  <h3>4.2 全局唯一 ID</h3>
-  <p>分库后自增主键会冲突，要用全局唯一 id：雪花算法（Snowflake，趋势递增、本地生成不依赖中心）是常用方案，ShardingSphere 自带。</p>
-  <p><strong>Snowflake 注意时钟回拨</strong>：它依赖本机时间生成高位时间戳，若 NTP 把时钟往回拨，可能生成重复 id。常见对策：回拨小就等待、回拨大就报错切换号段；也可用号段模式（segment / 美团 Leaf）替代，趋势递增但不依赖严格时钟。</p>
-  <p><strong>分片算法不止 MOD</strong>：MOD 取模分布均匀，但扩缩容要大规模迁移数据；范围分片（按时间区间）便于归档与范围查询、一致性哈希可让扩容只迁少量数据，按业务特征选型。</p>
-  <div class="note">经验：分片键要选"高频查询都带、且分布均匀"的列。选错分片键会导致大量广播查询（扫所有分片），比不分片还慢。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 用单主 MySQL；数据可视化大屏项目的历史告警数据随时间累积，需要高可用与归档/扩容方案评估。</p>
-  <ul><li><strong>业务量级</strong>：核心业务单库可承载；历史告警表持续增长（估算到百万~千万行）。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：评估主从复制/读写分离与历史数据归档方案；大屏历史数据定期归档。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：MySQL 主从（评估）+ 读写分离思路；历史数据归档脚本；分库分表 ShardingSphere 仅作方案评估。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>高可用</strong>：评估一主多从，读请求走从库、写走主库，主挂提升从库。</li>
-    <li><strong>归档优先</strong>：历史告警按月归档到归档表/冷存储，在线表只留近期数据，而不是一开始就分库分表。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="sql"><code>-- 按月归档：把 N 个月前的告警搬入归档表，在线表只保留近期
-INSERT INTO alarm_archive_2026_06
-SELECT * FROM alarm WHERE ts &lt; '2026-07-01';
-DELETE FROM alarm WHERE ts &lt; '2026-07-01';</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>过早分库分表</strong>：数据量还没到就引入分片，复杂度翻倍——先归档、读写分离，分片留作扩容手段。</li>
-    <li><span class="tag-pit">坑</span><strong>归档大事务锁表</strong>：一次搬太多行长事务锁表——分批小事务搬。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>在线告警表体积受控，近期查询不受历史数据拖累；主从/读写分离作为高可用基线方案（归档分批，估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>归档任务在低峰定时跑；高可用方案与运维/DBA 一起评估主从切换。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>先归档再分片</strong>：能用冷热分离解决就别上分片。</li><li><strong>分批处理大迁移</strong>。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"我给大屏历史告警做按月归档、评估主从读写分离，坚持先归档再谈分库分表，避免过早引入分片复杂度。"</p>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 读写分离后"刚写的查不到"</h3>
-  <p class="lead"><b>一句话定位</b>：主从延迟，读从库还没同步——写后关键读走主库。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统单主 MySQL；大屏项目历史告警持续增长（百万~千万行估算），我负责评估主从/读写分离与历史数据归档方案；ShardingSphere 仅作方案评估。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>正解</strong>：写后关键读走主库；业务容忍短暂延迟。</li>
+    <li><strong>高可用</strong>：评估一主多从——读走从库写走主库，主挂提升从库；</li>
+    <li><span class="tag-key">归档优先</span>：历史告警按月归档到归档表/冷存储，在线表只留近期——<strong>而不是一开始就分库分表</strong>；</li>
+    <li><strong>协作</strong>：归档低峰定时跑；高可用方案与运维/DBA 一起评估主从切换。</li>
   </ul>
-  <h3>6.2 过早分库分表</h3>
-  <p class="lead"><b>一句话定位</b>：单库还能扛就分片，白白背上分布式复杂度。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>正解</strong>：先优化、再加缓存读写分离，真到瓶颈再分片。</li>
+    <li><span class="tag-pit">坑</span><strong>过早分库分表</strong>：数据量没到就引入分片复杂度翻倍——先归档、读写分离，分片留作扩容手段；</li>
+    <li><span class="tag-pit">坑</span><strong>归档大事务锁表</strong>：一次搬太多行长事务锁表——分批小事务搬。</li>
   </ul>
-  <h3>6.3 分片键选错</h3>
-  <p class="lead"><b>一句话定位</b>：高频查询不带分片键，每次广播扫全部分片。</p>
-  <ul>
-    <li><strong>正解</strong>：分片键选高频查询都带、分布均匀的列。</li>
-  </ul>
-  <h3>6.4 分片后还用自增主键</h3>
-  <p class="lead"><b>一句话定位</b>：多分片自增会冲突——用雪花算法等全局唯一 id。</p>
-  <ul>
-    <li><strong>正解</strong>：用雪花算法等全局唯一 id。</li>
-  </ul>
-  <h3>6.5 以为主从 = 强一致</h3>
-  <p class="lead"><b>一句话定位</b>：异步复制下主库宕机可能丢数据——了解异步/半同步差异。</p>
-  <ul>
-    <li><strong>正解</strong>：了解异步/半同步差异，按一致性要求选择。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：在线告警表体积受控，近期查询不受历史数据拖累；主从/读写分离作为高可用基线（归档分批估算）；</li>
+    <li><strong>可复用经验</strong>：先归档再分片（冷热分离能解决就别上分片）；分批处理大迁移；</li>
+    <li><strong>一句话抓手</strong>："给大屏历史告警做按月归档、评估主从读写分离，坚持先归档再谈分库分表，避免过早引入分片复杂度。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
-  <h3>官方文档</h3>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 读写分离后"刚写的查不到"</h3>
+  <p><strong>原因</strong>：主从延迟，从库还没同步。<strong>正解</strong>：写后关键读走主库；业务容忍短暂延迟。</p>
+
+  <h3>7.2 过早分库分表</h3>
+  <p><strong>原因</strong>：单库还能扛就分片，白背分布式复杂度。<strong>正解</strong>：先优化、再缓存读写分离，真到瓶颈再分片。</p>
+
+  <h3>7.3 分片键选错</h3>
+  <p><strong>现象</strong>：高频查询不带分片键，每次广播扫全部分片。<strong>正解</strong>：分片键选高频查询都带、分布均匀的列。</p>
+
+  <h3>7.4 分片后还用自增主键</h3>
+  <p><strong>现象</strong>：多分片自增冲突。<strong>正解</strong>：雪花算法等全局唯一 id（注意时钟回拨）。</p>
+
+  <h3>7.5 以为主从 = 强一致</h3>
+  <p><strong>原因</strong>：异步复制下主库宕机可能丢数据。<strong>正解</strong>：了解异步/半同步差异，按一致性要求选择。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：主从复制的原理？异步与半同步的差异？主从延迟怎么应对？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>原理</strong>——主库写操作记 binlog，从库 IO 线程拉取、SQL 线程重放保持一致；写走主、读分摊到从（读写分离由 ShardingSphere/ProxySQL 或应用层路由）。<strong>异步</strong>（MySQL 默认）：主写完就返回不等从库确认，性能好但宕机可能丢少量已提交数据；<strong>半同步</strong>：至少一个从库收到 binlog 才返回，RPO 更强。<strong>主从延迟应对</strong>：写后"读自己写"的关键操作走主库、业务容忍短暂延迟、监控 Seconds_Behind_Master、拆大事务+并行复制缓解。</p>
+
+  <p><strong>Q2：垂直拆分与水平拆分的区别？分片键怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>垂直</strong>按业务切——用户/订单/商品库各自独立，解决业务耦合与单库过大；<strong>水平</strong>按行切——一张大表按分片键拆成 N 张表，解决单表数据量太大。<strong>分片键三标准</strong>：①高频查询都带它（否则广播扫全部分片，比不分片还慢）；②分布均匀（避免数据倾斜）；③尽量让关联数据落在同一分片（绑定表减少跨分片 join）。<strong>算法</strong>：MOD 均匀但扩容大迁移、范围分片便于归档与范围查询、一致性哈希扩容迁少量——按业务特征选；全局 id 用雪花算法（注意时钟回拨）。</p>
+
+  <p><strong>Q3：什么时候才该分库分表？比它先做什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>递进演进</strong>——①先优化单库（索引/慢 SQL/表结构）；②再加缓存+读写分离（Redis 挡热点、主从分摊读）；③数据量真到瓶颈（单表千万级、单机 CPU/磁盘撑不住）才分库分表。<strong>原则：能不拆就不拆</strong>——分片引入分布式事务、跨分片查询、扩容再分片（resharding 双写迁移）等新复杂度。<strong>比分片先做的</strong>：历史数据按月<strong>归档</strong>（冷热分离，在线表只留近期，分批小事务防锁表）、分区表裁剪——本套技术栈实战就是"先归档再谈分片"。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>复制原理与异步/半同步差异？延迟的应对？</li>
+    <li>垂直 vs 水平？分片键三标准？</li>
+    <li>雪花算法的时钟回拨问题与对策？</li>
+    <li>扩展性演进三步？"能不拆就不拆"的理由？</li>
+    <li>归档为什么要在分片之前？归档大事务怎么办？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
+  <h3>官方文档与书籍</h3>
   <ul>
-    <li>MySQL 主从复制官方手册：<a href="https://dev.mysql.com/doc/refman/8.0/en/replication.html" rel="noopener">dev.mysql.com/replication</a></li>
-    <li>Apache ShardingSphere 官方文档（分片/读写分离）：<a href="https://shardingsphere.apache.org/document/" rel="noopener">shardingsphere.apache.org</a></li>
+    <li>MySQL 复制官方手册：<a href="https://dev.mysql.com/doc/refman/8.0/en/replication.html" rel="noopener">dev.mysql.com/replication</a>；ShardingSphere：<a href="https://shardingsphere.apache.org/document/" rel="noopener">shardingsphere.apache.org</a></li>
+    <li>《高性能 MySQL》复制与扩展性章节；《DDIA》——分布式复制与一致性权威。</li>
   </ul>
-  <h3>书籍与实践</h3>
-  <ul>
-    <li>《高性能 MySQL》——主从复制、扩展性章节。</li>
-    <li>《数据密集型应用系统设计》（DDIA）——分布式数据复制与一致性的权威视角。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>搭一主一从，写后立刻读从库复现延迟，再走主库验证"读自己写"；</li>
+    <li>用 ShardingSphere-JDBC 把一张表按 MOD 分两库，观察带/不带分片键的查询路由；</li>
+    <li>对百万行表做分批归档（每批 5000），对比单事务全量搬的锁表现。</li>
+  </ol>
 </section>
 
 </main>
@@ -794,7 +817,7 @@ DELETE FROM alarm WHERE ts &lt; '2026-07-01';</code></pre>
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../08_数据库与建模/05_Redis进阶_缓存策略与分布式锁【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../08_数据库与建模/10_PowerDesigner数据库建模【基础】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/07_Elasticsearch搜索引擎【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 数据库高可用与分库分表【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
