@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/04_Socket.io实战【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../04_实时通信/06_Janus网关【深入】.html">下一篇 →</a>
 </nav>
@@ -548,33 +548,176 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：让浏览器之间直接做实时音视频与数据传输的开源标准，2011 年 Google 开源后捐给 W3C/IETF。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：浏览器原生的实时音视频标准</h3>
+  <p>WebRTC 是让浏览器直接做实时音视频与数据传输的开源标准（API 侧 W3C webrtc-pc、协议侧 IETF）。<span class="tag-key">三大家族 API</strong>：<code>getUserMedia()</code>（采集）、<code>RTCPeerConnection</code>（建连与媒体传输）、<code>RTCDataChannel</code>（P2P 数据通道）。<strong>关键心智模型</strong>：WebRTC 本身<strong>不含信令服务器</strong>——浏览器怎么"认识彼此"要自己搭（WebSocket 都行），WebRTC 只管之后的媒体面。它消灭了 ActiveX 插件（绑定 IE/安全告警）与 HLS 的 3-30s 延迟：浏览器直接拿 SRTP 加密包，端到端 200-500ms。<strong>代价</strong>：把 NAT 打通/编解码协商/质量保障的复杂度暴露成前端要懂的协议细节。</p>
+
+  <h3>1.2 横向对比与架构取舍</h3>
   <ul>
-    <li><strong>标准化</strong>：浏览器侧 API 由 W3C <code>webrtc-pc</code> 定义，协议侧（ICE/STUN/TURN、SDP、SRTP/DTLS）由 IETF 定。</li>
-    <li><span class="tag-key">关键</span><strong>三大家族 API</strong>：<code>getUserMedia()</code>（采集摄像头/麦克风/屏幕）、<code>RTCPeerConnection</code>（建连与媒体传输）、<code>RTCDataChannel</code>（P2P 任意数据通道）。</li>
+    <li><strong>vs 插件方案</strong>：零安装跨浏览器 vs 每机重装插件过审计——去插件化是本项目改造的核心动机；</li>
+    <li><strong>vs HLS/HTTP-FLV</strong>：延迟硬指标决定取舍——看回放用 HLS（CDN 生态），实时看现场用 WebRTC（<strong>强依赖 UDP，企业网封 UDP 要靠 TURN 中继</strong>）；</li>
+    <li><span class="tag-key">关键</span><strong>P2P vs SFU</strong>：浏览器对浏览器是真 P2P；但监控是"多路源 × N 观看者"，P2P 会让源端带宽爆炸——正确做法是中间架 <strong>SFU（只转发不混流）</strong>，各端只和 SFU 建一条连接——本项目选 Janus 的原因（06 篇）。</li>
   </ul>
-  <p class="key-sentence">关键心智模型：WebRTC 本身不含信令服务器——浏览器怎么"认识彼此、交换 SDP"要自己搭（WebSocket/HTTP 都行），WebRTC 只负责之后的媒体面。</p>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：它消灭了浏览器端插件（Flash/ActiveX）与高延迟的流式转发。</p>
-  <ul>
-    <li><strong>过去的痛点</strong>：监控/会议/客服直播要么要求装 ActiveX 插件（IE 专属、安全告警、换机就崩），要么走 HTTP-FLV/HLS 经 CDN 转发（延迟 3-30 秒）。</li>
-    <li><strong>WebRTC 带来</strong>：浏览器直接拿到 SRTP 加密的 RTP 包，端到端延迟压到 200-500ms，无需安装任何东西。</li>
-  </ul>
-  <p class="pit-sentence">代价：它把"怎么打通 NAT、怎么协商编解码、怎么保质量"这些原本藏在流媒体服务器里的复杂度，部分暴露成了前端要懂的协议细节。</p>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>吃透 <strong>RTCPeerConnection 状态机</strong>与 offer/answer 协商；</li>
+    <li>理解 <strong>ICE/STUN/TURN</strong> 找路与兜底；<strong>DTLS-SRTP</strong> 加密链；</li>
+    <li>掌握<strong>接收端 recvonly 标准写法</strong>（本篇中心代码）；</li>
+    <li>用 <strong>getStats 做质量可观测与自愈</strong>；</li>
+    <li>避开六条高频坑。</li>
+  </ol>
+  <p><strong>前置知识</strong>：01 篇协议栈、02 篇 WebSocket（信令）。<strong>难度</strong>：★★★★☆。<strong>本篇不涉及</strong>：Janus 服务端细节（06 篇）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>八个核心模型：<strong>RTCPeerConnection</strong>（总纲）→ <strong>MediaStream/Track</strong>→ <strong>SDP</strong>→ <strong>ICE</strong>→ <strong>STUN/TURN</strong>→ <strong>DTLS-SRTP</strong>→ <strong>信令</strong>→ <strong>getStats</strong>。</p>
+
+  <h3>2.1 RTCPeerConnection：严格状态机</h3>
+  <p>WebRTC 核心对象，抽象"一条到对端的实时连接"，<strong>内部聚合四件事</strong>：本地/远端 SDP、ICE 代理（找路）、DTLS 握手（密钥协商）、SRTP 传输栈+JitterBuffer。不碰 DOM——产出 MediaStreamTrack 要挂 video 或喂 Canvas。<span class="tag-pit">坑</span>它是状态机（new→have-local-offer→stable…），<strong>状态乱跳就是"协商失败"的根源</strong>。</p>
+
+  <h3>2.2 MediaStream 与 Track</h3>
+  <p>MediaStream 是"一组轨"容器，每根 Track 一路视频/音频（kind/id/enabled）；接收侧 <code>pc.ontrack</code> 拿远端轨，<code>video.srcObject = event.streams[0]</code> 即播。<strong>本项目做法</strong>：不用 video 黑盒，把视频轨绘到 Canvas——<strong>叠加监控 OSD（时间戳/通道名/状态字）并统一多路绘制节奏</strong>。</p>
+
+  <h3>2.3 SDP：一段文本描述，交换即协商</h3>
+  <p>描述编解码（m=video 行 payload type、a=rtpmap/fmtp 的 H.264 profile）、媒体端口、加密 fingerprint、ICE 凭据；offer 列自己会的、answer 从交集选最终参数。<span class="tag-key">要点</span>：offer/answer 必须<strong>一次完整往返</strong>才进 stable，中途改要走重协商。</p>
+
+  <h3>2.4 ICE：NAT 后找一条能通的路</h3>
+  <p><strong>收集候选</strong>：host（本机网卡）/srflx（STUN 反推公网映射）/relay（TURN 中继）；候选经信令互发，对每个候选对做 STUN 连通性检查，按优先级选第一个打通的；<strong>对称型 NAT 打洞失败回落 TURN 中继</strong>。</p>
+
+  <h3>2.5 STUN 与 TURN</h3>
+  <p><strong>STUN</strong>：轻量反问"我公网地址是啥"（RFC 5389）；<strong>TURN</strong>：打不通时中继转发（RFC 5766，生产用 coturn），代价是带宽与延迟。<strong>判断走没走中继</strong>：getStats 看 selected pair 的 candidateType——host/srflx 直连、relay 中继。</p>
+
+  <h3>2.6 DTLS-SRTP：强制加密</h3>
+  <p>SDP 附证书指纹 → DTLS 1.2 握手协商会话密钥 → 用它把 RTP 加密成 SRTP（AES+认证）。<span class="tag-pit">坑</span>时钟漂移/证书过期/NAT 会话超时导致 DTLS 断——是"看几分钟黑一下"的高频根因，需 ICE 重启恢复。</p>
+
+  <h3>2.7 信令：规范故意不规定</h3>
+  <p>交换 SDP/ICE 候选要应用自己搭——工程惯例几乎都用 WebSocket。<strong>一条完整信令链</strong>：创建会话句柄 → attach streaming 插件 → getoffer → setRemoteDescription → createAnswer → 回传 answer → 逐个互传 trickle ICE candidate。</p>
+
+  <h3>2.8 getStats：唯一的定量质量接口</h3>
+  <p>inbound-rtp（framesReceived/freezeCount/jitter/packetsLost）、candidate-pair（当前链路与 RTT）、track（framesDecoded/Dropped）——<strong>用它做质量看板与自动降级，不靠用户主观反馈</strong>。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：接收型 PeerConnection（中心代码）</h3>
+<pre class="code" data-lang="js"><code>// 接收场景：本端不发，只收 Janus 的流。方向用 direction 控制，不是靠 addTrack。
+var pc = new RTCPeerConnection({
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'turn:turn.example.com:3478', username: 'u', credential: 'p' }
+  ]
+});
+
+// 关键：声明"我这端只收不发"；若走默认 sendrecv，本端被要求发流（往往要先 getUserMedia
+// 采集摄像头，无设备的值班机就报错/弹权限框）
+pc.addTransceiver('video', { direction: 'recvonly' });
+pc.addTransceiver('audio', { direction: 'recvonly' });
+
+// 远端轨到达：挂到 video 或喂 Canvas
+pc.addEventListener('track', function (ev) {
+  var stream = ev.streams[0] || new MediaStream([ev.track]);
+  videoEl.srcObject = stream;          // 或：drawToCanvas(ev.track, canvas)
+});
+
+// trickle ICE：候选一来就发给 Janus
+pc.addEventListener('icecandidate', function (ev) {
+  if (ev.candidate) wsSend({ janus: 'trickle', candidate: ev.candidate });
+});</code></pre>
+  <p><span class="tag-key">addTrack vs addTransceiver</span>：addTrack 需要传入本端 track（通常来自 getUserMedia）并协商成 sendrecv——纯接收端没有本地流；<strong>正确做法是 addTransceiver 显式 recvonly</strong>，这是"只看不发"播放器的标准写法。</p>
+
+  <h3>3.2 场景二：answer 端完整协商循环</h3>
+<pre class="code" data-lang="js"><code>async function handleRemoteOffer(offerSdp) {
+  await pc.setRemoteDescription(new RTCSessionDescription({
+    type: 'offer', sdp: offerSdp
+  }));
+  var answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);   // setLocal 后才开始收集 ICE 候选
+  wsSend({ janus: 'answer', sdp: pc.localDescription.sdp });
+}
+// 收到对端 candidate：
+async function addRemoteCandidate(cand) {
+  try { await pc.addIceCandidate(new RTCIceCandidate(cand)); }
+  catch (e) { /* 候选到达过早/过晚，忽略，不影响整体 */ }
+}</code></pre>
+
+  <h3>3.3 场景三：Canvas 绘制视频轨（OSD 叠加）</h3>
+<pre class="code" data-lang="js"><code>var ctx = canvas.getContext('2d');
+function drawLoop() {
+  // video 元素只是"解码后的帧容器"，可见性隐藏；这里把它的当前帧贴到 Canvas
+  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+  // 叠加 OSD：通道名 + 时间戳，随画面缩放自动对齐
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.fillRect(0, 0, canvas.width, 22);
+  ctx.fillStyle = '#7CFC00';
+  ctx.font = '13px monospace';
+  ctx.fillText('CH-01 ' + new Date().toLocaleTimeString(), 8, 16);
+  requestAnimationFrame(drawLoop);
+}
+videoEl.addEventListener('loadedmetadata', drawLoop);</code></pre>
+
+  <h3>3.4 场景四：getStats 质量量化与中继判断</h3>
+<pre class="code" data-lang="js"><code>setInterval(function () {
+  pc.getStats().then(function (report) {
+    report.forEach(function (r) {
+      if (r.type === 'inbound-rtp' &amp;&amp; r.kind === 'video') {
+        // framesDecoded 持续增长但 freezeCount 涨 → 卡；packetsLost 高 → 网络差
+        console.log('解码帧:', r.framesDecoded, '冻帧:', r.freezeCount,
+                    '丢包率:', r.packetsLost / (r.packetsReceived || 1));
+      }
+      if (r.type === 'candidate-pair' &amp;&amp; r.selected) {
+        // localCandidateType: host/srflx=直连, relay=TURN 中继
+        console.log('当前链路:', r.localCandidateType, '→', r.currentRoundTripTime, 's');
+      }
+    });
+  });
+}, 2000);</code></pre>
+
+  <h3>3.5 场景五：主动请求关键帧（花屏自愈）</h3>
+<pre class="code" data-lang="js"><code>// 检测到花屏/绿条时，向 Janus 发 PLI（Picture Loss Indication）请求立即重发关键帧
+// 通常经信令告诉 SFU，由它指示编码器出一个 IDR 帧
+function requestKeyframe() { wsSend({ janus: 'videohangup-keyframe' }); /* Janus 插件特定消息 */ }</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：协商循环与 getStats 已会用。</p>
+
+  <h3>4.1 多路同屏的 CPU 优化：池化 + 降帧</h3>
+  <p>多路同屏的 CPU 压力<strong>主要来自解码与 Canvas 上屏，而不是网络</strong>。手段：①<strong>池化渲染</strong>——每路一个 pc，但渲染共用池化的 video+Canvas，不每路新建 DOM（GPU 上下文有限）；②<strong>降帧</strong>——不需要满帧率的小窗降到 15fps（requestAnimationFrame 节流绘制）；③复用同一个 Canvas 上下文，多路绘制收敛到一个 rAF 循环。</p>
+
+  <h3>4.2 质量自愈状态机</h3>
+  <p>getStats 采样（2s）→ 规则判断 → 自愈动作：<strong>freezeCount 涨+丢包&gt;5% 连续 3 次 → 发 PLI 请求关键帧；RTT&gt;0.6s 或链路 relay → restartIce()</strong>。把"偶发花屏"从人肉反馈变成自动恢复——这是监控 7×24 场景的刚需。</p>
+
+  <h3>4.3 renegotiation 与动态切流</h3>
+  <p>中途换源/加轨触发 <code>onnegotiationneeded</code> 增量重协商（仍是一轮 offer/answer，状态机不变）；切通道的正确姿势：复用 pc 走重协商 vs 销毁重建 pc——频繁切换用重协商，长期换源重建更干净。</p>
+
+  <h3>4.4 DataChannel 的非媒体用途</h3>
+  <p>RTCDataChannel 走 SCTP（可靠/不可靠可配，maxRetransmits/ordered），P2P 低延迟传任意数据——协作白板、游戏状态同步、大文件 P2P 分片；与 WebSocket 对比：<strong>不经服务器中转</strong>（P2P 打通时），延迟更低但穿越失败率更高。</p>
+
+  <h3>4.5 WHEP 与标准化拉流</h3>
+  <p>传统接入要自定义信令协议（Janus JSON）；<strong>WHEP</strong>（WebRTC-HTTP Egress Protocol）用标准 HTTP POST 交换 SDP 拉流——"一个 URL 就能播"，正在成为播放器接入的标准化方向；推流对应 WHIP。新选型可优先支持 WHEP 的媒体服务器。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 260" role="img" aria-label="WebRTC 在实时音视频链路中的位置示意图">
       <defs>
@@ -607,79 +750,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 WebRTC 在"源→SFU→浏览器→渲染"链路中的位置（示意）</p>
   </div>
-  <h3>横向对比：WebRTC 取代了什么，与 HLS/HTTP-FLV 的取舍</h3>
-  <ul>
-    <li><strong>vs ActiveX/Flash 插件方案</strong>：旧方案要求每台值班机装插件、绑定 IE、安全软件持续告警；WebRTC 是浏览器原生 API，零安装、跨浏览器、天然走 HTTPS/WSS。代价是要在浏览器侧重新实现一套播放器（本项目正是这个改造），且老内核浏览器不支持时需要保留降级。</li>
-    <li><strong>vs HLS / HTTP-FLV / RTSP-over-Web</strong>：HLS 基于分片，延迟 3-30s，胜在能走 CDN、抗弱网、播放器生态成熟；HTTP-FLV 延迟 1-3s，需要 flv.js 解封装；<strong>WebRTC 延迟 200-500ms</strong>，但要求对端是支持 WebRTC 的媒体服务器（Janus/mediasoup/SRS/WHEP），且强依赖 UDP，企业网封 UDP 时要靠 TURN 走 TCP 中继。取舍依据是"延迟是不是硬指标"——监控看回放用 HLS，实时看现场用 WebRTC。</li>
-    <li><strong>WebRTC 直连(P2P) vs 经 SFU</strong>：浏览器对浏览器是真 P2P；但监控场景是"多路源推上来、N 个浏览器同时看"，P2P 会让每路源都要和每个观看者各建一条连接，源端带宽爆炸。正确做法是中间架一台 <strong>SFU</strong>（Selective Forwarding Unit，只转发不混流），浏览器各自只和 SFU 建一条连接——这正是本项目选 Janus 的原因（见 02_Janus 网关页）。</li>
-  </ul>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 RTCPeerConnection（对等连接）</h3>
-  <p class="lead"><b>一句话定位</b>：WebRTC 的核心对象，抽象"一条到对端的实时连接"，本身是个严格的状态机。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>内部聚合四件事</strong>：本地/远端 SDP、ICE 代理（找路）、DTLS 握手（密钥协商）、SRTP 传输栈 + JitterBuffer（抖动重排）。</li>
-    <li><strong>不碰 DOM</strong>：媒体要显示，得把产出的 MediaStreamTrack 挂到 <code>&lt;video&gt;</code> 或喂给 Canvas。</li>
-    <li><strong>它是状态机</strong>：<code>new→have-local-offer→stable→have-remote-pranswer…</code>。</li>
-  </ul>
-  <p class="pit-sentence">状态乱跳（比如在 stable 之前又 createOffer）就是后续"协商失败"的根源。</p>
-  <h3>2.2 MediaStream 与 MediaStreamTrack</h3>
-  <p class="lead"><b>一句话定位</b>：MediaStream 是"一组轨"的容器，每根 Track 是一路视频或音频。</p>
-  <ul>
-    <li><strong>结构</strong>：一个视频轨 + 一个音频轨 = 一路流；Track 有 <code>kind</code>（audio/video）、<code>id</code>、<code>enabled</code>。</li>
-    <li><strong>接收侧</strong>：<code>pc.ontrack</code> 拿远端轨，赋 <code>video.srcObject = event.streams[0]</code> 即可播。</li>
-    <li><strong>本项目做法</strong>：没用 <code>&lt;video&gt;</code> 黑盒，而是把视频轨绘到 Canvas——为叠加监控 OSD（时间戳/通道名/状态字）并统一多路同屏绘制节奏。</li>
-  </ul>
-  <h3>2.3 SDP（Session Description Protocol，会话描述协议）</h3>
-  <p class="lead"><b>一句话定位</b>：SDP 不是协议而是一段纯文本描述，两端交换它就是"媒体协商"。</p>
-  <ul>
-    <li><strong>描述内容</strong>：支持哪些编解码（m=video 行的 H.264/Opus payload type）、媒体端口、加密 fingerprint、ICE 用户名密码、<code>a=rtpmap</code>/<code>a=fmtp</code>（H.264 profile-level-id）等属性。</li>
-    <li><strong>协商过程</strong>：offer 端列出自己会的，answer 端从交集里选出最终编解码与参数。</li>
-  </ul>
-  <p class="key-sentence">offer/answer 必须是"一次完整往返"才进入 stable，中途再改就要走协商更新（RENEGOTIATION）。</p>
-  <h3>2.4 ICE（Interactive Connectivity Establishment，连通性建立）</h3>
-  <p class="lead"><b>一句话定位</b>：解决"NAT 后两台机器怎么找到一条能通的路"的框架。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>收集候选（candidate）</strong>：主机候选（本机网卡 IP）、srflx（经 STUN 反推的公网映射）、relay（TURN 中继地址）。</li>
-    <li><strong>互发 + 打洞</strong>：候选经信令互发，对每个候选对做 STUN 连通性检查（Binding Request/Response），按优先级选第一个打通的对。</li>
-    <li><strong>兜底</strong>：对称型 NAT 直连打洞失败，回落到 TURN 中继转发。</li>
-  </ul>
-  <h3>2.5 STUN 与 TURN</h3>
-  <p class="lead"><b>一句话定位</b>：STUN 轻量反问"我公网地址是啥"，TURN 是打不通时的中继兜底。</p>
-  <ul>
-    <li><strong>STUN（RFC 5389）</strong>：浏览器发包给 STUN 服务器，回包带源 IP:Port，得知 NAT 映射地址。</li>
-    <li><strong>TURN（RFC 5766）</strong>：P2P 打不通时把媒体发到 TURN 服务器由它转发，代价是 TURN 的带宽与延迟；生产用 coturn。</li>
-    <li><strong>怎么判断走没走中继</strong>：看 selected pair 的 candidateType——<code>host/srflx</code> 是直连，<code>relay</code> 是中继。</li>
-  </ul>
-  <h3>2.6 DTLS 与 SRTP（加密层）</h3>
-  <p class="lead"><b>一句话定位</b>：WebRTC 强制加密，握手期 DTLS 协商密钥，媒体面用 SRTP 加密。</p>
-  <ul>
-    <li><strong>DTLS-SRTP</strong>：交换 SDP 时附证书指纹，先做一次 DTLS 1.2 握手协商会话密钥，再用它把 RTP 包加密成 SRTP（AES + 认证）。</li>
-    <li><strong>推论</strong>：MediaRecorder 抓包看到的是加密流，SDP 里有 fingerprint 行。</li>
-  </ul>
-  <p class="pit-sentence">时钟漂移 / 证书过期 / NAT 会话超时导致 DTLS 断，是 WebRTC"看几分钟黑一下"的高频根因，需要 ICE 重启恢复。</p>
-  <h3>2.7 信令（Signaling）</h3>
-  <p class="lead"><b>一句话定位</b>：WebRTC 规范故意不规定信令——交换 SDP/ICE 候选要应用自己搭。</p>
-  <ul>
-    <li><strong>工程惯例</strong>：几乎都用 WebSocket（实时双向）；本项目经 Janus 的 WebSocket/HTTP 发 <code>{janus:"create", ...}</code> 类 JSON。</li>
-    <li><strong>一条完整信令链</strong>：创建会话句柄（handle）→ attach 到 streaming 插件 → getoffer 生成 SDP offer → setRemoteDescription → createAnswer → 回传 answer → 逐个互传 trickle ICE candidate。</li>
-  </ul>
-  <h3>2.8 getStats（质量统计）</h3>
-  <p class="lead"><b>一句话定位</b>：唯一能在客户端定量回答"卡不卡、走没走中继、丢包多少"的接口。</p>
-  <ul>
-    <li><strong>inbound-rtp</strong>：framesReceived、freezeCount、jitter、packetsLost。</li>
-    <li><strong>candidate-pair</strong>：当前选中链路与 bytesSent/bytesReceived。</li>
-    <li><strong>track</strong>：framesDecoded、framesDropped。</li>
-  </ul>
-  <p class="key-sentence">本项目用它做质量看板与自动降级，而不是靠用户"看着卡不卡"的主观反馈。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 媒体协商时序：一次建连到底发生了什么</h3>
-  <p>以本项目"浏览器作为 answer 端，从 Janus streaming 拉流"为例。Janus 生成 offer（描述它要发的 H.264 视频轨），浏览器应答。整个协商是一次严格的问答式状态机：</p>
   <div class="diagram">
     <svg viewBox="0 0 800 360" role="img" aria-label="WebRTC 媒体协商与 ICE 连通性时序图">
       <defs>
@@ -713,15 +783,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 媒体协商与 ICE/DTLS 建连时序（示意）</p>
   </div>
-  <ol>
-    <li><strong>收 offer</strong>：对端（Janus）通过信令发来 SDP offer。浏览器 <code>setRemoteDescription(offer)</code> 后，<code>pc.signalingState</code> 进入 <code>have-remote-offer</code>。</li>
-    <li><strong>生成 answer</strong>：<code>createAnswer()</code> 从 offer 与本端能力的交集里选出编解码（通常 H.264 + Opus），<code>setLocalDescription(answer)</code>，状态进入 stable。</li>
-    <li><strong>Trickle ICE</strong>：两端各自异步收集 candidate，每收集到一个就立刻经信令发给对方并 <code>addIceCandidate</code>——不必等全部收完，这是"trickle"相对"等齐再发"的延迟优化。</li>
-    <li><strong>连通性检查</strong>：ICE 代理对每个候选对发 STUN Binding，第一个双向都通的对被选中（nominated）。</li>
-    <li><strong>DTLS 握手</strong>：链路通后用 SDP 里的证书指纹做 DTLS 握手，派生出 SRTP 密钥。</li>
-    <li><strong>媒体流到达</strong>：对端开始发 SRTP 包，浏览器解密解码、进 JitterBuffer，<code>ontrack</code> 回调触发，帧挂上 video/Canvas。</li>
-  </ol>
-  <h3>3.2 一帧视频从网络到屏幕的内部流水线</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="WebRTC 接收端一帧视频的内部处理流水线">
       <defs>
@@ -753,122 +814,23 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="400" y="172" text-anchor="middle" font-size="13" fill="#7a8a70">多路同屏的 CPU 压力，主要来自解码与 Canvas 上屏，而不是网络。</text>
     </svg>
     <p class="diagram-caption">图 3 接收端一帧视频的处理流水线（示意）</p>
-  </ol>
-  <p>这条流水线解释了本项目两个关键现象：① <strong>"多路同屏低 CPU"</strong> 的优化点不在网络而在解码与渲染——把不需要同时满帧率显示的小窗降到 15fps、复用同一个 Canvas 上下文、避免每路都新建 video 元素，是降 CPU 的主要手段；② <strong>"花屏/绿条"</strong> 几乎都是解码问题：丢了参考帧（关键帧请求 PLI/FIR 没生效）或硬解与 H.264 profile 不匹配。</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 总纲——信令面与媒体面分离；②图 2 协商时序——严格状态机一轮往返+trickle ICE+DTLS；③图 3 流水线解释两个现象：<strong>多路低 CPU 的优化点在解码与渲染</strong>（池化+降帧）、<strong>花屏/绿条几乎都是解码问题</strong>（丢参考帧或 profile 不匹配）。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 建一条接收型 PeerConnection（本项目核心写法）</h3>
-<pre class="code" data-lang="js"><code>// 接收场景：本端不发，只收 Janus 的流。方向用 direction 控制，不是靠 addTrack。
-var pc = new RTCPeerConnection({
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'turn:turn.example.com:3478', username: 'u', credential: 'p' }
-  ]
-});
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——变电站监控去插件化改造（2020-2022）：ActiveX→浏览器原生 WebRTC；7×24 常驻值班多路同屏；后被 Qiankun 整合为子应用。</p>
 
-// 关键：声明"我这端只收不发"；若走默认 sendrecv，本端被要求发流（往往要先 getUserMedia 采集摄像头，无设备的值班机就报错/弹权限框）
-pc.addTransceiver('video', { direction: 'recvonly' });
-pc.addTransceiver('audio', { direction: 'recvonly' });
-
-// 远端轨到达：挂到 video 或喂 Canvas
-pc.addEventListener('track', function (ev) {
-  var stream = ev.streams[0] || new MediaStream([ev.track]);
-  videoEl.srcObject = stream;          // 或：drawToCanvas(ev.track, canvas)
-});
-
-// trickle ICE：候选一来就发给 Janus
-pc.addEventListener('icecandidate', function (ev) {
-  if (ev.candidate) wsSend({ janus: 'trickle', candidate: ev.candidate });
-});</code></pre>
-  <div class="note">两种写法对比：<strong>addTrack 声明发送</strong> vs <strong>addTransceiver 显式声明方向</strong>。<code>addTrack(track)</code> 需要你传入一条本端 track（通常来自 <code>getUserMedia()</code>），并把该 transceiver 协商成 <code>sendrecv</code>——它本身不采集设备，弹摄像头权限是 <code>getUserMedia()</code> 的行为；纯接收端没有可发的本地流，硬走 sendrecv 方向也对不上。正确做法是 <code>addTransceiver('video', {direction:'recvonly'})</code>，这是"只看不发"播放器的标准写法。</div>
-  <h3>4.2 answer 端的完整协商循环</h3>
-<pre class="code" data-lang="js"><code>async function handleRemoteOffer(offerSdp) {
-  await pc.setRemoteDescription(new RTCSessionDescription({
-    type: 'offer', sdp: offerSdp
-  }));
-  var answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);   // setLocal 后才开始收集 ICE 候选
-  wsSend({ janus: 'answer', sdp: pc.localDescription.sdp });
-}
-// 收到对端 candidate：
-async function addRemoteCandidate(cand) {
-  try { await pc.addIceCandidate(new RTCIceCandidate(cand)); }
-  catch (e) { /* 候选到达过早/过晚，忽略，不影响整体 */ }
-}</code></pre>
-  <h3>4.3 Canvas 绘制视频轨（本项目的 OSD 叠加方案）</h3>
-<pre class="code" data-lang="js"><code>var ctx = canvas.getContext('2d');
-function drawLoop() {
-  // video 元素只是"解码后的帧容器"，可见性隐藏；这里把它的当前帧贴到 Canvas
-  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-  // 叠加 OSD：通道名 + 时间戳，随画面缩放自动对齐
-  ctx.fillStyle = 'rgba(0,0,0,.45)';
-  ctx.fillRect(0, 0, canvas.width, 22);
-  ctx.fillStyle = '#7CFC00';
-  ctx.font = '13px monospace';
-  ctx.fillText('CH-01 ' + new Date().toLocaleTimeString(), 8, 16);
-  requestAnimationFrame(drawLoop);
-}
-videoEl.addEventListener('loadedmetadata', drawLoop);</code></pre>
-  <h3>4.4 getStats：量化质量与判断是否走了中继</h3>
-<pre class="code" data-lang="js"><code>setInterval(function () {
-  pc.getStats().then(function (report) {
-    report.forEach(function (r) {
-      if (r.type === 'inbound-rtp' &amp;&amp; r.kind === 'video') {
-        // framesDecoded 持续增长但 freezeCount 涨 → 卡；packetsLost 高 → 网络差
-        console.log('解码帧:', r.framesDecoded, '冻帧:', r.freezeCount,
-                    '丢包率:', r.packetsLost / (r.packetsReceived || 1));
-      }
-      if (r.type === 'candidate-pair' &amp;&amp; r.selected) {
-        // localCandidateType: host/srflx=直连, relay=TURN 中继
-        console.log('当前链路:', r.localCandidateType, '→', r.currentRoundTripTime, 's');
-      }
-    });
-  });
-}, 2000);</code></pre>
-  <h3>4.5 主动请求关键帧（解决花屏）</h3>
-<pre class="code" data-lang="js"><code>// 检测到花屏/绿条时，向 Janus 发 PLI（Picture Loss Indication）请求立即重发关键帧
-// 通常经信令告诉 SFU，由它指示编码器出一个 IDR 帧
-function requestKeyframe() { wsSend({ janus: 'videohangup-keyframe' }); /* Janus 插件特定消息 */ }</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：把变电站监控从 ActiveX 搬到浏览器原生</h3>
-  <p class="lead"><b>一句话定位</b>：这是一个"去插件化 + 微前端整合"的监控播放端改造项目，业务量级是电力生产监控的长期常驻值班场景。</p>
+  <h3>6.1 落地设计：SFU + recvonly + Canvas 三选</h3>
   <ul>
-    <li><strong>业务场景</strong>：变电站摄像头实时监控，值班人员要在值班室多屏同看多路摄像头流，7×24 常驻。</li>
-    <li><strong>旧方案痛点</strong>：必须装 <strong>ActiveX 插件</strong>才能播流，绑定 IE；安全软件反复告警；每换一台值班机就要重装插件并过信息安全审计。</li>
-    <li><strong>后续整合</strong>：播放端要被 <strong>Qiankun 微前端</strong>整合成一个子应用，塞进可视化大屏系统 平台统一入口。</li>
-    <li><strong>目标</strong>：零插件、浏览器原生、端到端低延迟、多路同屏 CPU 可控、可独立部署为子应用。</li>
+    <li><span class="tag-key">弃 P2P 选 SFU</span>：多路源 × 多观看者，P2P 打爆源端带宽——流进 Janus streaming 插件，浏览器 answer 端拉流；</li>
+    <li><strong>recvonly</strong>：只收不发，避免无摄像头值班机建连失败与权限弹框；</li>
+    <li><strong>Canvas 渲染</strong>：解码帧 drawImage + OSD 叠加，多路绘制收敛一个 rAF 循环。</li>
   </ul>
 
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>角色</strong>：前端负责人，独立承担播放端从技术选型到上线的全部前端工作。</li>
-    <li><strong>分工</strong>：后端同学负责 Janus 网关部署与摄像头接入；我负责浏览器端播放核心、信令对接、渲染与质量自愈；前端组另有同学做可视化大屏系统 主框架，我按子应用契约接入。</li>
-    <li><strong>协作边界</strong>：信令消息格式由我与后端共同定，质量指标口径双方一起对齐。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>前端</strong>：WebRTC（RTCPeerConnection）+ Vue2 + Canvas 渲染。</li>
-    <li><strong>媒体/信令</strong>：Janus 网关（SFU，streaming 插件）+ WebSocket 信令。</li>
-    <li><strong>微前端</strong>：Qiankun，把播放器封装为独立部署的子应用。</li>
-  </ul>
-
-  <h3>5.4 落地设计：为什么是 SFU + recvonly + Canvas</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>弃 P2P 选 SFU</strong>：多路摄像头源 × 多观看者，P2P 会把源端带宽打爆；摄像头流进 Janus streaming 插件，浏览器作为 answer 端拉流。</li>
-    <li><strong>recvonly</strong>：浏览器只收不发，<code>addTransceiver('video', { direction: 'recvonly' })</code>。</li>
-    <li><strong>信令走 WebSocket</strong>：create → attach streaming → getoffer → 回 answer → trickle ICE。</li>
-    <li><strong>Canvas 渲染而非 &lt;video&gt; 黑盒</strong>：把解码帧 drawImage 到 Canvas，统一叠加通道名/时间戳 OSD，多路绘制收敛到一个 rAF 循环。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 多路同屏：每一路一个 pc，但渲染共用池化的 video + Canvas，避免每路新建 DOM
+  <h3>6.2 多路同屏与质量自愈（关键实现）</h3>
+<pre class="code" data-lang="js"><code>// 多路同屏：每一路一个 pc，但渲染共用池化的 video + Canvas，避免每路新建 DOM
 function createPlayer(channelId, canvas) {
   var pc = new RTCPeerConnection({ iceServers: STUN_TURN });
   pc.addTransceiver('video', { direction: 'recvonly' });   // 只收不发，别用默认 sendrecv
@@ -881,8 +843,7 @@ function createPlayer(channelId, canvas) {
   });
   return pc;
 }</code></pre>
-  <p>质量自愈侧：每 2s 调 <code>pc.getStats()</code> 采样 <code>framesDecoded/freezeCount/packetsLost</code> 与 candidate-pair 的 RTT/类型，触发 PLI 请求关键帧或 <code>restartIce()</code>。</p>
-  <pre class="code" data-lang="js"><code>var lastFreeze = 0, badStreak = 0;
+<pre class="code" data-lang="js"><code>var lastFreeze = 0, badStreak = 0;
 setInterval(async function () {
   var s = await collectStats(pc);
   if (s.freezeCount - lastFreeze &gt; 0 &amp;&amp; s.lossRate &gt; 0.05) {
@@ -893,110 +854,92 @@ setInterval(async function () {
   if (s.rtt &gt; 0.6 || s.linkType === 'relay') pc.restartIce();   // 链路劣化，ICE 重启
 }, 2000);</code></pre>
 
-  <h3>5.6 真实问题与解法（含量化前后对比）</h3>
+  <h3>6.3 踩坑记录（含量化对比）</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>自动播放策略</strong>：Chrome 要求带声音媒体需用户手势，muted 后仍偶发 <code>play()</code> reject——catch 后在用户点击页面补一次 play。</li>
-    <li><span class="tag-pit">坑</span><strong>忘了 recvonly</strong>：第一版默认 sendrecv，打开页面就弹摄像头权限、在无摄像头值班机建连失败——改 recvonly 后消失。</li>
-    <li><span class="tag-pit">坑</span><strong>企业网封 UDP</strong>：部分现场只能走 TURN relay，延迟上升。<strong>前后对比（估算）</strong>：靠 getStats 的 candidateType 监控走中继的路数，把"多少路在 relay"从无监控做到可见，超阈值即扩容 TURN。</li>
-    <li><span class="tag-pit">坑</span><strong>GPU 上下文爆炸</strong>：多路每路新建 video+Canvas 导致 GPU 上下文过多——改池化 + 降帧后稳住。</li>
-    <li><span class="tag-pit">坑</span><strong>PLI 不是浏览器直接发</strong>：要经信令告诉 Janus；<code>restartIce()</code> 必须配合一次新 offer/answer 才算完整重启。</li>
+    <li><span class="tag-pit">坑</span><strong>自动播放策略</strong>：带声音媒体需用户手势，muted 后仍偶发 play() reject——catch 后用户点击页面补一次 play；</li>
+    <li><span class="tag-pit">坑</span><strong>忘了 recvonly</strong>：第一版默认 sendrecv，打开页面弹摄像头权限、无摄像头值班机建连失败——改 recvonly 消失；</li>
+    <li><span class="tag-pit">坑</span><strong>企业网封 UDP</strong>：部分现场只能走 TURN relay——用 getStats 的 candidateType 监控中继路数，从无监控做到可见，超阈值扩容 TURN；</li>
+    <li><span class="tag-pit">坑</span><strong>GPU 上下文爆炸</strong>：多路每路新建 video+Canvas——改池化+降帧后稳住；</li>
+    <li><span class="tag-pit">坑</span><strong>PLI 不是浏览器直接发</strong>：要经信令告诉 Janus；restartIce() 必须配合新 offer/answer 才算完整重启。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>彻底下线 ActiveX</strong>：值班机零安装，信息安全审计环节取消插件安装项。</li>
-    <li><strong>延迟</strong>：端到端从插件方案数秒压到约 <strong>300-500ms（估算）</strong>，满足实时监控。</li>
-    <li><strong>同屏性能</strong>：4 路同屏在普通办公机上 CPU 占用可控（池化渲染后）。</li>
-    <li><strong>可维护性</strong>：作为 Qiankun 子应用独立部署/独立路由，主框架升级不影响播放端。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：先与后端定 WebSocket 信令消息表（create/attach/offer/answer/candidate/PLI），再各自开发。</li>
-    <li><strong>联调协商点</strong>：TURN 服务器地址、STUN/TURN 凭据、信令房间与通道映射，均现场网络环境下反复联调。</li>
-    <li><strong>排期</strong>：按"单路打通 → 多路同屏 → 质量自愈 → Qiankun 子应用封装"分迭代推进，每阶段现场真机验证。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>媒体面与信令面分离</strong>：WebSocket 只管控制信令、WebRTC 只管媒体，职责清晰才好排障。</li>
-    <li><span class="tag-point">要点</span><strong>接收端默认 recvonly</strong>：纯拉流场景别用默认方向，省掉一堆权限/建连坑。</li>
-    <li><span class="tag-point">要点</span><strong>质量要可观测</strong>：getStats 采样 + 规则自愈，把"偶发花屏"从人肉反馈变成自动恢复。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："我把变电站监控从 ActiveX 插件改成浏览器原生 WebRTC 拉流，用 Janus SFU + recvonly + Canvas 池化渲染做到 300-500ms 低延迟多路同屏，并用 getStats 做了丢帧自动请求关键帧的自愈。"</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 signalingState 状态机乱跳</h3>
-  <p class="lead"><b>一句话定位</b>：协商是严格状态机，stable 之外再 createOffer 必错位。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：建连偶发报 <code>InvalidStateError: Failed to execute 'setLocalDescription'</code>。</li>
-    <li><strong>原因</strong>：stable 状态下才能发新一轮 offer；have-local-offer 时又 createOffer，或 answer 端未 setRemoteDescription 就 createAnswer，都会错位。</li>
-    <li><strong>正解</strong>：一次协商一轮完整往返；中途改方向/加轨走 <code>onnegotiationneeded</code> 触发的增量重协商，别手动再 createOffer。</li>
-  </ul>
-  <h3>6.2 recvonly 漏设，纯接收页弹摄像头权限</h3>
-  <p class="lead"><b>一句话定位</b>：不声明 direction，浏览器默认 sendrecv，打开就弹采集。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：监控播放页一打开就要摄像头/麦克风权限，无设备机器直接失败。</li>
-    <li><strong>原因</strong>：<code>addTrack</code> 或 <code>addTransceiver</code> 不指定 direction，默认 sendrecv，浏览器认为本端要发送。</li>
-    <li><strong>正解</strong>：纯拉流端一律 <code>addTransceiver('video',{direction:'recvonly'})</code>，并确认 offer/answer 方向一致。</li>
-  </ul>
-  <h3>6.3 trickle ICE 候选到达顺序乱</h3>
-  <p class="lead"><b>一句话定位</b>：候选异步乱序到达，可能早于 remoteDescription set 完。</p>
-  <ul>
-    <li><strong>现象</strong>：候选经信令乱序到达，偶发 <code>addIceCandidate</code> 报错。</li>
-    <li><strong>正解</strong>：addIceCandidate 包 try/catch 容忍"过早到达"；或先缓存候选，等 setRemoteDescription 完成后批量补加。</li>
-  </ul>
-  <h3>6.4 HTTPS/localhost 限制与权限</h3>
-  <p class="lead"><b>一句话定位</b>：WebRTC 与媒体采集只在安全上下文（HTTPS/localhost）可用。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：普通 http 页面 getUserMedia / RTCPeerConnection 直接 undefined 或被拒。</li>
-    <li><strong>正解</strong>：生产必须 HTTPS（信令走 wss）；本地调试用 localhost 或自签证书。</li>
-  </ul>
-  <h3>6.5 UDP 被企业防火墙封死</h3>
-  <p class="lead"><b>一句话定位</b>：家里通、现场超时，多半是 UDP 被封且没配 TURN。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：现场建连超时，getStats 一直没有 selected candidate-pair。</li>
-    <li><strong>原因</strong>：现场防火墙封 UDP，host/srflx 候选都打不通，又没配 TURN。</li>
-    <li><strong>正解</strong>：部署 TURN（coturn）配 relay 候选，让流量回落到 TCP/TLS 中继；监控 relay 比例做成本与体验平衡。</li>
-  </ul>
-  <h3>6.6 花屏 = 丢关键帧，而非网络"卡"</h3>
-  <p class="lead"><b>一句话定位</b>：绿条/马赛克是丢了 H.264 参考帧，要主动请求 IDR。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：画面绿条/马赛克，过一会儿自己好。</li>
-    <li><strong>原因</strong>：H.264 帧间依赖，丢参考帧后后续 P 帧无法正确解码，直到下个 IDR 关键帧到来才恢复。</li>
-    <li><strong>正解</strong>：主动发 PLI/FIR 请求对端立即出关键帧（经 SFU），配合 getStats 丢包率自动触发。</li>
-  </ul>
+  <h3>6.4 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：彻底下线 ActiveX（零安装、审计取消插件项）；延迟从插件方案数秒压到约 300-500ms（估算）；4 路同屏普通办公机 CPU 可控；Qiankun 子应用独立部署；</li>
+    <li><strong>协作</strong>：契约先行（信令消息表 create/attach/offer/answer/candidate/PLI）；按"单路打通→多路同屏→质量自愈→子应用封装"分迭代现场真机验证；</li>
+    <li><strong>可复用经验</strong>：媒体面与信令面分离；接收端默认 recvonly；质量要可观测（getStats+规则自愈）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 signalingState 状态机乱跳</h3>
+  <p><strong>现象</strong>：偶发 InvalidStateError（setLocalDescription）。<strong>原因</strong>：stable 之外再 createOffer/answer 未先 setRemote。<strong>正解</strong>：一次协商一轮完整往返；动态改走 onnegotiationneeded。</p>
+
+  <h3>7.2 recvonly 漏设，纯接收页弹摄像头权限</h3>
+  <p><strong>原因</strong>：默认 sendrecv。<strong>正解</strong>：纯拉流端一律 addTransceiver(direction:'recvonly')，确认 offer/answer 方向一致。</p>
+
+  <h3>7.3 trickle ICE 候选乱序到达</h3>
+  <p><strong>正解</strong>：addIceCandidate 包 try/catch 容忍过早到达；或先缓存候选等 setRemoteDescription 完成后批量补加。</p>
+
+  <h3>7.4 HTTPS/localhost 限制</h3>
+  <p><strong>现象</strong>：http 页面 getUserMedia/RTCPeerConnection undefined。<strong>正解</strong>：生产必须 HTTPS（信令 wss）；本地调试 localhost。</p>
+
+  <h3>7.5 UDP 被企业防火墙封死</h3>
+  <p><strong>现象</strong>：家里通、现场超时，getStats 一直没有 selected candidate-pair。<strong>正解</strong>：部署 coturn 配 relay 候选回落 TCP/TLS 中继；监控 relay 比例平衡成本与体验。</p>
+
+  <h3>7.6 花屏 = 丢关键帧，而非网络"卡"</h3>
+  <p><strong>原因</strong>：H.264 帧间依赖，丢参考帧后到下个 IDR 才恢复。<strong>正解</strong>：getStats 丢包率自动触发 PLI/FIR（经 SFU）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：WebRTC 建连的完整流程？信令为什么不在标准里？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>信令面</strong>（自研，通常 WebSocket）：交换 SDP offer/answer 与 trickle ICE 候选——<strong>标准故意不规定信令</strong>，因为应用场景千差万别（呼叫模式/房间模式/拉流模式各不同），只约定媒体协商与传输本身。<strong>媒体面建立</strong>：①setRemoteDescription(offer)→createAnswer→setLocalDescription（状态机一轮往返进 stable）；②trickle ICE：候选逐个互发，ICE 代理对候选对做 STUN 连通性检查选中最优链路（host/srflx 直连，失败回落 TURN relay）；③DTLS 握手用 SDP 指纹协商 SRTP 密钥；④对端开始发 SRTP 包，ontrack 触发渲染。<strong>心智模型</strong>：WebRTC 只管媒体面，信令面与"怎么认识彼此"全是应用的事。</p>
+
+  <p><strong>Q2：ICE/STUN/TURN 三者的关系？怎么知道流量走了中继？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>ICE 是框架</strong>——收集三类候选（host 本机网卡/srflx 经 STUN 反推的公网映射/relay TURN 中继地址），候选对互做连通性检查按优先级选路；<strong>STUN 是工具</strong>——发包给 STUN 服务器看回包源地址，得知自己的 NAT 映射（打洞的前提）；<strong>TURN 是兜底</strong>——对称型 NAT 或防火墙封 UDP 时打洞必败，媒体回落 TURN 中继转发（生产用 coturn），代价是带宽与延迟。<strong>判别方法</strong>：getStats 里 selected candidate-pair 的 localCandidateType——host/srflx=直连、relay=中继；实战用它监控"多少路在 relay"，超阈值扩容 TURN。</p>
+
+  <p><strong>Q3：为什么监控场景选 SFU 而不是 P2P？多路同屏怎么控 CPU？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>P2P 的带宽爆炸</strong>——N 路源 × M 个观看者，P2P 要求每路源与每个观看者各建一条连接，上行带宽 O(N×M)；<strong>SFU（只转发不混流）</strong>让源和每个观看者各只对 SFU 建一条连接，转发开销在服务端水平扩展——这是 Janus/mediasoup 一类网关的存在意义。<strong>多路同屏控 CPU</strong>：CPU 压力主要来自解码与 Canvas 上屏而非网络——①渲染池化（共用 video+Canvas，不每路新建 DOM，防 GPU 上下文爆炸）；②小窗降帧 15fps；③多路绘制收敛一个 rAF 循环。实战：4 路同屏普通办公机 CPU 可控。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>RTCPeerConnection 内部聚合哪四件事？状态机乱跳的根源？</li>
+    <li>recvonly 与 addTrack/sendrecv 的区别？漏设的症状？</li>
+    <li>trickle ICE 是什么？候选乱序怎么容错？</li>
+    <li>DTLS-SRTP 加密链怎么走？"看几分钟黑一下"的根因？</li>
+    <li>getStats 的三类关键指标与自愈规则？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档与规范</h3>
   <ul>
-    <li>MDN WebRTC API 总览：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API</a></li>
-    <li>W3C WebRTC 1.0 规范（RTCPeerConnection）：<a href="https://w3c.github.io/webrtc-pc/" rel="noopener">w3c.github.io/webrtc-pc</a></li>
-    <li>web.dev WebRTC 入门与最佳实践：<a href="https://web.dev/articles/webrtc-basics" rel="noopener">web.dev/articles/webrtc-basics</a></li>
-    <li>W3C getStats 统计口径（RTCStats）：<a href="https://w3c.github.io/webrtc-stats/" rel="noopener">w3c.github.io/webrtc-stats</a></li>
+    <li>MDN WebRTC API：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API</a></li>
+    <li>W3C webrtc-pc 与 getStats 规范（w3c.github.io/webrtc-pc、webrtc-stats）；web.dev WebRTC 基础。</li>
   </ul>
-  <h3>书籍与权威资料</h3>
+  <h3>权威资料</h3>
   <ul>
-    <li><em>WebRTC: APIs and RTCWeb in Browsers</em>（IETF/W3C 规范综述）与 RFC 8829（WebRTC 用 ICE 的用法）：<a href="https://www.rfc-editor.org/" rel="noopener">rfc-editor.org</a> 检索 RFC 8829 / RFC 5389(STUN) / RFC 5766(TURN)。</li>
-    <li>coturn（STUN/TURN 服务端）官方文档：<a href="https://github.com/coturn/coturn" rel="noopener">github.com/coturn/coturn</a></li>
+    <li>WebRTC For The Curious（ICE/DTLS/SRTP 全链路正典）：<a href="https://webrtcforthecurious.com/" rel="noopener">webrtcforthecurious.com</a></li>
+    <li>RFC 8829 / 5389（STUN）/ 5766（TURN）；coturn：<a href="https://github.com/coturn/coturn" rel="noopener">github.com/coturn/coturn</a>；Janus 文档（06 篇配套）。</li>
   </ul>
-  <h3>实战文章</h3>
-  <ul>
-    <li>WebRTC For The Curious（图文讲透 ICE/DTLS/SRTP 全链路，业内公认入门正典）：<a href="https://webrtcforthecurious.com/" rel="noopener">webrtcforthecurious.com</a></li>
-    <li>Janus 网关官方文档（与本项目后端配套）：<a href="https://janus.conf.meetecho.com/docs/" rel="noopener">janus.conf.meetecho.com/docs</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>本机回环：两个 RTCPeerConnection 互连（getUserMedia 摄像头），跑通 offer/answer/trickle；</li>
+    <li>chrome://webrtc-internals 观察 signalingState、候选对与 getStats 指标；</li>
+    <li>把回环改成 recvonly + 远端 canvas 绘制 + 2s getStats 采样打印。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../03_数据可视化/01_可视化技术选型与原理【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../04_实时通信/04_Socket.io实战【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../04_实时通信/06_Janus网关【深入】.html">下一篇 →</a>
 </nav>

@@ -542,40 +542,174 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="doc-nav top" aria-label="文档导航">
   <a class="doc-nav-btn" href="../04_实时通信/05_WebRTC【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../04_实时通信/01_音视频基础与流媒体协议【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/07_MQTT与物联网通信【进阶】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <h3>是什么</h3>
-  <p class="lead"><b>一句话定位</b>：Janus 是一个用 C 写的开源通用 WebRTC 服务器（2014，GPL-3.0 许可），定位是"引擎底座"而非现成会议系统——GPL-3.0 是强 copyleft，与 MIT/Apache 的宽松许可不同，闭源商用集成需向 Meetecho 购买商业授权，选型时要评估这个合规成本。</p>
-  <ul>
-    <li><strong>内核</strong>：实现了 WebRTC 协议栈（ICE/DTLS/SRTP、NAT 穿透、RTP 收发）。</li>
-    <li><span class="tag-key">关键</span><strong>插件决定业务</strong>：做直播/会议/录制/SIP 网关全由插件决定——attach 哪个插件，它就是哪种业务。</li>
-    <li><strong>信令与媒体面</strong>：浏览器通过 WebSocket/HTTP 与它交换 JSON 信令（即上一页"信令通道"的对端）；媒体面是浏览器与 Janus 间的 SRTP 直连。</li>
-  </ul>
-  <h3>解决什么问题</h3>
-  <p class="lead"><b>一句话定位</b>：摄像头只懂 RTSP、浏览器只懂 WebRTC，中间需要翻译 + 分发层。</p>
-  <ul>
-    <li><strong>翻译</strong>：把摄像头 RTSP 流转码/解封装成 WebRTC 的 SRTP 流。</li>
-    <li><strong>分发（SFU）</strong>：把流分发给 N 个观看浏览器，只转发不混流。</li>
-    <li><strong>没有这层的后果</strong>：要么每浏览器单独连摄像头（带宽/连接数爆炸），要么回到 HLS 高延迟分片方案。</li>
-  </ul>
-  <p class="key-sentence">Janus 做"协议翻译 + 媒体分发"，让浏览器这端保持 WebRTC 的亚秒延迟。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：引擎底座 + 插件决定业务</h3>
+  <p><strong>Janus 是 C 写的开源通用 WebRTC 服务器（2014，GPL-3.0）</strong>——定位是"引擎底座"而非现成会议系统：<strong>内核</strong>实现 WebRTC 协议栈（ICE/DTLS/SRTP、NAT 穿透、RTP 收发），<span class="tag-key">业务=插件</span>（做直播/会议/录制/SIP 网关全由 attach 哪个插件决定）。它解决"摄像头只懂 RTSP、浏览器只懂 WebRTC"的翻译+分发问题：把 RTSP 转成 SRTP 流、按观看者各转发一份（SFU）。<span class="tag-pit">许可注意</span>：GPL-3.0 强 copyleft，闭源商用集成需向 Meetecho 购买商业授权——选型要评估合规成本。</p>
+
+  <h3>1.2 横向对比：SFU vs MCU vs P2P</h3>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>维度</th><th>SFU（Janus 属于此类）</th><th>MCU（混流服务器）</th><th>P2P（无服务器）</th></tr></thead>
+    <tbody>
+      <tr><td>做什么</td><td>只转发，不混流，每人收别人的原始流</td><td>多路流解码→混屏→重编码成一路再分发</td><td>浏览器之间直连</td></tr>
+      <tr><td>服务器 CPU</td><td><strong>低（只转发，不解码）</strong></td><td>极高（每路都要解码+重编码）</td><td>无服务器</td></tr>
+      <tr><td>观看者端</td><td>多画面要收多路流、各自解码</td><td>只收一路，端侧压力小</td><td>只收直连的对端</td></tr>
+      <tr><td>适用</td><td>监控分发、多人会议（可选择性订阅）</td><td>弱网端、低算力端、统一布局</td><td>1v1、小房间</td></tr>
+    </tbody>
+  </table>
+  <p><strong>选型依据</strong>：监控是"一路源、多观看者"——SFU 不解码、CPU 压力集中在转发，观看端自己决定订阅哪几路（多路同屏正是这个能力）；MCU 对监控流做无谓转码。vs mediasoup（Node.js）：Janus 优势是 C 单进程性能、插件生态成熟（streaming 直接吃 RTSP）、资料多；劣势是多实例集群要自己设计。</p>
+
+  <h3>1.3 学习目标与阅读指引</h3>
+  <ol>
+    <li>理解<strong>插件架构</strong>与 Session/Handle 两级模型；</li>
+    <li>吃透<strong>"同步 ack + 异步 event"两段式信令</strong>——SDP 在 event 里（本篇最大坑）；</li>
+    <li>掌握 streaming 插件拉流完整时序与多路 handle 管理；</li>
+    <li>知道 NAT 部署三查与 Admin API 安全边界。</li>
+  </ol>
+  <p><strong>前置知识</strong>：05 篇 WebRTC（本篇是其服务端对端）。<strong>难度</strong>：★★★★☆。<strong>本篇不涉及</strong>：Janus 源码级插件开发。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>八个核心模型：<strong>插件机制</strong>（总纲）→ <strong>Session/Handle</strong>→ <strong>单线程事件循环</strong>→ <strong>streaming vs videoroom</strong>→ <strong>事件通知</strong>→ <strong>Admin API</strong>→ <strong>NAPI</strong>→ <strong>媒体转发与码率适配</strong>。</p>
+
+  <h3>2.1 插件机制：内核不知道业务</h3>
+  <p>内核只做协议栈；业务写成 .so 动态库（配置 [plugins] 段加载），实现 createSession/handleMessage/setupMedia/hangup 固定回调契约。<strong>官方插件</strong>：streaming（直播拉流）、videoroom（会议室）、sip（SIP 网关）、recordplay（录制回放）。<span class="tag-key">精髓</span>："一个 Janus 程序能同时是直播网关和会议系统"——业务=插件，内核不变。</p>
+
+  <h3>2.2 Session 与 Handle：两级复用</h3>
+  <p><strong>Session</strong>=一条到 Janus 的逻辑连接（一个 WebSocket）；<strong>Handle</strong>=attach 到某插件的一个实例（独立收流、独立协商 SDP）。<span class="tag-key">多路同屏对应</span>：一个浏览器 session 看两路监控就 attach 两个 streaming handle——<strong>一条 WebSocket 复用多路媒体</strong>。</p>
+
+  <h3>2.3 单线程事件循环：阻塞即全卡死</h3>
+  <p>主进程单线程+libevent 一个循环处理信令/状态机/ICE/DTLS/RTP 转发；单实例能力受事件循环与网卡转发带宽约束。<span class="tag-pit">坑</span>某插件同步阻塞（如重编码）<strong>整个 Janus 进程卡死</strong>——所以转发"零拷贝尽量快"、重编码刻意放内核外；扩展靠多实例+前置负载。</p>
+
+  <h3>2.4 streaming vs videoroom 插件</h3>
+  <p><strong>streaming（单向广播）</strong>：源（RTSP/WebRTC/文件）注册成 mountpoint（numeric id），观看者 attach 后 watch 挂载点——完美对应监控拉流；<strong>videoroom（多人会议）</strong>：join+publish+subscribe 管理谁订阅谁。<strong>信令差异</strong>：streaming 是 list/watch，videoroom 是 join/publish/subscribe。</p>
+
+  <h3>2.5 事件通知与 Admin API</h3>
+  <p><strong>两段式</strong>：create/attach 同步回 success ack；流状态变化（offer/新候选/源断开）是 <code>{"janus":"event","plugindata":{...}}</code> 主动 push——前端要写<strong>常驻 onmessage 分发器</strong>（按 janus 字段分类、按 handle id 区分多路）。<strong>Admin API</strong>（默认 7088）：列 session/handle、查媒体统计、强制 hangup、动态建 mountpoint——<span class="tag-pit">安全红线</span>：绝不能暴露公网。</p>
+
+  <h3>2.6 NAPI 与媒体转发</h3>
+  <p><strong>NAPI</strong>：让插件耗时操作（连 RTSP 源）异步挂回事件循环——解决老版本"一个源连不上卡死所有浏览器"。媒体转发：Janus 转发 RTP <strong>不解码</strong>，但按 REMB/TWCC 反馈降码率或选 simulcast 层（监控单码率用得少，会议直播是抗弱网关键）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：信令统一封装与消息分发器</h3>
+<pre class="code" data-lang="js"><code>// Janus 所有信令都是 JSON over WebSocket。统一一个发送器，自动带上 session/handle。
+var janus = { ws: null, sessionId: null, handles: {} };
+
+function jSend(msg) {
+  janus.ws.send(JSON.stringify(msg));
+}
+
+// 1) 建会话
+jSend({ janus: 'create' });
+// 2) attach streaming 插件 → 拿到 handleId
+jSend({ janus: 'attach', plugin: 'janus.plugin.streaming', session_id: sid });
+
+// 收消息分发器：ack / error / event 三类
+janus.ws.onmessage = function (e) {
+  var msg = JSON.parse(e.data);
+  if (msg.janus === 'event' &amp;&amp; msg.plugindata) onPluginEvent(msg);
+  else if (msg.janus === 'success') /* create/attach 的同步回执 */ onAck(msg);
+  else if (msg.janus === 'error') console.error('Janus 错误:', msg.error);
+};</code></pre>
+
+  <h3>3.2 场景二：watch 挂载点并接 SDP offer</h3>
+<pre class="code" data-lang="js"><code>// 业务消息放在 plugindata，外层 envelope 是 Janus 协议
+function watchMountpoint(handleId, mountpointId) {
+  jSend({
+    janus: 'message',
+    session_id: janus.sessionId,
+    handle_id: handleId,
+    body: { request: 'watch', id: mountpointId }
+    // jsep 会在插件 event 里异步推回来，不在这条消息里
+  });
+}
+// 收到 event 且带 jsep(offer) → 交给 WebRTC 协商（05 篇 4.2）
+function onPluginEvent(msg) {
+  if (msg.jsep &amp;&amp; msg.jsep.type === 'offer') startAnswer(msg.jsep, msg.handle_id);
+  if (msg.plugindata.data &amp;&amp; msg.plugindata.data.streaming === 'event') {
+    if (msg.plugindata.data.status === 'stopped') showDisconnected();
+  }
+}</code></pre>
+  <p><span class="tag-key">两段式对比</span>：create/attach 同步回 success；<strong>SDP offer 和流状态变化不是响应，是 Janus 主动 push 的 event</strong>——新手最坑"发了 watch 在这条消息的 response 里找 SDP"，根本找不到，必须常驻分发器。</p>
+
+  <h3>3.3 场景三：挂流释放三件套（hangup/detach/destroy）</h3>
+<pre class="code" data-lang="js"><code>// 停止观看：先 hangup 当前媒体，再 detach 插件句柄，最后（可选）destroy session
+function stopWatch(handleId) {
+  jSend({ janus: 'hangup', session_id: sid, handle_id: handleId });
+  jSend({ janus: 'detach', session_id: sid, handle_id: handleId });
+}
+// 关闭页面/微前端卸载时必须 destroy，否则 Janus 端 session 泄漏、连接数累积
+window.addEventListener('beforeunload', function () {
+  jSend({ janus: 'destroy', session_id: sid });
+});</code></pre>
+
+  <h3>3.4 场景四：服务端最小配置（janus.jcfg）</h3>
+<pre class="code" data-lang="ini"><code>[general]
+websocket_port = 8188              ; 前端信令 WebSocket
+nat_1_1_mapping = &lt;公网IP&gt;          ; 服务器在 NAT 后，直接告诉 ICE 自己的公网地址
+
+[plugins]
+libjanus_streaming.so = mystreaming   ; 加载拉流插件
+
+[media]
+dtls = true
+nack = true                        ; 启用丢包重传反馈，抗弱网
+fir_pli = true                     ; 允许对端请求关键帧（对应 05 篇 PLI）</code></pre>
+
+  <h3>3.5 场景五：Admin API 巡检（运维）</h3>
+<pre class="code" data-lang="bash"><code># Admin API（默认 7088，务必只绑内网）：列出当前所有 session
+curl http://127.0.0.1:7088/ --data '{"janus":"list_sessions"}'
+# 看某个 session 下挂了哪些 handle、在看哪个 mountpoint
+curl http://127.0.0.1:7088/ --data '{"janus":"list_handles","session_id":12345}'</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：两段式信令与挂流释放已掌握。</p>
+
+  <h3>4.1 多路同屏的 handle 管理</h3>
+  <p>一个 WebSocket（session）复用到 N 个 streaming handle，每个 handle 一条独立 PeerConnection；<strong>关键数据结构</strong>：pendingOfferToPc 映射（handleId→pc），event 带 handle_id 路由到对应协商。<span class="tag-pit">坑</span>：handle 级状态（挂载点/挂断标记）要随 handle 生命周期成对增删。</p>
+
+  <h3>4.2 集群化：多实例与源分发</h3>
+  <p>Janus 单实例有转发带宽上限——多实例方案：①<strong>按摄像头分区</strong>（不同实例挂不同 mountpoint，前端按流查路由）；②<strong>级联</strong>（实例间再走 WebRTC/RTSP 互拉）；③前置负载+粘性（信令 WebSocket 会话要落同实例）。<strong>Janus 没有内置集群</strong>——这是选型时的已知成本。</p>
+
+  <h3>4.3 simulcast 与会议场景</h3>
+  <p>监控单码率用不到；<strong>会议/直播场景</strong>源端同发高/中/低三层（simulcast），Janus 按订阅者网络选层下发——配合 videoroom 的 subscription API 做"大画面高码率、小画面低码率"。TWCC 反馈链是选层依据。</p>
+
+  <h3>4.4 安全清单</h3>
+  <p>①Admin API 只绑 127.0.0.1/内网（能 list/kill 会话=交出媒体控制权）；②业务信令 8188 前置 WSS 反代+token 鉴权；③mountpoint 注册接口加白名单（动态建流接口不能裸奔）；④TURN 长期凭据用 REST API 动态下发（time-limited credentials）。</p>
+
+  <h3>4.5 与其他网关的选型对照</h3>
+  <p>mediasoup（Node.js 库，自建逻辑灵活，适合深度定制）、SRS（RTMP/WebRTC 直播向，HTTP-FLV 生态强）、LiveKit（云原生 SFU，K8s 友好）、WHEP 标准化接入。<strong>决策口径</strong>：要现成插件生态（RTSP 拉流/SIP/录制）选 Janus；要深度定制逻辑选 mediasoup；直播分发重选 SRS。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 250" role="img" aria-label="Janus 在媒体分发链路中的位置示意图">
       <defs>
@@ -609,83 +743,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 Janus 作为 SFU 的位置：一路源，按观看者各转发一份（示意）</p>
   </div>
-  <h3>横向对比：SFU vs MCU，以及为什么不是别的方案</h3>
-  <table>
-    <colgroup><col style="width:16%"><col style="width:28%"><col style="width:28%"><col style="width:28%"></colgroup>
-    <thead><tr><th>维度</th><th>SFU（Janus 属于此类）</th><th>MCU（混流服务器）</th><th>P2P（无服务器）</th></tr></thead>
-    <tbody>
-      <tr><td>做什么</td><td>只转发，不混流，每人收别人的原始流</td><td>把多路流解码→混屏→重编码成一路再分发</td><td>浏览器之间直连</td></tr>
-      <tr><td>服务器 CPU</td><td>低（只转发，不解码）</td><td>极高（每路都要解码+重编码）</td><td>无服务器</td></tr>
-      <tr><td>观看者端</td><td>多画面要收多路流、各自解码</td><td>只收一路，端侧压力小</td><td>只收直连的对端</td></tr>
-      <tr><td>适用</td><td>监控分发、多人会议（可选择性订阅）</td><td>弱网端、低算力端、需要统一布局</td><td>1v1、小房间</td></tr>
-    </tbody>
-  </table>
-  <p>本项目选 SFU/Janus 的依据：监控是"一路源、多观看者"，SFU 不解码、CPU 压力集中在转发，且观看者端自己决定订阅哪几路（本项目多路同屏正是这个能力）；MCU 会对本来就不该重编码的监控流做无谓转码，成本高还增加延迟。与 mediasoup（Node.js）对比，Janus 的优势是 C 写的单进程、插件生态成熟（streaming 插件直接吃 RTSP）、文档与社区资料多；劣势是多实例集群需要自己设计——这正是项目组部署时要面对的（见案例）。</p>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 插件机制（Plugin Architecture）</h3>
-  <p class="lead"><b>一句话定位</b>：内核只管 WebRTC 协议栈，业务写成动态库插件，可热插拔。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>内核 vs 插件</strong>：内核（<code>janus.c</code>）只做协议栈；业务逻辑写成 <code>.so</code>，配置 <code>[plugins]</code> 段指定加载。</li>
-    <li><strong>官方插件</strong>：<code>libjanus_streaming.so</code>（直播拉流）、<code>libjanus_videoroom.so</code>（会议室）、<code>libjanus_sip.so</code>（对接 SIP 电话）、<code>libjanus_recordplay.so</code>（录制回放）。</li>
-    <li><strong>回调契约</strong>：插件实现 createSession/handleMessage/setupMedia/hangup 等固定回调，内核在合适时机回调它。</li>
-  </ul>
-  <p class="key-sentence">这就是"为什么 Janus 一个程序能同时是直播网关和会议系统"——业务=插件，内核不变。</p>
-  <h3>2.2 会话（Session）与句柄（Handle）</h3>
-  <p class="lead"><b>一句话定位</b>：一条 Session（WebSocket 连接）挂多个 Handle，每个 Handle 是 attach 到插件的一个实例。</p>
-  <ul>
-    <li><strong>Session</strong>：一条到 Janus 的逻辑连接（对应一个 WebSocket）。</li>
-    <li><strong>Handle</strong>：每个代表"attach 到某插件的一个实例"，独立收流、独立协商 SDP。</li>
-    <li><strong>多路同屏对应</strong>：一个浏览器 session id=123，看两路监控就 attach 两个 streaming handle（456、789）——一条 WebSocket 复用多路媒体。</li>
-  </ul>
-  <h3>2.3 单线程事件循环（Single-threaded Event Loop）</h3>
-  <p class="lead"><b>一句话定位</b>：主进程单线程 + libevent（epoll）一个循环处理信令、状态机、ICE/DTLS、RTP 转发。</p>
-  <ul>
-    <li><strong>并发约束</strong>：单实例能力受这个事件循环与网卡转发带宽约束。</li>
-    <li><span class="tag-pit">坑</span><strong>阻塞即全卡死</strong>：某插件处理一旦同步阻塞（如插件里做重编码），整个 Janus 进程被卡死——所以 streaming 转发"零拷贝尽量快"，重编码刻意放内核外。</li>
-    <li><strong>扩展</strong>：用多进程/多实例（fork）配合前置负载水平扩展。</li>
-  </ul>
-  <h3>2.4 streaming 插件 vs videoroom 插件</h3>
-  <p class="lead"><b>一句话定位</b>：streaming 单向广播拉流，videoroom 多人会议收发——本项目用 streaming。</p>
-  <ul>
-    <li><strong>streaming（单向广播）</strong>：源（RTSP/WebRTC/录制文件）被拉进来注册成 mountpoint（numeric id），观看者 attach 后 Janus 把流推给它——完美对应监控拉流。</li>
-    <li><strong>videoroom（多人会议）</strong>：参与者加入房间、发布自己的流、订阅别人的流，插件维护谁是谁、谁订阅谁。</li>
-    <li><strong>信令差异</strong>：streaming 是 <code>list/mountpoints + watch</code>，videoroom 是 <code>join + publish + subscribed</code>。</li>
-  </ul>
-  <h3>2.5 事件与异步通知（Events）</h3>
-  <p class="lead"><b>一句话定位</b>：请求-响应之外，流状态变化由 Janus 经同一条 WebSocket 主动 push event。</p>
-  <ul>
-    <li><strong>消息形态</strong>：attach 收同步 ack；远端挂流/新 candidate 则是 <code>{"janus":"event","plugindata":{...}}</code> 主动推送。</li>
-    <li><strong>前端分发器</strong>：按 <code>janus</code> 字段判断 ack/error/event，再按 <code>plugindata.plugin</code> 路由到对应插件逻辑。</li>
-    <li><strong>多路区分</strong>：多个 handle 的事件都从这一条 WebSocket 来，靠 handle id 区分。</li>
-  </ul>
-  <h3>2.6 管理 API（Admin/Monitor API）</h3>
-  <p class="lead"><b>一句话定位</b>：独立运维接口，列 session/handle、看媒体统计、强制 hangup、动态建 mountpoint。</p>
-  <ul>
-    <li><strong>端口</strong>：业务前端走 8188/8088；管理接口默认 7088（独立 HTTP/WebSocket）。</li>
-    <li><strong>能做什么</strong>：列当前 session/handle、查每个 handle 媒体统计（字节数/丢包）、强制 hangup、动态建 streaming mountpoint。</li>
-    <li><span class="tag-pit">坑</span><strong>安全</strong>：它是"运维仪表盘"后端，绝不能暴露公网。</li>
-  </ul>
-  <h3>2.7 NAPI（异步插件 API）与事件环的关系</h3>
-  <p class="lead"><b>一句话定位</b>：NAPI 让插件耗时操作（连 RTSP 源）挂回事件循环，不再阻塞主循环。</p>
-  <ul>
-    <li><strong>解决的问题</strong>：老版本插件连 RTSP 源是同步阻塞的，一个源连不上卡住整个 Janus——表现为"所有正在看的浏览器一起卡"。</li>
-    <li><strong>做法</strong>：用 job/timeout 把拉源动作异步挂回循环，并给连接超时。</li>
-  </ul>
-  <h3>2.8 媒体面转发与位率适配</h3>
-  <p class="lead"><b>一句话定位</b>：Janus 转发 RTP 不解码、不懂画面，但能按拥塞控制选层降码率。</p>
-  <ul>
-    <li><strong>拥塞反馈</strong>：根据观看者 REMB/TWCC 反馈向源端请求降码率，或选不同 simulcast 层。</li>
-    <li><strong>监控场景</strong>：通常单码率，这层用得少；会议/直播里 simulcast（高/中/低三层按网络选层下发）是关键抗弱网技术。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一次"浏览器拉一路监控流"的完整信令时序</h3>
-  <p>这是本项目前端最核心的一条链路。浏览器通过 WebSocket 与 Janus 交互，最终拿到 Janus streaming 插件生成的 SDP offer。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 380" role="img" aria-label="浏览器经 Janus streaming 插件拉流的信令时序图">
       <defs>
@@ -728,14 +785,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 streaming 插件拉流的信令时序（示意）</p>
   </div>
-  <ol>
-    <li><strong>建 session</strong>：浏览器发 <code>{janus:"create"}</code>，Janus 返回随机 session id——这是这条 WebSocket 连接的身份。</li>
-    <li><strong>attach 插件</strong>：发 <code>{janus:"attach", plugin:"janus.plugin.streaming"}</code>，Janus 加载插件实例，返回 handle id。多路同屏就是重复这步多次，各自一个 handle。</li>
-    <li><strong>watch 指定挂载点</strong>：插件消息体里 <code>{streaming:{request:"watch", id:12}}</code>，告诉 streaming 插件"我要看 mountpoint 12"。</li>
-    <li><strong>收 SDP offer</strong>：插件生成 SDP（描述它要发的 H.264/Opus），作为 <code>event + jsep</code> 推给浏览器。浏览器 setRemoteDescription、createAnswer、回传 answer（与上一页 WebRTC 时序衔接）。</li>
-    <li><strong>trickle ICE</strong>：双方互传候选，打通后插件开始推流。</li>
-  </ol>
-  <h3>3.2 内核与插件的内部分层</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 240" role="img" aria-label="Janus 内核与插件分层示意图">
       <defs>
@@ -761,122 +810,30 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 3 传输层 → 内核 → 插件的三层结构（示意）</p>
   </div>
-  <p>设计精髓在于<strong>内核不知道业务</strong>：它收到一个 attach 请求，只看 plugin 名字，把后续消息原样派发给那个插件的回调；媒体面则由内核统一处理 SRTP，插件只决定"收上来的 RTP 往哪发"。这种关注点分离让 Janus 可以被复用到完全不同的业务——你写个自定义 .so 插件，就能把 WebRTC 接到自己的业务逻辑上，而不用碰内核的协议栈。</p>
+  <p><strong>读图要点</strong>：①图 1 分发链路——SFU 一路源按观看者各转发一份；②图 2 是前端最核心的信令链——<strong>create→attach→watch 三步同步 ack，offer 从 event 异步来</strong>；③图 3 分层精髓——<strong>内核不知道业务</strong>（只按 plugin 名派发消息，媒体统一 SRTP），插件只决定"RTP 往哪发"。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 信令消息的统一封装（本项目前端核心工具）</h3>
-<pre class="code" data-lang="js"><code>// Janus 所有信令都是 JSON over WebSocket。统一一个发送器，自动带上 session/handle。
-var janus = { ws: null, sessionId: null, handles: {} };
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——WebRTC 无插件播放器（2020-2022）的网关选型与部署；我主导前端、参与选型决策，网关部署由后端执行。</p>
 
-function jSend(msg) {
-  msg.vendor = undefined;
-  janus.ws.send(JSON.stringify(msg));
-}
-
-// 1) 建会话
-jSend({ janus: 'create' });
-// 2) attach streaming 插件 → 拿到 handleId
-jSend({ janus: 'attach', plugin: 'janus.plugin.streaming', session_id: sid });
-
-// 收消息分发器：ack / error / event 三类
-janus.ws.onmessage = function (e) {
-  var msg = JSON.parse(e.data);
-  if (msg.janus === 'event' &amp;&amp; msg.plugindata) onPluginEvent(msg);
-  else if (msg.janus === 'success') /* create/attach 的同步回执 */ onAck(msg);
-  else if (msg.janus === 'error') console.error('Janus 错误:', msg.error);
-};</code></pre>
-  <h3>4.2 watch 挂载点并接 SDP offer</h3>
-<pre class="code" data-lang="js"><code>// 业务消息放在 plugindata，外层 envelope 是 Janus 协议
-function watchMountpoint(handleId, mountpointId) {
-  jSend({
-    janus: 'message',
-    session_id: janus.sessionId,
-    handle_id: handleId,
-    body: { request: 'watch', id: mountpointId }
-    // jsep 会在插件 event 里异步推回来，不在这条消息里
-  });
-}
-// 收到 event 且带 jsep(offer) → 交给 WebRTC 协商（见 WebRTC 页 4.2）
-function onPluginEvent(msg) {
-  if (msg.jsep &amp;&amp; msg.jsep.type === 'offer') startAnswer(msg.jsep, msg.handle_id);
-  if (msg.plugindata.data &amp;&amp; msg.plugindata.data.streaming === 'event') {
-    // 如：streaming 源断了 → status: 'stopped'
-    if (msg.plugindata.data.status === 'stopped') showDisconnected();
-  }
-}</code></pre>
-  <div class="note">两种写法对比：<strong>同步请求-响应</strong> vs <strong>异步 event 推送</strong>。create/attach 是同步的，发完立刻收到 success；但 <strong>SDP offer 和流状态变化不是响应，是 Janus 主动 push 的 event</strong>。新手最容易踩的坑就是"发了 watch 之后在这条消息的 response 里找 SDP"——根本找不到，SDP 在随后到来的 event 帧里。必须写一个常驻的 onmessage 分发器。</div>
-  <h3>4.3 鉴权与挂流（hangup / detach / destroy）</h3>
-<pre class="code" data-lang="js"><code>// 停止观看：先 hangup 当前媒体，再 detach 插件句柄，最后（可选）destroy session
-function stopWatch(handleId) {
-  jSend({ janus: 'hangup', session_id: sid, handle_id: handleId });
-  jSend({ janus: 'detach', session_id: sid, handle_id: handleId });
-}
-// 关闭页面/微前端卸载时必须 destroy，否则 Janus 端 session 泄漏、连接数累积
-window.addEventListener('beforeunload', function () {
-  jSend({ janus: 'destroy', session_id: sid });
-});</code></pre>
-  <h3>4.4 服务端最小配置片段（janus.jcfg）</h3>
-<pre class="code" data-lang="ini"><code>[general]
-websocket_port = 8188              ; 前端信令 WebSocket
-nat_1_1_mapping = <公网IP>          ; 服务器在 NAT 后，直接告诉 ICE 自己的公网地址
-
-[plugins]
-libjanus_streaming.so = mystreaming   ; 加载拉流插件
-
-[media]
-dtls = true
-nack = true                        ; 启用丢包重传反馈，抗弱网
-fir_pli = true                     ; 允许对端请求关键帧（对应前端 6.6 的 PLI）</code></pre>
-  <h3>4.5 管理 API 查在线会话（运维用）</h3>
-<pre class="code" data-lang="bash"><code># Admin API（默认 7088，务必只绑内网）：列出当前所有 session
-curl http://127.0.0.1:7088/ --data '{"janus":"list_sessions"}'
-# 看某个 session 下挂了哪些 handle、在看哪个 mountpoint
-curl http://127.0.0.1:7088/ --data '{"janus":"list_handles","session_id":12345}'</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：无插件播放器的网关选型与部署</h3>
-  <p class="lead"><b>一句话定位</b>：监控是"单源多观看者、单向广播"，需要一个把摄像头 RTSP 流转成 WebRTC 的网关，并支持多路同屏。</p>
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><strong>业务场景</strong>：2020-2022 年 WebRTC 无插件播放器项目，变电站摄像头从 ActiveX 迁到浏览器原生低延迟播放。</li>
-    <li><strong>诉求</strong>：多路同屏（值班屏同时看多路）、低延迟、稳定转发。</li>
-    <li><strong>我的角色</strong>：前端主导播放器，与后端一起做网关选型与部署；本项目我参与选型决策与前端对接，网关部署由后端执行。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul>
-    <li><strong>分工</strong>：后端负责 Janus 安装、NAT/TURN、挂载点注册；我负责前端与 Janus 的信令对接、多路 handle 管理、Qiankun 生命周期释放。</li>
-    <li><strong>团队</strong>：小型项目组，前端 1 人（我）、后端 1-2 人、现场实施若干。</li>
-  </ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul>
-    <li><strong>网关</strong>：Janus（SFU，streaming 插件）；前置 Nginx 反代 WSS；coturn 做 TURN 兜底。</li>
-    <li><strong>前端</strong>：Vue2 + WebSocket 信令 + RTCPeerConnection + Canvas；Qiankun 子应用。</li>
-  </ul>
-
-  <h3>5.4 落地设计：为什么选 Janus streaming 而非 MCU</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>选型对比</strong>：对比 Janus / mediasoup / SRS；监控是单向广播，streaming 插件现成、C 内核转发性能好、社区资料多。</li>
-    <li><strong>不选 MCU</strong>：对监控流做混流重编码是无谓开销——监控单源多观看者，SFU 只转发即可。</li>
-    <li><strong>部署要点</strong>：Janus 在 NAT 后，必须配 <code>nat_1_1_mapping</code> 填公网地址，否则 ICE 候选全是内网 IP。</li>
+    <li><strong>选型</strong>：对比 Janus/mediasoup/SRS——监控单向广播，streaming 插件现成、C 内核转发性能好、社区资料多；不选 MCU（监控流混流是无谓开销）；</li>
+    <li><strong>部署要点</strong>：Janus 在 NAT 后必须配 nat_1_1_mapping，否则 ICE 候选全是内网 IP；coturn 兜底；Nginx 反代 WSS；</li>
     <li><strong>多路同屏模型</strong>：一个 WebSocket session 挂多个 handle，每个 handle 一条独立 PeerConnection。</li>
   </ul>
 
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="js"><code>// 多路同屏：一个 WebSocket(session) 复用到 N 个 handle
+  <h3>6.2 关键实现</h3>
+<pre class="code" data-lang="js"><code>// 多路同屏：一个 WebSocket(session) 复用到 N 个 handle
 function openChannel(mountpointId, canvas) {
   attachStreamingHandle(function (handleId) {
     watchMountpoint(handleId, mountpointId);      // 异步等 event 里的 offer
     pendingOfferToPc[handleId] = createReceiverPc(canvas);  // 拿到 offer 后建 PeerConnection
   });
 }</code></pre>
-  <p>Qiankun 子应用卸载时的资源释放（重资源对象必须显式回收）：</p>
-  <pre class="code" data-lang="js"><code>export async function unmount() {                 // Qiankun 生命周期钩子
+<pre class="code" data-lang="js"><code>// Qiankun 子应用卸载时的资源释放（重资源对象必须显式回收）
+export async function unmount() {
   channels.forEach(function (c) {
     c.pc &amp;&amp; c.pc.close();                          // 关 PeerConnection
     sendHangupDetach(c.handleId);                  // 发 hangup + detach
@@ -887,103 +844,85 @@ function openChannel(mountpointId, canvas) {
   channels = [];
 }</code></pre>
 
-  <h3>5.6 真实问题与解法</h3>
+  <h3>6.3 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>NAT 后漏配 nat_1_1_mapping</strong>：日志里 candidate 全是 192.168.x.x，浏览器在外打不通——补公网映射后通。</li>
-    <li><span class="tag-pit">坑</span><strong>SDP offer 在 event 不在响应</strong>：第一版在 watch 的同步回包里找 SDP 建不起连接——改常驻 onmessage 分发 <code>msg.janus==='event' &amp;&amp; msg.jsep</code> 才通。</li>
-    <li><span class="tag-pit">坑</span><strong>挂流不彻底</strong>：切通道只 hangup 没 detach/destroy，session 句柄越积越多、连接数告警——卸载钩子里补全 hangup→detach→destroy。</li>
-    <li><span class="tag-pit">坑</span><strong>旧 ws.onmessage 闭包泄漏</strong>：卸载后旧闭包仍持有已销毁 channels，切回报错——unmount 里先把 onmessage 置空再 close。</li>
-    <li><span class="tag-pit">坑</span><strong>现场封 UDP</strong>：部分点位必须配 coturn TURN 中继兜底。</li>
+    <li><span class="tag-pit">坑</span><strong>NAT 后漏配 nat_1_1_mapping</strong>：candidate 全是 192.168.x.x，外网打不通——补公网映射后通；</li>
+    <li><span class="tag-pit">坑</span><strong>SDP offer 在 event 不在响应</strong>：第一版在 watch 同步回包找 SDP 建不起连接——改常驻 onmessage 分发；</li>
+    <li><span class="tag-pit">坑</span><strong>挂流不彻底</strong>：切通道只 hangup 没 detach/destroy，session 越积越多连接数告警——卸载钩子补全三件套；</li>
+    <li><span class="tag-pit">坑</span><strong>旧 ws.onmessage 闭包泄漏</strong>：卸载后旧闭包持有已销毁 channels——unmount 先置空再 close；</li>
+    <li><span class="tag-pit">坑</span><strong>现场封 UDP</strong>：部分点位必须 coturn TURN 中继兜底。</li>
   </ul>
 
-  <h3>5.7 量化成果</h3>
-  <ul>
-    <li><strong>网关稳定承担多路转发</strong>，浏览器端延迟约 <strong>300-500ms（估算）</strong>。</li>
-    <li><strong>子应用反复挂载/卸载后</strong>，Janus 端不再堆积泄漏 session，连接数告警消除。</li>
-    <li><strong>选型收益</strong>：SFU 不混流，服务器 CPU 远低于 MCU 方案。</li>
-  </ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>契约先行</strong>：先定 streaming 信令时序（create→attach→watch→接 event offer→answer→trickle），前后端按时序各自开发。</li>
-    <li><strong>联调协商点</strong>：NAT/TURN 配置、mountpoint 与摄像头编号映射、WSS 反代端口，均现场网络下反复联调。</li>
-    <li><strong>排期</strong>：先打通单路、再多路同屏、最后 Qiankun 子应用生命周期封装。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>Janus 两段式</strong>：同步 ack + 异步 event，SDP 一定从 event 接。</li>
-    <li><span class="tag-point">要点</span><strong>NAT 部署三查</strong>：candidate 通告地址、nat_1_1_mapping、TURN 兜底。</li>
-    <li><span class="tag-point">要点</span><strong>微前端重资源释放</strong>：pc/handle/ws 三件套必须显式 hangup→detach→destroy→close。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中 WebRTC 无插件播放器里选了 Janus SFU 做 streaming 拉流，踩过 NAT 下 candidate 通告成内网 IP、SDP 在异步 event 里这两个最隐蔽的坑，并在 Qiankun 子应用卸载时做了 pc/handle/ws 的完整资源释放。"</p>
-</section>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 SFU 与 MCU 分不清</h3>
-  <p class="lead"><b>一句话定位</b>：选 SFU 还是 MCU，取决于"服务器算力便宜还是端侧算力便宜"。</p>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>SFU</strong>：只转发不混流，服务器 CPU 低，端侧要解码多路。</li>
-    <li><strong>MCU</strong>：解码后把多路混成一路再编码，服务器 CPU 高，端侧只收一路。</li>
-    <li><strong>取舍</strong>：监控选 SFU；老旧弱网/低算力端选 MCU。</li>
-  </ul>
-  <h3>6.2 SDP offer 在 event 里，不在同步响应里</h3>
-  <p class="lead"><b>一句话定位</b>：Janus 是"同步 ack + 异步 event"两段式，SDP 要从 event 接。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：发完 watch/attach，在那条消息的 success 回调里找 SDP，永远找不到。</li>
-    <li><strong>原因</strong>：SDP 作为 event 帧单独 push，不在同步 ack 里。</li>
-    <li><strong>正解</strong>：常驻 onmessage 分发器，识别 <code>msg.janus === 'event' &amp;&amp; msg.jsep</code> 来接 offer。</li>
-  </ul>
-  <h3>6.3 NAT 后部署漏配 nat_1_1_mapping</h3>
-  <p class="lead"><b>一句话定位</b>：本地能连、服务器不能，多半是 candidate 通告成了内网 IP。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：本地正常，上服务器后浏览器 ICE 一直拿不到可用 pair。</li>
-    <li><strong>原因</strong>：Janus 通告的 candidate 是网卡内网 IP（192.168.x），公网浏览器到不了。</li>
-    <li><strong>正解</strong>：配 <code>nat_1_1_mapping=公网IP</code>，或前置 coturn 用 relay 候选兜底。</li>
-  </ul>
-  <h3>6.4 单线程事件循环被阻塞</h3>
-  <p class="lead"><b>一句话定位</b>：一路源连不上 RTSP 却让所有浏览器一起卡——事件循环被同步阻塞。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：某一路源连不上 RTSP 时，所有正在看的浏览器一起卡。</li>
-    <li><strong>原因</strong>：插件同步阻塞地去连 RTSP 源，卡住整个单线程循环。</li>
-    <li><strong>正解</strong>：用支持异步 NAPI 的插件版本，给源连接设超时；按单实例转发带宽上限做水平多实例。</li>
-  </ul>
-  <h3>6.5 会话/句柄泄漏导致连接数耗尽</h3>
-  <p class="lead"><b>一句话定位</b>：只关前端 pc 不发 detach，服务端 session 句柄越堆越多。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：运行几天后新用户建连失败，连接数告警。</li>
-    <li><strong>原因</strong>：切通道/卸载子应用时只关了浏览器端 pc，没向 Janus 发 detach/destroy。</li>
-    <li><strong>正解</strong>：卸载路径上成对执行 hangup→detach→destroy，并用 Admin API 定期巡检在线 session。</li>
-  </ul>
-  <h3>6.6 Admin API 暴露公网</h3>
-  <p class="lead"><b>一句话定位</b>：7088 能 list/kill 所有会话、动态注册流，暴露公网等于交出媒体控制权。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>风险</strong>：管理接口一旦暴露公网，任何人可 list/kill 会话、注册流。</li>
-    <li><strong>正解</strong>：Admin API 只绑 127.0.0.1 或内网，前端只碰 8188/8088；鉴权（API key/token）在反代层加。</li>
-  </ul>
+  <h3>6.4 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：网关稳定承担多路转发，浏览器端延迟约 300-500ms（估算）；子应用反复挂卸后不再堆积泄漏 session；SFU 不混流 CPU 远低于 MCU；</li>
+    <li><strong>协作</strong>：契约先行（streaming 信令时序表）；NAT/TURN/mountpoint 映射现场反复联调；先单路→多路同屏→生命周期封装；</li>
+    <li><strong>可复用经验</strong>：两段式（SDP 从 event 接）；NAT 部署三查（candidate 地址/nat_1_1_mapping/TURN 兜底）；微前端重资源释放四步（pc/handle/ws + destroy）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>六条高频坑。</p>
+
+  <h3>7.1 SFU 与 MCU 分不清</h3>
+  <p><strong>口径</strong>：SFU 只转发（服务器 CPU 低、端侧解码多路）；MCU 混流重编码（服务器 CPU 极高、端侧只收一路）。<strong>取舍</strong>：监控选 SFU；老旧弱网/低算力端选 MCU——本质是"服务器算力 vs 端侧算力谁便宜"。</p>
+
+  <h3>7.2 SDP offer 在 event 里，不在同步响应里</h3>
+  <p><strong>现象</strong>：在 watch 的 success 回调找 SDP 永远找不到。<strong>正解</strong>：常驻 onmessage 分发器识别 <code>msg.janus==='event' &amp;&amp; msg.jsep</code>。</p>
+
+  <h3>7.3 NAT 后漏配 nat_1_1_mapping</h3>
+  <p><strong>现象</strong>：本地正常、上服务器 ICE 拿不到可用 pair。<strong>原因</strong>：candidate 通告成内网 IP。<strong>正解</strong>：配公网映射或 coturn relay 兜底。</p>
+
+  <h3>7.4 单线程事件循环被阻塞</h3>
+  <p><strong>现象</strong>：一路 RTSP 连不上，所有浏览器一起卡。<strong>正解</strong>：用支持异步 NAPI 的插件版本+源连接超时；按单实例带宽上限水平多实例。</p>
+
+  <h3>7.5 会话/句柄泄漏导致连接数耗尽</h3>
+  <p><strong>现象</strong>：运行几天后新用户建连失败。<strong>原因</strong>：只关前端 pc 不发 detach/destroy。<strong>正解</strong>：卸载路径成对 hangup→detach→destroy；Admin API 定期巡检在线 session。</p>
+
+  <h3>7.6 Admin API 暴露公网</h3>
+  <p><strong>风险</strong>：7088 可 list/kill 会话、动态注册流——等于交出媒体控制权。<strong>正解</strong>：只绑 127.0.0.1/内网；前端只碰 8188/8088；鉴权加在反代层。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：Janus 的架构分层与插件机制？为什么说"内核不知道业务"？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三层——<strong>传输层</strong>（WebSocket/HTTP 收 JSON 信令）、<strong>内核</strong>（单线程事件循环+完整 WebRTC 协议栈：ICE/DTLS/SRTP、session/handle 状态机、RTP 转发）、<strong>插件</strong>（业务 .so：streaming/videoroom/sip 等，实现固定回调契约）。<strong>"内核不知道业务"</strong>：收到 attach 只看 plugin 名字，把后续消息原样派发给该插件的回调；媒体面由内核统一处理 SRTP，插件只决定"收上来的 RTP 往哪发"——关注点分离让一个 Janus 能同时是直播网关和会议系统，写自定义插件即可接自己的业务而不碰协议栈。</p>
+
+  <p><strong>Q2：解释 Janus 的"同步 ack + 异步 event"两段式信令。前端怎么正确接 SDP？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>同步段</strong>——create/attach 这类管理操作发完立即回 success（带 session_id/handle_id）；<strong>异步段</strong>——SDP offer、ICE 候选、流状态变化（源断开 stopped）是 Janus 经同一条 WebSocket <strong>主动 push 的 event 帧</strong>（janus:'event' + plugindata + jsep）。<strong>前端正确姿势</strong>：写一个<strong>常驻 onmessage 分发器</strong>，按 janus 字段分三类（success/error/event），event 再按 handle_id 路由到对应插件的协商逻辑（jsep.type==='offer' → startAnswer）。<strong>最大坑</strong>：在 watch 的同步回包里找 SDP——根本不在那里，实战第一版就栽在这，改分发器才通。</p>
+
+  <p><strong>Q3：Janus 部署在 NAT 后要注意什么？多实例怎么扩？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>NAT 三查</strong>——①candidate 通告地址：Janus 通告的 ICE 候选默认是网卡内网 IP，公网浏览器到不了，必须配 <code>nat_1_1_mapping=公网IP</code>（或 1_1_map 应答式）；②STUN/TURN：现场封 UDP 时配 coturn relay 兜底；③防火墙放通媒体端口段（rtp_port_range）。<strong>多实例</strong>：Janus 无内置集群——按摄像头分区（不同实例挂不同 mountpoint+前端路由）、级联互拉、或前置负载+会话粘性；单实例上限受单线程事件循环与网卡转发带宽约束，且插件同步阻塞会卡死整个进程（用 NAPI 异步版插件）。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>三层架构各管什么？插件回调契约是什么？</li>
+    <li>Session 与 Handle 两级模型？多路同屏怎么映射？</li>
+    <li>两段式信令的划分？SDP 从哪接？</li>
+    <li>streaming 与 videoroom 的信令差异？</li>
+    <li>NAT 部署三查？Admin API 的安全红线？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>Janus 官方文档（架构/插件/信令消息全集）：<a href="https://janus.conf.meetecho.com/docs/" rel="noopener">janus.conf.meetecho.com/docs</a></li>
-    <li>Janus GitHub 仓库（源码、示例、issue）：<a href="https://github.com/meetecho/janus-gateway" rel="noopener">github.com/meetecho/janus-gateway</a></li>
-    <li>streaming 插件说明（官方 demo 页内嵌文档）：<a href="https://janus.conf.meetecho.com/docs/streaming.html" rel="noopener">janus.conf.meetecho.com/docs/streaming.html</a></li>
+    <li>GitHub：<a href="https://github.com/meetecho/janus-gateway" rel="noopener">github.com/meetecho/janus-gateway</a>；streaming 插件文档（官方 demo 页内嵌）。</li>
   </ul>
-  <h3>协议与书籍</h3>
+  <h3>延伸</h3>
   <ul>
-    <li>RFC 7656（RTP 源分类，其中 mixer/translator 角色约略对应 MCU/SFU）与 WebRTC 架构概览：<a href="https://www.rfc-editor.org/" rel="noopener">rfc-editor.org</a> 检索 WebRTC / SFU 相关 RFC。</li>
-    <li>《WebRTC 权威指南》系列在线资料（Berg 等）——结合 MDN WebRTC 章节对照阅读：<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API" rel="noopener">developer.mozilla.org/zh-CN/docs/Web/API/WebRTC_API</a></li>
+    <li>Meetecho 官方博客（架构演进/NAPI/部署实践）；coturn 配套：<a href="https://github.com/coturn/coturn" rel="noopener">github.com/coturn/coturn</a>；RFC 7656（mixer/translator 对应 MCU/SFU 角色）。</li>
   </ul>
-  <h3>实战文章</h3>
-  <ul>
-    <li>Meetecho 官方博客（Janus 架构演进、NAPI、部署实践）：<a href="https://www.meetecho.com/blog/" rel="noopener">meetecho.com/blog</a></li>
-    <li>coturn（配套 STUN/TURN）文档：<a href="https://github.com/coturn/coturn" rel="noopener">github.com/coturn/coturn</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>本地起 Janus（docker），用官方 demo 页跑通 streaming 插件挂载点拉流；</li>
+    <li>自写 onmessage 分发器完成 create→attach→watch→answer 全链（不用官方 JS SDK），打印每帧 janus 字段分类；</li>
+    <li>故意不配 nat_1_1_mapping 复现"内网 candidate"，观察 chrome://webrtc-internals 的候选对。</li>
+  </ol>
 </section>
 
 </main>
@@ -991,7 +930,7 @@ function openChannel(mountpointId, canvas) {
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../04_实时通信/05_WebRTC【深入】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../04_实时通信/01_音视频基础与流媒体协议【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../04_实时通信/07_MQTT与物联网通信【进阶】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · Janus网关【深入】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
