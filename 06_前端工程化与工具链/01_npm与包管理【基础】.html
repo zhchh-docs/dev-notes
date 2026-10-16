@@ -540,33 +540,105 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/09_前端测试_Jest与Vitest【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/00_前端工程化与工具链模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/02_Git版本控制【标准】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心命令与配置要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：npm（Node Package Manager）是 Node 生态默认包管理器：</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：包管理器解决"依赖地狱"</h3>
+  <p><strong>npm 是 Node 生态默认包管理器</strong>：从 registry 下载代码装进 node_modules、记录进 package.json。它解决"依赖地狱"——手动下载源码/处理嵌套依赖/版本兼容，一行 install 全装好。<strong>同类</strong>：pnpm/yarn（本套技术栈主用 pnpm——更快省磁盘，见 07 篇 Monorepo），三者概念互通。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>分清 <strong>dependencies/devDependencies/peerDependencies</strong> 三组依赖；</li>
+    <li>理解 <strong>lockfile 与语义化版本 ^/~</strong>——"可重复构建"的两块基石；</li>
+    <li>知道 <strong>npm 扁平 hoist 与 pnpm 隔离</strong>的结构差异（幽灵依赖根源）；</li>
+    <li>配好镜像与私有 registry。</li>
+  </ol>
+  <p><strong>前置知识</strong>：Node 基础。<strong>难度</strong>：★☆☆☆☆。<strong>本篇不涉及</strong>：workspace 细节（07 篇展开）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>四个核心模型：<strong>package.json 三组依赖</strong>→ <strong>lockfile</strong>→ <strong>语义化版本 ^/~</strong>→ <strong>registry 与镜像</strong>。</p>
+
+  <h3>2.1 三组依赖：装给谁看的</h3>
   <ul>
-    <li><strong>作用</strong>：从 registry（包仓库）下载别人写好的代码，装到本地 node_modules，并记录在 package.json 里。</li>
-    <li><strong>同类工具</strong>：pnpm、yarn。本套技术栈主用 pnpm（更快、更省磁盘，见 Monorepo 页），但三者概念互通。</li>
+    <li><span class="tag-key">dependencies</span>：生产运行也要（vue），部署打进线上；</li>
+    <li><strong>devDependencies</strong>：只在开发/构建用（vite/eslint/单测框架），不上线；</li>
+    <li><strong>peerDependencies</strong>：插件写给"宿主"的（vite 插件要求项目自己装 vite）——本包不强制装，但提示必备版本，也是"装包提示缺 peer"警告的来源。</li>
   </ul>
-  <p><strong>解决什么问题</strong>：没有包管理时，用一个库要手动下载源码、拷进项目、再处理它又依赖别的库的嵌套关系——这就是"依赖地狱"。包管理器自动解析"你要的包 + 它要的包 + 版本兼容"，一行 <code>install</code> 全装好。</p>
+  <p><span class="tag-point">要点</span>分组的意义：<strong>部署只装 dependencies，别把构建工具带上线</strong>——生产包更小、攻击面更窄。</p>
+
+  <h3>2.2 lockfile：锁死"这次实际装了什么"</h3>
+  <p><code>package-lock.json</code>（npm）/<code>pnpm-lock.yaml</code>（pnpm）记死实际安装的精确版本，消除"今天和明天装出不同版本"的漂移（<code>^3.4.0</code> 允许装 3.x 最新）。<span class="tag-key">纪律</span>：lockfile 提交进 Git，团队与 CI 版本完全一致；<strong>CI 用 <code>npm ci</code></strong>——严格按 lockfile 干净重装、绝不自动更新（install 才会改 lockfile）。</p>
+
+  <h3>2.3 语义化版本：^ 与 ~ 放行哪一段</h3>
+  <p>版本号 <code>主.次.修订</code>（3.4.2）；<strong>^3.4.0</strong> 允许升 3.x.x（次版本新功能+补丁，默认）；<strong>~3.4.0</strong> 只升 3.4.x（仅补丁，保守）；精确 3.4.0 锁死。</p>
+
+  <h3>2.4 registry 与镜像</h3>
+  <p>官方源 registry.npmjs.org 国内慢——配 <code>registry.npmmirror.com</code>（淘宝镜像）提速；企业内部包走私有 registry（.npmrc 配 scoped 认证）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：常用命令</h3>
+<pre class="code" data-lang="bash"><code>pnpm add vue                # 装生产依赖
+pnpm add -D vite            # 装开发依赖
+pnpm add -w vue@3.4.0       # workspace 根目录统一装
+pnpm install                # 按 lockfile 安装全部
+pnpm update vue             # 升级 vue
+pnpm remove vue             # 卸载</code></pre>
+
+  <h3>3.2 场景二：配镜像与私有 registry</h3>
+<pre class="code" data-lang="bash"><code>pnpm config set registry https://registry.npmmirror.com
+# .npmrc：私有包单独走企业 registry
+@yourco:registry=https://npm.yourco.com
+//npm.yourco.com/:_authToken=xxxx</code></pre>
+
+  <h3>3.3 场景三：monorepo 依赖统一（详 07 篇）</h3>
+  <p>根 <code>pnpm-workspace.yaml</code> 声明 apps/* 与 packages/*；内部包 <code>workspace:*</code> 互引；<code>pnpm.overrides</code> 锁定 vue/element-plus 大版本——多应用版本不漂移。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：lockfile 与版本规则已清楚。</p>
+
+  <h3>4.1 依赖解析与版本冲突</h3>
+  <p>install 核心 = 解析依赖树：你的包依赖 A，A 又依赖 B 的某版本，要算出<strong>所有依赖兼容的版本组合</strong>——两个包要同一库的不同大版本就在这里裁决（npm 扁平 hoist 会提升一个版本+嵌套另一个；pnpm 天然支持多版本并存于 .pnpm 目录）。</p>
+
+  <h3>4.2 pnpm 隔离与内容寻址 store</h3>
+  <p>pnpm 用<strong>符号链接 node_modules + 全局内容寻址 store</strong>：真实包只存一份（硬链接），项目 node_modules 顶层只有 package.json 声明的包——磁盘省 50%+、安装快、<strong>根治幽灵依赖</strong>（图 3）。</p>
+
+  <h3>4.3 安全审计与供应链</h3>
+  <p><code>pnpm audit</code> 扫已知漏洞（对照 npm advisory 库）；<strong>lockfile 就是供应链防线</strong>——registry 上的包可能被篡改版本，lockfile 锁哈希后篡改包装不进来；内部关键依赖走私有 registry 镜像固化。</p>
+
+  <h3>4.4 scripts 生命周期</h3>
+  <p>package.json scripts 支持生命周期钩子：preinstall/postinstall/prepublishOnly——postinstall 装依赖自动跑构建产物修复（patch-package 集成点）；<span class="tag-pit">安全提示</span>：npm 包的 install 脚本可执行任意代码——这是供应链攻击入口，lockfile+审计+私有源三防线。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 180" role="img" aria-label="包安装流程示意图">
       <defs>
@@ -593,34 +665,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 一次包安装的流程（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 package.json 与依赖分组</h3>
-  <p class="lead"><b>一句话定位</b>：项目的"身份证 + 清单"——记录项目叫什么、依赖谁、用什么脚本。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>dependencies</strong>：生产运行也要的依赖（如 vue），部署时会被打进线上。</li>
-    <li><strong>devDependencies</strong>：只在开发/构建时用的（如 vite、eslint、单测框架），不上线。</li>
-    <li><strong>peerDependencies</strong>：插件/库写给"宿主"用的（如 vite 插件要求项目自己装 vite）——本包不强制装它，但提示使用者必须具备对应版本，也是"装包时提示缺 peer"警告的来源。</li>
-  </ul>
-  <p class="key-sentence">分这两组是为了"部署时只装 dependencies，别把构建工具也带上线"——生产包更小、攻击面更窄。</p>
-  <h3>2.2 lockfile（锁定版本）</h3>
-  <p class="lead"><b>一句话定位</b>：把"这次实际装了哪个精确版本"记死，消除"今天和明天装出不同版本"的漂移。</p>
-  <ul>
-    <li><strong>文件</strong>：<code>package-lock.json</code>（npm）/ <code>pnpm-lock.yaml</code>（pnpm）。</li>
-    <li><strong>为什么需要</strong>：<code>"vue": "^3.4.0"</code> 里的 <code>^</code> 允许装 3.x 最新版——不锁的话，今天装和下月装可能版本不同，"我本地好好的"就崩了。</li>
-    <li><strong>做法</strong>：lockfile 提交进 Git，保证团队每个人、CI 装的版本完全一致。</li>
-    <li><strong>npm ci</strong>：CI 上用它——严格按 lockfile 干净重装、绝不自动更新版本，保证可重复构建；<code>npm install</code> 才会顺带改动 lockfile。</li>
-  </ul>
-  <h3>2.3 语义化版本与 ^/~</h3>
-  <p class="lead"><b>一句话定位</b>：版本号分三段，^/~ 两个符号决定"能自动升到哪一档"。</p>
-  <ul>
-    <li><strong>版本号格式</strong>：<code>主版本.次版本.修订号</code>（如 3.4.2）。</li>
-    <li><strong>^3.4.0</strong>：允许升到不改变主版本的最新（3.x.x，含次版本新功能）——默认，拿新特性。</li>
-    <li><strong>~3.4.0</strong>：只允许修订号补丁（3.4.x，只修 bug）——更保守。</li>
-    <li><strong>精确 3.4.0</strong>：锁死，不自动升。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="语义化版本升级范围图">
       <defs>
@@ -630,7 +674,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">版本号 3.4.2：主.次.修订，^ 和 ~ 各放行哪一段</text>
 
-      <!-- 版本号拆解 -->
       <rect x="180" y="45" width="100" height="45" rx="6" fill="#fee2e2" stroke="#dc2626"/>
       <text x="230" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#b91c1c">3</text>
       <text x="230" y="100" text-anchor="middle" font-size="11" fill="#b91c1c">主版本（不兼容变更）</text>
@@ -647,35 +690,14 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="510" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#047857">2</text>
       <text x="510" y="100" text-anchor="middle" font-size="11" fill="#047857">修订号（修 bug）</text>
 
-      <!-- ^ 范围 -->
       <rect x="150" y="125" width="450" height="35" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="375" y="148" text-anchor="middle" font-size="12" fill="#2d6a3f">^3.4.0 → 自动升到 3.x.x 最新（次版本+修订号都能升）</text>
 
-      <!-- ~ 范围 -->
       <rect x="280" y="170" width="250" height="35" rx="6" fill="#f0fdf4" stroke="#047857"/>
       <text x="405" y="193" text-anchor="middle" font-size="12" fill="#047857">~3.4.0 → 只升到 3.4.x（仅修订号补丁）</text>
     </svg>
     <p class="diagram-caption">图 2 语义化版本 ^/~ 升级范围（示意）</p>
   </div>
-  <h3>2.4 registry 与镜像</h3>
-  <p class="lead"><b>一句话定位</b>：包的仓库地址；默认官方源，国内换镜像提速。</p>
-  <ul>
-    <li><strong>官方源</strong>：<code>registry.npmjs.org</code>，国内有时慢。</li>
-    <li><strong>镜像</strong>：配成 <code>https://registry.npmmirror.com</code>（淘宝）就快很多。</li>
-    <li><strong>私有 registry</strong>：企业内部搭一个，放不对外的包（见案例）。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p class="lead"><b>一句话定位</b>：一次 install = 读清单 → 算依赖树 → 下载 → 落盘并锁版本。</p>
-  <ol>
-    <li><strong>读 package.json</strong>：知道要装哪些依赖。</li>
-    <li><strong>解析依赖树</strong>：你的包依赖 A，A 又依赖 B 的某版本，要算出一个所有依赖都兼容的版本组合。</li>
-    <li><strong>从 registry 下载</strong>：命中本地缓存就直接用。</li>
-    <li><strong>写入 node_modules</strong>：把实际版本写进 lockfile。</li>
-  </ol>
-  <p class="key-sentence">理解"解析依赖树"这步最关键——版本冲突（两个包要同一库的不同大版本）就是在这里解决的。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="npm扁平结构 vs pnpm隔离结构对比">
       <defs>
@@ -685,7 +707,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">为什么 pnpm 能根治"幽灵依赖"？（示意）</text>
 
-      <!-- npm -->
       <rect x="30" y="45" width="360" height="170" rx="8" fill="#fef2f2" stroke="#dc2626"/>
       <text x="210" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">npm（扁平 hoist）</text>
       <rect x="50" y="80" width="320" height="25" rx="4" fill="#fff" stroke="#dc2626"/>
@@ -700,7 +721,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <text x="210" y="178" text-anchor="middle" font-size="11" fill="#b91c1c">靠"隔壁装了才在"，隔壁一升级就崩</text>
       <text x="210" y="200" text-anchor="middle" font-size="10.5" fill="#7a8a70">这就是"幽灵依赖"</text>
 
-      <!-- pnpm -->
       <rect x="410" y="45" width="360" height="170" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="590" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">pnpm（隔离 + 硬链接）</text>
       <rect x="430" y="80" width="320" height="25" rx="4" fill="#fff" stroke="#047857"/>
@@ -710,105 +730,81 @@ p, li, h1, h2, h3, h4, h5, h6 {
       <rect x="550" y="110" width="100" height="22" rx="3" fill="#d1fae5"/>
       <text x="600" y="125" text-anchor="middle" font-size="10" fill="#047857">lodash（硬链接）</text>
       <text x="590" y="155" text-anchor="middle" font-size="11" fill="#4f6348">只有 package.json 声明的包才出现在顶层</text>
-      <text x="590" y="178" text-anchor="middle" font-size="11" fill="#047857">没声明的 import 直接报错，逼你补声明</text>
+      <text x="590" y="178" text-anchor="middle" font-size="11" fill="#4f6348">没声明的 import 直接报错，逼你补声明</text>
       <text x="590" y="200" text-anchor="middle" font-size="10.5" fill="#7a8a70">谁声明谁能用，磁盘只存一份</text>
     </svg>
     <p class="diagram-caption">图 3 npm 扁平结构 vs pnpm 隔离结构（示意）</p>
   </div>
-  <div class="note"><strong>npm vs pnpm 的差别</strong>：npm 把依赖摊平（hoist）到顶层 node_modules，于是出现"幽灵依赖"（没声明也能 import）；pnpm 用隔离的符号链接 node_modules + 全局内容寻址 store，谁声明谁能用、磁盘只存一份。详见 Monorepo 页。</div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心命令与配置要点</h2>
-  <h3>4.1 常用命令</h3>
-<pre class="code" data-lang="bash"><code>pnpm add vue                # 装生产依赖
-pnpm add -D vite            # 装开发依赖
-pnpm add -w vue@3.4.0       # workspace 根目录统一装
-pnpm install                # 按 lockfile 安装全部
-pnpm update vue             # 升级 vue
-pnpm remove vue             # 卸载</code></pre>
-  <h3>4.2 配镜像 registry</h3>
-<pre class="code" data-lang="bash"><code>pnpm config set registry https://registry.npmmirror.com
-# 私有包单独走企业 registry（.npmrc）</code></pre>
-  <h3>4.3 .npmrc（私有包认证）</h3>
-<pre class="code" data-lang="bash"><code>@yourco:registry=https://npm.yourco.com
-//npm.yourco.com/:_authToken=xxxx</code></pre>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：业务系统 monorepo 的依赖统一管理</h3>
-  <p class="lead"><b>一句话定位</b>：多应用+多公共包的 monorepo，依赖要跨应用统一、版本不漂移。</p>
-  <ul><li><strong>项目</strong>：业务系统（web 主应用 + drawio + 工作流 + 5 个公共包，结构见 Monorepo 页）。</li></ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：我负责 pnpm workspace 依赖管理、lockfile 与镜像配置落地。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>pnpm workspace + pnpm-lock.yaml + pnpm.overrides；内部包 workspace:* 互引。</li></ul>
-
-  <h3>5.4 落地设计：一条命令装全仓 + 锁版本</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>workspace</strong>：根 <code>pnpm-workspace.yaml</code> 声明 apps/* 与 packages/*。</li>
-    <li><strong>版本锁定</strong>：提交 <code>pnpm-lock.yaml</code>，团队与 CI 装的版本一致。</li>
-    <li><strong>统一大版本</strong>：<code>pnpm.overrides</code> 锁定 vue/element-plus。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code># 新人拉代码后一条命令装好整个 monorepo
-pnpm install</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>lockfile 没提交</strong>：同事装出不同版本——强制 lockfile 进 Git。</li>
-    <li><span class="tag-pit">坑</span><strong>幽灵依赖</strong>：切 pnpm 隔离后报错，被迫补声明。</li>
-    <li><span class="tag-pit">坑</span><strong>直连官方 registry 慢</strong>：配 npmmirror 镜像后提速。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>依赖版本全团队一致；pnpm 硬链接省磁盘、安装比 npm 快。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul><li><strong>流程</strong>：新人拉代码即 <code>pnpm install</code>；升级依赖走 PR + lockfile 变更评审。</li></ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>lockfile 必进 Git</strong>，别手删 node_modules 重装。</li>
-    <li><span class="tag-point">要点</span><strong>谁用谁声明</strong>，pnpm 隔离会把幽灵依赖暴露出来。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中 业务系统 用 pnpm workspace 一条命令装整个 monorepo，靠 lockfile 保证团队版本一致、overrides 锁定 vue 大版本，踩过 lockfile 没提交导致同事装出不同版本的坑。"</p>
+  <p><strong>读图要点</strong>：①图 1 install 四步——解析依赖树是版本冲突的裁决点；②图 2 ^/~ 放行范围——lockfile 才是最终防线；③图 3 幽灵依赖的结构性根源——npm hoist 摊平 vs pnpm 隔离。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 lockfile 不提交 / 随意删</h3>
-  <p class="lead"><b>一句话定位</b>：不锁版本 = 团队各装各的，"我本地能跑"失效。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统 monorepo（web 主应用 + drawio + 工作流 + 5 个公共包）的依赖统一管理；我负责 pnpm workspace 依赖管理、lockfile 与镜像配置落地。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：团队每个人装出的依赖版本不同，行为不一致。</li>
-    <li><strong>正解</strong>：lockfile 必须提交 Git；想升级用 <code>update</code>，别手删 node_modules 重装。</li>
+    <li><span class="tag-key">workspace</span>：根 pnpm-workspace.yaml 声明 apps/* 与 packages/*——新人拉代码一条 <code>pnpm install</code> 装全仓；</li>
+    <li><strong>版本锁定</strong>：提交 pnpm-lock.yaml，团队与 CI 版本一致；</li>
+    <li><strong>统一大版本</strong>：pnpm.overrides 锁定 vue/element-plus；内部包 workspace:* 互引。</li>
   </ul>
-  <h3>6.2 dependencies 与 devDependencies 放错</h3>
-  <p class="lead"><b>一句话定位</b>：把构建工具打进生产依赖，线上包变大。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：vite/eslint 被当成运行时依赖，部署包臃肿。</li>
-    <li><strong>正解</strong>：运行时需要的进 dependencies，只在开发/构建用的进 devDependencies。</li>
+    <li><span class="tag-pit">坑</span><strong>lockfile 没提交</strong>：同事装出不同版本行为不一致——强制 lockfile 进 Git；</li>
+    <li><span class="tag-pit">坑</span><strong>幽灵依赖</strong>：切 pnpm 隔离后报错——被迫补声明（好事）；</li>
+    <li><span class="tag-pit">坑</span><strong>直连官方 registry 慢</strong>：配 npmmirror 镜像提速。</li>
   </ul>
-  <h3>6.3 幽灵依赖（npm 扁平结构）</h3>
-  <p class="lead"><b>一句话定位</b>：import 了没声明的包，靠"隔壁装了才在"，埋雷。</p>
-  <p class="pit-sentence">npm 的 hoist 让你能 import 没声明的包，看似方便实则埋雷——隔壁一升级就崩。pnpm 隔离 node_modules 根治它（见 Monorepo 页）。</p>
-  <h3>6.4 ^ 与 ~ 的升级范围</h3>
-  <p class="lead"><b>一句话定位</b>：^ 吃次版本新特性，~ 只吃补丁——锁不紧会意外不兼容。</p>
-  <ul>
-    <li><span class="tag-point">要点</span><code>^</code>：允许次版本/修订升级（不碰主版本）。</li>
-    <li><code>~</code>：只允许修订补丁。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：依赖版本全团队一致；pnpm 硬链接省磁盘、安装比 npm 快；</li>
+    <li><strong>流程</strong>：升级依赖走 PR + lockfile 变更评审；</li>
+    <li><strong>可复用经验</strong>：lockfile 必进 Git（别手删 node_modules 重装）；谁用谁声明（pnpm 会暴露幽灵依赖）。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>四条高频坑。</p>
+
+  <h3>7.1 lockfile 不提交 / 随意删</h3>
+  <p><strong>现象</strong>：团队各装各的版本，"我本地能跑"失效。<strong>正解</strong>：lockfile 必须提交；升级用 update，别手删 node_modules 重装。</p>
+
+  <h3>7.2 dependencies 与 devDependencies 放错</h3>
+  <p><strong>现象</strong>：vite/eslint 进了生产依赖，部署包臃肿。<strong>正解</strong>：运行时需要的进 dependencies，开发/构建用的进 devDependencies。</p>
+
+  <h3>7.3 幽灵依赖（npm 扁平结构）</h3>
+  <p><strong>现象</strong>：import 了没声明的包，靠"隔壁装了才在"。<strong>正解</strong>：pnpm 隔离根治——没声明的 import 直接报错，逼你补声明。</p>
+
+  <h3>7.4 ^ 与 ~ 的升级范围误判</h3>
+  <p><strong>要点</strong>：^ 吃次版本新特性（可能带破坏性变更）、~ 只吃补丁——锁不紧会意外不兼容；最终防线是 lockfile。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：package.json 里三种依赖的区别？分组的意义是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>dependencies</strong> 生产运行也要（vue），部署打进线上；<strong>devDependencies</strong> 只在开发/构建用（vite/eslint/测试框架），不上线；<strong>peerDependencies</strong> 插件/库写给宿主的声明——不强制安装但声明必备版本（vite 插件要求项目装 vite），也是"缺 peer"警告来源。<strong>分组意义</strong>：生产部署只装 dependencies——包更小、攻击面更窄（构建工具与审计依赖不进线上）。反面坑：构建工具放错组导致部署包臃肿。</p>
+
+  <p><strong>Q2：lockfile 是什么？为什么必须提交 Git？npm ci 和 install 的区别？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>lockfile</strong>（package-lock.json/pnpm-lock.yaml）记死"这次实际安装的精确版本+哈希"——package.json 的 ^3.4.0 只是范围，不锁的话今天和明天装出不同版本，"我本地好好的"失效。<strong>必须提交</strong>：保证团队每个人与 CI 装的版本完全一致（可重复构建），lockfile 变更走 PR 评审。<strong>npm ci</strong>：严格按 lockfile 干净重装、lockfile 与 package.json 不一致直接报错、绝不自动升级——CI 的正确姿势；install 则会顺带更新 lockfile。<strong>供应链视角</strong>：lockfile 锁哈希后 registry 包被篡改也装不进来。</p>
+
+  <p><strong>Q3：什么是幽灵依赖？pnpm 为什么能根治它？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>幽灵依赖</strong>——npm 把依赖树扁平 hoist 到顶层 node_modules，你的代码能 import 到 package.json 没声明的包（它只是"隔壁包的依赖被提到了顶层"）——隔壁升级/移除后你的代码直接崩。<strong>pnpm 的解法是结构性的</strong>：全局内容寻址 store 存一份真实包（硬链接省磁盘），项目 node_modules 顶层只放 package.json 声明的包（符号链接），其余藏在 .pnpm 隔离目录——<strong>没声明的 import 直接报错</strong>，从机制上逼出正确声明。实战：切 pnpm 后一批幽灵依赖被暴露，补声明是阵痛也是收益。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>三组依赖各装给谁？分组的部署意义？</li>
+    <li>lockfile 锁什么？npm ci 与 install 的区别？</li>
+    <li>^3.4.0 与 ~3.4.0 各放行哪一段？</li>
+    <li>幽灵依赖的结构性根源？pnpm 怎么根治？</li>
+    <li>peerDependencies 的用途？"缺 peer"警告从哪来？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
     <li>npm 官方文档与 package.json 说明：<a href="https://docs.npmjs.com/" rel="noopener">docs.npmjs.com</a></li>
@@ -819,14 +815,20 @@ pnpm install</code></pre>
   <ul>
     <li>npmmirror（淘宝 npm 镜像）：<a href="https://registry.npmmirror.com/" rel="noopener">registry.npmmirror.com</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>建一个项目，故意删 lockfile 后两次 install，diff 两份 lockfile 观察漂移；</li>
+    <li>用 npm 装一个有子依赖的包，import 子依赖复现幽灵依赖，再切 pnpm 复现报错；</li>
+    <li>写一个带 peerDependencies 的小插件，观察缺 peer 时的安装警告。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/09_前端测试_Jest与Vitest【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/00_前端工程化与工具链模块导览【精讲】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/10_前端E2E测试_Playwright与Cypress【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/02_Git版本控制【标准】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · npm与包管理【基础】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

@@ -540,7 +540,7 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/08_前端性能优化_懒加载与虚拟列表【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/01_npm与包管理【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../06_前端工程化与工具链/03_ESLint与Prettier代码规范【标准】.html">下一篇 →</a>
 </nav>
@@ -548,29 +548,118 @@ p, li, h1, h2, h3, h4, h5, h6 {
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与命令要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p><strong>是什么</strong>：Git 是一个分布式版本控制系统（DVCS）：</p>
-  <ul>
-    <li><strong>分布式</strong>：和集中式（SVN）不同，每个开发者本地都有完整仓库历史，不依赖中央服务器就能提交、看历史、分支合并。</li>
-    <li><strong>存储模型</strong>：每次提交（commit）是一次快照（snapshot），用内容指纹（SHA-1）标识，相同内容的文件在多次提交间复用同一份。</li>
-  </ul>
-  <p><strong>解决什么问题</strong>：多人协作时版本管理解决"改坏了怎么回退、多人改同一文件怎么合并、这次改动是谁何时为何做的"。工程上更重要的是分支模型：</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>分支模型决定协作节奏</strong>：用什么分支结构组织"开发、测试、发布、热修"，直接决定冲突频率。</li>
-    <li><strong>本项目</strong>：横跨 2016-2026 多个项目，分支规范踩过不少坑，见板块 5。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：分布式快照系统 + 分支模型即协作节奏</h3>
+  <p><strong>Git 是分布式版本控制系统（DVCS）</strong>：每人本地有完整仓库历史（不依赖中央服务器）；每次 commit 是一次<strong>快照</strong>（SHA-1 内容指纹，相同内容复用）。它解决"改坏怎么回退/多人改同一文件怎么合并/谁改的何时为何"。<span class="tag-key">工程上更重要的是分支模型</span>：用什么分支结构组织开发/测试/发布/热修，直接决定冲突频率——<strong>分支模型决定协作节奏</strong>。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>建立<strong>三层模型</strong>心智（工作区/暂存区/本地仓库）；</li>
+    <li>分清 <strong>merge 与 rebase</strong>（历史形态与改写哈希的铁律）；</li>
+    <li>按迭代节奏选<strong>分支模型</strong>（Git Flow vs 主干开发）；</li>
+    <li>掌握撤销四件套与 <strong>reset vs revert</strong> 的边界；</li>
+    <li>记住"已共享分支不 rebase"的事故级纪律。</li>
+  </ol>
+  <p><strong>前置知识</strong>：无。<strong>难度</strong>：★★☆☆☆。<strong>本篇不涉及</strong>：CI 门禁细节（10 篇研发流程）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>三层区域</strong>→ <strong>分支指针</strong>→ <strong>merge vs rebase</strong>→ <strong>冲突</strong>→ <strong>分支模型</strong>。</p>
+
+  <h3>2.1 三层模型：工作区/暂存区/本地仓库</h3>
+  <p><span class="tag-key">工作区</span>在编辑、<strong>暂存区（index）</strong>是 add 后准备提交的快照、<strong>本地仓库</strong>是 commit 后的永久记录。<span class="tag-point">要点</span>：add 是"把工作区改动登记进下一次提交的清单"，不是提交本身——这就是 <code>git add -p</code> 逐块暂存能拆分提交的原因。</p>
+
+  <h3>2.2 分支 = 可移动指针</h3>
+  <p>分支本质是<strong>指向某次提交的可移动指针</strong>，HEAD 指向当前分支；切分支=改指针+更新工作区到对应快照——<strong>极轻量</strong>，所以 Git 鼓励"随手开分支"，与 SVN"分支是目录拷贝"的重模型完全不同。</p>
+
+  <h3>2.3 merge vs rebase：两种历史整合</h3>
+  <p><strong>merge</strong> 生成合并提交、保留"分叉再汇合"的真实历史，不改写已有提交——<strong>公共分支安全</strong>；<strong>rebase</strong> 把 feature 提交摘下来在主干最新处重放、历史变直线——<strong>但改写提交哈希</strong>，仅限本地未推分支。<span class="tag-pit">铁律</span>：已推公共分支的提交不要 rebase——别人可能已基于它开发，改写历史导致两端分叉。</p>
+
+  <h3>2.4 冲突：不是错误，是决策信号</h3>
+  <p>两分支改同一文件同一处，Git 无法自动裁决就标冲突（<<<<<<< ======= >>>>>>>）让人决策；手动选留、<code>git add</code> 标记已解决、continue 完成合并/rebase。</p>
+
+  <h3>2.5 Git Flow vs 主干开发</h3>
+  <p><strong>Git Flow</strong>：长期分支 main（发布）/develop（集成），feature/release/hotfix 各司其职——<strong>发版周期明确的产品</strong>；<strong>主干开发（Trunk-Based）</strong>：短生命周期特性分支快速合回 main，靠 CI/CD+特性开关控制上线——<strong>持续部署团队</strong>。本套技术栈取舍：老项目偏 Git Flow，新项目（业务系统）偏主干+PR。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：日常开发命令流</h3>
+<pre class="code" data-lang="bash"><code>git pull --rebase origin main          # 拉最新主干并 rebase
+git checkout -b feature/login           # 从最新主干开特性分支
+git add -p                              # 逐块暂存，避免把无关改动一起提交
+git commit -m "feat(login): 增加手机号登录"
+git push -u origin feature/login        # 首次推送并关联远端</code></pre>
+
+  <h3>3.2 场景二：合并 vs 变基</h3>
+<pre class="code" data-lang="bash"><code># merge：保留分叉历史，产生一个合并提交
+git merge feature/login
+# rebase：把我的提交挪到主干最新之后（历史变直线）
+git checkout feature/login
+git rebase main
+# 交互 rebase：压合多个零散提交为一个（仅本地未推的分支用）
+git rebase -i main</code></pre>
+
+  <h3>3.3 场景三：冲突处理</h3>
+<pre class="code" data-lang="bash"><code>git status                  # 看哪些文件冲突
+# 手动编辑文件，去掉 &lt;&lt;&lt;&lt;&lt;&lt;&lt; ======= &gt;&gt;&gt;&gt;&gt;&gt;&gt; 标记，保留正确版本
+git add &lt;冲突文件&gt;
+git rebase --continue        # rebase 冲突解决后继续
+git merge --continue         # merge 冲突解决后继续</code></pre>
+
+  <h3>3.4 场景四：撤销四件套（高频）</h3>
+<pre class="code" data-lang="bash"><code>git restore &lt;file&gt;           # 丢弃工作区未暂存的改动
+git restore --staged &lt;file&gt;  # 把暂存的改动撤回到工作区
+git reset --soft HEAD~1      # 撤销最近一次提交，改动保留在暂存区
+git revert &lt;commit&gt;          # 生成一个"反向提交"来撤销（公共分支用它，不改写历史）</code></pre>
+  <p><span class="tag-key">reset vs revert</span>：reset 改写历史（抹掉提交）只用于本地；revert 新增反向提交、历史保留——<strong>已推公共分支的撤销用 revert</strong>。混淆两者是团队协作事故的高频来源。</p>
+
+  <h3>3.5 场景五：特性分支合并前标准动作</h3>
+<pre class="code" data-lang="bash"><code>git fetch origin
+git rebase origin/main          # 把本分支提交挪到最新主干上
+# 有冲突→手动解决→git add→git rebase --continue
+git push --force-with-lease feature/login   # rebase 后哈希变了，安全强推（不是 --force）</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：merge/rebase 与撤销四件套已熟练。</p>
+
+  <h3>4.1 reflog：后悔药的总闸</h3>
+  <p>reset --hard 误丢改动也别慌——<strong><code>git reflog</code> 记录 HEAD 的每一次移动</strong>，找到丢之前的 SHA 后 <code>git reset --hard &lt;SHA&gt;</code> 即可找回；分支删错了同理（<code>git reflog</code> 找到分支尖端提交再 <code>git branch</code> 重建）。reflog 是"Git 几乎不丢数据"的底气。</p>
+
+  <h3>4.2 bisect 二分定位</h3>
+  <p>"以前是好的、现在坏了"却不知哪次引入：<code>git bisect start</code> 标记好/坏提交，Git 自动二分 checkout，每轮跑测试标记好坏，<strong>log2(n) 轮锁定引入 bug 的提交</strong>——千次提交也只要 10 轮。</p>
+
+  <h3>4.3 cherry-pick 与 release 热修</h3>
+  <p><code>git cherry-pick &lt;sha&gt;</code> 把单个提交摘到另一分支——hotfix 在 main 修完后摘回 develop；配合发版冻结期（main 只收 hotfix）构成发布纪律。</p>
+
+  <h3>4.4 stash 与工作区暂存</h3>
+  <p>切分支但改动未完：<code>git stash</code> 暂存工作区（可多份、可带消息），切回 <code>git stash pop</code>；<span class="tag-pit">坑</span>stash 长期堆积会忘——养成"stash 带消息、当日清"的习惯，或直接小步 commit 到 WIP 分支。</p>
+
+  <h3>4.5 squash merge 与主干整洁</h3>
+  <p>合并时压扁：<code>git merge --squash</code> 或 PR 的 squash merge——feature 的十个零散提交变成主干上一个干净提交；取舍：主干整洁 vs 丢失分支内细粒度历史（回溯靠 PR 编号）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="Git 提交与分支快照模型示意图">
       <defs>
@@ -605,100 +694,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 分支与合并的提交图模型（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 工作区 / 暂存区 / 本地仓库（Working / Index / HEAD）</h3>
-  <p class="lead"><b>一句话定位</b>：Git 三层模型——工作区编辑、暂存区登记、本地仓库永久记录。</p>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>工作区</strong>：你正在编辑的文件。</li>
-    <li><strong>暂存区（index）</strong>：<code>git add</code> 后准备提交的快照。</li>
-    <li><strong>本地仓库</strong>：<code>git commit</code> 后永久记录的快照。</li>
-  </ul>
-  <p class="key-sentence">理解这三层就理解了 <code>git add</code>——它是"把工作区改动登记进下一次提交的清单"，不是提交本身。</p>
-  <h3>2.2 分支与指针（Branch = 可移动指针）</h3>
-  <p class="lead"><b>一句话定位</b>：分支本质只是指向某次提交的可移动指针，极轻量。</p>
-  <ul>
-    <li><strong>本质</strong>：分支 = 指向某次提交的可移动指针，HEAD 指向当前所在分支。</li>
-    <li><strong>切分支</strong>：改指针指向、把工作区更新到对应快照。</li>
-  </ul>
-  <p class="key-sentence">正因为极轻量，Git 鼓励"常用分支、随手开分支"——和 SVN"分支是目录拷贝"的重模型完全不同。</p>
-  <h3>2.3 rebase 与 merge（两种整合方式）</h3>
-  <p class="lead"><b>一句话定位</b>：merge 保留分叉真实历史，rebase 把提交挪到主干最新后变直线——但改写哈希。</p>
-  <ul>
-    <li><strong>merge</strong>：生成新合并提交，把两条历史连起来，历史是真实的"分叉再汇合"。</li>
-    <li><strong>rebase</strong>：把 feature 提交摘下来在主干最新处重放，历史变一条直线——但改写了提交哈希。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 170" role="img" aria-label="rebase与merge对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">merge vs rebase 历史长什么样？（示意）</text>
-
-      <!-- merge -->
-      <rect x="30" y="45" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">merge（保留分叉历史）</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">历史是"分叉再汇合"的真实样子</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">生成一个合并提交，不改写已有提交</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#047857">公共分支安全</text>
-
-      <!-- rebase -->
-      <rect x="420" y="45" width="350" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">rebase（历史变直线）</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">把 feature 提交摘下来在主干最新处重放</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">历史干净成一条直线，但改写提交哈希</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#b45309">仅本地未推的分支用</text>
-    </svg>
-    <p class="diagram-caption">图 1 merge vs rebase（示意）</p>
-  </div>
-  <p class="pit-sentence">铁律：已推到公共分支的提交不要 rebase——别人可能已基于它开发，改写历史会导致两端分叉。</p>
-  <h3>2.4 冲突（Conflict）的本质</h3>
-  <p class="lead"><b>一句话定位</b>：两分支改同一文件同一处，Git 无法自动决定留哪个，就标冲突让人决策。</p>
-  <ul>
-    <li><strong>本质</strong>：冲突不是错误，是"需要人做决策"的信号。</li>
-    <li><strong>解决</strong>：手动选留哪个，<code>git add</code> 标记已解决、再完成合并/rebase。</li>
-  </ul>
-  <h3>2.5 Git Flow 与主干开发（Trunk-Based）</h3>
-  <p class="lead"><b>一句话定位</b>：Git Flow 结构严谨适合发版周期明确的产品；主干开发适合持续部署团队。</p>
-  <ul>
-    <li><strong>Git Flow</strong>：长期分支 main（发布）/develop（集成），功能走 feature/*、发布 release/*、热修 hotfix/*。</li>
-    <li><strong>主干开发</strong>：都往短生命周期特性分支干活、快速合回 main，靠 CI/CD 与特性开关控制上线。</li>
-    <li><strong>本项目取舍</strong>：老项目偏 Git Flow，新项目（业务系统）偏主干+PR。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 170" role="img" aria-label="Git Flow与主干开发对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Git Flow vs 主干开发（示意）</text>
-
-      <!-- Git Flow -->
-      <rect x="30" y="45" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Git Flow</text>
-      <text x="50" y="95" font-size="11" fill="#4f6348">长期分支：main / develop</text>
-      <text x="50" y="117" font-size="11" fill="#4f6348">功能走 feature、发布走 release、热修走 hotfix</text>
-      <text x="50" y="137" font-size="11" font-weight="600" fill="#2d6a3f">适合：发版周期明确的产品</text>
-
-      <!-- 主干开发 -->
-      <rect x="420" y="45" width="350" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">主干开发（Trunk-Based）</text>
-      <text x="440" y="95" font-size="11" fill="#4f6348">短生命周期特性分支，快速合回 main</text>
-      <text x="440" y="117" font-size="11" fill="#4f6348">靠 CI/CD + 特性开关控制上线</text>
-      <text x="440" y="137" font-size="11" font-weight="600" fill="#047857">适合：持续部署团队</text>
-    </svg>
-    <p class="diagram-caption">图 2 Git Flow vs 主干开发（示意）</p>
-  </div>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 一条特性分支从开发到合并的完整流程</h3>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="特性分支开发到合并的标准流程图">
       <defs>
@@ -731,142 +726,100 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 特性分支协作流程（示意）</p>
   </div>
-</section>
-
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与命令要点</h2>
-  <h3>4.1 日常开发命令流</h3>
-<pre class="code" data-lang="bash"><code>git pull --rebase origin main          # 拉最新主干并 rebase
-git checkout -b feature/login           # 从最新主干开特性分支
-git add -p                              # 逐块暂存，避免把无关改动一起提交
-git commit -m "feat(login): 增加手机号登录"
-git push -u origin feature/login        # 首次推送并关联远端</code></pre>
-  <h3>4.2 合并 vs 变基</h3>
-<pre class="code" data-lang="bash"><code># merge：保留分叉历史，产生一个合并提交
-git merge feature/login
-# rebase：把我的提交挪到主干最新之后（历史变直线）
-git checkout feature/login
-git rebase main
-# 交互 rebase：压合多个零散提交为一个（仅本地未推的分支用）
-git rebase -i main</code></pre>
-  <h3>4.3 冲突处理</h3>
-<pre class="code" data-lang="bash"><code>git status                  # 看哪些文件冲突
-# 手动编辑文件，去掉 &lt;&lt;&lt;&lt;&lt;&lt;&lt; ======= &gt;&gt;&gt;&gt;&gt;&gt;&gt; 标记，保留正确版本
-git add &lt;冲突文件&gt;
-git rebase --continue        # rebase 冲突解决后继续
-git merge --continue         # merge 冲突解决后继续</code></pre>
-  <h3>4.4 撤销类命令（高频）</h3>
-<pre class="code" data-lang="bash"><code>git restore &lt;file&gt;           # 丢弃工作区未暂存的改动
-git restore --staged &lt;file&gt;  # 把暂存的改动撤回到工作区
-git reset --soft HEAD~1      # 撤销最近一次提交，改动保留在暂存区
-git revert &lt;commit&gt;          # 生成一个"反向提交"来撤销（公共分支用它，不改写历史）</code></pre>
-  <div class="note"><strong>reset vs revert</strong>：reset 改写历史（把提交抹掉），只用于本地；revert 是新增一个反向提交，历史保留，适合已经推到公共分支的撤销。混淆这两个是团队协作事故的高频来源。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>5.1 项目背景：多项目系列的分支纪律</h3>
-  <p class="lead"><b>一句话定位</b>：横跨多个项目、团队 3-8 人，需要一套不依赖口头约定的分支纪律，否则发版全靠人肉对。</p>
-  <ul>
-    <li><strong>项目系列</strong>：数据可视化大屏项目、数据编排平台、业务系统、WebRTC 播放器（2016-2026）。</li>
-    <li><strong>痛点</strong>：发版时"谁的分支没合、哪个热修改了主干"靠人肉对，易出错。</li>
-  </ul>
-
-  <h3>5.2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：作为长期参与者，落地并维护分支规范、PR 与冲突处理流程；团队 3-8 人协作。</li></ul>
-
-  <h3>5.3 技术栈</h3>
-  <ul><li>Git；老项目用 Git Flow，新项目用主干开发 + 短特性分支 + PR；monorepo 配合 Turborepo。</li></ul>
-
-  <h3>5.4 落地设计：模型取舍与 rebase 纪律</h3>
-  <ul>
-    <li><span class="tag-key">关键</span><strong>模型取舍</strong>：有发版周期的老项目（大屏/可视化大屏系统）用 Git Flow；持续迭代的新项目（业务系统）用主干开发 + 短特性分支 + PR。</li>
-    <li><strong>合并前同步主干</strong>：特性分支合前先 <code>git rebase main</code> 本地预解冲突。</li>
-    <li><strong>rebase 纪律</strong>：未推远端的特性分支用 rebase 保持干净；已推公共分支只 merge 不 rebase。</li>
-  </ul>
-
-  <h3>5.5 关键实现要点</h3>
-  <pre class="code" data-lang="bash"><code># 特性分支合并前的标准动作
-git fetch origin
-git rebase origin/main          # 把本分支提交挪到最新主干上
-# 有冲突→手动解决→git add→git rebase --continue
-git push --force-with-lease feature/login   # rebase 后哈希变了，安全强推（不是 --force）</code></pre>
-
-  <h3>5.6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>对公共分支 rebase 后 force push</strong>：覆盖同事提交——改规则：已推公共分支不 rebase，强推用 <code>--force-with-lease</code>。</li>
-    <li><span class="tag-pit">坑</span><strong>reset --hard 误丢改动</strong>：reset 前先 commit/stash；真丢了也别慌——<code>git reflog</code> 记录 HEAD 的每一次移动，<code>reset --hard &lt;那一条 SHA&gt;</code> 即可找回。</li>
-    <li><span class="tag-point">要点</span><strong>bisect 二分定位</strong>："以前是好的、现在坏了"却不知哪次引入——<code>git bisect start</code> 标记好/坏提交，Git 自动二分，几轮就锁定引入 bug 的那次提交。</li>
-    <li><span class="tag-pit">坑</span><strong>早期直接往 main 推</strong>：发版前冲突大爆发——强制 PR + CI 门禁。</li>
-  </ul>
-
-  <h3>5.7 量化成果</h3>
-  <ul><li>发版时分支状态清晰，冲突在本地预解而非堆到主干合并；主干被直推的事故归零。</li></ul>
-
-  <h3>5.8 协作与排期过程</h3>
-  <ul>
-    <li><strong>流程</strong>：特性分支开发 → PR → CI 通过 → review → 合主干；发版窗口前冻结 main，只收 hotfix。</li>
-  </ul>
-
-  <h3>5.9 复盘与可复用经验</h3>
-  <ul>
-    <li><span class="tag-point">要点</span><strong>已共享分支不 rebase</strong>，强推永远用 --force-with-lease。</li>
-    <li><span class="tag-point">要点</span><strong>按迭代节奏选模型</strong>：发版周期型 Git Flow，持续交付型主干开发。</li>
-  </ul>
-
-  <h3>5.10 面试讲法（一句话抓手）</h3>
-  <p class="key-sentence">一句话抓手："在实践中多项目系列里按迭代节奏选分支模型——发版型用 Git Flow、持续迭代用主干开发 + 短特性分支 + PR，踩过对公共分支 force push 覆盖同事的坑后，定下已共享分支只 merge、强推用 --force-with-lease 的纪律。"</p>
+  <p><strong>读图要点</strong>：①图 1 提交图——分支是指针、合并是汇聚点；②图 2 协作流程——<strong>PR 是评审与 CI 门禁的载体</strong>，合并前本地预解冲突是纪律。</p>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 对公共分支 rebase / force push</h3>
-  <p class="lead"><b>一句话定位</b>：rebase 改写哈希，对已共享分支强推会覆盖他人提交。</p>
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——多项目系列（2016-2026，团队 3-8 人）的分支纪律建设：发版不再靠人肉对分支状态。</p>
+
+  <h3>6.1 落地设计</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>事故</strong>：分支已推远端且别人基于它开发，强推覆盖他人提交、历史分叉。</li>
-    <li><strong>正解</strong>：已共享的分支只 merge 不 rebase；必须强推用 <code>--force-with-lease</code>（远端有别人新提交就拒绝）。</li>
+    <li><span class="tag-key">模型取舍</span>：发版周期的老项目（大屏）用 Git Flow；持续迭代新项目（业务系统）用主干开发+短特性分支+PR；</li>
+    <li><strong>合并前同步主干</strong>：rebase main 本地预解冲突；</li>
+    <li><strong>rebase 纪律</strong>：未推远端 rebase 保干净；已推公共分支只 merge。</li>
   </ul>
-  <h3>6.2 reset 与 revert 用反</h3>
-  <p class="lead"><b>一句话定位</b>：reset 抹提交改历史（只本地），revert 加反向提交（公共分支用）。</p>
+
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>考点</strong>：线上要撤销一个已发的提交，用 revert 不是 reset。</li>
+    <li><span class="tag-pit">坑</span><strong>对公共分支 rebase 后 force push 覆盖同事提交</strong>——定规则：已共享分支不 rebase，强推用 --force-with-lease；</li>
+    <li><span class="tag-pit">坑</span><strong>reset --hard 误丢改动</strong>：reset 前先 commit/stash；真丢了用 reflog 找回；</li>
+    <li><span class="tag-point">要点</span><strong>bisect 二分定位</strong>："以前好现在坏"不知哪次引入——自动二分几轮锁定；</li>
+    <li><span class="tag-pit">坑</span><strong>早期直推 main</strong>：发版前冲突大爆发——强制 PR+CI 门禁后直推事故归零。</li>
   </ul>
-  <h3>6.3 merge commit 污染历史</h3>
-  <p class="lead"><b>一句话定位</b>：长期不 rebase 就 merge 主干，特性分支堆一堆"merge from main"噪音提交。</p>
-  <p class="key-sentence">正解：本地特性分支用 rebase 保持干净，合并时再决定是否压扁（squash merge）。</p>
-  <h3>6.4 .gitignore 漏配导致误提交</h3>
-  <p class="lead"><b>一句话定位</b>：node_modules/dist 被提交进仓库，体积暴涨。</p>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>现象</strong>：node_modules、dist、本地配置被提交，仓库体积暴涨。</li>
-    <li><strong>正解</strong>：根目录配好 <code>.gitignore</code>，已误提交的用 <code>git rm --cached</code> 移除跟踪。</li>
-  </ul>
-  <h3>6.5 submodule 与多仓库的认知</h3>
-  <p class="lead"><b>一句话定位</b>：submodule 是在一个仓库引用另一仓库的特定提交，适合引用第三方固定版本。</p>
-  <ul>
-    <li><strong>坑</strong>：clone 主仓库后子模块是空的，要 <code>git submodule update --init</code>。</li>
-    <li><strong>本项目取舍</strong>：公共代码更多用 monorepo——submodule 对频繁改公共包的同步体验不友好。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>量化</strong>：发版时分支状态清晰，冲突本地预解；主干直推事故归零；</li>
+    <li><strong>流程</strong>：特性分支→PR→CI→review→合主干；发版窗口前冻结 main 只收 hotfix；</li>
+    <li><strong>可复用经验</strong>：已共享分支不 rebase+强推用 --force-with-lease；按迭代节奏选模型。</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 对公共分支 rebase / force push</h3>
+  <p><strong>事故</strong>：改写哈希覆盖同事提交。<strong>正解</strong>：已共享分支只 merge；必须强推用 <code>--force-with-lease</code>（远端有别人新提交就拒绝）。</p>
+
+  <h3>7.2 reset 与 revert 用反</h3>
+  <p><strong>考点</strong>：线上撤销已发提交用 revert（反向提交、历史保留），reset 只限本地。</p>
+
+  <h3>7.3 merge commit 污染历史</h3>
+  <p><strong>现象</strong>：长期不 rebase 就 merge，特性分支堆"merge from main"噪音。<strong>正解</strong>：本地 rebase 保持干净，合并时决定是否 squash。</p>
+
+  <h3>7.4 .gitignore 漏配误提交</h3>
+  <p><strong>现象</strong>：node_modules/dist 被提交，仓库体积暴涨。<strong>正解</strong>：配好 .gitignore；已误提交用 <code>git rm --cached</code> 移除跟踪。</p>
+
+  <h3>7.5 submodule 认知</h3>
+  <p><strong>坑</strong>：clone 后子模块为空要 <code>submodule update --init</code>。<strong>取舍</strong>：频繁改公共代码用 monorepo——submodule 同步体验差。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：merge 和 rebase 的区别？什么时候用哪个？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>merge</strong> 生成合并提交，保留"分叉再汇合"的真实历史，不改写已有提交——<strong>公共分支安全</strong>；<strong>rebase</strong> 把本分支提交摘下来在主干最新处重放，历史变直线——<strong>但改写提交哈希</strong>。<strong>使用边界</strong>：本地未推的特性分支用 rebase 保持干净（配合交互 rebase 压合零散提交）；已推公共分支只 merge——因为 rebase 改写哈希后，别人基于旧哈希的开发会分叉，force push 会覆盖同事提交。<strong>强推纪律</strong>：rebase 后推送用 --force-with-lease（远端有他人新提交即拒绝），永远不用裸 --force。</p>
+
+  <p><strong>Q2：reset 和 revert 的区别？线上撤销用哪个？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>reset</strong> 移动分支指针改写历史（--soft 保留暂存/--mixed 保留工作区/--hard 全丢）——只用于本地未推的提交；<strong>revert</strong> 生成一个反向提交抵消目标提交，历史保留、不改写——<strong>线上/公共分支撤销一律 revert</strong>（已发的提交可能已被别人拉取依赖）。<strong>补救底线</strong>：误 reset --hard 也不丢数据——reflog 记录 HEAD 每次移动，找到 SHA 即可找回；bisect 则用于"二分定位引入 bug 的提交"。</p>
+
+  <p><strong>Q3：Git Flow 和主干开发怎么选？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>Git Flow</strong>——main/develop 长期分支+feature/release/hotfix，结构严谨、发版窗口清晰，<strong>适合发版周期明确的产品</strong>（按版本交付、多环境晋级）；<strong>主干开发（Trunk-Based）</strong>——短生命周期特性分支快速合回 main，靠 CI/CD 门禁与特性开关控制上线，<strong>适合持续部署团队</strong>（合并冲突最小化、集成密度高）。<strong>实战取舍</strong>：按迭代节奏选模型——老项目按版本交付用 Git Flow，新业务系统持续迭代用主干+PR；两者共同纪律是"PR 是评审与 CI 门禁的载体"。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>三层模型各是什么？add 的真实语义？</li>
+    <li>分支的本质？为什么说 Git 分支轻量？</li>
+    <li>rebase 的风险边界？--force-with-lease 防什么？</li>
+    <li>reset 三种模式与 revert 的取舍？误删怎么救？</li>
+    <li>两种分支模型的适用场景？你的项目怎么选？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档</h3>
   <ul>
-    <li>Pro Git 官方免费书（中文，最权威的 Git 原理与实践）：<a href="https://git-scm.com/book/zh/v2" rel="noopener">git-scm.com/book/zh/v2</a></li>
-    <li>Git 官方文档与命令参考：<a href="https://git-scm.com/docs" rel="noopener">git-scm.com/docs</a></li>
+    <li>Pro Git 官方免费书（中文，最权威）：<a href="https://git-scm.com/book/zh/v2" rel="noopener">git-scm.com/book/zh/v2</a>；命令参考：git-scm.com/docs</li>
   </ul>
-  <h3>分支模型与协作</h3>
+  <h3>分支模型</h3>
   <ul>
-    <li>Git Flow 原文（经典分支模型出处）：<a href="https://nvie.com/posts/a-successful-git-branching-model/" rel="noopener">nvie.com/posts/a-successful-git-branching-model</a></li>
-    <li>Trunk-Based Development（主干开发）：<a href="https://trunkbaseddevelopment.com/" rel="noopener">trunkbaseddevelopment.com</a></li>
+    <li>Git Flow 原文：<a href="https://nvie.com/posts/a-successful-git-branching-model/" rel="noopener">nvie.com/posts/a-successful-git-branching-model</a>；Trunk-Based Development：<a href="https://trunkbaseddevelopment.com/" rel="noopener">trunkbaseddevelopment.com</a></li>
   </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>造一个含冲突的双分支合并，手动解决并 --continue；</li>
+    <li>reset --hard 丢改动后用 reflog 找回（安全环境演练）；</li>
+    <li>git bisect 在 20 个提交里定位一个故意引入的 bug。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../06_前端工程化与工具链/08_前端性能优化_懒加载与虚拟列表【深入】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../06_前端工程化与工具链/01_npm与包管理【基础】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
   <a class="doc-nav-btn" href="../06_前端工程化与工具链/03_ESLint与Prettier代码规范【标准】.html">下一篇 →</a>
 </nav>
