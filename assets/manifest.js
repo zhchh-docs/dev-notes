@@ -75,6 +75,61 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 97,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与环境",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 语法核心",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 数据集合",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 函数与作用域深潜",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 对象与原型",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 异步与事件循环",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第七篇 DOM 与浏览器",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第八篇 现代语法与错误处理",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第九篇 工程化与进阶",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第十篇 性能内存与收官",
+          "chapters": 12,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 2
     },
     {
@@ -91,6 +146,41 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 52,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与类型基础",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 类型系统核心",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 泛型与类型编程",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 工程配置与编译",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 声明与生态适配",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 类型体操与收官",
+          "chapters": 9,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 3
     },
     {
@@ -107,6 +197,51 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 72,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 SQL 进阶",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 索引与优化",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 事务与锁",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 日志与主从",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 高可用与分库分表",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第七篇 运维调优",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第八篇 综合实战",
+          "chapters": 9,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 4
     },
     {
@@ -123,6 +258,71 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 112,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与语法",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 面向对象",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 核心 API 与集合",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 异常与 IO",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 反射注解与函数式",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 并发编程",
+          "chapters": 12,
+          "state": "plan"
+        },
+        {
+          "name": "第七篇 JVM",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第八篇 数据库与 JDBC",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第九篇 Spring 核心",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第十篇 SpringBoot 与 Web",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第十一篇 工程化与测试",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第十二篇 综合项目收官",
+          "chapters": 8,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 5
     },
     {
@@ -139,6 +339,41 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 60,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与语法",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 函数与进阶语法",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 面向对象与标准库",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 工程化",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 Web 开发",
+          "chapters": 12,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 并发与性能",
+          "chapters": 10,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 6
     },
     {
@@ -155,6 +390,51 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 78,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 组件化",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 组合式 API",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 响应式原理",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 状态管理",
+          "chapters": 8,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 路由与工程",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第七篇 组件设计与模式",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第八篇 原理深潜与性能",
+          "chapters": 8,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 7
     },
     {
@@ -171,6 +451,46 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 74,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 Hooks 核心",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 状态管理",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 路由与数据",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 渲染原理",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第六篇 性能优化",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第七篇 生态与实战",
+          "chapters": 9,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 8
     },
     {
@@ -187,6 +507,31 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 40,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与对象模型",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 分支与协作",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 历史改写与救援",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 团队工程",
+          "chapters": 10,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 9
     },
     {
@@ -203,6 +548,26 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 32,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与配置体系",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 反向代理与 HTTPS",
+          "chapters": 11,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 调优与实战",
+          "chapters": 11,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 10
     },
     {
@@ -219,6 +584,36 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
+      "planned": 54,
+      "status": "plan",
+      "parts": [
+        {
+          "name": "第一篇 入门与数据结构",
+          "chapters": 11,
+          "state": "plan"
+        },
+        {
+          "name": "第二篇 持久化与内存",
+          "chapters": 9,
+          "state": "plan"
+        },
+        {
+          "name": "第三篇 缓存策略",
+          "chapters": 12,
+          "state": "plan"
+        },
+        {
+          "name": "第四篇 分布式锁与原子",
+          "chapters": 10,
+          "state": "plan"
+        },
+        {
+          "name": "第五篇 高可用与集群",
+          "chapters": 12,
+          "state": "plan"
+        }
+      ],
+      "done": 0,
       "order": 11
     },
     {

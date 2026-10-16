@@ -85,6 +85,57 @@ CAT_ORDER = {
     "meta":     ["11_全面学习", "12_全栈技术路线图"],
 }
 
+# ── 教科书元数据：planned 规划章数 / parts 篇结构(名,章数,状态) / status 书状态 ──
+# 篇状态：plan=规划中 doing=撰写中 done=已完成；每完成一篇批次更新对应状态，首页进度自动反映
+TUTORIAL_BOOKS = {
+    "14_从0到精通/javascript": {"planned": 97, "status": "plan", "parts": [
+        ("第一篇 入门与环境", 8, "plan"), ("第二篇 语法核心", 10, "plan"),
+        ("第三篇 数据集合", 10, "plan"), ("第四篇 函数与作用域深潜", 10, "plan"),
+        ("第五篇 对象与原型", 10, "plan"), ("第六篇 异步与事件循环", 10, "plan"),
+        ("第七篇 DOM 与浏览器", 10, "plan"), ("第八篇 现代语法与错误处理", 9, "plan"),
+        ("第九篇 工程化与进阶", 8, "plan"), ("第十篇 性能内存与收官", 12, "plan")]},
+    "14_从0到精通/typescript": {"planned": 52, "status": "plan", "parts": [
+        ("第一篇 入门与类型基础", 8, "plan"), ("第二篇 类型系统核心", 9, "plan"),
+        ("第三篇 泛型与类型编程", 10, "plan"), ("第四篇 工程配置与编译", 8, "plan"),
+        ("第五篇 声明与生态适配", 8, "plan"), ("第六篇 类型体操与收官", 9, "plan")]},
+    "14_从0到精通/mysql": {"planned": 72, "status": "plan", "parts": [
+        ("第一篇 入门", 9, "plan"), ("第二篇 SQL 进阶", 9, "plan"),
+        ("第三篇 索引与优化", 10, "plan"), ("第四篇 事务与锁", 9, "plan"),
+        ("第五篇 日志与主从", 8, "plan"), ("第六篇 高可用与分库分表", 9, "plan"),
+        ("第七篇 运维调优", 9, "plan"), ("第八篇 综合实战", 9, "plan")]},
+    "14_从0到精通/java": {"planned": 112, "status": "plan", "parts": [
+        ("第一篇 入门与语法", 10, "plan"), ("第二篇 面向对象", 10, "plan"),
+        ("第三篇 核心 API 与集合", 10, "plan"), ("第四篇 异常与 IO", 8, "plan"),
+        ("第五篇 反射注解与函数式", 8, "plan"), ("第六篇 并发编程", 12, "plan"),
+        ("第七篇 JVM", 10, "plan"), ("第八篇 数据库与 JDBC", 8, "plan"),
+        ("第九篇 Spring 核心", 10, "plan"), ("第十篇 SpringBoot 与 Web", 10, "plan"),
+        ("第十一篇 工程化与测试", 8, "plan"), ("第十二篇 综合项目收官", 8, "plan")]},
+    "14_从0到精通/python": {"planned": 60, "status": "plan", "parts": [
+        ("第一篇 入门与语法", 9, "plan"), ("第二篇 函数与进阶语法", 10, "plan"),
+        ("第三篇 面向对象与标准库", 10, "plan"), ("第四篇 工程化", 9, "plan"),
+        ("第五篇 Web 开发", 12, "plan"), ("第六篇 并发与性能", 10, "plan")]},
+    "14_从0到精通/vue": {"planned": 78, "status": "plan", "parts": [
+        ("第一篇 入门", 9, "plan"), ("第二篇 组件化", 10, "plan"),
+        ("第三篇 组合式 API", 9, "plan"), ("第四篇 响应式原理", 9, "plan"),
+        ("第五篇 状态管理", 8, "plan"), ("第六篇 路由与工程", 10, "plan"),
+        ("第七篇 组件设计与模式", 10, "plan"), ("第八篇 原理深潜与性能", 8, "plan")]},
+    "14_从0到精通/react": {"planned": 74, "status": "plan", "parts": [
+        ("第一篇 入门", 9, "plan"), ("第二篇 Hooks 核心", 10, "plan"),
+        ("第三篇 状态管理", 9, "plan"), ("第四篇 路由与数据", 9, "plan"),
+        ("第五篇 渲染原理", 9, "plan"), ("第六篇 性能优化", 9, "plan"),
+        ("第七篇 生态与实战", 9, "plan")]},
+    "14_从0到精通/git": {"planned": 40, "status": "plan", "parts": [
+        ("第一篇 入门与对象模型", 10, "plan"), ("第二篇 分支与协作", 10, "plan"),
+        ("第三篇 历史改写与救援", 10, "plan"), ("第四篇 团队工程", 10, "plan")]},
+    "14_从0到精通/nginx": {"planned": 32, "status": "plan", "parts": [
+        ("第一篇 入门与配置体系", 10, "plan"), ("第二篇 反向代理与 HTTPS", 11, "plan"),
+        ("第三篇 调优与实战", 11, "plan")]},
+    "14_从0到精通/redis": {"planned": 54, "status": "plan", "parts": [
+        ("第一篇 入门与数据结构", 11, "plan"), ("第二篇 持久化与内存", 9, "plan"),
+        ("第三篇 缓存策略", 12, "plan"), ("第四篇 分布式锁与原子", 10, "plan"),
+        ("第五篇 高可用与集群", 12, "plan")]},
+}
+
 
 def depth_of(fname: str) -> str:
     if "深入" in fname: return "deep"
@@ -147,6 +198,13 @@ for cname, cdir in CATS:
         disp, icon, desc, gkey = pretty_title(cname), "📁", "", "misc"
         print(f"WARN: 未注册分类 {cname} -> 归入 未分类(misc)，请补 CAT_META", file=sys.stderr)
     built.append({"key": cname, "group": gkey, "name": disp, "icon": icon, "desc": desc, "arts": arts})
+    # 教科书附加元数据：planned/status/parts + done（实际已写章数，排除目录页）
+    tb = TUTORIAL_BOOKS.get(cname)
+    if tb:
+        built[-1]["planned"] = tb["planned"]
+        built[-1]["status"] = tb["status"]
+        built[-1]["parts"] = [{"name": p[0], "chapters": p[1], "state": p[2]} for p in tb["parts"]]
+        built[-1]["done"] = sum(1 for a in arts if not a["f"].startswith("00_"))
     total += len(arts)
 
 
