@@ -540,32 +540,126 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/08_Swagger与OpenAPI接口契约【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/05_SpringBoot框架【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/10_SSH框架【基础】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（实战落地）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：JWT 是三段拼接（Header.Payload.Signature）的"已认证用户信息"——服务端验签即确认身份，无需查 Session 存储。</p>
-  <ul>
-    <li><strong>它解决什么</strong>：传统 Session 要存服务端、多实例要共享；JWT 把状态编码进 token 本身，服务端只验签、不存会话，天然适合分布式与前后端分离。</li>
-    <li><strong>代价</strong>：token 一旦签发、过期前难"中途作废"——需要刷新与黑名单机制来补。</li>
-  </ul>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：无状态认证 + RBAC 授权</h3>
+  <p><strong>JWT 是三段拼接（Header.Payload.Signature）的"已认证用户信息"</strong>——服务端验签即确认身份，无需查 Session 存储。解决传统 Session 的"服务端存会话+多实例共享"：JWT 把状态编码进 token、服务端只验签不存会话，<strong>天然适合分布式与前后端分离</strong>。<span class="tag-pit">代价</span>：token 签发后过期前难"中途作废"——需要<strong>刷新令牌 + 黑名单</strong>补齐。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>分清<strong>认证（JWT）与授权（RBAC）</strong>；</li>
+    <li>讲清<strong>签名与验签原理</strong>（为什么无状态也能防篡改）；</li>
+    <li>落地<strong>短 access + 长 refresh + Redis 黑名单</strong>三件套；</li>
+    <li>掌握安全基线（算法混淆/Payload 泄露/XSS）。</li>
+  </ol>
+  <p><strong>前置知识</strong>：05 SpringBoot（拦截器）。<strong>难度</strong>：★★★☆☆。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>五个核心模型：<strong>认证 vs 授权</strong>→ <strong>JWT 三段结构</strong>→ <strong>签名算法选择</strong>→ <strong>Session vs JWT</strong>→ <strong>双令牌与黑名单</strong>。</p>
+
+  <h3>2.1 认证与授权：两个问题</h3>
+  <p><strong>认证（Authentication）</strong>解决"你是谁"——JWT 干的事；<strong>授权（Authorization）</strong>解决"你能做什么"——<strong>RBAC</strong>（用户→角色→权限点）拿到角色后判断能否访问接口/数据。</p>
+
+  <h3>2.2 JWT 三段结构</h3>
+  <p><code>xxxxx.yyyyy.zzzzz</code>——Header（alg=HS256）. Payload（sub=用户id/role/exp）. Signature（密钥对前两段签名）。<span class="tag-pit">Payload 只是 Base64 编码不是加密</span>——任何人解码可见，绝不能放密码等敏感信息。</p>
+
+  <h3>2.3 签名算法：对称 vs 非对称</h3>
+  <p><strong>HS256（HMAC）</strong>：同一密钥签发验签——简单，适合自己签自己验的单体；<strong>RS256（RSA）</strong>：私钥签、公钥验——验签方只拿公钥，适合<strong>认证中心签发、多服务各自验签</strong>的微服务。</p>
+
+  <h3>2.4 Session vs JWT 取舍</h3>
+  <p><strong>Session</strong>：服务端存会话、cookie 只存 sessionId——可主动注销即时失效，但多实例要共享存储（Redis）；<strong>JWT</strong>：不存会话、分布式友好——签发后难中途作废。<strong>各有取舍不是谁取代谁</strong>：单体/严格可控登录态用 Session；前后端分离/多端/微服务用 JWT。</p>
+
+  <h3>2.5 双令牌 + 黑名单：补齐作废短板</h3>
+  <p><span class="tag-key">三件套</span>：<strong>access token</strong> 短寿命（约 2h）泄露窗口小；<strong>refresh token</strong> 长寿命（约 7 天）存 Redis 换新 access；<strong>黑名单</strong>：登出/强制下线把 token 记 Redis，验签先查。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：签发与校验（JJWT 0.12.x）</h3>
+<pre class="code" data-lang="java"><code>// 签发：用户id/角色进 claims，设过期时间
+String token = Jwts.builder()
+        .subject(String.valueOf(userId))
+        .claim("role", role)
+        .setExpiration(new Date(System.currentTimeMillis() + 2 * 3600_000)) // 2h
+        .signWith(SecretKey, Jwts.SIG.HS256)
+        .compact();
+
+// 校验：解析并验签，异常即 token 非法
+Jws&lt;Claims&gt; jws = Jwts.parser().verifyWith(key).build()
+        .parseSignedClaims(token);
+Long uid = Long.valueOf(jws.getPayload().getSubject());</code></pre>
+  <div class="note"><strong>版本说明</strong>：以上为 JJWT 0.12.x 写法（signWith(key, SIG.HS256)/expiration/parseSignedClaims/getPayload）；旧版 0.11.x 的 setSigningKey/parseClaimsJws/getBody/setExpiration 已废弃——<strong>同一工程统一 0.12.x 一套 API，不跨版本混用</strong>。</div>
+
+  <h3>3.2 场景二：拦截器统一鉴权</h3>
+<pre class="code" data-lang="java"><code>public class AuthInterceptor implements HandlerInterceptor {
+    public boolean preHandle(req, resp, handler) {
+        String h = req.getHeader("Authorization");   // "Bearer xxx"
+        if (h == null || !h.startsWith("Bearer ")) throw new UnauthorizedException();
+        String token = h.substring(7);
+        if (redis.hasKey("jwt:blacklist:" + token)) throw new UnauthorizedException(); // 黑名单
+        Claims c = Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload();
+        UserContext.set(Long.valueOf(c.getSubject()), c.get("role", String.class));
+        return true;   // Controller 里再按 @PreAuthorize 做权限
+    }
+}</code></pre>
+
+  <h3>3.3 场景三：RBAC 权限注解</h3>
+<pre class="code" data-lang="java"><code>@PreAuthorize("hasRole('ADMIN')")   // 只有管理员能调
+@DeleteMapping("/{id}")
+public Result&lt;Void&gt; delete(@PathVariable Long id) { ... }</code></pre>
+
+  <h3>3.4 安全基线（danger）</h3>
+  <div class="danger-box">access token 短过期；密钥足够长且不进 Git（HS256 至少 256bit/32 字节）；Payload 不放敏感信息；生产 HTTPS（token 头里明文传输靠 TLS 保护）；<strong>验签固定校验期望算法——拒绝 alg: none、严防算法混淆攻击</strong>（别把 RS256 公钥当 HS256 的 HMAC 密钥，别让 token 头里的 alg 决定用哪个密钥）；校验 exp/nbf/iss/aud 标准声明。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>前置：双令牌三件套已会。</p>
+
+  <h3>4.1 OAuth 2.0 与 JWT 的关系</h3>
+  <p>JWT 是<strong>令牌格式</strong>，OAuth 2.0 是<strong>授权框架</strong>（授权码模式/客户端凭证）——OAuth 签发的 access_token 常就是 JWT；自建登录用 JWT 够了，接第三方登录/开放平台才上 OAuth/OIDC。</p>
+
+  <h3>4.2 单点登录（SSO）的最小骨架</h3>
+  <p>统一认证中心签发 JWT（RS256），各子系统用公钥本地验签、免回调——这就是"公钥验签"选 RS256 的主场景；会话续期与登出广播由中心统一处理。</p>
+
+  <h3>4.3 续签的两种策略</h3>
+  <p>①双令牌：refresh 换新（标准）；②滑动过期：每次请求刷新 exp 并回写响应头（实现简单但每次请求都发新 token）。<strong>黑名单的 TTL 要设成 token 剩余寿命</strong>，过期后 Redis 自动清理不堆积。</p>
+
+  <h3>4.4 token 存储位置的权衡</h3>
+  <p><strong>localStorage</strong>：实现简单但 XSS 可读；<strong>HttpOnly Cookie</strong>：脚本读不到但要防 CSRF（SameSite+CSRF Token）；<strong>内存 + refresh 持久化</strong>：access 不落盘最安全，刷新页面靠 refresh 重取——按安全等级选。</p>
+
+  <h3>4.5 与 Spring Security 的集成形态</h3>
+  <p>两种：轻量用 HandlerInterceptor + ThreadLocal 上下文（本篇姿势）；标准用 Spring Security 过滤器链（JwtAuthenticationFilter + @PreAuthorize）——Security 生态带方法级授权/会话管理，学习成本高但功能全。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="JWT 登录与请求校验流程示意图">
       <defs>
@@ -592,72 +686,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 JWT 签发与请求校验链路（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 认证与授权（Authentication vs Authorization）</h3>
-  <p class="lead"><b>一句话定位</b>：认证解决"你是谁"（JWT 干的事），授权解决"你能做什么"（拿到角色后用 RBAC 判断）。</p>
-  <ul>
-    <li><strong>JWT 管认证</strong>：登录后签发 token 证明身份。</li>
-    <li><strong>RBAC 管授权</strong>：本套技术栈是用户→角色→权限点，拿到 token 里的角色后再判断能否访问某接口/数据。</li>
-  </ul>
-  <h3>2.2 JWT 的三段结构</h3>
-  <p class="lead"><b>一句话定位</b>：一个 JWT 形如 <code>xxxxx.yyyyy.zzzzz</code>——Header 算法、Payload 声明、Signature 签名。</p>
-  <ul>
-    <li><strong>三段</strong>：Header（alg=HS256）.Payload（sub=用户id、role、exp）.Signature（用密钥对前两段签名）。</li>
-  </ul>
-  <p class="pit-sentence">Payload 只是 Base64 编码、不是加密，任何人解码都能看到内容——绝不能把密码等敏感信息放进去。</p>
-  <h3>2.3 签名算法：对称 vs 非对称</h3>
-  <p class="lead"><b>一句话定位</b>：HS256 对称（同一密钥签发验签）适合单体；RS256 非对称（私钥签、公钥验）适合微服务。</p>
-  <ul>
-    <li><strong>HS256（HMAC）</strong>：签发和验签用同一密钥，简单，适合自己签发自己验。</li>
-    <li><strong>RS256（RSA）</strong>：私钥签发、公钥验签，验签方只拿公钥，适合认证中心签发、多服务各自验签。</li>
-  </ul>
-  <h3>2.4 无状态 JWT vs 有状态 Session</h3>
-  <p class="lead"><b>一句话定位</b>：Session 服务端可控可即时失效但要共享存储；JWT 不存、扩展友好但签发后难撤回。</p>
-  <ul>
-    <li><strong>取舍</strong>：两者各有取舍，不是谁取代谁。</li>
-  </ul>
-  <div class="diagram">
-    <svg viewBox="0 0 800 180" role="img" aria-label="无状态JWT与有状态Session对比图">
-      <defs>
-        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
-        </marker>
-      </defs>
-      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Session vs JWT 怎么选（示意）</text>
-
-      <!-- Session -->
-      <rect x="30" y="50" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
-      <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">有状态 Session</text>
-      <text x="50" y="100" font-size="11" fill="#4f6348">服务端存会话数据，cookie 只存 sessionId</text>
-      <text x="50" y="122" font-size="11" fill="#4f6348">可主动注销、多实例要共享存储（Redis）</text>
-      <text x="50" y="145" font-size="11" font-weight="600" fill="#047857">适合：单体应用、需要严格可控登录态</text>
-
-      <!-- JWT -->
-      <rect x="420" y="50" width="350" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
-      <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">无状态 JWT</text>
-      <text x="440" y="100" font-size="11" fill="#4f6348">服务端不存会话，身份信息编码进 token 本身</text>
-      <text x="440" y="122" font-size="11" fill="#4f6348">天然分布式友好，但签发后难中途作废</text>
-      <text x="440" y="145" font-size="11" font-weight="600" fill="#b45309">适合：前后端分离、多端、微服务</text>
-    </svg>
-    <p class="diagram-caption">图 3 Session vs JWT（示意）</p>
-  </div>
-  <h3>2.5 访问令牌 + 刷新令牌 + 黑名单</h3>
-  <p class="lead"><b>一句话定位</b>：短 access + 长 refresh + 黑名单——这三点补齐了 JWT"无法中途作废"的短板。</p>
-  <ul>
-    <li><strong>access token</strong>：寿命短（如 2 小时），泄露窗口小。</li>
-    <li><strong>refresh token</strong>：寿命长（如 7 天），存服务端 Redis，用来换新 access。</li>
-    <li><strong>黑名单</strong>：登出/强制下线时把 token 记入 Redis，验签时先查。</li>
-  </ul>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <h3>3.1 签名与验签：为什么 JWT 不可伪造</h3>
-  <p class="lead"><b>一句话定位</b>：信任来自签名、不来自服务端存储——改 Payload 却没有密钥，算不出正确签名，验签即失败。</p>
-  <p>签发时，服务端用密钥对 <code>Base64(Header) + "." + Base64(Payload)</code> 算出签名拼到末尾。验签时，用<strong>同样的密钥</strong>对收到的前两段重新算一次、与 token 自带签名比对。攻击者改了 Payload 里的用户 id，却没有密钥，算不出正确签名——这就是"无状态也能防篡改"的原理。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="JWT 三段结构与签名原理示意图">
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">JWT = Header . Payload . Signature（示意）</text>
@@ -676,136 +704,111 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 JWT 三段：前两段可解码、第三段是防篡改签名（示意）</p>
   </div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 180" role="img" aria-label="无状态JWT与有状态Session对比图">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Session vs JWT 怎么选（示意）</text>
+      <rect x="30" y="50" width="350" height="110" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">有状态 Session</text>
+      <text x="50" y="100" font-size="11" fill="#4f6348">服务端存会话数据，cookie 只存 sessionId</text>
+      <text x="50" y="122" font-size="11" fill="#4f6348">可主动注销、多实例要共享存储（Redis）</text>
+      <text x="50" y="145" font-size="11" font-weight="600" fill="#047857">适合：单体应用、需要严格可控登录态</text>
+      <rect x="420" y="50" width="350" height="110" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">无状态 JWT</text>
+      <text x="440" y="100" font-size="11" fill="#4f6348">服务端不存会话，身份信息编码进 token 本身</text>
+      <text x="440" y="122" font-size="11" fill="#4f6348">天然分布式友好，但签发后难中途作废</text>
+      <text x="440" y="145" font-size="11" font-weight="600" fill="#b45309">适合：前后端分离、多端、微服务</text>
+    </svg>
+    <p class="diagram-caption">图 3 Session vs JWT（示意）</p>
+  </div>
+  <p><strong>读图要点</strong>：①图 1 全链路——登录签发→每次请求带 Bearer→拦截器验签+黑名单+角色判断；②图 2 三段本质——<strong>前两段可解码可读、第三段防篡改</strong>；③图 3 选型——"需要主动注销选 Session、分布式选 JWT+黑名单"。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质</strong>：真实实战——业务系统（前后端分离）：我实现登录签发 JWT、拦截器校验、登出/刷新与接口级权限控制；多用户多团队协作场景。</p>
+
+  <h3>6.1 落地设计</h3>
+  <ul>
+    <li><strong>签发</strong>：登录成功发 access（短时效），refresh token 存 Redis；</li>
+    <li><strong>校验</strong>：拦截器取 Authorization 头，验签+查黑名单，userId/role 放上下文；</li>
+    <li><strong>权限</strong>：接口按角色/资源判定；与前端约定 Authorization 头格式与 401 跳登录，角色清单与产品确认后落权限表。</li>
+  </ul>
+
+  <h3>6.2 踩坑记录</h3>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>JWT 无法主动失效</strong>：登出后 token 过期前仍可用——登出写 Redis 黑名单，拦截器先查；</li>
+    <li><span class="tag-pit">坑</span><strong>密钥硬编码</strong>：签名密钥写代码里泄漏——放配置/环境变量；</li>
+    <li><span class="tag-point">要点</span><strong>access 要短时效</strong>：短 access + 长 refresh 控制泄漏窗口。</li>
+  </ul>
+
+  <h3>6.3 成果与复盘</h3>
   <ol>
-    <li><strong>登录</strong>：校验账号密码 → 用密钥签发 access token（短过期）+ refresh token。</li>
-    <li><strong>携带</strong>：前端把 token 放请求头 <code>Authorization: Bearer ...</code>。</li>
-    <li><strong>拦截器校验</strong>：解析 token → 验签 → 查黑名单 → 校验 exp 过期 → 取出用户身份与角色。</li>
-    <li><strong>授权</strong>：按角色/权限点判断能否访问该接口，不通过返回 403。</li>
-    <li><strong>刷新</strong>：access token 过期后用 refresh token 换新，减少重新登录。</li>
+    <li><strong>量化</strong>：无状态登录省去服务端 session 存储；token 约 2h 过期、refresh 约 7 天（估算），登出经黑名单补齐；</li>
+    <li><strong>可复用经验</strong>：无状态要补失效（JWT+Redis 黑名单是标准组合）；密钥外置、access 短时效；</li>
+    <li><strong>一句话抓手</strong>："JWT+拦截器做登录态，access 短时效配 Redis 黑名单解决登出失效，再叠 RBAC 做接口级权限。"</li>
   </ol>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <h3>4.1 签发与校验（JJWT 库）</h3>
-<pre class="code" data-lang="java"><code>// 签发：把用户id/角色写进 claims，设过期时间
-String token = Jwts.builder()
-        .subject(String.valueOf(userId))
-        .claim("role", role)
-        .setExpiration(new Date(System.currentTimeMillis() + 2 * 3600_000)) // 2h
-        .signWith(SecretKey, Jwts.SIG.HS256)
-        .compact();
-
-// 校验：解析并验签，异常即 token 非法
-Jws&lt;Claims&gt; jws = Jwts.parser().verifyWith(key).build()
-        .parseSignedClaims(token);
-Long uid = Long.valueOf(jws.getPayload().getSubject());</code></pre>
-  <p><strong>版本说明</strong>：以上为 JJWT 0.12.x 写法——签发用 <code>.signWith(key, Jwts.SIG.HS256)</code>、过期时间用 <code>.expiration(date)</code>，校验用 <code>Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload()</code>。旧版 0.11.x 的 <code>setSigningKey / parseClaimsJws / getBody / setExpiration</code> 在 0.12.x 均已废弃，同一工程请统一采用 0.12.x 一套 API，不要跨版本混用。</p>
-  <h3>4.2 拦截器统一鉴权</h3>
-<pre class="code" data-lang="java"><code>public class AuthInterceptor implements HandlerInterceptor {
-    public boolean preHandle(req, resp, handler) {
-        String h = req.getHeader("Authorization");   // "Bearer xxx"
-        if (h == null || !h.startsWith("Bearer ")) throw new UnauthorizedException();
-        String token = h.substring(7);
-        if (redis.hasKey("jwt:blacklist:" + token)) throw new UnauthorizedException(); // 黑名单
-        Claims c = Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload();
-        UserContext.set(Long.valueOf(c.getSubject()), c.get("role", String.class));
-        return true;   // 放行，Controller 里再按 @PreAuthorize 做权限
-    }
-}</code></pre>
-  <h3>4.3 RBAC 权限注解</h3>
-<pre class="code" data-lang="java"><code>@PreAuthorize("hasRole('ADMIN')")   // 只有管理员能调
-@DeleteMapping("/{id}")
-public Result&lt;Void&gt; delete(@PathVariable Long id) { ... }</code></pre>
-  <div class="danger-box">安全基线：access token 必须设较短过期；密钥足够长且不进 Git（HS256 密钥至少 256bit / 32 字节）；Payload 不放敏感信息；生产用 HTTPS（token 在请求头里明文传输，靠 TLS 保护）。验签时须固定并校验期望算法（拒绝 alg: none，严防算法混淆攻击——别把 RS256 的公钥当作 HS256 的 HMAC 密钥），不要让 token 头里的 alg 决定用哪个密钥；并校验标准声明 exp/nbf/iss/aud。</div>
-</section>
-
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（实战落地）</h2>
-
-  <h3>1 项目背景</h3>
-  <p class="lead"><b>一句话定位</b>：业务系统 前后端分离，登录态用 JWT，接口经拦截器校验令牌，再按角色做 RBAC 权限。</p>
-  <ul><li><strong>业务量级</strong>：多用户/多团队协作，登录后访问需求与评审接口。</li></ul>
-  <h3>2 我的角色与职责</h3>
-  <ul><li><strong>分工</strong>：实现登录签发 JWT、拦截器校验、登出/刷新与接口级权限控制。</li></ul>
-  <h3>3 技术栈</h3>
-  <ul><li><strong>组合</strong>：SpringBoot 拦截器 + JWT 库 + Redis（存刷新令牌/黑名单）+ RBAC 角色。</li></ul>
-  <h3>4 落地设计</h3>
-  <ul>
-    <li><strong>签发</strong>：登录成功签发 access token（短时效），refresh token 存 Redis。</li>
-    <li><strong>校验</strong>：拦截器从 Authorization 头取 token，验签 + 查黑名单，解析出 userId/role 放入上下文。</li>
-    <li><strong>权限</strong>：接口按角色/资源判定能不能操作。</li>
-  </ul>
-  <h3>5 关键实现要点</h3>
-<pre class="code" data-lang="java"><code>public boolean preHandle(HttpServletRequest req, HttpServletResponse resp, Object h) {
-    String token = req.getHeader("Authorization");
-    if (token == null || blacklist.exists(token)) throw new BizException("未登录", 401);
-    Claims c = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
-    UserContext.set(Long.valueOf(c.getSubject()), c.get("role", String.class));
-    return true;   // 后续方法再做资源级权限校验
-}</code></pre>
-  <h3>6 真实问题与解法</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>JWT 无法主动失效</strong>：登出后 token 在过期前仍可用——登出把 token 加入 Redis 黑名单，拦截器先查黑名单。</li>
-    <li><span class="tag-pit">坑</span><strong>密钥硬编码</strong>：签名密钥写代码里泄漏——放配置/环境变量。</li>
-    <li><span class="tag-point">要点</span><strong>access 要短时效</strong>：用短 access + 长 refresh 控制泄漏窗口。</li>
-  </ul>
-  <h3>7 量化成果</h3>
-  <ul><li>无状态登录省去服务端 session 存储；登出/失效通过黑名单补齐（token 约 2h 过期，refresh 约 7 天，估算）。</li></ul>
-  <h3>8 协作与排期过程</h3>
-  <ul><li>与前端约定 Authorization 头格式与 401 跳登录；角色清单与产品/业务确认后落到权限表。</li></ul>
-  <h3>9 复盘与可复用经验</h3>
-  <ul><li><strong>无状态要补失效</strong>：JWT + Redis 黑名单是标准组合。</li><li><strong>密钥与时效</strong>：密钥外置、access 短时效。</li></ul>
-  <h3>10 面试讲法</h3>
-  <p class="key-sentence">"业务系统 实践中常采用 JWT + 拦截器做登录态，access 短时效配 Redis 黑名单解决 JWT 登出失效问题，再叠 RBAC 做接口级权限。"</p>
-
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 以为 JWT 是加密的</h3>
-  <p class="lead"><b>一句话定位</b>：觉得 token 里的内容别人看不到——Payload 是 Base64，任何人都能解码查看。</p>
-  <ul>
-    <li><strong>正解</strong>：token 里只放非敏感的身份/角色/过期，敏感信息不进 token。</li>
-  </ul>
-  <h3>6.2 token 不过期或过期过长</h3>
-  <p class="lead"><b>一句话定位</b>：token 被窃取后长期有效——必须短过期 + 刷新机制。</p>
-  <ul>
-    <li><strong>正解</strong>：access token 短过期 + refresh token 续期；必要时加黑名单。</li>
-  </ul>
-  <h3>6.3 无法登出（无黑名单）</h3>
-  <p class="lead"><b>一句话定位</b>：点了退出，旧 token 在过期前仍能用——登出即写 Redis 黑名单。</p>
-  <ul>
-    <li><strong>正解</strong>：登出即把 token 写入 Redis 黑名单（过期时间=token 剩余时间），拦截器先查黑名单。</li>
-  </ul>
-  <h3>6.4 密钥硬编码/进 Git</h3>
-  <p class="lead"><b>一句话定位</b>：HS256 密钥泄露，任何人都能伪造 token。</p>
-  <ul>
-    <li><strong>正解</strong>：密钥走配置中心/环境变量，足够长，定期轮换。</li>
-  </ul>
-  <h3>6.5 token 存 localStorage 被 XSS 偷</h3>
-  <p class="lead"><b>一句话定位</b>：前端有 XSS 漏洞时，脚本可读 localStorage 偷走 token。</p>
-  <ul>
-    <li><strong>正解</strong>：配合 CSP、输入过滤降低 XSS；高安全场景考虑 HttpOnly Cookie 存 token（同时要防 CSRF）。</li>
-  </ul>
-</section>
-
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>五条高频坑。</p>
+
+  <h3>7.1 以为 JWT 是加密的</h3>
+  <p><strong>真相</strong>：Payload 是 Base64 任何人可解码查看。<strong>正解</strong>：token 只放非敏感的身份/角色/过期。</p>
+
+  <h3>7.2 token 不过期或过长</h3>
+  <p><strong>风险</strong>：token 被窃取后长期有效。<strong>正解</strong>：短过期 + refresh 续期，必要时黑名单。</p>
+
+  <h3>7.3 无法登出（无黑名单）</h3>
+  <p><strong>现象</strong>：点了退出旧 token 过期前仍可用。<strong>正解</strong>：登出写 Redis 黑名单（TTL=token 剩余时间），拦截器先查。</p>
+
+  <h3>7.4 密钥硬编码/进 Git</h3>
+  <p><strong>风险</strong>：HS256 密钥泄露=任何人可伪造 token。<strong>正解</strong>：配置中心/环境变量，足够长，定期轮换。</p>
+
+  <h3>7.5 localStorage 被 XSS 偷 token</h3>
+  <p><strong>风险</strong>：XSS 漏洞脚本可读 localStorage。<strong>正解</strong>：CSP+输入过滤降低 XSS；高安全场景 HttpOnly Cookie（同时防 CSRF）。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：JWT 的三段结构与防篡改原理？为什么说它是"无状态"的？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三段——<strong>Header</strong>（算法声明 alg:HS256）、<strong>Payload</strong>（claims：sub 用户id/role/exp 过期）、<strong>Signature</strong>（密钥对前两段的 HMAC）。<strong>防篡改原理</strong>：信任来自签名而非服务端存储——验签时用同密钥对收到的前两段重算并比对；攻击者改了 Payload 的用户 id 却没有密钥，算不出正确签名，验签即失败。<strong>无状态</strong>：身份信息编码进 token 本身，服务端不存会话、多实例无需共享存储——这是它与 Session 的本质差异。<strong>注意</strong>：Payload 是 Base64 编码不是加密，任何人可解码——敏感信息不进 token。</p>
+
+  <p><strong>Q2：JWT "签发后无法作废"的短板怎么补？双令牌怎么协作？</strong></p>
+  <p class="note"><strong>参考答案</strong>：三件套——①<strong>短 access token</strong>（约 2h）：泄露窗口小；②<strong>长 refresh token</strong>（约 7 天，存 Redis）：过期后用它换新 access，减少重新登录；③<strong>Redis 黑名单</strong>：登出/强制下线把 token 记入（TTL=剩余寿命，自动清理），拦截器验签后先查黑名单——把"无法作废"补成"可作废（有 Redis 查询成本）"。<strong>协作流</strong>：登录发双令牌→请求带 access→access 过期用 refresh 换新→登出双双作废。取舍提醒：Session 天然可即时注销，JWT+黑名单是用一定复杂度换分布式友好。</p>
+
+  <p><strong>Q3：JWT 的安全基线有哪些？alg 混淆攻击是什么？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>基线</strong>：①access 短过期；②密钥足够长（HS256 ≥256bit）且不进 Git（环境变量/配置中心+定期轮换）；③Payload 无敏感信息；④生产 HTTPS；⑤token 存储防 XSS（CSP/HttpOnly Cookie+防 CSRF）。<strong>alg 混淆攻击</strong>：攻击者把 Header 的 alg 改成 none（期望验签被跳过），或把 RS256 公钥当 HS256 的 HMAC 密钥自签 token——所以<strong>验签必须固定校验期望算法、拒绝 alg:none、密钥选择不信任 token 头里的 alg 声明</strong>，并校验 exp/nbf/iss/aud 标准声明。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>认证与授权各解决什么？JWT 与 RBAC 各在哪层？</li>
+    <li>三段结构？防篡改靠什么？Payload 能放密码吗？</li>
+    <li>HS256 与 RS256 的选型边界？</li>
+    <li>双令牌+黑名单的完整协作流？黑名单 TTL 怎么设？</li>
+    <li>alg 混淆攻击的两种形态与防御？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方与规范</h3>
   <ul>
-    <li>JWT 官方站点（结构/算法详解，可在线解码调试）：<a href="https://jwt.io/" rel="noopener">jwt.io</a></li>
-    <li>RFC 7519（JWT 正式规范）：<a href="https://www.rfc-editor.org/rfc/rfc7519" rel="noopener">rfc-editor.org/rfc/rfc7519</a></li>
+    <li>JWT 官网（在线解码调试）：<a href="https://jwt.io/" rel="noopener">jwt.io</a>；RFC 7519 规范：rfc-editor.org/rfc/rfc7519</li>
+    <li>OWASP 认证备忘单：<a href="https://cheatsheetseries.owasp.org/" rel="noopener">cheatsheetseries.owasp.org</a>；OAuth 2.0/OIDC：oauth.net</li>
   </ul>
-  <h3>安全基线</h3>
-  <ul>
-    <li>OWASP 认证备忘单（Authentication Cheat Sheet）：<a href="https://cheatsheetseries.owasp.org/" rel="noopener">cheatsheetseries.owasp.org</a></li>
-    <li>OAuth 2.0 / OIDC（更完整的授权协议）：<a href="https://oauth.net/" rel="noopener">oauth.net</a></li>
-  </ul>
-  <h3>工具库</h3>
-  <ul>
-    <li>JJWT（Java 端 JWT 主流库）：<a href="https://github.com/jwtk/jjwt" rel="noopener">github.com/jwtk/jjwt</a></li>
-    <li>Spring Security 官方文档（鉴权与 RBAC）：<a href="https://docs.spring.io/spring-security/reference/" rel="noopener">docs.spring.io/spring-security</a></li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>用 jwt.io 解码一个自签 token，观察三段并篡改 Payload 看验签失败；</li>
+    <li>实现登录签发双令牌 + 拦截器验签黑名单，验证登出后旧 token 401；</li>
+    <li>故意把 alg 改 none 或混用公钥复现算法混淆，再加固验签逻辑。</li>
+  </ol>
 </section>
 
 </main>
@@ -813,7 +816,7 @@ public Result&lt;Void&gt; delete(@PathVariable Long id) { ... }</code></pre>
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../07_后端开发/07_RESTful_API设计【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/05_SpringBoot框架【标准】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../07_后端开发/10_SSH框架【基础】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · 接口安全_JWT与鉴权【标准】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>

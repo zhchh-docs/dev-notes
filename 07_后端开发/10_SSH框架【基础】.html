@@ -540,33 +540,113 @@ p, li, h1, h2, h3, h4, h5, h6 {
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="../07_后端开发/05_SpringBoot框架【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/09_接口安全_JWT与鉴权【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/01_MySQL【深入】.html">下一篇 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="目录">
   <h2>本页目录</h2>
   <ol>
-    <li><a href="#sec1">技术点概览</a></li>
-    <li><a href="#sec2">核心概念</a></li>
-    <li><a href="#sec3">工作原理与流程</a></li>
-    <li><a href="#sec4">核心语法与 API 要点</a></li>
-    <li><a href="#sec5">实战项目经验（自学 + 自建 Demo）</a></li>
-    <li><a href="#sec6">易错点与面试重点</a></li>
-    <li><a href="#sec7">学习资源与参考</a></li>
+    <li><a href="#sec1">简介与阅读指引</a></li>
+    <li><a href="#sec2">核心模型</a></li>
+    <li><a href="#sec3">核心用法（按场景）</a></li>
+    <li><a href="#sec4">进阶知识点【进阶】</a></li>
+    <li><a href="#sec5">原理与流程图</a></li>
+    <li><a href="#sec6">最小可运行 Demo</a></li>
+    <li><a href="#sec7">常见坑 &amp; Debug</a></li>
+    <li><a href="#sec8">重点讲解</a></li>
+    <li><a href="#sec9">学习资源</a></li>
   </ol>
 </nav>
 <main>
 
 <section id="sec1" class="card">
-  <h2><span class="num">1</span>技术点概览</h2>
-  <p class="lead"><b>一句话定位</b>：SSH = Struts2（控制层）+ Spring（业务层 IoC）+ Hibernate（持久层 ORM），是 Java EE 时代"用成熟框架拼出分层 Web 应用"的典型范式。</p>
-  <ul>
-    <li><strong>它解决什么</strong>：SSH 之前要直接写 Servlet + JDBC，代码里 HTML、SQL、业务逻辑混在一起；SSH 把应用切成三层，每层各司其职，可维护性大幅提升。</li>
-    <li><strong>历史价值</strong>：确立了 MVC 与分层架构在 Java 后端的主流地位。</li>
-  </ul>
-  <p class="pit-sentence">需要诚实说明：这一组合在今天的新项目里已基本退役——本页目的是理解分层思想与演进脉络，不是要在新项目里用它。</p>
+  <h2><span class="num">1</span>简介与阅读指引</h2>
+
+  <h3>1.1 定位：Java EE 时代的分层范式标本</h3>
+  <p><strong>SSH = Struts2（控制层）+ Spring（业务层 IoC）+ Hibernate（持久层 ORM）</strong>——Java EE 时代"用成熟框架拼出分层 Web 应用"的典型范式。它解决：SSH 之前直接写 Servlet+JDBC，HTML/SQL/业务逻辑混在一起；SSH 切成三层各司其职，<strong>确立了 MVC 与分层架构的主流地位</strong>。<span class="tag-pit">诚实说明</span>：这一组合在新项目已基本退役——本页目的是<strong>理解分层思想与演进脉络</strong>，不是要在新项目用它。</p>
+
+  <h3>1.2 学习目标与阅读指引</h3>
+  <ol>
+    <li>看懂 <strong>SSH 三层与今天的对应关系</strong>（Action→Controller 等）；</li>
+    <li>理解 <strong>Hibernate 全自动 ORM vs MyBatis 半自动</strong>的取舍根源；</li>
+    <li>明白<strong>为什么只有 Spring 活下来</strong>（IoC/AOP 是骨架）；</li>
+    <li>知道 Struts2 漏洞史与 XML 配置臃肿这两个淘汰动因。</li>
+  </ol>
+  <p><strong>难度</strong>：★★☆☆☆。<strong>性质</strong>：演进理解篇（自学+最小复刻，非生产）。</p>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2</span>核心模型</h2>
+  <p>三个核心模型：<strong>MVC 三层分工</strong>→ <strong>ORM 两条路线</strong>→ <strong>Spring 的粘合角色</strong>。</p>
+
+  <h3>2.1 MVC 三层分工：留给今天的核心遗产</h3>
+  <p><strong>控制层</strong>（Struts2 Action）：接请求/调业务/选视图；<strong>业务层</strong>（Spring Service）：领域逻辑+声明式事务；<strong>持久层</strong>（Hibernate DAO/实体）：对象映射表。<span class="tag-key">"请求→业务→数据"的分层思路至今没变</span>——Spring Boot 里的 Controller/Service/Mapper 就是它的直系后代。</p>
+
+  <h3>2.2 ORM：全自动 vs 半自动</h3>
+  <p><strong>Hibernate（全自动）</strong>：实体加注解映射表，框架自动生成 SQL/管主键/做关联——CRUD 极快，但复杂查询不灵活、SQL 黑盒难调优；<strong>MyBatis（半自动）</strong>：自己写 SQL+结果映射——完全可控易调优，但简单 CRUD 也要写 SQL。<span class="tag-pit">"黑盒生成 SQL"正是国内普遍选 MyBatis 的原因</span>——可控性优先（06 篇呼应）。</p>
+
+  <h3>2.3 Spring：三个框架里唯一活到今天的</h3>
+  <p><strong>IoC 装配</strong>：容器组装 Action/Service/DAO 而非互相 new；<strong>AOP 事务</strong>：声明式事务（@Transactional 的前身是 XML 配置）。<span class="tag-key">理解 Spring 的 IoC/AOP 就理解了 SSH 的骨架</span>——这也是 Struts2/Hibernate 退役了 Spring 还在的原因。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3</span>核心用法（按场景）</h2>
+
+  <h3>3.1 场景一：struts.xml 路由（已被 @RequestMapping 取代）</h3>
+<pre class="code" data-lang="xml"><code>&lt;!-- struts.xml：一个 Action 的路由与视图配置 --&gt;
+&lt;action name="req_*" class="reqAction" method="{1}"&gt;
+    &lt;result name="success"&gt;/req/list.jsp&lt;/result&gt;
+    &lt;result name="input"&gt;/req/form.jsp&lt;/result&gt;
+&lt;/action&gt;
+&lt;!-- 今天：一个 @RequestMapping("/req") 注解就替代了这段 XML --&gt;</code></pre>
+
+  <h3>3.2 场景二：Hibernate 实体映射（注解版）</h3>
+<pre class="code" data-lang="java"><code>@Entity                       // 这个类映射一张表
+@Table(name = "t_requirement")
+public class Requirement {
+    @Id @GeneratedValue
+    private Long id;          // 主键，自动生成
+    private String title;
+    @ManyToOne                // 多对一关联团队
+    private Team team;
+    // getter/setter 省略
+}</code></pre>
+  <div class="note"><strong>对照</strong>：今天 MyBatis 里同样的事是写 RequirementMapper 接口+XML SQL，SQL 由人控制——两种 ORM 路线取舍见 06 篇。</div>
+
+  <h3>3.3 场景三：一次请求在 SSH 里的接力</h3>
+  <ol>
+    <li><strong>请求接入</strong>：Struts2 前端控制器拦截，查配置路由到 Action；</li>
+    <li><strong>业务处理</strong>：Action 调 Spring 注入的 Service，Service 在声明式事务里用 Hibernate 读写对象；</li>
+    <li><strong>持久化</strong>：Hibernate 把实体自动转成 SQL 提交；</li>
+    <li><strong>视图渲染</strong>：Struts2 跳 JSP 填充 HTML 返回。</li>
+  </ol>
+  <p><strong>对照今天</strong>：DispatcherServlet 接请求 → @RequestMapping 路由 → Controller → Service → Mapper——<strong>分层骨架完全一致，只是 XML 换成了注解与自动装配</strong>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4</span>进阶知识点【进阶】</h2>
+  <p class="note"><strong>首次学习可整章跳过。</strong>本篇定位演进理解，进阶部分供面试纵深。</p>
+
+  <h3>4.1 从 EJB 到 Spring 的替换逻辑</h3>
+  <p>SSH 之前的主流是 EJB（重量级组件模型，配置繁琐、容器依赖重）——Spring 以轻量 POJO + IoC 替代，Hibernate 以轻量 ORM 替代 Entity Bean；<strong>"轻量化替换重量化"是 Java 框架演进的主线</strong>，Spring Boot 的自动配置是这条线的延续。</p>
+
+  <h3>4.2 Struts2 与 Spring MVC 的架构差异</h3>
+  <p>Struts2 基于 <strong>Filter + 原型 Action</strong>（每次请求 new Action，OGNL 表达式解析参数——强大但成漏洞温床）；Spring MVC 基于 <strong>Servlet + 单例 Controller</strong>（方法级映射、参数绑定更可控）——安全与性能的双重优势是替换的根本原因。</p>
+
+  <h3>4.3 Hibernate 的一级缓存与脏检查</h3>
+  <p>Session 级一级缓存 + <strong>脏检查</strong>（事务提交时自动比对快照生成 UPDATE）是全自动 ORM 的核心机制——理解它就理解了"为什么改了属性不调 save 也会更新"以及 N+1 的来源；MyBatis 没有脏检查，更新必须显式调方法。</p>
+
+  <h3>4.4 遗留系统的处置策略</h3>
+  <p>真遇到 SSH 遗留系统：①安全优先——Struts2 必须升到最后版本或迁移；②渐进迁移——新模块用 Spring Boot 老模块保留（war 共存或 API 网关分流量）；③不要重写——<strong>能跑的系统重写风险大于收益</strong>，按模块逐步替换。</p>
+
+  <h3>4.5 面试中的"演进叙事"框架</h3>
+  <p>一条完整叙事线：Servlet/JDBC 裸写 → EJB 重量级 → SSH 分层（MVC 确立）→ SSM 注解化 → Spring Boot 自动装配 → 云原生（容器/服务网格）——<strong>每个阶段的痛点就是下阶段的解</strong>；面试讲技术选型时这条线比背名词有说服力。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5</span>原理与流程图</h2>
   <div class="diagram">
     <svg viewBox="0 0 800 230" role="img" aria-label="SSH 三层架构与演进示意图">
       <defs>
@@ -592,26 +672,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 1 SSH 三层与技术演进脉络（示意）</p>
   </div>
-</section>
-
-<section id="sec2" class="card">
-  <h2><span class="num">2</span>核心概念</h2>
-  <h3>2.1 MVC 三层分工</h3>
-  <p class="lead"><b>一句话定位</b>：SSH 把一个 Web 应用切成"接请求—管业务—碰数据库"三层，各层只干一件事——这套分层至今没变。</p>
-  <ul>
-    <li><strong>控制层（Struts2 Action）</strong>：接收 HTTP 请求、调用业务、选择返回哪个视图。</li>
-    <li><strong>业务层（Spring Service）</strong>：承载领域逻辑，并用声明式事务包起来。</li>
-    <li><strong>持久层（Hibernate DAO/实体）</strong>：把对象映射到数据库表，负责数据存取。</li>
-  </ul>
-  <p class="key-sentence">"请求 → 业务 → 数据"的分层思路是 SSH 留给今天的核心遗产——现在 Spring Boot 里的 Controller / Service / Mapper 就是它的直系后代。</p>
-  <h3>2.2 ORM：对象关系映射（Hibernate）</h3>
-  <p class="lead"><b>一句话定位</b>：ORM 让你用 Java 对象操作数据库，把"一行记录"当"一个对象"用，免手写 JDBC。</p>
-  <ul>
-    <li><strong>目标</strong>：数据库一行 ↔ Java 一个对象，开发者面向对象编程，不再拼 SQL 字符串。</li>
-    <li><strong>Hibernate 是全自动 ORM</strong>：实体加注解映射表，框架自动生成 SQL、管主键、做关联。</li>
-    <li><strong>好处</strong>：CRUD 写得极快，样板代码少。</li>
-    <li><strong>代价</strong>：复杂查询不灵活，自动生成的 SQL 偶尔很慢。</li>
-  </ul>
   <div class="diagram">
     <svg viewBox="0 0 800 200" role="img" aria-label="Hibernate全自动ORM与MyBatis半自动对比图">
       <defs>
@@ -620,16 +680,12 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">全自动 ORM（Hibernate） vs 半自动（MyBatis）（示意）</text>
-
-      <!-- Hibernate -->
       <rect x="30" y="50" width="350" height="130" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="205" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f8a63">Hibernate（全自动 ORM）</text>
       <text x="50" y="100" font-size="11" fill="#4f6348">开发者：只写 Java 实体类 + 注解</text>
       <text x="50" y="120" font-size="11" fill="#4f6348">框架：自动生成 SQL、自动管关联</text>
       <text x="50" y="145" font-size="11" fill="#4f8a63">优点：CRUD 极快、样板代码少</text>
       <text x="50" y="165" font-size="11" fill="#b91c1c">缺点：复杂查询不灵活、SQL 黑盒难调优</text>
-
-      <!-- MyBatis -->
       <rect x="420" y="50" width="350" height="130" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="595" y="75" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">MyBatis（半自动 SQL 映射）</text>
       <text x="440" y="100" font-size="11" fill="#4f6348">开发者：自己写 SQL + 结果集映射</text>
@@ -639,20 +695,6 @@ p, li, h1, h2, h3, h4, h5, h6 {
     </svg>
     <p class="diagram-caption">图 2 Hibernate vs MyBatis（示意）</p>
   </div>
-  <p class="pit-sentence">全自动 ORM 的"黑盒生成 SQL"正是国内后来普遍选 MyBatis（半自动、手写 SQL）的原因——可控性优先。</p>
-  <h3>2.3 Spring 在 SSH 中的角色</h3>
-  <p class="lead"><b>一句话定位</b>：三个框架里只有 Spring 活到今天，它是把另外两块"粘"起来的容器。</p>
-  <ul>
-    <li><strong>IoC 装配</strong>：用容器把 Action、Service、DAO 组装起来，而不是互相 new。</li>
-    <li><strong>AOP 事务</strong>：提供声明式事务，<code>@Transactional</code> 的前身就是 XML 配置。</li>
-  </ul>
-  <p class="key-sentence">理解了 Spring 的 IoC/AOP，就理解了 SSH 的骨架——这也是为什么 Struts2、Hibernate 退役了，Spring 还在。</p>
-</section>
-
-<section id="sec3" class="card">
-  <h2><span class="num">3</span>工作原理与流程</h2>
-  <p class="lead"><b>一句话定位</b>：一个请求在 SSH 里的流转，和今天高度相似，只是把"注解/自动装配"换成了"XML 配置"。</p>
-  <p>以"提交一个表单"为例：浏览器请求先到 Struts2 的前端控制器（FilterDispatcher），按 <code>struts.xml</code> 路由到 Action；Action 由 Spring 注入 Service；Service 用 Hibernate 操作数据库；最后由 Struts2 选 JSP 视图渲染。今天 Spring Boot 里是 DispatcherServlet 接请求、<code>@RequestMapping</code> 路由、Controller 调 Service——骨架一致。</p>
   <div class="diagram">
     <svg viewBox="0 0 800 220" role="img" aria-label="SSH请求流转链路图">
       <defs>
@@ -661,151 +703,121 @@ p, li, h1, h2, h3, h4, h5, h6 {
         </marker>
       </defs>
       <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">请求在 SSH 里的接力（示意）</text>
-
       <rect x="30" y="70" width="120" height="60" rx="8" fill="#eef3e5" stroke="#7a8a70"/>
       <text x="90" y="95" text-anchor="middle" font-size="11.5" font-weight="600" fill="#354835">浏览器</text>
       <text x="90" y="115" text-anchor="middle" font-size="10.5" fill="#4f6348">提交表单</text>
-
       <line x1="150" y1="100" x2="195" y2="100" stroke="#7a8a70" marker-end="url(#arr2)"/>
-
       <rect x="200" y="70" width="130" height="60" rx="8" fill="#fee2e2" stroke="#dc2626"/>
       <text x="265" y="95" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b91c1c">Struts2</text>
       <text x="265" y="115" text-anchor="middle" font-size="10.5" fill="#4f6348">路由到 Action</text>
-
       <line x1="330" y1="100" x2="375" y2="100" stroke="#7a8a70" marker-end="url(#arr2)"/>
-
       <rect x="380" y="70" width="130" height="60" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
       <text x="445" y="95" text-anchor="middle" font-size="11.5" font-weight="600" fill="#2d6a3f">Spring</text>
       <text x="445" y="115" text-anchor="middle" font-size="10.5" fill="#4f6348">注入 Service 事务</text>
-
       <line x1="510" y1="100" x2="555" y2="100" stroke="#7a8a70" marker-end="url(#arr2)"/>
-
       <rect x="560" y="70" width="130" height="60" rx="8" fill="#f0f5e6" stroke="#5a9e6a"/>
       <text x="625" y="95" text-anchor="middle" font-size="11.5" font-weight="600" fill="#4f8a63">Hibernate</text>
       <text x="625" y="115" text-anchor="middle" font-size="10.5" fill="#4f6348">操作数据库</text>
-
       <line x1="690" y1="100" x2="735" y2="100" stroke="#7a8a70" marker-end="url(#arr2)"/>
-
       <rect x="740" y="70" width="40" height="60" rx="8" fill="#f0fdf4" stroke="#047857"/>
       <text x="760" y="95" text-anchor="middle" font-size="11.5" font-weight="600" fill="#047857">DB</text>
-
       <text x="400" y="170" text-anchor="middle" font-size="12.5" fill="#4f6348">对比今天 Spring Boot：DispatcherServlet 接请求 → @RequestMapping 路由 → Controller → Service → Mapper</text>
       <text x="400" y="195" text-anchor="middle" font-size="12" fill="#7a8a70">分层骨架完全一致，只是把 XML 配置换成了注解和自动装配</text>
     </svg>
     <p class="diagram-caption">图 3 SSH 请求流转（示意）</p>
   </div>
-  <ol>
-    <li><strong>请求接入</strong>：Struts2 前端控制器拦截请求，查配置文件路由到 Action。</li>
-    <li><strong>业务处理</strong>：Action 调 Spring 注入的 Service，Service 在声明式事务里用 Hibernate 读写对象。</li>
-    <li><strong>数据持久化</strong>：Hibernate 把实体对象自动转成 SQL，提交到数据库。</li>
-    <li><strong>视图渲染</strong>：Struts2 跳转到 JSP，把数据填充进 HTML 返回浏览器。</li>
-  </ol>
+  <p><strong>读图要点</strong>：①图 1 演进总纲——只有 Spring 存活，控制层与持久层各被取代；②图 3 请求接力与今天的 Boot 链路一一对应——<strong>学 SSH 的价值就是看懂"骨架没变、配置方式变了"</strong>。</p>
 </section>
 
-<section id="sec4" class="card">
-  <h2><span class="num">4</span>核心语法与 API 要点</h2>
-  <p>下面是 SSH 时代典型配置的样子，用于对照今天的注解写法，直观感受"配置从 XML 走向约定"。</p>
-  <h3>4.1 struts.xml：请求路由（已被 @RequestMapping 取代）</h3>
-<pre class="code" data-lang="xml"><code>&lt;!-- struts.xml：一个 Action 的路由与视图配置 --&gt;
-&lt;action name="req_*" class="reqAction" method="{1}"&gt;
-    &lt;result name="success"&gt;/req/list.jsp&lt;/result&gt;
-    &lt;result name="input"&gt;/req/form.jsp&lt;/result&gt;
-&lt;/action&gt;
-&lt;!-- 今天：一个 @RequestMapping("/req") 注解就替代了这段 XML --&gt;</code></pre>
-  <h3>4.2 Hibernate 实体映射（注解版）</h3>
-<pre class="code" data-lang="java"><code>@Entity                       // 这个类映射一张表
-@Table(name = "t_requirement")
-public class Requirement {
-    @Id @GeneratedValue
-    private Long id;          // 主键，自动生成
-    private String title;
-    @ManyToOne                // 多对一关联团队
-    private Team team;
-    // getter/setter 省略
-}</code></pre>
-  <div class="note">对照：今天 MyBatis 里同样的事，是写一个 <code>RequirementMapper</code> 接口 + XML/注解 SQL，SQL 由人控制。两种 ORM 路线的取舍见 MyBatis 专题。</div>
-</section>
+<section id="sec6" class="card">
+  <h2><span class="num">6</span>最小可运行 Demo</h2>
+  <p class="note"><strong>性质（诚实声明）</strong>：最小骨架复刻与演进理解笔记，非生产环境项目——近年项目用 SpringBoot+MyBatis，SSH 仅作脉络参考。</p>
 
-<section id="sec5" class="card">
-  <h2><span class="num">5</span>实战项目经验（自学 + 自建 Demo）</h2>
-
-  <div class="warn-box"><b>定位说明：</b>SSH（Struts2 + Spring + Hibernate）是 Java Web 早期经典组合，实际项目已演进到 SpringBoot + MyBatis，未在近年项目使用 SSH。本节为最小骨架复刻与演进理解笔记，非生产环境项目。</div>
-  <h3>1 自学背景与动机</h3>
-  <p class="lead"><b>一句话定位</b>：补"现代 SpringBoot 之前 Java Web 长什么样"的历史认知，理解框架为何从 SSH 演进到注解 + 自动配置。</p>
-  <ul><li><strong>缺口</strong>：直接上手 SpringBoot，不清楚 XML 重配置、Struts2 拦截器栈、Hibernate ORM 映射的来龙去脉。</li></ul>
-  <h3>2 搭建的 demo 是什么</h3>
+  <h3>6.1 Demo 设计</h3>
   <ul>
-    <li><strong>技术栈</strong>：Struts2 + Spring + Hibernate 三框架整合的最小 Web 工程，一个登录 + 列表查询。</li>
-    <li><strong>规模</strong>：单体 war 包跑在 Tomcat，一张用户表，走"Action→Service→DAO(Hibernate)"。</li>
+    <li><strong>技术栈</strong>：Struts2+Spring+Hibernate 三框架整合最小 Web 工程，登录+列表查询；</li>
+    <li><strong>规模</strong>：单体 war 跑 Tomcat，一张用户表，走 Action→Service→DAO(Hibernate)。</li>
   </ul>
-  <h3>3 落地步骤</h3>
 <pre class="code" data-lang="xml"><code>&lt;!-- Spring 托管 Bean，Hibernate SessionFactory 由 Spring 管理 --&gt;
 &lt;bean id="sessionFactory"
       class="org.springframework.orm.hibernate5.LocalSessionFactoryBean"&gt;
   &lt;property name="dataSource" ref="dataSource"/&gt;
-&lt;/bean&gt;</code></pre>
-<pre class="code" data-lang="xml"><code>&lt;!-- Struts2 把请求映射到 Spring 容器里的 Action --&gt;
+&lt;/bean&gt;
+&lt;!-- Struts2 把请求映射到 Spring 容器里的 Action --&gt;
 &lt;action name="login" class="loginAction" method="execute"&gt;
   &lt;result name="success"&gt;/list.jsp&lt;/result&gt;
 &lt;/action&gt;</code></pre>
-  <h3>4 自学过程中遇到的坑与解决</h3>
-  <ul>
-    <li><span class="tag-pit">坑</span><strong>配置量大</strong>：数据源、SessionFactory、事务、Action 全在 XML，改一处翻半天——这正是 SpringBoot 自动配置要消灭的痛点。</li>
-    <li><span class="tag-pit">坑</span><strong>Struts2 版本安全漏洞</strong>：早期版本有远程命令执行历史，复现时刻意用归档版本仅本地学习。</li>
-  </ul>
-  <h3>5 成果</h3>
-  <ul><li>跑通后能讲清"请求→Struts2 拦截器→Spring 托管的 Action→Hibernate 操作数据库"整条链路，并对比出 SpringBoot 删掉了哪些配置。</li></ul>
-  <h3>6 与真实项目的差异</h3>
-  <ul><li>这是理解性 demo，未上生产；近年项目用 SpringBoot + MyBatis，SSH 仅作演进脉络参考。</li></ul>
-  <h3>7 面试讲法</h3>
-  <p class="key-sentence">"实践中常采用最小工程复刻过 Struts2+Spring+Hibernate，理解了 XML 重配置和 ORM 映射的代价，这也是我快速接受 SpringBoot 自动配置的原因。"</p>
 
-<section id="sec6" class="card">
-  <h2><span class="num">6</span>易错点与面试重点</h2>
-  <h3>6.1 Struts2 的安全漏洞历史</h3>
-  <p class="lead"><b>一句话定位</b>：Struts2 历史上多次爆出 RCE，这是它被淘汰的重要原因之一。</p>
+  <h3>6.2 踩坑记录</h3>
   <ul>
-    <li><strong>现象</strong>：著名的 S2-045，基于 Content-Type 解析的 OGNL 注入导致远程代码执行。</li>
-    <li><strong>原因</strong>：Struts2 用 OGNL 表达式解析参数，设计过于强大，易被绕过。</li>
-    <li><strong>正解</strong>：遗留系统升级到最后版本或迁移；新系统不再选用。</li>
+    <li><span class="tag-pit">坑</span><strong>配置量大</strong>：数据源/SessionFactory/事务/Action 全在 XML，改一处翻半天——这正是 SpringBoot 自动配置要消灭的痛点；</li>
+    <li><span class="tag-pit">坑</span><strong>Struts2 版本安全漏洞</strong>：早期版本有 RCE 历史——复现时刻意用归档版本仅本地学习。</li>
   </ul>
-  <h3>6.2 Hibernate 的 N+1 查询问题</h3>
-  <p class="lead"><b>一句话定位</b>：查 100 条再逐条查关联，发出 1+100 条 SQL——全自动 ORM 的经典痛点。</p>
-  <ul>
-    <li><strong>现象</strong>：查出 100 条需求，每条又单独查一次关联团队，共 101 条 SQL。</li>
-    <li><strong>原因</strong>：全自动 ORM 遍历关联对象时懒加载，逐个触发 SQL。</li>
-    <li><strong>正解</strong>：用 fetch join 一次性查出，或在集合上配置批量抓取。</li>
-  </ul>
-  <p class="pit-sentence">N+1 是全自动 ORM 的通病，也是 MyBatis 更受国内团队欢迎的现实原因之一。</p>
-  <h3>6.3 XML 配置臃肿</h3>
-  <p class="lead"><b>一句话定位</b>：几百行 XML 找一个 Bean 定义要翻半天——这正是注解化、自动装配要消灭的。</p>
-  <ul>
-    <li><strong>现象</strong>：工程里 XML 巨大，改一个路由、找一个 Bean 都要翻文件。</li>
-    <li><strong>原因</strong>：早期框架没有注解与约定，一切都靠 XML 声明。</li>
-    <li><strong>正解</strong>：这正是 Spring 注解化、再到 Spring Boot 自动装配要解决的问题。</li>
-  </ul>
+
+  <h3>6.3 成果与复盘</h3>
+  <ol>
+    <li><strong>能力</strong>：跑通后能讲清"请求→Struts2 拦截器→Spring 托管 Action→Hibernate 操作数据库"整条链路，并对比出 SpringBoot 删掉了哪些配置；</li>
+    <li><strong>一句话抓手</strong>："最小工程复刻过 Struts2+Spring+Hibernate，理解了 XML 重配置和 ORM 映射的代价，这也是我快速接受 SpringBoot 自动配置的原因。"</li>
+  </ol>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">7</span>学习资源与参考</h2>
+  <h2><span class="num">7</span>常见坑 &amp; Debug</h2>
+  <p>三条高频认知坑（面向遗留系统与面试）。</p>
+
+  <h3>7.1 Struts2 的安全漏洞历史</h3>
+  <p><strong>现象</strong>：著名的 S2-045，基于 Content-Type 解析的 OGNL 注入导致 RCE。<strong>原因</strong>：OGNL 表达式解析参数过于强大易被绕过。<strong>正解</strong>：遗留系统升级最后版本或迁移；新系统不再选用。</p>
+
+  <h3>7.2 Hibernate 的 N+1 查询</h3>
+  <p><strong>现象</strong>：查 100 条再逐条查关联，1+100 条 SQL。<strong>原因</strong>：全自动 ORM 遍历关联懒加载逐个触发。<strong>正解</strong>：fetch join 一次查出或批量抓取配置——N+1 是全自动 ORM 通病，也是 MyBatis 更受国内欢迎的现实原因之一。</p>
+
+  <h3>7.3 XML 配置臃肿</h3>
+  <p><strong>现象</strong>：几百行 XML 找一个 Bean 翻半天。<strong>正解</strong>：这正是注解化、再到 Spring Boot 自动装配要解决的问题——理解痛点才理解演进。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8</span>重点讲解</h2>
+
+  <p><strong>Q1：SSH 是什么？为什么被 SSM/Spring Boot 取代？</strong></p>
+  <p class="note"><strong>参考答案</strong>：SSH = <strong>Struts2（控制层 MVC）+ Spring（业务层 IoC/AOP）+ Hibernate（持久层全自动 ORM）</strong>，Java EE 时代确立 MVC 与分层架构的经典组合。<strong>被取代的原因</strong>：①Struts2 用 OGNL 解析参数，历史上多次 RCE（S2-045），且 Filter+原型 Action 模型不如 Spring MVC 的 Servlet+单例高效可控；②Hibernate 全自动生成 SQL 黑盒难调优、N+1 通病，国内选半自动的 MyBatis 保住 SQL 控制权；③几百行 XML 配置臃肿，被注解化+Spring Boot 自动装配消灭。<strong>留下的遗产</strong>：分层架构——今天的 Controller/Service/Mapper 就是 Action/Service/DAO 的直系后代。</p>
+
+  <p><strong>Q2：三个框架里为什么只有 Spring 活下来？</strong></p>
+  <p class="note"><strong>参考答案</strong>：因为 <strong>Spring 的价值在"骨架"而非"某一层实现"</strong>——IoC 把对象装配的控制权收归容器、AOP 提供声明式事务等横切能力，这两件事与具体控制层/持久层技术无关：换掉 Struts2 用 Spring MVC、换掉 Hibernate 用 MyBatis，Spring 的容器角色不变甚至更重要（把新组件粘起来）。控制层与持久层是"可替换的实现"，Spring 是"不可替换的底座"——理解这一点就理解了整条演进史：XML→注解→自动装配，变的只是配置方式。</p>
+
+  <p><strong>Q3：全自动 ORM 与半自动 ORM 的取舍？遇到 SSH 遗留系统怎么办？</strong></p>
+  <p class="note"><strong>参考答案</strong>：<strong>Hibernate（全自动）</strong>：实体注解映射表、框架生成 SQL——CRUD 快样板少，但复杂查询不灵活、SQL 黑盒、懒加载 N+1（1+100 条），解法 fetch join/批量抓取；<strong>MyBatis（半自动）</strong>：SQL 手写+结果映射——完全可控易调优，代价是简单 CRUD 也要写 SQL。国内复杂业务系统普遍选 MyBatis（可控性优先）。<strong>遗留系统处置</strong>：安全优先（Struts2 升级或迁移）；渐进迁移（新模块 Spring Boot 老模块保留，网关分流）；<strong>不要整体重写</strong>——重写风险大于收益，按模块逐步替换。</p>
+
+  <p><strong>Q4：自测 5 问</strong></p>
+  <ol>
+    <li>SSH 三层各是什么？与今天的对应关系？</li>
+    <li>Hibernate 与 MyBatis 的取舍根源？N+1 怎么解？</li>
+    <li>为什么只有 Spring 活下来？</li>
+    <li>Struts2 被淘汰的两个动因？</li>
+    <li>遗留 SSH 系统的处置三策略？</li>
+  </ol>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">9</span>学习资源</h2>
   <h3>官方文档（历史归档）</h3>
   <ul>
-    <li>Apache Struts 2 官方文档（已进入维护模式）：<a href="https://struts.apache.org/" rel="noopener">struts.apache.org</a></li>
-    <li>Hibernate ORM 官方文档（仍在维护，但新项目少用）：<a href="https://hibernate.org/orm/documentation/" rel="noopener">hibernate.org/orm/documentation</a></li>
+    <li>Apache Struts 2（维护模式）：<a href="https://struts.apache.org/" rel="noopener">struts.apache.org</a>；Hibernate ORM 文档（仍在维护但新项目少用）：hibernate.org/orm/documentation</li>
+    <li>《Spring 实战》——重点看 Spring 部分，理解 SSH 中真正存活至今的那块。</li>
   </ul>
-  <h3>书籍与背景</h3>
-  <ul>
-    <li>《Spring 实战》（Craig Walls）——重点看 Spring 部分，理解 SSH 中真正存活至今的那块。</li>
-    <li>了解演进脉络即可，不建议在新项目中投入学习 Struts2/Hibernate 的实操。</li>
-  </ul>
+  <h3>练习（按顺序做）</h3>
+  <ol>
+    <li>复刻 6.1 最小工程，跑通 Action→Service→DAO 链路；</li>
+    <li>数一数这个工程里有多少行 XML，对照 05 篇 Boot 工程为 0 的 XML；</li>
+    <li>给 Hibernate 复现一次 N+1，再用 fetch join 修复，写进演进笔记。</li>
+  </ol>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="../07_后端开发/05_SpringBoot框架【标准】.html">← 上一篇</a>
+  <a class="doc-nav-btn" href="../07_后端开发/09_接口安全_JWT与鉴权【标准】.html">← 上一篇</a>
   <a class="doc-nav-btn home" href="../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="../07_后端开发/06_MyBatis持久层【深入】.html">下一篇 →</a>
+  <a class="doc-nav-btn" href="../08_数据库与建模/01_MySQL【深入】.html">下一篇 →</a>
 </nav>
 <footer>全栈技术知识库 · SSH框架【基础】 · 基于实战经验编写</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
