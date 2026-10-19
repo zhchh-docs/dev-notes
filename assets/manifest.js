@@ -737,50 +737,362 @@ window.KB_MANIFEST = {
       "group": "tutorial",
       "name": "《TypeScript 从 0 到精通》",
       "icon": "🔷",
-      "desc": "6 篇 · 规划 52 章 · 撰写中",
+      "desc": "6 篇 · 52 章完稿 · 全书完",
       "arts": [
         {
           "t": "《TypeScript 从 0 到精通》全书目录",
           "f": "00_目录.html",
           "u": "14_从0到精通/typescript/00_目录.html",
           "d": "std"
+        },
+        {
+          "t": "第 1 章 初识 TypeScript｜TypeScript 从 0 到精通",
+          "f": "001_第1章_初识TypeScript.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/001_第1章_初识TypeScript.html",
+          "d": "std"
+        },
+        {
+          "t": "第 2 章 环境搭建与编译流程｜TypeScript 从 0 到精通",
+          "f": "002_第2章_环境搭建与编译流程.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/002_第2章_环境搭建与编译流程.html",
+          "d": "std"
+        },
+        {
+          "t": "第 3 章 基础类型全景｜TypeScript 从 0 到精通",
+          "f": "003_第3章_基础类型全景.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/003_第3章_基础类型全景.html",
+          "d": "basic"
+        },
+        {
+          "t": "第 4 章 类型标注与推断｜TypeScript 从 0 到精通",
+          "f": "004_第4章_类型标注与推断.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/004_第4章_类型标注与推断.html",
+          "d": "std"
+        },
+        {
+          "t": "第 5 章 数组与元组｜TypeScript 从 0 到精通",
+          "f": "005_第5章_数组与元组.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/005_第5章_数组与元组.html",
+          "d": "std"
+        },
+        {
+          "t": "第 6 章 对象类型与 interface 首秀｜TypeScript 从 0 到精通",
+          "f": "006_第6章_对象类型与interface首秀.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/006_第6章_对象类型与interface首秀.html",
+          "d": "std"
+        },
+        {
+          "t": "第 7 章 联合类型与字面量类型｜TypeScript 从 0 到精通",
+          "f": "007_第7章_联合类型与字面量.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/007_第7章_联合类型与字面量.html",
+          "d": "std"
+        },
+        {
+          "t": "第 8 章 函数类型与重载｜TypeScript 从 0 到精通",
+          "f": "008_第8章_函数类型与重载.html",
+          "u": "14_从0到精通/typescript/10_第一篇_入门与类型基础/008_第8章_函数类型与重载.html",
+          "d": "std"
+        },
+        {
+          "t": "第 9 章 interface 与 type｜TypeScript 从 0 到精通",
+          "f": "009_第9章_interface与type.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/009_第9章_interface与type.html",
+          "d": "std"
+        },
+        {
+          "t": "第 10 章 类型收窄全景｜TypeScript 从 0 到精通",
+          "f": "010_第10章_类型收窄全景.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/010_第10章_类型收窄全景.html",
+          "d": "std"
+        },
+        {
+          "t": "第 11 章 判别联合与穷尽检查｜TypeScript 从 0 到精通",
+          "f": "011_第11章_判别联合与穷尽检查.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/011_第11章_判别联合与穷尽检查.html",
+          "d": "std"
+        },
+        {
+          "t": "第 12 章 交叉类型｜TypeScript 从 0 到精通",
+          "f": "012_第12章_交叉类型.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/012_第12章_交叉类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 13 章 字面量推论与 as const｜TypeScript 从 0 到精通",
+          "f": "013_第13章_字面量推论与as_const.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/013_第13章_字面量推论与as_const.html",
+          "d": "std"
+        },
+        {
+          "t": "第 14 章 类型断言｜TypeScript 从 0 到精通",
+          "f": "014_第14章_类型断言.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/014_第14章_类型断言.html",
+          "d": "std"
+        },
+        {
+          "t": "第 15 章 枚举 enum｜TypeScript 从 0 到精通",
+          "f": "015_第15章_枚举enum.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/015_第15章_枚举enum.html",
+          "d": "std"
+        },
+        {
+          "t": "第 16 章 unknown / any / never｜TypeScript 从 0 到精通",
+          "f": "016_第16章_unknown_any_never.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/016_第16章_unknown_any_never.html",
+          "d": "std"
+        },
+        {
+          "t": "第 17 章 void 与函数重载｜TypeScript 从 0 到精通",
+          "f": "017_第17章_void与函数重载.html",
+          "u": "14_从0到精通/typescript/20_第二篇_类型系统核心/017_第17章_void与函数重载.html",
+          "d": "std"
+        },
+        {
+          "t": "第 18 章 泛型入门｜TypeScript 从 0 到精通",
+          "f": "018_第18章_泛型入门.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/018_第18章_泛型入门.html",
+          "d": "std"
+        },
+        {
+          "t": "第 19 章 泛型接口与泛型类｜TypeScript 从 0 到精通",
+          "f": "019_第19章_泛型接口与泛型类.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/019_第19章_泛型接口与泛型类.html",
+          "d": "std"
+        },
+        {
+          "t": "第 20 章 泛型约束 extends｜TypeScript 从 0 到精通",
+          "f": "020_第20章_泛型约束extends.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/020_第20章_泛型约束extends.html",
+          "d": "std"
+        },
+        {
+          "t": "第 21 章 默认类型参数与多泛型｜TypeScript 从 0 到精通",
+          "f": "021_第21章_默认类型参数.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/021_第21章_默认类型参数.html",
+          "d": "std"
+        },
+        {
+          "t": "第 22 章 keyof 与 typeof｜TypeScript 从 0 到精通",
+          "f": "022_第22章_keyof与typeof.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/022_第22章_keyof与typeof.html",
+          "d": "std"
+        },
+        {
+          "t": "第 23 章 索引访问与索引签名｜TypeScript 从 0 到精通",
+          "f": "023_第23章_索引访问与索引签名.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/023_第23章_索引访问与索引签名.html",
+          "d": "std"
+        },
+        {
+          "t": "第 24 章 条件类型｜TypeScript 从 0 到精通",
+          "f": "024_第24章_条件类型.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/024_第24章_条件类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 25 章 infer：解构类型｜TypeScript 从 0 到精通",
+          "f": "025_第25章_infer解构类型.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/025_第25章_infer解构类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 26 章 内置工具类型全景｜TypeScript 从 0 到精通",
+          "f": "026_第26章_内置工具类型.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/026_第26章_内置工具类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 27 章 手写工具类型｜TypeScript 从 0 到精通",
+          "f": "027_第27章_手写工具类型.html",
+          "u": "14_从0到精通/typescript/30_第三篇_泛型与类型编程/027_第27章_手写工具类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 28 章 tsconfig 全解｜TypeScript 从 0 到精通",
+          "f": "028_第28章_tsconfig全解.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/028_第28章_tsconfig全解.html",
+          "d": "std"
+        },
+        {
+          "t": "第 29 章 模块解析与路径别名｜TypeScript 从 0 到精通",
+          "f": "029_第29章_模块解析与路径别名.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/029_第29章_模块解析与路径别名.html",
+          "d": "std"
+        },
+        {
+          "t": "第 30 章 strict 全家桶｜TypeScript 从 0 到精通",
+          "f": "030_第30章_strict全家桶.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/030_第30章_strict全家桶.html",
+          "d": "std"
+        },
+        {
+          "t": "第 31 章 编译目标与降级｜TypeScript 从 0 到精通",
+          "f": "031_第31章_编译目标与降级.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/031_第31章_编译目标与降级.html",
+          "d": "std"
+        },
+        {
+          "t": "第 32 章 声明文件与 d.ts｜TypeScript 从 0 到精通",
+          "f": "032_第32章_声明文件与d_ts.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/032_第32章_声明文件与d_ts.html",
+          "d": "std"
+        },
+        {
+          "t": "第 33 章 增量构建与项目引用｜TypeScript 从 0 到精通",
+          "f": "033_第33章_增量构建与项目引用.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/033_第33章_增量构建与项目引用.html",
+          "d": "std"
+        },
+        {
+          "t": "第 34 章 TS 与构建工具｜TypeScript 从 0 到精通",
+          "f": "034_第34章_TS与构建工具.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/034_第34章_TS与构建工具.html",
+          "d": "std"
+        },
+        {
+          "t": "第 35 章 编译错误手册｜TypeScript 从 0 到精通",
+          "f": "035_第35章_编译错误手册.html",
+          "u": "14_从0到精通/typescript/40_第四篇_工程配置与编译/035_第35章_编译错误手册.html",
+          "d": "std"
+        },
+        {
+          "t": "第 36 章 手写声明文件｜TypeScript 从 0 到精通",
+          "f": "036_第36章_手写声明文件.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/036_第36章_手写声明文件.html",
+          "d": "std"
+        },
+        {
+          "t": "第 37 章 @types 生态｜TypeScript 从 0 到精通",
+          "f": "037_第37章_types生态.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/037_第37章_types生态.html",
+          "d": "std"
+        },
+        {
+          "t": "第 38 章 无类型库补型｜TypeScript 从 0 到精通",
+          "f": "038_第38章_无类型库补型.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/038_第38章_无类型库补型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 39 章 DOM 与 lib 类型｜TypeScript 从 0 到精通",
+          "f": "039_第39章_DOM与lib类型.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/039_第39章_DOM与lib类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 40 章 React + TS｜TypeScript 从 0 到精通",
+          "f": "040_第40章_React与TS.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/040_第40章_React与TS.html",
+          "d": "std"
+        },
+        {
+          "t": "第 41 章 Vue + TS｜TypeScript 从 0 到精通",
+          "f": "041_第41章_Vue与TS.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/041_第41章_Vue与TS.html",
+          "d": "std"
+        },
+        {
+          "t": "第 42 章 Node + TS｜TypeScript 从 0 到精通",
+          "f": "042_第42章_Node与TS.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/042_第42章_Node与TS.html",
+          "d": "std"
+        },
+        {
+          "t": "第 43 章 前后端类型契约｜TypeScript 从 0 到精通",
+          "f": "043_第43章_前后端类型契约.html",
+          "u": "14_从0到精通/typescript/50_第五篇_声明与生态适配/043_第43章_前后端类型契约.html",
+          "d": "std"
+        },
+        {
+          "t": "第 44 章 映射类型进阶｜TypeScript 从 0 到精通",
+          "f": "044_第44章_映射类型进阶.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/044_第44章_映射类型进阶.html",
+          "d": "std"
+        },
+        {
+          "t": "第 45 章 模板字面量类型｜TypeScript 从 0 到精通",
+          "f": "045_第45章_模板字面量类型.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/045_第45章_模板字面量类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 46 章 工具类型进阶｜TypeScript 从 0 到精通",
+          "f": "046_第46章_工具类型进阶.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/046_第46章_工具类型进阶.html",
+          "d": "std"
+        },
+        {
+          "t": "第 47 章 手写 DeepPartial｜TypeScript 从 0 到精通",
+          "f": "047_第47章_手写DeepPartial.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/047_第47章_手写DeepPartial.html",
+          "d": "std"
+        },
+        {
+          "t": "第 48 章 递归类型｜TypeScript 从 0 到精通",
+          "f": "048_第48章_递归类型.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/048_第48章_递归类型.html",
+          "d": "std"
+        },
+        {
+          "t": "第 49 章 类型体操名题｜TypeScript 从 0 到精通",
+          "f": "049_第49章_类型体操名题.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/049_第49章_类型体操名题.html",
+          "d": "std"
+        },
+        {
+          "t": "第 50 章 类型级编程的边界｜TypeScript 从 0 到精通",
+          "f": "050_第50章_类型级编程的边界.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/050_第50章_类型级编程的边界.html",
+          "d": "std"
+        },
+        {
+          "t": "第 51 章 TS 工程最佳实践｜TypeScript 从 0 到精通",
+          "f": "051_第51章_TS工程最佳实践.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/051_第51章_TS工程最佳实践.html",
+          "d": "std"
+        },
+        {
+          "t": "第 52 章 毕业典礼｜TypeScript 从 0 到精通",
+          "f": "052_第52章_毕业典礼.html",
+          "u": "14_从0到精通/typescript/60_第六篇_类型体操与收官/052_第52章_毕业典礼.html",
+          "d": "std"
         }
       ],
       "planned": 52,
-      "status": "plan",
+      "status": "done",
       "parts": [
         {
           "name": "第一篇 入门与类型基础",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第二篇 类型系统核心",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第三篇 泛型与类型编程",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第四篇 工程配置与编译",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第五篇 声明与生态适配",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第六篇 类型体操与收官",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         }
       ],
-      "done": 0,
+      "done": 52,
       "order": 3
     },
     {
@@ -2175,5 +2487,5 @@ window.KB_MANIFEST = {
       "order": 24
     }
   ],
-  "total": 249
+  "total": 301
 };
