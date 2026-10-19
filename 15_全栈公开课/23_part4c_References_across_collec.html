@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 4 References across collections｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b2">🔨 阶段二 · 通全栈</span>
+      <span class="badge b2">Part 4 · 测试 Express 服务端程序，以及用户管理</span>
+      <span>第 23 篇</span>
+    </div>
+    <h1>References across collections</h1>
+    <div class="meta"><span>⏱ 约 20 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part4/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-4.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">References across collections</a><a class="l3" href="#sec-2">Mongoose schema for users</a><a class="l3" href="#sec-3">Creating users</a><a class="l3" href="#sec-4">Creating a new note</a><a class="l3" href="#sec-5">Populate</a></nav>
+  <main class="fso-body">
+<div class="content">
+<!-- We want to add user authentication and authorization to our application. Users should be stored in the database and every note should be linked to the user who created it. Deleting and editing a note should only be allowed for the user who created it.-->
+<p>我们想在我们的应用中加入用户认证和授权。用户应该存储在数据库中，每个笔记应该与创建它的用户相联系。删除和编辑一个笔记应该只允许创建它的用户使用。</p>
+<!-- Let's start by adding information about users to the database. There is a one-to-many relationship between the user (<i>User</i>) and notes (<i>Note</i>):-->
+<p>让我们先把用户的信息添加到数据库中。在用户（<i>User</i>）和笔记（<i>Note</i>）之间有一个一对多的关系。</p>
+<p><img alt="" src="https://yuml.me/a187045b.png"></p>
+<!-- If we were working with a relational database the implementation would be straightforward. Both resources would have their separate database tables, and the id of the user who created a note would be stored in the notes table as a foreign key.-->
+<p>如果我们使用的是关系型数据库，实现起来就很简单了。这两种资源都有各自独立的数据库表，而创建笔记的用户的ID将作为外键存储在笔记表中。</p>
+<!-- When working with document databases the situation is a bit different, as there are many different ways of modeling the situation.-->
+<p>当使用文档数据库时，情况就有点不同了，因为有许多不同的建模方式。</p>
+<!-- The existing solution saves every note in the <i>notes collection</i> in the database. If we do not want to change this existing collection, then the natural choice is to save users in their own collection,  <i>users</i> for example.-->
+<p>现有的解决方案将每个笔记保存在数据库的<i>笔记集合</i>中。如果我们不想改变这个现有的集合，那么自然的选择是将用户保存在他们自己的集合中，例如<i>users</i>。</p>
+<!-- Like with all document databases, we can use object IDs in Mongo to reference documents in other collections. This is similar to using foreign keys in relational databases. -->
+<p>与所有文档数据库一样，我们可以使用Mongo中的对象ID来引用其他集合中的文档。这类似于在关系数据库中使用外键。</p>
+<!-- Traditionally document databases like Mongo do not support  <i>join queries</i> that are available in relational databases,  used for aggregating data from multiple tables. However starting from version 3.2. Mongo has supported [lookup aggregation queries](https://docs.mongodb.com/manual/reference/operator/aggregation/lookup/). We will not be taking a look at this functionality in this course.-->
+<p>传统上，像Mongo这样的文档数据库不支持关系型数据库中的<i>join查询</i>，这些查询用于聚合多个表的数据。但是从3.2版本开始。Mongo已经支持<a href="https://docs.mongodb.com/manual/reference/operator/aggregation/lookup/">查找聚合查询</a>。我们将不会在本课程中查看此功能。</p>
+<!-- If we need a functionality similar to join queries, we will implement it in our application code by making multiple queries. In certain situations Mongoose can take care of joining and aggregating data, which gives the appearance of a join query. However, even in these situations Mongoose makes multiple queries to the database in the background.-->
+<p>如果我们需要类似于连接查询的功能，我们将在我们的应用代码中通过进行多次查询来实现它。在某些情况下，Mongoose可以负责连接和聚合数据，这给人以连接查询的感觉。然而，即使在这些情况下，Mongoose也会在后端对数据库进行多次查询。</p>
+<h3 id="sec-1">References across collections</h3>
+<!-- If we were using a relational database the note would contain a <i>reference key</i> to the user who created it. In document databases we can do the same thing.-->
+<p>如果我们使用的是关系型数据库，笔记会包含一个<i>参考键</i>，指向创建它的用户。在文档数据库中，我们可以做同样的事情。</p>
+<!-- Let's assume that the <i>users</i> collection contains two users:-->
+<p>我们假设<i>users</i>集合包含两个用户。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">[</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'mluukkai'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">123456</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'hellas'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">141414</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">];</span>
+</code></pre></div>
+
+<!-- The <i>notes</i> collection contains three notes that all have a <i>user</i> field that references a user in the <i>users</i> collection:-->
+<p><i>notes</i>集合包含三个笔记，它们都有一个<i>user</i>字段，引用<i>users</i>集合中的一个用户。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">[</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'HTML is easy'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">221212</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">123456</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'The most important operations of HTTP protocol are GET and POST'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">221255</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">123456</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'A proper dinosaur codes with Java'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">221244</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">141414</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">]</span>
+</code></pre></div>
+
+<!-- Document databases do not demand the foreign key to be stored in the note resources, it could <i>also</i> be stored in the users collection, or even both: -->
+<p>文档数据库不要求外键存储在注释资源中，它<i>也</i>可以存储在用户集合中，甚至两者兼而有之：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">[</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'mluukkai'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">123456</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span><span style="color: #AE81FF">221212</span><span style="color: #F8F8F2">, </span><span style="color: #AE81FF">221255</span><span style="color: #F8F8F2">],</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'hellas'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">141414</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span><span style="color: #AE81FF">221244</span><span style="color: #F8F8F2">],</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">]</span>
+</code></pre></div>
+
+<!-- Since users can have many notes, the related ids are stored in an array in the <i>notes</i> field.-->
+<p>由于用户可以有很多笔记，相关的ID被存储在<i>notes</i>字段的数组中。</p>
+<!-- Document databases also offer a radically different way of organizing the data: In some situations it might be beneficial to nest the entire notes array as a part of the documents in the users collection:-->
+<p>文档数据库也提供了一种完全不同的组织数据的方式。在某些情况下，将整个笔记数组嵌套为用户集合中的文档的一部分可能是有益的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">[</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'mluukkai'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">123456</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">      {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'HTML is easy'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      },</span>
+<span style="color: #F8F8F2">      {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'The most important operations of HTTP protocol are GET and POST'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      },</span>
+<span style="color: #F8F8F2">    ],</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'hellas'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">_id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">141414</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">      {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span>
+<span style="color: #F8F8F2">          </span><span style="color: #E6DB74">'A proper dinosaur codes with Java'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      },</span>
+<span style="color: #F8F8F2">    ],</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">]</span>
+</code></pre></div>
+
+<!-- In this schema notes would be tightly nested under users and the database would not generate ids for them.-->
+<p>在这种模式下，笔记将被紧密地嵌套在用户之下，数据库不会为它们生成ID。</p>
+<!-- The structure and schema of the database is not as self-evident as it was with relational databases. The chosen schema must be one which supports the use cases of the application the best. This is not a simple design decision to make, as all use cases of the applications are not known when the design decision is made.-->
+<p>数据库的结构和模式并不像关系型数据库那样不言自明。所选架构必须最好地支持应用程序的用例。这不是一个简单的设计决策，因为在做出设计决策时，应用程序的所有用例都是未知的。</p>
+<!-- Paradoxically, schema-less databases like Mongo require developers to make far more radical design decisions about data organization at the beginning of the project than relational databases with schemas. On average, relational databases offer a more-or-less suitable way of organizing data for many applications.-->
+<p>矛盾的是，像Mongo这样的无模式数据库要求开发人员在项目开始时对数据组织做出比有模式的关系数据库更激进的设计决策。平均而言，关系数据库为许多应用程序提供了一种或多或少合适的数据组织方式。</p>
+<h3 id="sec-2">Mongoose schema for users</h3>
+<!-- In this case, we make the decision to store the ids of the notes created by the user in the user document. Let's define the model for representing a user in the <i>models/user.js</i> file:-->
+<p>在这种情况下，我们决定将用户创建的笔记的ID存储在用户文档中。让我们在<i>models/user.js</i>文件中定义代表一个用户的模型。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'mongoose'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">userSchema</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">passwordHash</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">    {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Types</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">ObjectId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">ref</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Note'</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  ],</span>
+<span style="color: #F8F8F2">})</span>
+
+<span style="color: #A6E22E">userSchema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">set</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'toJSON'</span><span style="color: #F8F8F2">, {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">transform</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">document</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">returnedObject</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">returnedObject</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">returnedObject</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toString</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">delete</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">returnedObject</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">delete</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">returnedObject</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">__v</span>
+<span style="color: #F8F8F2">    </span><span style="color: #959077">// the passwordHash should not be revealed</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">delete</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">returnedObject</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">passwordHash</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">})</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">model</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'User'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">userSchema</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #A6E22E">module</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">exports</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+</code></pre></div>
+
+<!-- The ids of the notes are stored within the user document as an array of Mongo ids. The definition is as follows:-->
+<p>笔记的id以Mongo id数组的形式存储在用户文档中。其定义如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Types</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">ObjectId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">ref</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Note'</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The type of the field is <i>ObjectId</i> that references <i>note</i>-style documents. Mongo does not inherently know that this is a field that references notes, the syntax is purely related to and defined by Mongoose.-->
+<p>该字段的类型是<i>ObjectId</i>，引用<i>note</i>式文档。Mongo 本身并不知道这是一个引用笔记的字段，这个语法纯粹是与 Mongoose 有关，并由 Mongoose 定义。</p>
+<!-- Let's expand the schema of the note defined in the <i>models/note.js</i> file so that the note contains information about the user who created it:-->
+<p>让我们扩展<i>models/note.js</i>文件中定义的笔记模式，使笔记包含创建它的用户的信息。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteSchema</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">5</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Boolean</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Types</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">ObjectId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">ref</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'User'</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- In stark contrast to the conventions of relational databases, <i>references are now stored in both documents</i>: the note references the user who created it, and the user has an array of references to all of the notes created by them.-->
+<p>与关系型数据库的惯例形成鲜明对比的是，<i>引用现在被存储在两个文件中</i>：笔记引用了创建它的用户，而用户有一个数组，引用了他们创建的所有笔记。</p>
+<h3 id="sec-3">Creating users</h3>
+<!-- Let's implement a route for creating new users. Users have a unique <i>username</i>, a <i>name</i> and something called a <i>passwordHash</i>. The password hash is the output of a [one-way hash function](https://en.wikipedia.org/wiki/Cryptographic_hash_function) applied to the user's password. It is never wise to store unencrypted plain text passwords in the database!-->
+<p>让我们实现一个创建新用户的路由。用户有一个唯一的<i>用户名</i>、<i>名字</i>和一个叫做<i>密码哈希</i>的东西。密码散列是应用于用户密码的<a href="https://en.wikipedia.org/wiki/Cryptographic_hash_function">单向散列函数</a>的输出。在数据库中存储未加密的纯文本密码是不明智的!</p>
+<!-- Let's install the [bcrypt](https://github.com/kelektiv/node.bcrypt.js) package for generating the password hashes:-->
+<p>让我们安装<a href="https://github.com/kelektiv/node.bcrypt.js">bcrypt</a>软件包来生成密码散列。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>npm<span style="color: #F8F8F2"> </span>install<span style="color: #F8F8F2"> </span>bcrypt
+</code></pre></div>
+
+<!-- Creating new users happens in compliance with the RESTful conventions discussed in [part 3](https://fullstackopen.com/en/part3/node_js_and_express#rest), by making an HTTP POST request to the <i>users</i> path.-->
+<p>创建新的用户是按照<a href="https://fullstackopen.com/en/part3/node_js_and_express#rest">第三章节</a>中讨论的RESTful惯例进行的，通过向<i>users</i>路径发出HTTP POST请求。</p>
+<!-- Let's define a separate <i>router</i> for dealing with users in a new <i>controllers/users.js</i> file. Let's take the router into use in our application in the <i>app.js</i> file, so that it handles requests made to the <i>/api/users</i> url:-->
+<p>让我们在一个新的<i>controllers/users.js</i>文件中定义一个单独的<i>router</i>来处理用户。让我们在<i>app.js</i>文件中的应用中使用这个路由器，这样它就可以处理向<i>/api/users</i>网址发出的请求。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'./controllers/users'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077">// ...</span>
+
+<span style="color: #A6E22E">app</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">use</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/api/users'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- The contents of the file that defines the router are as follows:-->
+<p>定义路由器的文件的内容如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">bcrypt</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'bcrypt'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'express'</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">Router</span><span style="color: #F8F8F2">()</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'../models/user'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">post</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">password</span><span style="color: #F8F8F2"> } </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">body</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">saltRounds</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">10</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">passwordHash</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">bcrypt</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">hash</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">password</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">saltRounds</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">passwordHash</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  })</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">savedUser</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">status</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">201</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">savedUser</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">})</span>
+
+<span style="color: #A6E22E">module</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">exports</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersRouter</span>
+</code></pre></div>
+
+<!-- The password sent in the request is <i>not</i> stored in the database. We store the <i>hash</i> of the password that is generated with the _bcrypt.hash_ function.-->
+<p>请求中发送的密码<i>不</i>存储在数据库中。我们存储的是用_bcrypt.hash_函数生成的密码的<i>hash</i>。</p>
+<!-- The fundamentals of [storing passwords](https://bytebytego.com/guides/how-to-store-passwords-in-the-database/) are outside the scope of this course material. We will not discuss what the magic number 10 assigned to the [saltRounds](https://github.com/kelektiv/node.bcrypt.js/#a-note-on-rounds) variable means, but you can read more about it in the linked material.-->
+<p><a href="https://bytebytego.com/guides/how-to-store-passwords-in-the-database/">存储密码</a>的基本原理不在本课程材料的范围之内。我们不会讨论分配给<a href="https://github.com/kelektiv/node.bcrypt.js/#a-note-on-rounds">saltRounds</a>变量的神奇数字10是什么意思，但你可以在链接材料中读到更多关于它的信息。</p>
+<!-- Our current code does not contain any error handling or input validation for verifying that the username and password are in the desired format.-->
+<p>我们目前的代码不包含任何错误处理或输入验证，以验证用户名和密码是否符合所需的格式。</p>
+<!-- The new feature can and should initially be tested manually with a tool like Postman. However testing things manually will quickly become too cumbersome, especially once we implement functionality that enforces usernames to be unique.-->
+<p>这个新功能最初可以而且应该用像Postman这样的工具来手动测试。然而，手动测试很快就会变得非常麻烦，尤其是当我们实现了强制要求用户名是唯一的功能。</p>
+<!-- It takes much less effort to write automated tests, and it will make the development of our application much easier.-->
+<p>编写自动化测试需要更少的努力，它将使我们的应用的开发更加容易。</p>
+<!-- Our initial tests could look like this:-->
+<p>我们最初的测试可以是这样的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">bcrypt</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'bcrypt'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'../models/user'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077">//...</span>
+
+<span style="color: #A6E22E">describe</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'when there is initially one user in db'</span><span style="color: #F8F8F2">, () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">beforeEach</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">deleteMany</span><span style="color: #F8F8F2">({})</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">passwordHash</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">bcrypt</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">hash</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'sekret'</span><span style="color: #F8F8F2">, </span><span style="color: #AE81FF">10</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">passwordHash</span><span style="color: #F8F8F2"> })</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  })</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">test</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'creation succeeds with a fresh username'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersAtStart</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">helper</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">usersInDb</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">newUser</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'mluukkai'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Matti Luukkainen'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">password</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'salainen'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">api</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">post</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/api/users'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">send</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newUser</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">201</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'Content-Type'</span><span style="color: #F8F8F2">, </span><span style="color: #E6DB74">/application\/json/</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersAtEnd</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">helper</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">usersInDb</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">assert</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">strictEqual</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">usersAtEnd</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">length</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">usersAtStart</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">length</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">+</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usernames</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersAtEnd</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">u</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">u</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">assert</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">usernames</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">includes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- The tests use the <i>usersInDb()</i> helper function that we implemented in the <i>tests/test_helper.js</i> file. The function is used to help us verify the state of the database after a user is created:-->
+<p>测试使用我们在<i>tests/test_helper.js</i>文件中实现的<i>usersInDb()</i>辅助函数。该函数用于帮助我们在创建用户后验证数据库的状态。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'../models/user'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077">// ...</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersInDb</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({})</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">u</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">u</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toJSON</span><span style="color: #F8F8F2">())</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">module</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">exports</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">nonExistingId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">notesInDb</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">usersInDb</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The <i>beforeEach</i> block adds a user with the username <i>root</i> to the database. We can write a new test that verifies that a new user with the same username can not be created:-->
+<p><i>beforeEach</i>块将一个用户名为<i>root</i>的用户添加到数据库中。我们可以写一个新的测试，验证是否可以创建一个相同用户名的新用户。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">describe</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'when there is initially one user in db'</span><span style="color: #F8F8F2">, () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">test</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'creation fails with proper statuscode and message if username already taken'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersAtStart</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">helper</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">usersInDb</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">newUser</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Superuser'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">password</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'salainen'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">result</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">api</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">post</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/api/users'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">send</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newUser</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">400</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'Content-Type'</span><span style="color: #F8F8F2">, </span><span style="color: #E6DB74">/application\/json/</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">usersAtEnd</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">helper</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">usersInDb</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">assert</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">result</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">includes</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'expected `username` to be unique'</span><span style="color: #F8F8F2">))</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">assert</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">strictEqual</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">usersAtEnd</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">length</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">usersAtStart</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">length</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- The test case obviously will not pass at this point. We are essentially practicing [test-driven development (TDD)](https://en.wikipedia.org/wiki/Test-driven_development), where tests for new functionality are written before the functionality is implemented.-->
+<p>在这一点上，测试案例显然不会通过。我们基本上是在实践<a href="https://en.wikipedia.org/wiki/Test-driven_development">测试驱动开发(TDD)</a>，即在功能实现之前编写新功能的测试。</p>
+<!-- Mongoose validations do not provide a direct way to check the uniqueness of a field value. However, it is possible to achieve uniqueness by defining [uniqueness index](https://mongoosejs.com/docs/schematypes.html) for a field. The definition is done as follows: -->
+<p>Mongoose 验证没有提供直接的方法来检查字段值的唯一性。但是，可以通过为字段定义 <a href="https://mongoosejs.com/docs/schematypes.html">唯一性索引</a> 来实现唯一性。定义如下：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'mongoose'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">userSchema</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">unique</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// this ensures the uniqueness of username</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">passwordHash</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">    {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Types</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">ObjectId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">ref</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Note'</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  ],</span>
+<span style="color: #F8F8F2">})</span>
+
+<span style="color: #959077">// ...</span>
+</code></pre></div>
+
+<!-- However, care must be taken with the uniqueness index. If there are already documents in the database that violate the uniqueness condition, [no index will be created](https://dev.to/akshatsinghania/mongoose-unique-not-working-16bf). So when adding a uniqueness index, make sure that the database is in a healthy state! The test above added the user with username _root_ to the database twice, and these must be removed for the index to be formed and the code to work. -->
+<p>但是，必须小心使用唯一性索引。如果数据库中已经存在违反唯一性条件的文档，<a href="https://dev.to/akshatsinghania/mongoose-unique-not-working-16bf">将不会创建索引</a>。因此，在添加唯一性索引时，请确保数据库处于健康状态！上述测试将用户名为 <em>root</em> 的用户两次添加到数据库中，必须删除这些用户才能形成索引并使代码工作。</p>
+<!-- Mongoose validations do not detect the index violation, and instead of _ValidationError_ they return an error of type _MongoServerError_. We therefore need to extend the error handler for that case: -->
+<p>Mongoose 验证不会检测到索引违规，并且会返回类型为 <em>MongoServerError</em> 的错误，而不是 <em>ValidationError</em>。因此，我们需要为此情况扩展错误处理程序：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">errorHandler</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">next</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'CastError'</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">status</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">400</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">send</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">error</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'malformatted id'</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">  } </span><span style="color: #66D9EF">else</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ValidationError'</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">status</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">400</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">error</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  } </span><span style="color: #66D9EF">else</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'MongoServerError'</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&amp;&amp;</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">includes</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'E11000 duplicate key error'</span><span style="color: #F8F8F2">)) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">status</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">400</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">error</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'expected `username` to be unique'</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">next</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- After these changes, the tests will pass. -->
+<p>进行这些更改后，测试将通过。</p>
+<!-- We could also implement other validations into the user creation. We could check that the username is long enough, that the username only consists of permitted characters, or that the password is strong enough. Implementing these functionalities is left as an optional exercise.-->
+<p>我们还可以在创建用户时实现其他验证。我们可以检查用户名是否足够长，用户名是否只由允许的字符组成，或者密码是否足够强大。实现这些功能是一个可选的练习。</p>
+<!-- Before we move onward, let's add an initial implementation of a route handler that returns all of the users in the database:-->
+<p>在继续之前，让我们添加一个路由处理程序的初始实现，以返回数据库中所有的用户。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({})</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- For making new users in a production or development environment, you may send a POST request to ```/api/users/``` via Postman or REST Client in the following format:-->
+<p>在生产或开发环境中创建新用户，你可以通过Postman或REST客户端向<code>/api/users/</code>发送一个POST请求，格式如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">"username"</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"root"</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">"name"</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"Superuser"</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">"password"</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"salainen"</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The list looks like this:-->
+<p>列表如下所示：</p>
+<p><img alt="" src="../docs/images/4/9.png"></p>
+<!-- You can find the code for our current application in its entirety in the <i>part4-7</i> branch of [this GitHub repository](https://github.com/fullstack-hy2020/part3-notes-backend/tree/part4-7).-->
+<p>你可以在<a href="https://github.com/fullstack-hy2020/part3-notes-backend/tree/part4-7">这个github仓库</a>的<i>part4-7</i>分支中找到我们当前应用的全部代码。</p>
+<h3 id="sec-4">Creating a new note</h3>
+<!-- The code for creating a new note has to be updated so that the note is assigned to the user who created it.-->
+<p>创建新笔记的代码需要更新，以便将笔记分配给创建它的用户。</p>
+<!-- Let's expand our current implementation, so that the information about the user who created a note is sent in the <i>userId</i> field of the request body:-->
+<p>让我们扩展我们目前的实现，以便在请求体的<i>userId</i>字段中发送关于创建笔记的用户的信息。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'../models/user'</span><span style="color: #F8F8F2">) </span><span style="color: #959077">//highlight-line</span>
+
+<span style="color: #959077">//...</span>
+
+<span style="color: #A6E22E">notesRouter</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">post</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">body</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findById</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">userId</span><span style="color: #F8F8F2">) </span><span style="color: #959077">//highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">undefined</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #959077">//highlight-line</span>
+<span style="color: #F8F8F2">  })</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">savedNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">concat</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">savedNote</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span><span style="color: #F8F8F2">) </span><span style="color: #959077">//highlight-line</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()  </span><span style="color: #959077">//highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">status</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">201</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">savedNote</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- It's worth noting that the <i>user</i> object also changes. The <i>id</i> of the note is stored in the <i>notes</i> field:-->
+<p>值得注意的是，<i>user</i>对象也会改变。笔记的<i>id</i>被保存在<i>notes</i>字段中。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findById</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">body</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">userId</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077">// ...</span>
+
+<span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">concat</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">savedNote</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span><span style="color: #F8F8F2">)</span>
+<span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+</code></pre></div>
+
+<!-- Let's try to create a new note-->
+<p>让我们试着创建一个新的笔记</p>
+<p><img alt="" src="../docs/images/4/10e.png"></p>
+<!-- The operation appears to work. Let's add one more note and then visit the route for fetching all users:-->
+<p>该操作似乎是有效的。让我们再添加一个笔记，然后访问获取所有用户的路径。</p>
+<p><img alt="" src="../docs/images/4/11e.png"></p>
+<!-- We can see that the user has two notes.-->
+<p>我们可以看到，该用户有两个笔记。</p>
+<!-- Likewise, the ids of the users who created the notes can be seen when we visit the route for fetching all notes:-->
+<p>同样地，当我们访问获取所有笔记的路线时，可以看到创建笔记的用户的ID。</p>
+<p><img alt="" src="../docs/images/4/12e.png"></p>
+<h3 id="sec-5">Populate</h3>
+<!-- We would like our API to work in such a way, that when an HTTP GET request is made to the <i>/api/users</i> route, the user objects would also contain the contents of the user's notes, and not just their id. In a relational database, this functionality would be implemented with a <i>join query</i>.-->
+<p>我们希望我们的API能够以这样的方式工作，即当HTTP GET请求被发送到<i>/api/users</i>路由时，用户对象也将包含用户的笔记内容，而不仅仅是他们的ID。在一个关系型数据库中，这个功能将通过一个<i>连接查询</i>来实现。</p>
+<!-- As previously mentioned, document databases do not properly support join queries between collections, but the Mongoose library can do some of these joins for us. Mongoose accomplishes the join by doing multiple queries, which is different from join queries in relational databases which are <i>transactional</i>, meaning that the state of the database does not change during the time that the query is made. With join queries in Mongoose, nothing can guarantee that the state between the collections being joined is consistent, meaning that if we make a query that joins the user and notes collections, the state of the collections may change during the query.-->
+<p>如前所述，文档数据库并不正确支持集合之间的连接查询，但 Mongoose 库可以为我们做一些这样的连接。Mongoose 通过做多个查询来完成连接，这与关系数据库中的连接查询不同，关系数据库是<i>事务性的</i>，意味着数据库的状态在查询期间不会改变。在 Mongoose 的连接查询中，没有任何东西可以保证被连接的集合之间的状态是一致的，这意味着如果我们做一个连接用户和笔记集合的查询，集合的状态可能在查询过程中发生变化。</p>
+<!-- The Mongoose join is done with the [populate](http://mongoosejs.com/docs/populate.html) method. Let's update the route that returns all users first:-->
+<p>Mongoose的连接是通过<a href="http://mongoosejs.com/docs/populate.html">populate</a>方法完成的。让我们先更新返回所有用户的路线。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    .</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({}).</span><span style="color: #A6E22E">populate</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'notes'</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- The [populate](http://mongoosejs.com/docs/populate.html) method is chained after the <i>find</i> method making the initial query. The parameter given to the populate method defines that the <i>ids</i> referencing <i>note</i> objects in the <i>notes</i> field of the <i>user</i> document will be replaced by the referenced <i>note</i> documents. -->
+<p><a href="http://mongoosejs.com/docs/populate.html">populate</a> 方法在初始查询后链接到 <i>find</i> 方法。提供给 populate 方法的参数定义了在<i>user</i>文档的<i>notes</i>字段中引用<i>note</i>对象的<i>ids(id的复数)</i>将被替换为被引用的<i>note</i>文档。</p>
+<!-- The result is almost exactly what we wanted:-->
+<p>结果几乎正是我们想要的。</p>
+<p><img alt="" src="../docs/images/4/13ea.png"></p>
+<!-- We can use the populate parameter for choosing the fields we want to include from the documents. The selection of fields is done with the Mongo [syntax](https://docs.mongodb.com/manual/tutorial/project-fields-from-query-results/#return-the-specified-fields-and-the-id-field-only):-->
+<p>我们可以使用populate参数来选择我们想从文档中包含的字段。字段的选择是通过Mongo的<a href="https://docs.mongodb.com/manual/tutorial/project-fields-from-query-results/#return-the-specified-fields-and-the-id-field-only">语法</a>完成的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">usersRouter</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+<span style="color: #F8F8F2">    .</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({}).</span><span style="color: #A6E22E">populate</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'notes'</span><span style="color: #F8F8F2">, { </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">date</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2"> })</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">users</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">});</span>
+</code></pre></div>
+
+<!-- The result is now exactly like we want it to be:-->
+<p>现在的结果就像我们希望的那样。</p>
+<p><img alt="" src="../docs/images/4/14ea.png"></p>
+<!-- Let's also add a suitable population of user information to notes:-->
+<p>让我们在 <i>controllers/notes.js</i> 文件中为笔记添加一个合适的用户详细信息填充：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">notesRouter</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'/'</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">request</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">    .</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({}).</span><span style="color: #A6E22E">populate</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'user'</span><span style="color: #F8F8F2">, { </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2"> })</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">json</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">});</span>
+</code></pre></div>
+
+<!-- Now the user's information is added to the <i>user</i> field of note objects.-->
+<p>现在用户的信息被添加到笔记对象的<i>user</i>字段中。</p>
+<p><img alt="" src="../docs/images/4/15ea.png"></p>
+<!-- It's important to understand that the database does not actually know that the ids stored in the <i>user</i> field of notes reference documents in the user collection.-->
+<p>重要的是要明白，数据库并不知道存储在笔记集合的 <i>user</i> 字段中的 id 引用用户集合中的文档。</p>
+<!-- The functionality of the <i>populate</i> method of Mongoose is based on the fact that we have defined "types" to the references in the Mongoose schema with the <i>ref</i> option:-->
+<p>Mongoose 的 <i>populate</i> 方法的功能基于这样一个事实：我们已经使用 <i>ref</i> 选项为 Mongoose 模式中的引用定义了“类型”：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteSchema</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">5</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Boolean</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Types</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">ObjectId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">ref</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'User'</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- You can find the code for our current application in its entirety in the <i>part4-8</i> branch of [this GitHub repository](https://github.com/fullstack-hy2020/part3-notes-backend/tree/part4-8).-->
+<p>你可以在<a href="https://github.com/fullstack-hy2020/part3-notes-backend/tree/part4-8">这个github仓库</a>的<i>part4-8</i>分支中找到我们当前应用的全部代码。</p>
+<p>注意：在此阶段，首先，一些测试将失败。我们将把修复测试留作非强制性练习。其次，在已部署的笔记应用程序中，创建笔记功能将停止工作，因为用户尚未链接到前端。</p>
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b2" href="22_part4b_Test_environment.html">← 上一篇</a><a class="badge b2" href="24_part4d_Limiting_creating_new_no.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 12 Dockerfile｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b4">🏔️ 阶段四 · 走向生产</span>
+      <span class="badge b2">Part 12 · 容器</span>
+      <span>第 68 篇</span>
+    </div>
+    <h1>Dockerfile</h1>
+    <div class="meta"><span>⏱ 约 44 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part12/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-12.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">Dockerfile</a><a class="l3" href="#sec-2">More meaningful image</a><a class="l3" href="#sec-3">Exercise 12.5.</a><a class="l3" href="#sec-4">Using docker-compose</a><a class="l3" href="#sec-5">Exercise 12.6.</a><a class="l3" href="#sec-6">Utilizing containers in development</a><a class="l3" href="#sec-7">Bind mount and initializing the database</a><a class="l3" href="#sec-8">Persisting data with volumes</a><a class="l3" href="#sec-9">Exercise 12.7.</a><a class="l3" href="#sec-10">Debugging issues in containers</a><a class="l3" href="#sec-11">Exercise 12.8.</a><a class="l3" href="#sec-12">Redis</a><a class="l3" href="#sec-13">Exercises 12.9. - 12.11.</a><a class="l3" href="#sec-14">Persisting data with Redis</a><a class="l3" href="#sec-15">Exercise 12.12.</a></nav>
+  <main class="fso-body">
+<div class="content">
+<!-- In the previous section, we used two different base images: ubuntu and node and did some manual work to get a simple "Hello, World!" running. The tools and commands we learned during that process will be helpful. In this section, we will learn how to build images and configure environments for our applications. We will start with a regular Express/Node.js backend and build on top of that with other services, including a MongoDB database.-->
+<p>在上一节中，我们使用了两个不同的基础镜像：ubuntu和node，并做了一些手工工作来获得一个简单的 "Hello, World!"运行。在这个过程中，我们学到的工具和命令将是有帮助的。在本节中，我们将学习如何为我们的应用构建镜像和配置环境。我们将从一个普通的Express/Node.js后端开始，在此基础上建立其他服务，包括MongoDB数据库。</p>
+<h3 id="sec-1">Dockerfile</h3>
+<!-- Instead of modifying a container by copying files inside, we can create a new image that contains the "Hello, World!" application. The tool for this is the Dockerfile. Dockerfile is a simple text file that contains all of the instructions for creating an image. Let's create an example Dockerfile from the "Hello, World!" application.-->
+<p>我们可以创建一个包含 "Hello, World!"应用的新镜像，而不是通过复制里面的文件来修改一个容器。这方面的工具是Dockerfile。Dockerfile是一个简单的文本文件，包含创建镜像的所有指令。让我们从 "Hello, World!"应用创建一个Dockerfile的例子。</p>
+<!-- If you did not already, create a directory on your machine and create a file called <i>Dockerfile</i> inside that directory. Let's also put an <i>index.js</i> containing _console.log('Hello, World!')_ next to the Dockerfile. Your directory structure should look like this:-->
+<p>如果你还没有，在你的机器上创建一个目录，并在该目录下创建一个名为<i>Dockerfile</i>的文件。让我们也在Dockerfile旁边放一个<i>index.js</i>，包含_console.log(''Hello, World!')_。你的目录结构应该是这样的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>├── index.js
+└── Dockerfile
+</code></pre></div>
+
+<!-- inside that Dockerfile we will tell the image three things:-->
+<p>在这个Docker文件中，我们将告诉镜像三件事。</p>
+<!-- - Use the node:16 as the base for our image-->
+<ul>
+<li>使用node:16作为我们镜像的基础</li>
+</ul>
+<!-- - Include the index.js inside the image, so we don't need to manually copy it into the container-->
+<ul>
+<li>在镜像中包含index.js，这样我们就不需要手动将其复制到容器中。</li>
+</ul>
+<!-- - When we run a container from the image, use node to execute the index.js file.-->
+<ul>
+<li>当我们从镜像中运行一个容器时，使用node来执行index.js文件。</li>
+</ul>
+<!-- The wishes above will translate into a basic Dockerfile. The best location to place this file is usually at the root of the project.-->
+<p>上面的愿望将转化为一个基本的Docker文件。放置这个文件的最佳位置通常是在项目的根部。</p>
+<!-- The resulting <i>Dockerfile</i> looks like this:-->
+<p>产生的<i>Dockerfile</i>如下所示：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">FROM</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node:16</span>
+
+<span style="color: #66D9EF">WORKDIR</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">/usr/src/app</span>
+
+<span style="color: #66D9EF">COPY</span><span style="color: #F8F8F2"> </span>./index.js<span style="color: #F8F8F2"> </span>./index.js
+
+<span style="color: #66D9EF">CMD</span><span style="color: #F8F8F2"> </span>node<span style="color: #F8F8F2"> </span>index.js
+</code></pre></div>
+
+<!-- FROM instruction will tell Docker that the base for the image should be node:16. COPY instruction will copy the file <i>index.js</i> from the host machine to the file with the same name in the image. CMD instruction tells what happens when _docker run_ is used. CMD is the default command that can then be overwritten with the parameter given after the image name. See _docker run --help_ if you forgot.-->
+<p>FROM指令将告诉Docker，镜像的基础应该是node:16。COPY指令将把主机上的文件<i>index.js</i>复制到镜像中的同名文件。CMD指令讲述了使用_docker run_时的情况。CMD是默认的指令，然后可以用镜像名称后给出的参数来覆盖。如果你忘记了，请看_docker run --help_。</p>
+<!-- The WORKDIR instruction was slipped in to ensure we don't interfere with the contents of the image. It will guarantee all of the following commands will have <i>/usr/src/app</i> set as the working directory. If the directory doesn't exist in the base image, it will be automatically created.-->
+<p>WORKDIR指令是为了确保我们不干扰镜像的内容而悄悄加入的。它将保证所有下面的命令都将<i>/usr/src/app</i>设置为工作目录。如果该目录不存在于基本镜像中，它将被自动创建。</p>
+<!-- If we do not specify a WORKDIR, we risk overwriting important files by accident. If you check the root (_/_) of the node:16 image with _docker run node:16 ls_, you can notice all of the directories and files that are already included in the image.-->
+<p>如果我们不指定一个WORKDIR，我们就有可能意外地覆盖重要的文件。如果你用_docker run node:16 ls_检查node:16镜像的根（<em>/</em>），你可以注意到所有已经包含在镜像中的目录和文件。</p>
+<!-- Now we can use the command _docker build_ to build an image based on the Dockerfile. Let's spice up the command with one additional flag: _-t_, this will help us name the image:-->
+<p>现在我们可以使用命令_docker build_来构建一个基于Docker文件的镜像。让我们用一个额外的标志来完善这个命令。<em>-t</em>，这将帮助我们命名镜像。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>build<span style="color: #F8F8F2"> </span>-t<span style="color: #F8F8F2"> </span>fs-hello-world<span style="color: #F8F8F2"> </span>.
+<span style="color: #FF4689">[</span>+<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span>Building<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3</span>.9s<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span><span style="color: #AE81FF">8</span>/8<span style="color: #FF4689">)</span><span style="color: #F8F8F2"> </span>FINISHED
+...
+</code></pre></div>
+
+<!-- So the result is "docker please build with tag fs-hello-world the Dockerfile in this directory". You can point to any Dockerfile, but in our case, a simple dot will mean the Dockerfile in <i>this</i> directory. That is why the command ends with a period. After the build is finished, you can run it with _docker run fs-hello-world_.-->
+<p>所以结果是 "docker please build with tag fs-hello-world the Dockerfile in this directory"。你可以指向任何Docker文件，但在我们的例子中，一个简单的点将意味着<i>这个</i>目录中的Docker文件。这就是为什么该命令以句号结束。构建完成后，你可以用_docker run fs-hello-world_运行它。</p>
+<!-- As images are just files, they can be moved around, downloaded and deleted. You can list the images you have locally with _docker image ls_, delete them with _docker image rm_. See what other command you have available with _docker image --help_.-->
+<p>由于图像只是文件，它们可以被随意移动、下载和删除。你可以用_docker image ls_列出你在本地的图像，用_docker image rm_删除它们。用_docker image --help_查看你还有哪些可用的命令。</p>
+<h3 id="sec-2">More meaningful image</h3>
+<!-- Moving an Express server to a container should be as simple as moving the "Hello, World!" application inside a container. The only difference is that there are more files. Thankfully _COPY_ instruction can handle all that. Let's delete the index.js and create a new Express server. Lets use [express-generator](https://expressjs.com/en/starter/generator.html) to create a basic Express application skeleton.-->
+<p>把Express服务器移到一个容器里应该和把 "Hello, World!"应用移到一个容器里一样简单。唯一的区别是，有更多的文件。幸好_COPY_ 指令可以处理所有这些。让我们删除index.js并创建一个新的Express服务器。让我们使用<a href="https://expressjs.com/en/starter/generator.html">express-generator</a>来创建一个基本的Express应用骨架。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>npx<span style="color: #F8F8F2"> </span>express-generator
+<span style="color: #F8F8F2">  </span>...
+
+<span style="color: #F8F8F2">  </span>install<span style="color: #F8F8F2"> </span>dependencies:
+<span style="color: #F8F8F2">    </span>$<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>install
+
+<span style="color: #F8F8F2">  </span>run<span style="color: #F8F8F2"> </span>the<span style="color: #F8F8F2"> </span>app:
+<span style="color: #F8F8F2">    </span>$<span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start
+</code></pre></div>
+
+<!-- First, let's run the application to get an idea of what we just created. Note that the command to run the application may be different from you, my directory was called playground.-->
+<p>首先，让我们运行这个应用来了解一下我们刚刚创建的东西。注意，运行应用的命令可能与你不同，我的目录被称为playground。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>install
+$<span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start
+<span style="color: #F8F8F2">  </span>playground:server<span style="color: #F8F8F2"> </span>Listening<span style="color: #F8F8F2"> </span>on<span style="color: #F8F8F2"> </span>port<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3000</span><span style="color: #F8F8F2"> </span>+0ms
+</code></pre></div>
+
+<!-- Great, so now we can navigate to [http://localhost:3000](http://localhost:3000) and the app is running there.-->
+<p>很好，所以现在我们可以导航到<a href="http://localhost:3000">http://localhost:3000</a>，应用正在那里运行。</p>
+<!-- Containerizing that should be relatively easy based on the previous example.-->
+<p>基于之前的例子，容器化应该是比较容易的。</p>
+<!-- - Use node as base-->
+<ul>
+<li>使用节点作为基础</li>
+</ul>
+<!-- - Set working directory so we don't interfere with the contents of the base image-->
+<ul>
+<li>设置工作目录，这样我们就不会干扰到基础镜像的内容了</li>
+</ul>
+<!-- - Copy ALL of the files in this directory to the image-->
+<ul>
+<li>把这个目录下的所有文件都复制到镜像上</li>
+</ul>
+<!-- - Start with DEBUG=playground:* npm start-->
+<ul>
+<li>用DEBUG=playground:* npm start开始。</li>
+</ul>
+<!-- Let's place the following Dockerfile at the root of the project:-->
+<p>让我们把下面的Docker文件放在项目的根目录下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">FROM</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node:16</span>
+
+<span style="color: #66D9EF">WORKDIR</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">/usr/src/app</span>
+
+<span style="color: #66D9EF">COPY</span><span style="color: #F8F8F2"> </span>.<span style="color: #F8F8F2"> </span>.
+
+<span style="color: #66D9EF">CMD</span><span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start
+</code></pre></div>
+
+<!-- Let's build the image from the Dockerfile with a command, _docker build -t express-server ._ and run it with _docker run -p 3123:3000 express-server_. The _-p_ flag will inform Docker that a port from the host machine should be opened and directed to a port in the container. The format for is _-p host-port:application-port_.-->
+<p>让我们用_docker build -t express-server .<em>的命令从Docker文件中构建镜像，然后用_docker run -p 3123:3000 express-server_运行它。</em>-p_标志将通知Docker，主机上的一个端口应该被打开并指向容器中的一个端口。其格式是_-p host-port:application-port_。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>-p<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3123</span>:3000<span style="color: #F8F8F2"> </span>express-server
+
+&gt;<span style="color: #F8F8F2"> </span>playground@0.0.0<span style="color: #F8F8F2"> </span>start
+&gt;<span style="color: #F8F8F2"> </span>node<span style="color: #F8F8F2"> </span>./bin/www
+
+Tue,<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">29</span><span style="color: #F8F8F2"> </span>Jun<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2021</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">10</span>:55:10<span style="color: #F8F8F2"> </span>GMT<span style="color: #F8F8F2"> </span>playground:server<span style="color: #F8F8F2"> </span>Listening<span style="color: #F8F8F2"> </span>on<span style="color: #F8F8F2"> </span>port<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3000</span>
+</code></pre></div>
+
+<!-- > If yours doesn't work, skip to the next section. There is an explanation why it may not work even if you followed the steps correctly.-->
+<blockquote>
+<p>如果你的标记不起作用，跳到下一节。这里有一个解释，为什么即使你正确地遵循了这些步骤，它也可能不工作。</p>
+</blockquote>
+<!-- The application is now running! Let's test it by sending a GET request to [http://localhost:3123/](http://localhost:3123/).-->
+<p>应用现在正在运行!让我们通过向<a href="http://localhost:3123/">http://localhost:3123/</a>发送一个GET请求来测试它。</p>
+<!-- Shutting it down is a headache at the moment. Use another terminal and _docker kill_ command to kill the application. The _docker kill_ will send a kill signal (SIGKILL) to the application to force it to shut down. It needs the name or id of the container as an argument.-->
+<p>目前，关闭它是一个令人头痛的问题。使用另一个终端和_docker kill_命令来杀死这个应用。_docker kill_将向应用发送一个杀戮信号（SIGKILL），迫使它关闭。它需要容器的名称或ID作为参数。</p>
+<!-- By the way, when using id as the argument, the beginning of the ID is enough for Docker to know which container we mean.-->
+<p>顺便说一下，当使用id作为参数时，ID的开头足以让Docker知道我们指的是哪个容器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>ls
+<span style="color: #F8F8F2">  </span>CONTAINER<span style="color: #F8F8F2"> </span>ID<span style="color: #F8F8F2">   </span>IMAGE<span style="color: #F8F8F2">            </span>COMMAND<span style="color: #F8F8F2">                  </span>CREATED<span style="color: #F8F8F2">         </span>STATUS<span style="color: #F8F8F2">         </span>PORTS<span style="color: #F8F8F2">                                       </span>NAMES
+<span style="color: #F8F8F2">  </span>48096ca3ffec<span style="color: #F8F8F2">   </span>express-server<span style="color: #F8F8F2">   </span><span style="color: #E6DB74">"docker-entrypoint.s…"</span><span style="color: #F8F8F2">   </span><span style="color: #AE81FF">9</span><span style="color: #F8F8F2"> </span>seconds<span style="color: #F8F8F2"> </span>ago<span style="color: #F8F8F2">   </span>Up<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">6</span><span style="color: #F8F8F2"> </span>seconds<span style="color: #F8F8F2">   </span><span style="color: #AE81FF">0</span>.0.0.0:3123-&gt;3000/tcp,<span style="color: #F8F8F2"> </span>:::3123-&gt;3000/tcp<span style="color: #F8F8F2">   </span>infallible_booth
+
+$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">kill</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">48</span>
+<span style="color: #F8F8F2">  </span><span style="color: #AE81FF">48</span>
+</code></pre></div>
+
+<!-- In the future, let's use the same port on both sides of _-p_. Just so we don't have to remember which one we happened to choose.-->
+<p>在未来，让我们在_-p_的两边使用相同的端口。这样我们就不必记住我们碰巧选择了哪一个。</p>
+<h4>Fixing potential issues we created by copy-pasting</h4>
+<!-- There are a few steps we need to change to create a more comprehensive Dockerfile. It may even be that the above example doesn't work in all cases because we skipped an important step.-->
+<p>为了创建一个更全面的Docker文件，我们需要改变几个步骤。甚至可能因为我们跳过了一个重要的步骤，上面的例子并不是在所有情况下都有效。</p>
+<!-- When we ran npm install on our machine, in some cases **node package manager** may install operating system specific dependencies during the install step. We may accidentally move non-functional parts to the image with the COPY instruction. This can easily happen if we copy the <i>node_modules</i> directory into the image.-->
+<p>当我们在机器上运行npm安装时，在某些情况下，<strong>节点包管理器</strong>可能会在安装步骤中安装操作系统的特定依赖。我们可能会不小心用COPY指令将非功能性的部分转移到镜像中。如果我们把<i>node_modules</i>目录复制到镜像中，这很容易发生。</p>
+<!-- This is a critical thing to keep in mind when we build our images. It's best to do most things, such as to run _npm install_ during the build process <i>inside the container</i> rather than doing those prior to building. The easy rule of thumb is to only copy files that you would push to GitHub. Build artefacts or dependencies should not be copied since those can be installed during the build process.-->
+<p>当我们建立镜像时，这是一个需要记住的关键问题。最好是在构建过程中做大多数事情，比如在容器内运行_npm install_，而不是在构建前做这些事情。简单的经验法则是，只复制你要推送到GitHub的文件。构建工件或依赖关系不应该被复制，因为它们可以在构建过程中被安装。</p>
+<!-- We can use <i>.dockerignore</i> to solve the problem. The file .dockerignore is very similar to .gitignore, you can use that to prevent unwanted files from being copied to your image. The file should be placed next to the Dockerfile. Here is a possible content of a <i>.dockerignore</i>-->
+<p>我们可以使用<i>.dockerignore</i>来解决这个问题。.dockerignore这个文件与.gitignore非常相似，你可以用它来防止不需要的文件被复制到你的镜像中。该文件应该放在Dockerfile的旁边。下面是一个可能的<i>.dockerignore</i>的内容</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>.dockerignore
+.gitignore
+node_modules
+Dockerfile
+</code></pre></div>
+
+<!-- However, in our case the .dockerignore isn't the only thing required. We will need to install the dependencies during the build step. The _Dockerfile_ changes to:-->
+<p>然而，在我们的案例中，.dockerignore并不是唯一需要的东西。我们将需要在构建步骤中安装依赖项。_Dockerfile_改变为。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">FROM</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node:16</span>
+
+<span style="color: #66D9EF">WORKDIR</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">/usr/src/app</span>
+
+<span style="color: #66D9EF">COPY</span><span style="color: #F8F8F2"> </span>.<span style="color: #F8F8F2"> </span>.
+
+<span style="color: #66D9EF">RUN</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>install<span style="color: #F8F8F2"> </span>#<span style="color: #F8F8F2"> </span>highlight-line
+
+<span style="color: #66D9EF">CMD</span><span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start
+</code></pre></div>
+
+<!-- The npm install can be risky. Instead of using npm install, npm offers a much better tool for installing dependencies, the _ci_ command.-->
+<p>npm的安装可能会有风险。与其使用npm install，npm提供了一个更好的安装依赖项的工具，即_ci_命令。</p>
+<!-- Differences between ci and install:-->
+<p>ci和install之间的区别。</p>
+<!-- - install may update the package-lock.json-->
+<ul>
+<li>install可能会更新package-lock.json</li>
+</ul>
+<!-- - install may install a different version of a dependency if you have ^ or ~ in the version of the dependency.-->
+<ul>
+<li>install 可能会安装不同版本的依赖关系，如果你在依赖关系的版本里有 ^ 或 ~。</li>
+</ul>
+<!-- - ci will delete the node_modules folder before installing anything-->
+<ul>
+<li>在安装任何东西之前，ci会删除node_modules文件夹</li>
+</ul>
+<!-- - ci will follow the package-lock.json and does not alter any files-->
+<ul>
+<li>ci将遵循package-lock.json，不改变任何文件。</li>
+</ul>
+<!-- So in short: _ci_ creates reliable builds, while _install_ is the one to use when you want to install new dependencies.-->
+<p>所以简而言之：_ci_创建可靠的构建，而_install_是在你想安装新的依赖时使用的。</p>
+<!-- As we are not installing anything new during the build step, and we don't want the versions to suddenly change, we will use _ci_:-->
+<p>由于我们在构建步骤中没有安装任何新的东西，而且我们不希望版本突然改变，我们将使用_ci_。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">FROM</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node:16</span>
+
+<span style="color: #66D9EF">WORKDIR</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">/usr/src/app</span>
+
+<span style="color: #66D9EF">COPY</span><span style="color: #F8F8F2"> </span>.<span style="color: #F8F8F2"> </span>.
+
+<span style="color: #66D9EF">RUN</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>ci<span style="color: #F8F8F2"> </span>#<span style="color: #F8F8F2"> </span>highlight-line
+
+<span style="color: #66D9EF">CMD</span><span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start
+</code></pre></div>
+
+<!-- Even better, we can use _npm ci --only=production_ to not waste time installing development dependencies.-->
+<p>甚至更好的是，我们可以使用_npm ci --only=production_来不浪费时间安装开发依赖。</p>
+<!-- > As you noticed in the comparison list; npm ci will delete the node_modules folder so creating the .dockerignore did not matter. However, .dockerignore is an amazing tool when you want to optimize your build process. We will talk briefly about these optimizations later.-->
+<blockquote>
+<p>正如你在对比列表中注意到的；npm ci会删除node_modules文件夹，所以创建.dockerignore并不重要。然而，当你想优化你的构建过程时，.dockerignore是一个了不起的工具。我们将在后面简要地谈一谈这些优化。</p>
+</blockquote>
+<!-- Now the Dockerfile should work again, try it with _docker build -t express-server . && docker run -p 3000:3000 express-server_-->
+<p>现在Docker文件应该又能工作了，用_docker build -t express-server . &amp;&amp; docker run -p 3000:3000 express-server_试试。</p>
+<!-- > Note that we are here chaining two bash commands with &&. We could get (nearly) the same effect by running both commands separately. When chaining commands with && if one command fails, the next ones in the chain will not be executed.-->
+<blockquote>
+<p>注意，我们在这里用&amp;&amp;连接了两个bash命令。我们可以通过单独运行这两个命令来获得（几乎）同样的效果。当用&amp;&amp;串联命令时，如果一个命令失败了，串联中的下一个命令将不会被执行。</p>
+</blockquote>
+<!-- We set an environment variable _DEBUG=playground:*_ during CMD for the npm start. However, with Dockerfiles we could also use the instruction ENV to set environment variables. Let's do that:-->
+<p>我们在CMD中为npm启动设置了一个环境变量_DEBUG=playground:*_。然而，通过Dockerfiles，我们也可以使用指令ENV来设置环境变量。让我们这么做吧。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">FROM</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node:16</span>
+
+<span style="color: #66D9EF">WORKDIR</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">/usr/src/app</span>
+
+<span style="color: #66D9EF">COPY</span><span style="color: #F8F8F2"> </span>.<span style="color: #F8F8F2"> </span>.
+
+<span style="color: #66D9EF">RUN</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>ci
+
+<span style="color: #66D9EF">ENV</span><span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*<span style="color: #F8F8F2"> </span>#<span style="color: #F8F8F2"> </span>highlight-line
+
+<span style="color: #66D9EF">CMD</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start<span style="color: #F8F8F2"> </span>#<span style="color: #F8F8F2"> </span>highlight-line
+</code></pre></div>
+
+<!-- > <i>If you're wondering what the DEBUG environment variable does, read [here](http://expressjs.com/en/guide/debugging.html#debugging-express).</i>-->
+<blockquote>
+<p><i>如果你想知道DEBUG环境变量的作用，请阅读<a href="http://expressjs.com/en/guide/debugging.html#debugging-express">这里</a>。</i>。</p>
+</blockquote>
+<h4>Dockerfile best practices</h4>
+<!-- There are 2 rules of thumb you should follow when creating images:-->
+<p>在创建图像时，你应该遵循两条经验法则。</p>
+<!-- - Try to create as **secure** of an image as possible-->
+<ul>
+<li>尽量创建一个<strong>安全的</strong>的图像</li>
+</ul>
+<!-- - Try to create as **small** of an image as possible-->
+<ul>
+<li>尽量创造一个**小的图像</li>
+</ul>
+<!-- Smaller images are more secure by having less attack surface area, and smaller images also move faster in deployment pipelines.-->
+<p>较小的映像由于具有较少的攻击表面积而更加安全，较小的映像在部署管道中也移动得更快。</p>
+<!-- Snyk has a great list of 10 best practices for node/express containerization. Read those [here](https://snyk.io/blog/10-best-practices-to-containerize-nodejs-web-applications-with-docker/).-->
+<p>Snyk有一个伟大的清单，列出了节点/表达式容器化的10个最佳实践。阅读这些<a href="https://snyk.io/blog/10-best-practices-to-containerize-nodejs-web-applications-with-docker/">这里</a>。</p>
+<!-- One big carelessness we have left is running the application as root instead of using a user with lower privileges. Let's do a final fix to the Dockerfile:-->
+<p>我们还有一个很大的疏忽，就是以root身份运行应用，而不是使用一个权限较低的用户。让我们对Docker文件做一个最后的修正。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">FROM</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node:16</span>
+
+<span style="color: #66D9EF">WORKDIR</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">/usr/src/app</span>
+
+<span style="color: #66D9EF">COPY</span><span style="color: #F8F8F2"> </span>--chown<span style="color: #FF4689">=</span>node:node<span style="color: #F8F8F2"> </span>.<span style="color: #F8F8F2"> </span>.<span style="color: #F8F8F2">  </span>#<span style="color: #F8F8F2"> </span>highlight-line
+
+<span style="color: #66D9EF">RUN</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>ci
+
+<span style="color: #66D9EF">ENV</span><span style="color: #F8F8F2"> DEBUG</span><span style="color: #FF4689">=</span>playground:*
+
+<span style="color: #66D9EF">USER</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">node # highlight-line</span>
+
+<span style="color: #66D9EF">CMD</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>start
+</code></pre></div>
+
+</div>
+<div class="tasks">
+<h3 id="sec-3">Exercise 12.5.</h3>
+<h4>Exercise 12.5: Containerizing a Node application</h4>
+<!-- The repository you cloned or copied in the first exercise contains a todo-app. See the todo-app/todo-backend and read through the README. We will not touch the todo-frontend yet.-->
+<p>你在第一个练习中克隆或复制的仓库包含一个todo-app。请看todo-app/todo-backend并通读README。我们暂时不碰todo-frontend。</p>
+<!-- Step 1. Containerize the todo-backend by creating a <i>todo-app/todo-backend/Dockerfile</i> and building an image.-->
+<p>步骤1.通过创建一个<i>todo-app/todo-backend/Dockerfile</i>和构建一个镜像，将todo-backend容器化。</p>
+<!-- Step 2. Run the todo-backend image with the correct ports open. Make sure the visit counter increases when used through a browser in http://localhost:3000/ (or some other port if you configure so)-->
+<p>第2步。在打开正确的端口的情况下运行todo-backend镜像。确保通过浏览器使用 http://localhost:3000/ （或其他端口，如果你这样配置）时，访问计数器会增加。</p>
+<!-- Tip: Run the application outside of a container to examine it before starting to containerize.-->
+<p>提示。在开始容器化之前，在容器外运行应用来检查它。</p>
+</div>
+<div class="content">
+<h3 id="sec-4">Using docker-compose</h3>
+<!-- In the previous section, we created express-server and knew that it runs in port 3000, and ran it with _docker build -t express-server . && docker run -p 3000:3000 express-server_. This already looks like something you would need to put into a script to remember. Fortunately, Docker offers us a better solution.-->
+<p>在上一节中，我们创建了express-server，并知道它在3000端口运行，然后用_docker build -t express-server . &amp;&amp; docker run -p 3000:3000 express-server_运行它。这看起来已经是你需要放到脚本中去记忆的东西了。幸运的是，Docker为我们提供了一个更好的解决方案。</p>
+<!-- [Docker-compose](https://docs.docker.com/compose/) is another fantastic tool, which can help us manage containers. Let's start using docker-compose as we learn more about containers as it will help us save some time with the configuration.-->
+<p><a href="https://docs.docker.com/compose/">Docker-compose</a>是另一个神奇的工具，它可以帮助我们管理容器。让我们开始使用docker-compose，因为它可以帮助我们节省一些配置的时间，当我们学习更多关于容器的知识。</p>
+<!-- Install the docker-compose tool from this link: [https://docs.docker.com/compose/install/](https://docs.docker.com/compose/install/).-->
+<p>从这个链接安装docker-compose工具： <a href="https://docs.docker.com/compose/install/">https://docs.docker.com/compose/install/</a></p>
+<!-- Let's check that it works:-->
+<p>让我们检查一下它是否工作。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker-compose<span style="color: #F8F8F2"> </span>-v
+docker-compose<span style="color: #F8F8F2"> </span>version<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span>.29.2,<span style="color: #F8F8F2"> </span>build<span style="color: #F8F8F2"> </span>5becea4c
+</code></pre></div>
+
+<!-- And now we can turn the previous spell into a yaml file. The best part about yaml files is that you can save these to a Git repository!-->
+<p>现在我们可以把之前的咒语变成一个yaml文件。关于yaml文件最好的部分是你可以把这些文件保存到Git仓库里</p>
+<!-- Create file **docker-compose.yml** and place it at the root of the project, next to the Dockerfile. The file content is-->
+<p>创建文件<strong>docker-compose.yml</strong>，并把它放在项目的根目录下，紧挨着Docker文件。该文件内容为</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">version</span><span style="color: #F8F8F2">: </span><span style="color: #E6DB74">'3.8'</span><span style="color: #F8F8F2">            </span><span style="color: #959077"># Version 3.8 is quite new and should work</span>
+
+<span style="color: #FF4689">services</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">app</span><span style="color: #F8F8F2">:                    </span><span style="color: #959077"># The name of the service, can be anything</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">image</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">express-server</span><span style="color: #F8F8F2"> </span><span style="color: #959077"># Declares which image to use</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">build</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">.</span><span style="color: #F8F8F2">              </span><span style="color: #959077"># Declares where to build if image is not found</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">ports</span><span style="color: #F8F8F2">:                </span><span style="color: #959077"># Declares the ports to publish</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">3000:3000</span>
+</code></pre></div>
+
+<!-- The meaning of each line is explained as a comment. If you want to see the full specification see the [documentation](https://docs.docker.com/compose/compose-file/compose-file-v3/).-->
+<p>每一行的含义都以注释的形式解释。如果你想看到完整的规范，请看<a href="https://docs.docker.com/compose/compose-file/compose-file-v3/">文档</a>。</p>
+<!-- Now we can use _docker-compose up_ to build and run the application. If we want to rebuild the images we can use _docker-compose up --build_.-->
+<p>现在我们可以使用_docker-compose up_来构建和运行该应用。如果我们想重建图像，可以使用_docker-compose up --build_。</p>
+<!-- You can also run the application in the background with _docker-compose up -d_ (_-d_ for detached) and close it with _docker-compose down_.-->
+<p>你也可以用_docker-compose up -d_ (_-d_表示分离)在后端运行应用，用_docker-compose down_关闭它。</p>
+<!-- Creating files like this that <i>declare</i> what you want instead of script files that you need to run in a specific order / a specific number of times is often a great practice.-->
+<p>创建像这样的文件，<i>声明</i>你想要的东西，而不是你需要按特定顺序/特定次数运行的脚本文件，通常是一个很好的做法。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-5">Exercise 12.6.</h3>
+<h4>Exercise 12.6: docker-compose</h4>
+<!-- Create a <i>todo-app/todo-backend/docker-compose.yml</i> file that works with the node application from the previous exercise.-->
+<p>创建一个<i>todo-app/todo-backend/docker-compose.yml</i>文件，与之前练习中的节点应用一起使用。</p>
+<!-- The visit counter is the only feature that is required to be working.-->
+<p>访问计数器是唯一需要工作的功能。</p>
+</div>
+<div class="content">
+<h3 id="sec-6">Utilizing containers in development</h3>
+<!-- When you are developing software, containerization can be used in various ways to improve your quality of life. One of the most useful cases is by bypassing the need to install and configure tools twice.-->
+<p>当你在开发软件时，容器化可以用各种方式来提高你的生活质量。最有用的情况之一是绕过了两次安装和配置工具的需要。</p>
+<!-- It may not be the best option to move your entire development environment into a container, but if that's what you want it's possible. We will revisit this idea at the end of this part. But until then, <i>run the node application itself outside of containers</i>.-->
+<p>把你的整个开发环境移到一个容器中可能不是最好的选择，但如果这是你想要的，那是可行的。我们将在本章节的最后重新审视这个想法。但在那之前，<i>在容器之外运行node应用本身</i>。</p>
+<!-- The application we met in the previous exercises uses MongoDB. Let's explore [Docker Hub](https://hub.docker.com/) to find a MongoDB image. Docker Hub is the default place where Docker pulls the images from, you can use other registries as well, but since we are already knee-deep in Docker it's a good choice. With a quick search, we can find [https://hub.docker.com/_/mongo](https://hub.docker.com/_/mongo)-->
+<p>我们在前面的练习中遇到的应用使用MongoDB。让我们探索<a href="https://hub.docker.com/">Docker Hub</a>，找到一个MongoDB镜像。Docker Hub是Docker拉取镜像的默认地点，你也可以使用其他注册表，但由于我们已经深入到Docker中，所以这是一个不错的选择。通过快速搜索，我们可以找到<a href="https://hub.docker.com/_/mongo">https://hub.docker.com/_/mongo</a></p>
+<!-- Create a new yaml called <i>todo-app/todo-backend/docker-compose.dev.yml</i> that looks like following:-->
+<p>创建一个新的yaml，名为<i>todo-app/todo-backend/docker-compose.dev.yml</i>，看起来如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">version</span><span style="color: #F8F8F2">: </span><span style="color: #E6DB74">'3.8'</span>
+
+<span style="color: #FF4689">services</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">mongo</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">image</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">mongo</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">ports</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">3456:27017</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">environment</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_USERNAME</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">root</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_PASSWORD</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">example</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_DATABASE</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">the_database</span>
+</code></pre></div>
+
+<!-- The meaning of the two first environment variables defined above is explained on the Docker Hub page:-->
+<p>上面定义的两个第一环境变量的含义在Docker Hub页面上有解释。</p>
+<!-- > <i>These variables, used in conjunction, create a new user and set that user's password. This user is created in the admin authentication database and given the role of root, which is a "superuser" role.</i>-->
+<blockquote>
+<p><i>这些变量结合起来使用，可以创建一个新的用户并设置该用户的密码。这个用户在管理员认证数据库中被创建，并被赋予root的角色，这是一个 "超级用户 "角色。</i></p>
+</blockquote>
+<!-- The last environment variable *MONGO\_INITDB\_DATABASE* will tell MongoDB to create a database with that name.-->
+<p>最后一个环境变量<em>MONGO_INITDB_DATABASE</em>将告诉MongoDB以该名称创建一个数据库。</p>
+<!-- You can use _-f_ flag to specify a <i>file</i> to run the Docker Compose command with e.g. _docker-compose -f docker-compose.dev.yml up_. Now that we may have multiple it's useful.-->
+<p>你可以使用_-f_标志来指定一个<i>文件</i>来运行Docker Compose命令，例如：<em>docker-compose -f docker-compose.dev.yml up</em>。现在，我们可能有多个它's useful.</p>
+<!-- Now start the MongoDB with _docker-compose -f docker-compose.dev.yml up -d_. With _-d_ it will run it in the background. You can view the output logs with _docker-compose -f docker-compose.dev.yml logs -f_. There the _-f_ will ensure we <i>follow</i> the logs.-->
+<p>现在用_docker-compose -f docker-compose.dev.yml up -d_启动MongoDB。使用_-d_，它将在后端运行。你可以用_docker-compose -f docker-compose.dev.yml logs -f_查看输出日志。那里的_-f_将确保我们<i>遵循</i>日志。</p>
+<!-- As said previously, currently we <strong>do not</strong> want to run the Node application inside a container. Developing while the application itself is inside a container is a challenge. We will explore that option in the later in this part.-->
+<p>如前所述，目前我们<strong>不</strong>想在容器中运行Node应用。在应用本身处于容器内时进行开发是一个挑战。我们将在本章节的后面探讨这个选项。</p>
+<!-- Run the good old _npm install_ first on your machine to set up the Node application. Then start the application with the relevant environment variable. You can modify the code to set them as the defaults or use the .env file. There is no hurt in putting these keys to GitHub since they are only used in your local development environment. I'll just throw them in with the _npm run dev_ to help you copy-paste.-->
+<p>首先在你的机器上运行老式的_npm install_来设置Node应用。然后用相关的环境变量启动应用。你可以修改代码，将它们设置为默认值，或者使用.env文件。把这些密钥放到GitHub上没有什么坏处，因为它们只在你的本地开发环境中使用。我只是把它们和_npm run dev_放在一起，帮助你复制粘贴。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> MONGO_URL</span><span style="color: #FF4689">=</span>mongodb://localhost:3456/the_database<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>dev
+</code></pre></div>
+
+<!-- This won't be enough; we need to create a user to be authorized inside of the container. The url http://localhost:3000/todos leads to an authentication error:-->
+<p>这还不够，我们需要创建一个用户，以便在容器中获得授权。url http://localhost:3000/todos 导致了一个认证错误。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">[</span>nodemon<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span>.0.12
+<span style="color: #FF4689">[</span>nodemon<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span>to<span style="color: #F8F8F2"> </span>restart<span style="color: #F8F8F2"> </span>at<span style="color: #F8F8F2"> </span>any<span style="color: #F8F8F2"> </span>time,<span style="color: #F8F8F2"> </span>enter<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">`</span>rs<span style="color: #E6DB74">`</span>
+<span style="color: #FF4689">[</span>nodemon<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span>watching<span style="color: #F8F8F2"> </span>path<span style="color: #FF4689">(</span>s<span style="color: #FF4689">)</span>:<span style="color: #F8F8F2"> </span>*.*
+<span style="color: #FF4689">[</span>nodemon<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span>watching<span style="color: #F8F8F2"> </span>extensions:<span style="color: #F8F8F2"> </span>js,mjs,json
+<span style="color: #FF4689">[</span>nodemon<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span>starting<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">`</span>node<span style="color: #F8F8F2"> </span>./bin/www<span style="color: #E6DB74">`</span>
+<span style="color: #FF4689">(</span>node:37616<span style="color: #FF4689">)</span><span style="color: #F8F8F2"> </span>UnhandledPromiseRejectionWarning:<span style="color: #F8F8F2"> </span>MongoError:<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">command</span><span style="color: #F8F8F2"> </span>find<span style="color: #F8F8F2"> </span>requires<span style="color: #F8F8F2"> </span>authentication
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>MessageStream.messageHandler<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>/Users/mluukkai/opetus/docker-fs/container-app/express-app/node_modules/mongodb/lib/cmap/connection.js:272:20<span style="color: #FF4689">)</span>
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>MessageStream.emit<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>events.js:314:20<span style="color: #FF4689">)</span>
+</code></pre></div>
+
+<h3 id="sec-7">Bind mount and initializing the database</h3>
+<!-- In the [MongoDB Docker Hub](https://hub.docker.com/_/mongo) page under "Initializing a fresh instance" is the info on how to execute JavaScript to initialize the database and an user for it.-->
+<p>在<a href="https://hub.docker.com/_/mongo">MongoDB Docker Hub</a>页面的 "初始化一个新实例 "下有关于如何执行JavaScript来初始化数据库和用户的信息。</p>
+<!-- The exercise project has file <i>todo-app/todo-backend/mongo/mongo-init.js</i> with contents:-->
+<p>练习项目有文件<i>todo-app/todo-backend/mongo/mongo-init.js</i>，内容如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">db</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createUser</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">user</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'the_username'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">pwd</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'the_password'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">roles</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">    {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">role</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'dbOwner'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">db</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'the_database'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">  ],</span>
+<span style="color: #F8F8F2">});</span>
+
+<span style="color: #A6E22E">db</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createCollection</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'todos'</span><span style="color: #F8F8F2">);</span>
+
+<span style="color: #A6E22E">db</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">todos</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">insert</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">text</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Write code'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">done</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2"> });</span>
+<span style="color: #A6E22E">db</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">todos</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">insert</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">text</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Learn about containers'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">done</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2"> });</span>
+</code></pre></div>
+
+<!-- This file will initialize the database with a user and a few todos. Next, we need to get it inside the container at startup.-->
+<p>这个文件将用一个用户和一些todos来初始化数据库。接下来，我们需要在启动时将其放入容器中。</p>
+<!-- We could create a new image FROM mongo and COPY the file inside, or we can use a <i>bind mount</i> to mount the file <i>mongo-init.js</i> to the container. Let's do the latter.-->
+<p>我们可以创建一个新的镜像 FROM mongo 并将文件复制到里面，或者我们可以使用 <i>bind mount</i> 将文件 <i>mongo-init.js</i> 挂到容器中。让我们来做后者。</p>
+<!-- Bind mount is the act of binding a file on the host machine to a file in the container. We could add a _-v_ flag with _container run_. The syntax is _-v FILE-IN-HOST:FILE-IN-CONTAINER_. Since we already learned about Docker Compose let's skip that. The bind mount is declared under key <i>volumes</i> in docker-compose. Otherwise the format is the same, first host and then container:-->
+<p>绑定挂载是将主机上的文件与容器中的文件绑定的行为。我们可以用_container run_添加一个_-v_标志。语法是_-v FILE-IN-HOST:FILE-IN-CONTAINER_。因为我们已经学习了Docker Compose，所以我们跳过这个。绑定挂载在docker-compose的<i>volumes</i>键下声明。否则格式是一样的，先是主机，然后是容器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #FF4689">mongo</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">image</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">mongo</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">ports</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">     - </span><span style="color: #AE81FF">3456:27017</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">environment</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_USERNAME</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">root</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_PASSWORD</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">example</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_DATABASE</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">the_database</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077"># highlight-start</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">volumes</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077"># highlight-end</span>
+</code></pre></div>
+
+<!-- The result of the bind mount is that the file <i>mongo-init.js</i> in the mongo folder of the host machine is the same as the <i>mongo-init.js</i> file in the container's /docker-entrypoint-initdb.d directory. Changes to either file will be available in the other. We don't need to make any changes during runtime. But this will be the key to software development in containers.-->
+<p>绑定挂载的结果是，主机的mongo文件夹中的文件<i>mongo-init.js</i>与容器的/docker-entrypoint-initdb.d目录中的<i>mongo-init.js</i>文件相同。对任何一个文件的修改都可以在另一个文件中使用。我们不需要在运行时做任何改变。但这将是在容器中开发软件的关键。</p>
+<!-- Run _docker-compose -f docker-compose.dev.yml down --volumes_ to ensure that nothing is left and start from a clean slate with _docker-compose -f docker-compose.dev.yml up_ to initialize the database.-->
+<p>运行_docker-compose -f docker-compose.dev.yml down --volumes_以确保没有任何东西被留下，然后用_docker-compose -f docker-compose.dev.yml up_从一张白纸开始初始化数据库。</p>
+<!-- If you see an error like this:-->
+<p>如果你看到类似这样的错误。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>mongo_database<span style="color: #F8F8F2"> | </span>failed<span style="color: #F8F8F2"> </span>to<span style="color: #F8F8F2"> </span>load:<span style="color: #F8F8F2"> </span>/docker-entrypoint-initdb.d/mongo-init.js
+mongo_database<span style="color: #F8F8F2"> | </span>exiting<span style="color: #F8F8F2"> </span>with<span style="color: #F8F8F2"> </span>code<span style="color: #F8F8F2"> </span>-3
+</code></pre></div>
+
+<!-- you may have a read permission problem. They are not uncommon when dealing with volumes. In the above case, you can use _chmod a+r mongo-init.js_, which will give everyone read access to that file. Be careful when using _chmod_ since granting more privileges can be a security issue. Use the _chmod_ only on the mongo-init.js on your computer.-->
+<p>你可能有一个读取权限问题。在处理卷的时候，它们并不罕见。在上述情况下，你可以使用_chmod a+r mongo-init.js_，这将给予每个人对该文件的读取权限。使用_chmod_时要小心，因为授予更多的权限可能是一个安全问题。只在你电脑上的mongo-init.js上使用_chmod_。</p>
+<!-- Now starting the express application with the correct environment variable should work:-->
+<p>现在用正确的环境变量启动Express应用应该可以了。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> MONGO_URL</span><span style="color: #FF4689">=</span>mongodb://the_username:the_password@localhost:3456/the_database<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>dev
+</code></pre></div>
+
+<!-- Let's check that the http://localhost:3000/todos returns all todos. It should return the two todos we initialized. We can and should use Postman to test the basic functionality of the app, such as adding or deleting a todo.-->
+<p>让我们检查一下 http://localhost:3000/todos 是否返回所有的 todos。它应该返回我们初始化的两个todos。我们可以而且应该使用Postman来测试应用的基本功能，比如添加或删除一个todos。</p>
+<h3 id="sec-8">Persisting data with volumes</h3>
+<!-- By default, containers are not going to preserve our data. When you close the mongo container you may or may not be able to get the data back.-->
+<p>默认情况下，容器是不会保存我们的数据的。当你关闭mongo容器时，你可能会也可能不会拿回数据。</p>
+<!-- This is a rare case in which it does preserve the data as the developers who made the Docker image for Mongo have defined a volume to be used: [https://github.com/docker-library/mongo/blob/cb8a419053858e510fc68ed2d69415b3e50011cb/4.4/Dockerfile#L113](https://github.com/docker-library/mongo/blob/cb8a419053858e510fc68ed2d69415b3e50011cb/4.4/Dockerfile#L113) This line will instruct Docker to preserve the data in those directories.-->
+<p>这是一种罕见的情况，它确实保留了数据，因为为Mongo制作Docker镜像的开发者已经定义了一个要使用的卷。<a href="https://github.com/docker-library/mongo/blob/cb8a419053858e510fc68ed2d69415b3e50011cb/4.4/Dockerfile#L113">https://github.com/docker-library/mongo/blob/cb8a419053858e510fc68ed2d69415b3e50011cb/4.4/Dockerfile#L113</a> 这一行将指示Docker保留这些目录中的数据。</p>
+<!-- There are two distinct methods to store the data:-->
+<p>有两种不同的方法来存储数据。</p>
+<!-- - Declaring a location in your filesystem (called bind mount)-->
+<ul>
+<li>在你的文件系统中声明一个位置(称为绑定挂载)</li>
+</ul>
+<!-- - Letting Docker decide where to store the data (volume)-->
+<ul>
+<li>让Docker决定存储数据的位置（卷）。</li>
+</ul>
+<!-- I prefer the first choice in most cases whenever you <i>really</i> need to avoid deleting the data. Let's see both in action with docker-compose:-->
+<p>在大多数情况下，只要你<i>真的</i>需要避免删除数据，我更喜欢第一种选择。让我们看看这两种方式在docker-compose中的应用。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">services</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">mongo</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">image</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">mongo</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">ports</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">     - </span><span style="color: #AE81FF">3456:27017</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">environment</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_USERNAME</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">root</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_PASSWORD</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">example</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_DATABASE</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">the_database</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">volumes</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">./mongo_data:/data/db</span><span style="color: #F8F8F2"> </span><span style="color: #959077"># highlight-line</span>
+</code></pre></div>
+
+<!-- The above will create a directory called *mongo\_data* to your local filesystem and map it into the container as _/data/db_. This means the data in _/data/db_ is stored outside of the container but still accessible by the container! Just remember to add the directory to .gitignore.-->
+<p>上面将在你的本地文件系统中创建一个名为<em>mongo/data</em>的目录，并将其映射到容器中的_/data/db_。这意味着_/data/db_中的数据被存储在容器之外，但仍然可以被容器访问!只要记得把这个目录添加到.gitignore中。</p>
+<!-- A similar outcome can be achieved with a named volume:-->
+<p>类似的结果也可以用一个命名的卷来实现。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">services</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">mongo</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">image</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">mongo</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">ports</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">     - </span><span style="color: #AE81FF">3456:27017</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">environment</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_USERNAME</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">root</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_ROOT_PASSWORD</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">example</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">MONGO_INITDB_DATABASE</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">the_database</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">volumes</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">mongo_data:/data/db</span><span style="color: #F8F8F2"> </span><span style="color: #959077"># highlight-line</span>
+
+<span style="color: #FF4689">volumes</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">mongo_data</span><span style="color: #F8F8F2">:</span>
+</code></pre></div>
+
+<!-- Now the volume is created but managed by Docker. After starting the application (_docker-compose -f docker-compose.dev.yml up_) you can list the volumes with _docker volume ls_, inspect one of them with _docker volume inspect_ and even delete them with _docker volume rm_. It's still stored in your local filesystem but figuring out <i>where</i> may not be as trivial as with the previous option.-->
+<p>现在卷被创建，但由Docker管理。启动应用（<em>docker-compose -f docker-compose.dev.yml up</em>）后，你可以用_docker volume ls_列出卷，用_docker volume inspect_检查其中一个，甚至用_docker volume rm_删除它们。它仍然存储在你的本地文件系统中，但找出<i>哪里</i>可能不像以前的选项那样简单。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-9">Exercise 12.7.</h3>
+<h4>Exercise 12.7: Little bit of MongoDB coding</h4>
+<!-- Note that this exercise assumes that you have done all the configurations made in material after the exercise 12.5. You should still run the todo-app backend <i>outside a container</i> just the MongoDB is containerized for now.-->
+<p>注意，这个练习假定你已经完成了练习12.5之后的材料中的所有配置。你仍然应该在容器外运行todo-app后端<i></i>，只是MongoDB暂时被容器化。</p>
+<!-- The todo application has no proper implementation of routes for getting one todo (GET <i>/todos/:id</i>) and updating one todo (PUT <i>/todos/:id</i>). Fix the code.-->
+<p>todo应用没有正确实现获取一个todo（GET <i>/todos/:id</i>）和更新一个todo（PUT <i>/todos/:id</i>）的路由。修复代码。</p>
+</div>
+<div class="content">
+<h3 id="sec-10">Debugging issues in containers</h3>
+<!-- > <i>When coding, you most likely end up in a situation where everything is broken.</i>-->
+<blockquote>
+<p><i>在编码时，你很可能最终陷入一切都被破坏的境地。</i>。</p>
+</blockquote>
+<!-- > \- Matti Luukkainen-->
+<blockquote>
+<p>`- Matti Luukkainen</p>
+</blockquote>
+<!-- When developing with containers, we need to learn new tools for debugging since we can not just "console.log" everything. When code has a bug, you may often be in a state where at least something works so you can work forward from that. Configuration most often is in either of the two states: 1. working or 2. broken. We will go over a few tools that can help when your application is in the latter state.-->
+<p>当使用容器开发时，我们需要学习新的调试工具，因为我们不能只是 "console.log "一切。当代码出现错误时，你可能经常处于这样一种状态，即至少有一些东西在工作，所以你可以从那里继续工作。配置最经常处于两种状态中的一种。1.工作或2.损坏。我们将介绍一些工具，当你的应用处于后一种状态时，它们可以提供帮助。</p>
+<!-- When developing software, you can safely progress step by step, all the time verifying that what you have coded behaves as expected. Often, this is not the case when doing configurations. The configuration you may be writing can be broken until the moment it is finished. So when you write a long docker-compose.yml or Dockerfile and it does not work, you need to take a moment and think about the various ways you could confirm something is working.-->
+<p>当开发软件时，你可以安全地一步一步地前进，一直验证你所编码的东西是否符合预期。通常，在做配置的时候，情况并非如此。你所写的配置可能在完成的那一刻才会被破坏。因此，当你写了很长的docker-compose.yml或Dockerfile而它没有工作时，你需要花点时间，想一想你可以通过各种方式来确认某些东西是否工作。</p>
+<p><i>Question Everything</i> is still applicable here. As said in <a href="https://fullstackopen.com/en/part3/saving_data_to_mongo_db">part 3</a>: The key is to be systematic. Since the problem can exist anywhere, <i>you must question everything</i>, and eliminate all possible sources of error one by one.</p>
+<!-- For myself, the most valuable method of debugging is stopping and thinking about what I'm trying to accomplish instead of just bashing my head at the problem. Often there is a simple, alternate, solution or quick google search that will get me moving forward.-->
+<p>对我自己来说，最有价值的调试方法是停下来思考我想完成的任务，而不是一味地对着问题乱撞。通常情况下，有一个简单的、备用的解决方案或快速的谷歌搜索会让我继续前进。</p>
+<h4>exec</h4>
+<!-- The Docker command [exec](https://docs.docker.com/engine/reference/commandline/exec/) is a heavy hitter. It can be used to jump right into a container when it's running.-->
+<p>Docker命令<a href="https://docs.docker.com/engine/reference/commandline/exec/">exec</a>是一个重击手。它可以用来在一个容器运行时直接跳入它。</p>
+<!-- Let's start a web server in the background and do a little bit of debugging to get it running and displaying the message "Hello, exec!" in our browser. Let's choose [Nginx](https://www.nginx.com/) which is, among other things, a server capable of serving static HTML files. It has a default index.html that we can replace.-->
+<p>让我们在后端启动一个Web服务器，做一点调试，让它运行并在浏览器中显示 "Hello, exec!"的信息。让我们选择<a href="https://www.nginx.com/">Nginx</a>，除此之外，它是一个能够提供静态HTML文件的服务器。它有一个默认的index.html，我们可以替换它。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>-d<span style="color: #F8F8F2"> </span>nginx
+</code></pre></div>
+
+<!-- Ok, now the questions are:-->
+<p>好的，现在的问题是。</p>
+<!-- - Where should we go with our browser?-->
+<ul>
+<li>我们的浏览器应该去哪里？</li>
+</ul>
+<!-- - Is it even running?-->
+<p>-它甚至在运行吗？</p>
+<!-- We know how to answer the latter: by listing the running containers.-->
+<p>我们知道如何回答后者：通过列出运行中的容器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>ls
+CONTAINER<span style="color: #F8F8F2"> </span>ID<span style="color: #F8F8F2">   </span>IMAGE<span style="color: #F8F8F2">           </span>COMMAND<span style="color: #F8F8F2">                  </span>CREATED<span style="color: #F8F8F2">              </span>STATUS<span style="color: #F8F8F2">                      </span>PORTS<span style="color: #F8F8F2">     </span>NAMES
+3f831a57b7cc<span style="color: #F8F8F2">   </span>nginx<span style="color: #F8F8F2">           </span><span style="color: #E6DB74">"/docker-entrypoint.…"</span><span style="color: #F8F8F2">   </span>About<span style="color: #F8F8F2"> </span>a<span style="color: #F8F8F2"> </span>minute<span style="color: #F8F8F2"> </span>ago<span style="color: #F8F8F2">   </span>Up<span style="color: #F8F8F2"> </span>About<span style="color: #F8F8F2"> </span>a<span style="color: #F8F8F2"> </span>minute<span style="color: #F8F8F2">           </span><span style="color: #AE81FF">80</span>/tcp<span style="color: #F8F8F2">    </span>keen_darwin
+</code></pre></div>
+
+<!-- Yes! We got the first question answered as well. It seems to listen on port 80, as seen on the output above.-->
+<p>是的!我们也得到了第一个问题的答案。从上面的输出中可以看出，它似乎是在监听80端口。</p>
+<!-- Let's shut it down and restart with the _-p_ flag to have our browser access it.-->
+<p>让我们把它关闭，然后用_-p_标志重新启动，让我们的浏览器访问它。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>stop<span style="color: #F8F8F2"> </span>keen_darwin
+$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>rm<span style="color: #F8F8F2"> </span>keen_darwin
+
+$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>-d<span style="color: #F8F8F2"> </span>-p<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">8080</span>:80<span style="color: #F8F8F2"> </span>nginx
+</code></pre></div>
+
+<!-- Let's look at the app by going to http://localhost:8080. It seems the app is showing the wrong message! Let's hop right into the container and fix the it. Keep your browser open, we won't need to shut down the container for this fix. We will execute bash inside the container, the flags _-it_ will ensure that we can interact with the container:-->
+<p>让我们到http://localhost:8080，看看这个应用。看来这个应用显示了错误的信息!让我们直接跳到容器中去，解决这个问题。保持你的浏览器打开，我们不需要为这个修复而关闭容器。我们将在容器中执行bash，标志_-it_将确保我们能与容器进行交互。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span>container<span style="color: #F8F8F2"> </span>ls
+CONTAINER<span style="color: #F8F8F2"> </span>ID<span style="color: #F8F8F2">   </span>IMAGE<span style="color: #F8F8F2">     </span>COMMAND<span style="color: #F8F8F2">                  </span>CREATED<span style="color: #F8F8F2">              </span>STATUS<span style="color: #F8F8F2">              </span>PORTS<span style="color: #F8F8F2">                                   </span>NAMES
+7edcb36aff08<span style="color: #F8F8F2">   </span>nginx<span style="color: #F8F8F2">     </span><span style="color: #E6DB74">"/docker-entrypoint.…"</span><span style="color: #F8F8F2">   </span>About<span style="color: #F8F8F2"> </span>a<span style="color: #F8F8F2"> </span>minute<span style="color: #F8F8F2"> </span>ago<span style="color: #F8F8F2">   </span>Up<span style="color: #F8F8F2"> </span>About<span style="color: #F8F8F2"> </span>a<span style="color: #F8F8F2"> </span>minute<span style="color: #F8F8F2">   </span><span style="color: #AE81FF">0</span>.0.0.0:8080-&gt;80/tcp,<span style="color: #F8F8F2"> </span>:::8080-&gt;80/tcp<span style="color: #F8F8F2">   </span>wonderful_ramanujan
+
+$<span style="color: #F8F8F2"> </span>docker<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">exec</span><span style="color: #F8F8F2"> </span>-it<span style="color: #F8F8F2"> </span>wonderful_ramanujan<span style="color: #F8F8F2"> </span>bash
+root@7edcb36aff08:/#
+</code></pre></div>
+
+<!-- Now that we are in, we need to find the faulty file and replace it. Quick Google tells us that file itself is _/usr/share/nginx/html/index.html_.-->
+<p>现在我们已经进入了，我们需要找到有问题的文件并替换它。快速的谷歌告诉我们这个文件本身是_/usr/share/nginx/html/index.html_。</p>
+<!-- Let's move to the directory and delete the file-->
+<p>让我们移动到该目录并删除该文件</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>root@7edcb36aff08:/#<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">cd</span><span style="color: #F8F8F2"> </span>/usr/share/nginx/html/
+root@7edcb36aff08:/#<span style="color: #F8F8F2"> </span>rm<span style="color: #F8F8F2"> </span>index.html
+</code></pre></div>
+
+<!-- Now, if we go to http://localhost:8080/ we know that we deleted the correct file. The page shows 404. Let's replace it with one containing the correct contents:-->
+<p>现在，如果我们去http://localhost:8080/，我们知道我们删除了正确的文件。该页面显示404。让我们用一个包含正确内容的文件来替换它。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>root@7edcb36aff08:/#<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">echo</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"Hello, exec!"</span><span style="color: #F8F8F2"> </span>&gt;<span style="color: #F8F8F2"> </span>index.html
+</code></pre></div>
+
+<!-- Refresh the page, and our message is displayed! Now we know how exec can be used to interact with the containers. Remember that all of the changes are lost when the container is deleted. To preserve the changes, you must use _commit_ just as we did in [previous section](https://fullstackopen.com/en/part12/introduction_to_containers#other-docker-commands).-->
+<p>刷新页面，我们的信息就显示出来了!现在我们知道exec是如何被用来与容器交互的。记住，当容器被删除时，所有的变化都会丢失。为了保留这些变化，你必须使用_commit_，就像我们在<a href="https://fullstackopen.com/en/part12/introduction_to_containers#other-docker-commands">上一节</a>中所做的那样。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-11">Exercise 12.8.</h3>
+<h4>Exercise 12.8: Mongo command-line interface</h4>
+<!-- > Use _script_ to record what you do, save the file as script-answers/exercise12_8.txt-->
+<blockquote>
+<p>使用_script_来记录你所做的事情，将文件保存为script-answers/exercise12_8.txt</p>
+</blockquote>
+<!-- While the MongoDB from the previous exercise is running, access the database with mongo command-line interface (CLI). You can do that using docker exec. Then add a new todo using the CLI.-->
+<p>当前面练习中的MongoDB在运行时，用mongo命令行界面（CLI）访问该数据库。你可以用docker exec来做。然后用CLI添加一个新的todo。</p>
+<!-- The command to open CLI when inside the container is _mongo_-->
+<p>在容器内打开CLI的命令是_mongo_。</p>
+<!-- The mongo CLI will require the username and password flags to authenticate correctly. Flags _-u root -p example_ should work, the values are from the docker-compose.dev.yml.-->
+<p>mongo CLI将需要用户名和密码标志来正确认证。标志_-u root -p example_应该可以，这些值来自docker-compose.dev.yml。</p>
+<!-- * Step 1: Run MongoDB-->
+<ul>
+<li>第一步：运行MongoDB</li>
+</ul>
+<!-- * Step 2: Use docker exec to get inside the container-->
+<ul>
+<li>第2步：使用docker exec来进入容器内部</li>
+</ul>
+<!-- * Step 3: Open mongo cli-->
+<ul>
+<li>第3步：打开mongo cli。</li>
+</ul>
+<!-- When you have connected to the mongo cli you can ask it to show dbs inside:-->
+<p>当你连接到mongo cli，你可以要求它显示里面的dbs。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>&gt;<span style="color: #F8F8F2"> </span>show<span style="color: #F8F8F2"> </span>dbs
+admin<span style="color: #F8F8F2">         </span><span style="color: #AE81FF">0</span>.000GB
+config<span style="color: #F8F8F2">         </span><span style="color: #AE81FF">0</span>.000GB
+<span style="color: #A6E22E">local</span><span style="color: #F8F8F2">         </span><span style="color: #AE81FF">0</span>.000GB
+the_database<span style="color: #F8F8F2">  </span><span style="color: #AE81FF">0</span>.000GB
+</code></pre></div>
+
+<!-- To access the correct database:-->
+<p>要访问正确的数据库。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>&gt;<span style="color: #F8F8F2"> </span>use<span style="color: #F8F8F2"> </span>the_database
+</code></pre></div>
+
+<!-- And finally to find out the collections:-->
+<p>最后要找出数据库的集合。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>&gt;<span style="color: #F8F8F2"> </span>show<span style="color: #F8F8F2"> </span>collections
+todos
+</code></pre></div>
+
+<!-- We can now access the data in those collections:-->
+<p>我们现在可以访问这些集合中的数据。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>&gt;<span style="color: #F8F8F2"> </span>db.todos.find<span style="color: #FF4689">({})</span>
+<span style="color: #FF4689">{</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"_id"</span><span style="color: #F8F8F2"> </span>:<span style="color: #F8F8F2"> </span>ObjectId<span style="color: #FF4689">(</span><span style="color: #E6DB74">"611e54b688ddbb7e84d3c46b"</span><span style="color: #FF4689">)</span>,<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"text"</span><span style="color: #F8F8F2"> </span>:<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"Write code"</span>,<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"done"</span><span style="color: #F8F8F2"> </span>:<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">true</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">}</span>
+<span style="color: #FF4689">{</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"_id"</span><span style="color: #F8F8F2"> </span>:<span style="color: #F8F8F2"> </span>ObjectId<span style="color: #FF4689">(</span><span style="color: #E6DB74">"611e54b688ddbb7e84d3c46c"</span><span style="color: #FF4689">)</span>,<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"text"</span><span style="color: #F8F8F2"> </span>:<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"Learn about containers"</span>,<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"done"</span><span style="color: #F8F8F2"> </span>:<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">false</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">}</span>
+</code></pre></div>
+
+<!-- Insert one new todo with the text: "Increase the number of tools in my toolbelt" with status done as false. Consult the [documentation](https://docs.mongodb.com/v4.4/reference/method/db.collection.insertOne/#mongodb-method-db.collection.insertOne) to see how the addition is done.-->
+<p>插入一个新的todo，内容为"增加我的工具带中的工具数量"，完成状态为假。请参考<a href="https://docs.mongodb.com/v4.4/reference/method/db.collection.insertOne/#mongodb-method-db.collection.insertOne">文档</a>以了解如何增加。</p>
+<!-- Ensure that you see the new todo both in the Express app and when querying from Mongo CLI.-->
+<p>确保你在Express应用中和从Mongo CLI查询时都能看到这个新的todo。</p>
+</div>
+<div class="content">
+<h3 id="sec-12">Redis</h3>
+<!-- [Redis](https://redis.io/) is a [key-value](https://redis.com/nosql/key-value-databases/) database. In contrast to eg. MongoDB the data stored to a key-value storage has a bit less structure, there are eg. no collections or tables, it just contains junks of data that can be fetched based on the <i>key</i> that was attached to the data  (the <i>value</i>).-->
+<p><a href="https://redis.io/">Redis</a>是一个<a href="https://redis.com/nosql/key-value-databases/">key-value</a>数据库。与MongoDB相比，存储在键值存储中的数据结构较少，例如没有集合或表，它只包含一些数据，可以根据附加在数据上的<i>key</i>（<i>value</i>）来获取。</p>
+<!-- By default Redis works <i>in-memory</i>, which means that it does not store data persistently.-->
+<p>默认情况下，Redis在内存中工作，这意味着它不会持久性地存储数据。</p>
+<!-- An excellent use case for Redis is to use it as a <i>cache</i>. Caches are often used to store data that is otherwise slow to fetch and save the data until it's no longer valid. After the cache becomes invalid, you would then fetch the data again and store it in the cache.-->
+<p>Redis的一个很好的用例是把它作为一个<i>缓存</i>。缓存通常被用来存储数据，否则获取和保存数据的速度会很慢，直到它不再有效。在缓存失效后，你会再次获取数据并将其存储在缓存中。</p>
+<!-- Redis has nothing to do with containers. But since we are already able to add <i>any</i> 3rd party service to your applications, why not learn about a new one.-->
+<p>Redis与容器毫无关系。但既然我们已经能够在你的应用中添加<i>任何</i>第三方服务，为什么不了解一个新的服务呢。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-13">Exercises 12.9. - 12.11.</h3>
+<h4>Exercise 12.9: Set up Redis for the project</h4>
+<!-- The Express server has already been configured to use Redis, and it is only missing the *REDIS_URL* environment variable. The application will use that environment variable to connect to the Redis. Read through the [Docker Hub page for Redis](https://hub.docker.com/_/redis), add Redis to the <i>todo-app/todo-backend/docker-compose.dev.yml</i> by defining another service after mongo:-->
+<p>Express服务器已经被配置为使用Redis，它只缺少<em>REDIS_URL</em>环境变量。应用将使用该环境变量来连接到Redis。阅读<a href="https://hub.docker.com/_/redis">Docker Hub的Redis页面</a>，将Redis添加到<i>todo-app/todo-backend/docker-compose.dev.yml</i>中，在mongo之后定义另一个服务。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">services</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">mongo</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #AE81FF">...</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">redis</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #AE81FF">???</span>
+</code></pre></div>
+
+<!-- Since the Docker Hub page doesn't have all the info, we can use Google to aid us. The default port for Redis is found by doing so:-->
+<p>由于Docker Hub页面没有所有的信息，我们可以用谷歌来帮助我们。通过这样做可以找到Redis的默认端口。</p>
+<p><img alt="" src="../docs/images/12/redis_port_by_google.png"></p>
+<!-- We won't have any idea if the configuration works unless we try it. The application will not start using Redis by itself, that shall happen in next exercise.-->
+<p>除非我们尝试，否则我们不会知道这个配置是否有效。应用不会自己开始使用Redis，这将在下一个练习中发生。</p>
+<!-- Once Redis is configured and started, restart the backend and give it the <i>REDIS\_URL</i>, that has the form <i>redis://host:port</i>-->
+<p>一旦Redis被配置并启动，重新启动后端并给它一个<i>REDIS_URL</i>，其形式为<i>redis://host:port</i>。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>$<span style="color: #F8F8F2"> REDIS_URL</span><span style="color: #FF4689">=</span>insert-redis-url-here<span style="color: #F8F8F2"> MONGO_URL</span><span style="color: #FF4689">=</span>mongodb://localhost:3456/the_database<span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>dev
+</code></pre></div>
+
+<!-- You can now test the configuration by adding the line-->
+<p>你现在可以通过在Express服务器上添加以下一行来测试该配置</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">redis</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'../redis'</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- to the Express server eg. in file <i>routes/index.js</i>. If nothing happens, the configuration is done right. If not, the server crashes:-->
+<p>到Express服务器上，例如，在文件<i>routes/index.js</i>中。如果没有发生什么，说明配置是正确的。如果没有，服务器就会崩溃。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>events.js:291
+<span style="color: #F8F8F2">      </span>throw<span style="color: #F8F8F2"> </span>er<span style="color: #F8F8F2">; </span>//<span style="color: #F8F8F2"> </span>Unhandled<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'error'</span><span style="color: #F8F8F2"> </span>event
+<span style="color: #F8F8F2">      </span>^
+
+Error:<span style="color: #F8F8F2"> </span>Redis<span style="color: #F8F8F2"> </span>connection<span style="color: #F8F8F2"> </span>to<span style="color: #F8F8F2"> </span>localhost:637<span style="color: #F8F8F2"> </span>failed<span style="color: #F8F8F2"> </span>-<span style="color: #F8F8F2"> </span>connect<span style="color: #F8F8F2"> </span>ECONNREFUSED<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">127</span>.0.0.1:6379
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>TCPConnectWrap.afterConnect<span style="color: #F8F8F2"> </span><span style="color: #FF4689">[</span>as<span style="color: #F8F8F2"> </span>oncomplete<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>net.js:1144:16<span style="color: #FF4689">)</span>
+Emitted<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'error'</span><span style="color: #F8F8F2"> </span>event<span style="color: #F8F8F2"> </span>on<span style="color: #F8F8F2"> </span>RedisClient<span style="color: #F8F8F2"> </span>instance<span style="color: #F8F8F2"> </span>at:
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>RedisClient.on_error<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>/Users/mluukkai/opetus/docker-fs/container-app/express-app/node_modules/redis/index.js:342:14<span style="color: #FF4689">)</span>
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>Socket.&lt;anonymous&gt;<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>/Users/mluukkai/opetus/docker-fs/container-app/express-app/node_modules/redis/index.js:223:14<span style="color: #FF4689">)</span>
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>Socket.emit<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>events.js:314:20<span style="color: #FF4689">)</span>
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>emitErrorNT<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>internal/streams/destroy.js:100:8<span style="color: #FF4689">)</span>
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>emitErrorCloseNT<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>internal/streams/destroy.js:68:3<span style="color: #FF4689">)</span>
+<span style="color: #F8F8F2">    </span>at<span style="color: #F8F8F2"> </span>processTicksAndRejections<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>internal/process/task_queues.js:80:21<span style="color: #FF4689">)</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">{</span>
+<span style="color: #F8F8F2">  </span>errno:<span style="color: #F8F8F2"> </span>-61,
+<span style="color: #F8F8F2">  </span>code:<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ECONNREFUSED'</span>,
+<span style="color: #F8F8F2">  </span>syscall:<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'connect'</span>,
+<span style="color: #F8F8F2">  </span>address:<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'127.0.0.1'</span>,
+<span style="color: #F8F8F2">  </span>port:<span style="color: #F8F8F2"> </span><span style="color: #AE81FF">6379</span>
+<span style="color: #FF4689">}</span>
+<span style="color: #FF4689">[</span>nodemon<span style="color: #FF4689">]</span><span style="color: #F8F8F2"> </span>app<span style="color: #F8F8F2"> </span>crashed<span style="color: #F8F8F2"> </span>-<span style="color: #F8F8F2"> </span>waiting<span style="color: #F8F8F2"> </span><span style="color: #66D9EF">for</span><span style="color: #F8F8F2"> </span>file<span style="color: #F8F8F2"> </span>changes<span style="color: #F8F8F2"> </span>before<span style="color: #F8F8F2"> </span>starting...
+</code></pre></div>
+
+<h4>Exercise 12.10:</h4>
+<!-- The project already has [https://www.npmjs.com/package/redis](https://www.npmjs.com/package/redis) installed and two functions "promisified" - getAsync and setAsync.-->
+<p>该项目已经安装了<a href="https://www.npmjs.com/package/redis">https://www.npmjs.com/package/redis</a>和两个 " promise  "的函数--getAsync和setAsync。</p>
+<!-- - setAsync function takes in key and value, using the key to store the value.-->
+<ul>
+<li>setAsync函数接收键和值，用键来存储值。</li>
+</ul>
+<!-- - getAsync function takes in key and returns the value in a promise.-->
+<ul>
+<li>getAsync函数接收键并在一个 promise 中返回值。</li>
+</ul>
+<!-- Implement a todo counter that saves the number of created todos to Redis:-->
+<p>实现一个todo计数器，将创建的todos的数量保存到Redis。</p>
+<!-- - Step 1: Whenever a request is sent to add a todo, increment the counter by one.-->
+<ul>
+<li>第1步：每当发送一个添加todo的请求时，将计数器增量为1。</li>
+</ul>
+<!-- - Step 2: Create a GET /statistics endpoint where you can ask the usage metadata. The format should be the following JSON:-->
+<ul>
+<li>第2步：创建一个GET /statistics端点，在那里你可以询问使用情况元数据。其格式应该是以下JSON。</li>
+</ul>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">"added_todos"</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<h4>Exercise 12.11:</h4>
+<!-- > Use _script_ to record what you do, save the file as script-answers/exercise12_11.txt-->
+<blockquote>
+<p>使用_script_来记录你所做的，将文件保存为script-answers/exercise12_11.txt</p>
+</blockquote>
+<!-- If the application does not behave as expected, a direct access to the database may be beneficial in pinpointing problems. Let us try out how [redis-cli](https://redis.io/topics/rediscli) can be used to access the database.-->
+<p>如果应用的行为不符合预期，直接访问数据库可能有利于准确定位问题。让我们试试如何使用<a href="https://redis.io/topics/rediscli">redis-cli</a>来访问数据库。</p>
+<!-- - Go to the redis container with _docker exec_ and open the redis-cli.-->
+<ul>
+<li>用_docker exec_进入redis容器，打开redis-cli。</li>
+</ul>
+<!-- - Find the key you used with _[KEYS *](https://redis.io/commands/keys)_-->
+<ul>
+<li>用_<a href="https://redis.io/commands/keys">KEYS *</a>_找到你使用的键。</li>
+</ul>
+<!-- - Check the value of the key with command [GET](https://redis.io/commands/get)-->
+<ul>
+<li>用<a href="https://redis.io/commands/get">GET</a>命令检查该键的值</li>
+</ul>
+<!-- - Set the value of the counter to 9001, find the right command from [here](https://redis.io/commands/)-->
+<ul>
+<li>将计数器的值设为9001，从<a href="https://redis.io/commands/">这里</a>找到正确的命令</li>
+</ul>
+<!-- - Make sure that the new value works by refreshing the page http://localhost:3000/statistics-->
+<ul>
+<li>通过刷新页面，确保新的值能够发挥作用 http://localhost:3000/statistics</li>
+</ul>
+<!-- - Create a new todo with postman and ensure from redis-cli that the counter has increased accordingly-->
+<ul>
+<li>用postman创建一个新的todo，并从redis-cli中确保计数器有相应的增加。</li>
+</ul>
+<!-- - Delete the key from cli and ensure that counter works when new todos are added-->
+<ul>
+<li>从cli中删除键，并确保当新的todos被添加时计数器工作。</li>
+</ul>
+</div>
+<div class="content">
+<h3 id="sec-14">Persisting data with Redis</h3>
+<!-- In the previous section, it was mentioned that <i>by default</i> Redis does not persist the data. However, the persistence is easy to toggle on. We only need to start the Redis with a different command, as instructed by the [Docker hub page](https://hub.docker.com/_/redis):-->
+<p>在上一节中提到，<i>默认情况下</i>Redis并不持久化数据。然而，持久化是很容易切换的。我们只需要按照<a href="https://hub.docker.com/_/redis">Docker hub page</a>的指示，用一个不同的命令来启动Redis。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">services</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">redis</span><span style="color: #F8F8F2">:</span>
+<span style="color: #F8F8F2">    </span><span style="color: #959077"># Everything else</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">command</span><span style="color: #F8F8F2">: [</span><span style="color: #E6DB74">'redis-server'</span><span style="color: #F8F8F2">, </span><span style="color: #E6DB74">'--appendonly'</span><span style="color: #F8F8F2">, </span><span style="color: #E6DB74">'yes'</span><span style="color: #F8F8F2">] </span><span style="color: #959077"># Overwrite the CMD</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">volumes</span><span style="color: #F8F8F2">: </span><span style="color: #959077"># Declare the volume</span>
+<span style="color: #F8F8F2">      - </span><span style="color: #AE81FF">./redis_data:/data</span>
+</code></pre></div>
+
+<!-- The data will now be persisted to directory <i>redis_data</i> of the host machine.-->
+<p>数据现在将被持久化到主机的<i>redis_data</i>目录。</p>
+<!-- Remember to add the directory to .gitignore!-->
+<p>记得将该目录添加到.gitignore!</p>
+<h4>Other functionality of Redis</h4>
+<!-- In addition to the GET, SET and DEL operations on keys and values, Redis can do also a quite a lot more. It can for example automatically expire keys, that is a very useful feature when Redis is used as a cache.-->
+<p>除了对键和值的GET、SET和DEL操作外，Redis还可以做很多事情。例如，它可以自动过期键，当Redis被用作缓存时，这是一个非常有用的功能。</p>
+<!-- Redis can also be used to implement so called [publish-subscribe](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern) (or PubSub) pattern that is a asynchronous communication mechanism for distributed applications. In this scenario Redis works as a <i>message broker</i> between two or more applications. Some of the applications are <i>publishing</i> messages by sending those to Redis, that on arrival of a message, informs the parties that have <i>subscribed</i> to those messages.-->
+<p>Redis也可以用来实现所谓的<a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">发布-订阅</a>(或PubSub)模式，这是一种分布式应用的异步通信机制。在这种情况下，Redis作为两个或多个应用之间的<i>消息代理</i>工作。一些应用通过向Redis发送消息来<i>发布</i>消息，当消息到达时，Redis会通知已经<i>订阅</i>这些消息的各方。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-15">Exercise 12.12.</h3>
+<h4>Exercise 12.12: Persisting data in Redis</h4>
+<!-- Check that the data is not persisted by default: after running _docker-compose -f docker-compose.dev.yml down_ and _docker-compose -f docker-compose.dev.yml up_ the counter value is reset to 0.-->
+<p>检查数据是否默认不被持久化：在运行_docker-compose -f docker-compose.dev.yml down_和_docker-compose -f docker-compose.dev.yml up_之后，计数器值被重置为0。</p>
+<!-- Then create a volume for Redis data (by modifying <i>todo-app/todo-backend/docker-compose.dev.yml </i>) and make sure that the data survives after running _docker-compose -f docker-compose.dev.yml down_ and _docker-compose -f docker-compose.dev.yml up_.-->
+<p>然后为Redis数据创建一个卷（通过modifying <i>todo-app/todo-backend/docker-compose.dev.yml </i>），并确保数据在运行_docker-compose -f docker-compose.dev.yml down_和_docker-compose -f docker-compose.dev.yml up_之后仍然存在。</p>
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b4" href="67_part12a_About_this_part.html">← 上一篇</a><a class="badge b4" href="69_part12c_React_in_container.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>

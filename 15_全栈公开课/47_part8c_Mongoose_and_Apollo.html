@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 8 Mongoose and Apollo｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b3">🚀 阶段三 · 进阶实战</span>
+      <span class="badge b2">Part 8 · GraphQL</span>
+      <span>第 47 篇</span>
+    </div>
+    <h1>Mongoose and Apollo</h1>
+    <div class="meta"><span>⏱ 约 11 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part8/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-8.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">Mongoose and Apollo</a><a class="l3" href="#sec-2">Validation</a><a class="l3" href="#sec-3">User and log in</a><a class="l3" href="#sec-4">Friends list</a><a class="l3" href="#sec-5">Exercises 8.13.-8.16.</a></nav>
+  <main class="fso-body">
+<div class="content">
+<!-- We will now add user management to our application, but let's first start using a database for storing data.-->
+<p>我们现在将把用户管理添加到我们的应用中，但让我们首先开始使用数据库来存储数据。</p>
+<h3 id="sec-1">Mongoose and Apollo</h3>
+<!-- Install mongoose:-->
+<p>安装mongoose。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>npm<span style="color: #F8F8F2"> </span>install<span style="color: #F8F8F2"> </span>mongoose
+</code></pre></div>
+
+<!-- We will imitate what we did in parts [3](https://fullstackopen.com/en/part3/saving_data_to_mongo_db) and [4](https://fullstackopen.com/en/part4/structure_of_backend_application_introduction_to_testing).-->
+<p>我们将模仿我们在<a href="https://fullstackopen.com/en/part3/saving_data_to_mongo_db">3</a>和<a href="https://fullstackopen.com/en/part4/structure_of_backend_application_introduction_to_testing">4</a>部分的做法。</p>
+<!-- The person schema has been defined as follows:-->
+<p>人的模式已被定义如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'mongoose'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">schema</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">5</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">phone</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">5</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">street</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">5</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">city</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">})</span>
+
+<span style="color: #A6E22E">module</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">exports</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">model</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'Person'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">schema</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- We also included a few validations. _required: true_, which makes sure that a value exists, is actually redundant: we already ensure that the fields exist with GraphQL. However, it is good to also keep validation in the database.-->
+<p>我们还包括一些验证。<em>required: true</em>，确保一个值的存在，实际上是多余的：我们已经用GraphQL确保字段的存在。然而，在数据库中也保留验证是很好的。</p>
+<!-- We can get the application to mostly work with the following changes:-->
+<p>我们可以通过以下的改变使应用大部分工作。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">ApolloServer</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">UserInputError</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">gql</span><span style="color: #F8F8F2"> } </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'apollo-server'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'mongoose'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'./models/person'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">MONGODB_URI</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'mongodb+srv://databaseurlhere'</span>
+
+<span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'connecting to'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">MONGODB_URI</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">MONGODB_URI</span><span style="color: #F8F8F2">, { </span><span style="color: #A6E22E">useNewUrlParser</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">useUnifiedTopology</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">  .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'connected to MongoDB'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">  .</span><span style="color: #66D9EF">catch</span><span style="color: #F8F8F2">((</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'error connection to MongoDB:'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  })</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">typeDefs</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">gql</span><span style="color: #E6DB74">`</span>
+<span style="color: #E6DB74">  ...</span>
+<span style="color: #E6DB74">`</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">resolvers</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">Query</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">personCount</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> () =&gt; </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">collection</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">countDocuments</span><span style="color: #F8F8F2">(),</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">allPersons</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// filters missing</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({})</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">findPerson</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findOne</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> }),</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">Person</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">address</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">street</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">street</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">city</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">city</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      }</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">Mutation</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">addPerson</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">({ ...</span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">editNumber</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findOne</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">phone</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">phone</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The changes are pretty straightforward. However, there are a few noteworthy things. As we remember, in Mongo, the identifying field of an object is called <i>_id</i> and we previously had to parse the name of the field to <i>id</i> ourselves. Now GraphQL can do this automatically.-->
+<p>这些变化是非常直接的。然而，有几个值得注意的地方。我们记得，在Mongo中，一个对象的识别字段被称为<i>_id</i>，我们以前必须自己把字段的名称解析为<i>id</i>。现在GraphQL可以自动做到这一点。</p>
+<!-- Another noteworthy thing is that the resolver functions now return a <i>promise</i>, when they previously returned normal objects. When a resolver returns a promise, Apollo server [sends back](https://www.apollographql.com/docs/apollo-server/data/data/#resolver-results) the value which the promise resolves to.-->
+<p>另一件值得注意的事情是，解析器函数现在会返回一个<i> promise </i>，而以前它们会返回普通的对象。当一个解析器返回一个 promise 时，Apollo服务器<a href="https://www.apollographql.com/docs/apollo-server/data/data/#resolver-results">送回</a> promise 所解析的值。</p>
+<!-- For example, if the following resolver function is executed,-->
+<p>例如，如果执行了下面的解析器函数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">allPersons</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({})</span>
+<span style="color: #F8F8F2">},</span>
+</code></pre></div>
+
+<!-- Apollo server waits for the promise to resolve, and returns the result. So Apollo works roughly like this:-->
+<p>Apollo服务器等待 promise 的解析，并返回结果。所以Apollo的工作原理大致是这样的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({}).</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">( </span><span style="color: #A6E22E">result</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// return the result</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- Let's complete the _allPersons_ resolver so it takes the optional parameter _phone_ into account:-->
+<p>让我们完成_allPersons_解析器，使其考虑到可选参数_phone_。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Query</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ..</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">allPersons</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">phone</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({})</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">phone</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">$exists</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">phone</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'YES'</span><span style="color: #F8F8F2"> } })</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">},</span>
+</code></pre></div>
+
+<!-- So if the query has not been given a parameter _phone_, all persons are returned. If the parameter has the value <i>YES</i>, the result of the query-->
+<p>所以，如果查询没有给出参数_phone_，就会返回所有的人。如果该参数的值是<i>YES</i>，则查询的结果为</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">phone</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">$exists</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2"> }})</span>
+</code></pre></div>
+
+<!-- is returned, so the objects in which the field _phone_ has a value. If the parameter has the value <i>NO</i>, the query returns the objects in which the _phone_ field has no value:-->
+<p>返回的是字段_phone_有值的对象。如果参数的值是<i>NO</i>，则查询返回_phone_字段没有值的对象。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">phone</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">$exists</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2"> }})</span>
+</code></pre></div>
+
+<h3 id="sec-2">Validation</h3>
+<!-- As well as in GraphQL, the input is now validated using the validations defined in the mongoose schema. For handling possible validation errors in the schema, we must add an error-handling _try/catch_ block to the _save_ method. When we end up in the catch, we throw a suitable exception:-->
+<p>和GraphQL一样，现在使用mongoose模式中定义的验证对输入进行验证。为了处理模式中可能出现的验证错误，我们必须在_save_方法中添加一个错误处理_try/catch_块。当我们在catch中结束时，我们抛出一个合适的异常。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Mutation</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">addPerson</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">({ ...</span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2"> })</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">try</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      } </span><span style="color: #66D9EF">catch</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">UserInputError</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">, {</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">invalidArgs</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        })</span>
+<span style="color: #F8F8F2">      }</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">editNumber</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findOne</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">phone</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">phone</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">try</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      } </span><span style="color: #66D9EF">catch</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">UserInputError</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">, {</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">invalidArgs</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        })</span>
+<span style="color: #F8F8F2">      }</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The code of the backend can be found on [Github](https://github.com/fullstack-hy2020/graphql-phonebook-backend/tree/part8-4), branch <i>part8-4</i>.-->
+<p>后端的代码可以在<a href="https://github.com/fullstack-hy2020/graphql-phonebook-backend/tree/part8-4">Github</a>找到，分支<i>part8-4</i>。</p>
+<h3 id="sec-3">User and log in</h3>
+<!-- Let's add user management to our application. For simplicity's sake, let's assume that all users have the same password which is hardcoded to the system. It would be straightforward to save individual passwords for all users following the principles from [part 4](https://fullstackopen.com/en/part4/user_administration), but because our focus is on GraphQL, we will leave out all that extra hassle this time.-->
+<p>让我们把用户管理加入我们的应用。为了简单起见，我们假设所有的用户都有相同的密码，并且是硬编码的。按照<a href="https://fullstackopen.com/en/part4/user_administration">第4章节</a>的原则，为所有用户保存单独的密码是很直接的，但由于我们的重点是GraphQL，这次我们将省去所有这些额外的麻烦。</p>
+<!-- The user schema is as follows:-->
+<p>用户模式如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'mongoose'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">schema</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">required</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">minlength</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">friends</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">    {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Schema</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">Types</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">ObjectId</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">ref</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Person'</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  ],</span>
+<span style="color: #F8F8F2">})</span>
+
+<span style="color: #A6E22E">module</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">exports</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mongoose</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">model</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'User'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">schema</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Every user is connected to a bunch of other persons in the system through the _friends_ field. The idea is that when a user, e.g. <i>mluukkai</i>, adds a person, e.g. <i>Arto Hellas</i>, to the list, the person is added to their _friends_ list. This way, logged-in users can have their own personalized view in the application.-->
+<p>每个用户都通过_friends_字段与系统中的一堆其他人相联系。我们的想法是，当一个用户，例如<i>mluukkai</i>，把一个人，例如<i>Arto Hellas</i>，添加到列表中时，这个人就被添加到他们的_friends_列表中。这样，登录的用户可以在应用中拥有自己的个性化视图。</p>
+<!-- Logging in and identifying the user are handled the same way we used in [part 4](https://fullstackopen.com/en/part4/token_authentication) when we used REST, by using tokens.-->
+<p>登录和识别用户的方式与我们在<a href="https://fullstackopen.com/en/part4/token_authentication">第四章节</a>中使用REST时使用的方式相同，都是通过使用令牌。</p>
+<!-- Let's extend the schema like so:-->
+<p>让我们这样来扩展模式。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">friends</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">Person</span><span style="color: #FF4689">!</span><span style="color: #F8F8F2">]</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ID</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Token</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Query</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ..</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">me</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Mutation</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">createUser</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  )</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">login</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">password</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  )</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Token</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The query _me_ returns the currently logged-in user. New users are created with the _createUser_ mutation, and logging in happens with the _login_ mutation.-->
+<p>查询_me_返回当前登录的用户。新用户是通过_createUser_改变创建的，而登录是通过_login_改变进行的。</p>
+<!-- The resolvers of the mutations are as follows:-->
+<p>这些改变的解析器如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">jwt</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">require</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'jsonwebtoken'</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">JWT_SECRET</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'NEED_HERE_A_SECRET_KEY'</span>
+
+<span style="color: #A6E22E">Mutation</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ..</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">createUser</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2"> })</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #66D9EF">catch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">UserInputError</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">, {</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">invalidArgs</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        })</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">login</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findOne</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2"> })</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">||</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">password</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">!==</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'secret'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">UserInputError</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">"wrong credentials"</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">userForToken</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">username</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">user</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">jwt</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">sign</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">userForToken</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">JWT_SECRET</span><span style="color: #F8F8F2">) }</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">},</span>
+</code></pre></div>
+
+<!-- The new user mutation is straightforward. The login mutation checks if the username/password pair is valid. And if it is indeed valid, it returns a jwt token familiar from [part 4](https://fullstackopen.com/en/part4/token_authentication).-->
+<p>新用户的改变是简单的。登录改变检查用户名/密码对是否有效。如果它确实有效，它会返回一个从<a href="https://fullstackopen.com/en/part4/token_authentication">第4章节</a>熟悉的jwt令牌。</p>
+<!-- Just like in the previous case with REST, the idea now is that a logged-in user adds a token they receive upon login to all of their requests. And just like with REST, the token is added to GraphQL queries using the <i>Authorization</i> header.-->
+<p>就像之前的REST案例一样，现在的想法是，一个登录的用户将他们在登录时收到的令牌添加到他们的所有请求中。就像REST一样，使用<i>Authorization</i>头将令牌添加到GraphQL查询中。</p>
+<!-- In the Apollo Explorer, the header is added to a query like so:-->
+<p>在Apollo资源管理器中，该标头被添加到一个查询中，就像这样。</p>
+<p><img alt="" src="../docs/images/8/24x.png"></p>
+<!-- Let's now expand the definition of the _server_ object by adding a third parameter [context](https://www.apollographql.com/docs/apollo-server/data/data/#context-argument) to the constructor call:-->
+<p>现在让我们通过在构造函数调用中添加第三个参数<a href="https://www.apollographql.com/docs/apollo-server/data/data/#context-argument">context</a>来扩展_server_对象的定义。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">server</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ApolloServer</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">typeDefs</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">resolvers</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">context</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> ({ </span><span style="color: #A6E22E">req</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">auth</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">req</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">req</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">headers</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">authorization</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">null</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">auth</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&amp;&amp;</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">auth</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toLowerCase</span><span style="color: #F8F8F2">().</span><span style="color: #A6E22E">startsWith</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'bearer '</span><span style="color: #F8F8F2">)) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">decodedToken</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">jwt</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">verify</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">auth</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">substring</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">7</span><span style="color: #F8F8F2">), </span><span style="color: #A6E22E">JWT_SECRET</span>
+<span style="color: #F8F8F2">      )</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findById</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">decodedToken</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">populate</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'friends'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- The object returned by context is given to all resolvers as their <i>third parameter</i>. Context is the right place to do things which are shared by multiple resolvers, like [user identification](https://www.apollographql.com/blog/authorization-in-graphql/).-->
+<p>由context返回的对象作为他们的<i>第三个参数</i>被提供给所有解析器。上下文是做多个解析器共享的事情的正确位置，比如<a href="https://www.apollographql.com/blog/authorization-in-graphql/">用户标识</a>。</p>
+<!-- So our code sets the object corresponding to the user who made the request to the _currentUser_ field of the context. If there is no user connected to the request, the value of the field is undefined.-->
+<p>所以我们的代码将与发出请求的用户相对应的对象设置到上下文的_currentUser_字段。如果没有与请求相关的用户，则该字段的值是未定义的。</p>
+<!-- The resolver of the _me_ query is very simple: it just returns the logged-in user it receives in the _currentUser_ field of the third parameter of the resolver, _context_. It's worth noting that if there is no logged-in user, i.e. there is no valid token in the header attached to the request, the query returns <i>null</i>:-->
+<p>_me_查询的解析器非常简单：它只是返回它在解析器的第三个参数_context_的_currentUser_字段中收到的已登录用户。值得注意的是，如果没有登录的用户，也就是说，在连接到请求的头中没有有效的令牌，查询就会返回<i>null</i>。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Query</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">me</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">context</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">context</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">currentUser</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">},</span>
+</code></pre></div>
+
+<h3 id="sec-4">Friends list</h3>
+<!-- Let's complete the application's backend so that adding and editing persons requires logging in, and added persons are automatically added to the friends list of the user.-->
+<p>让我们完成应用的后端，使添加和编辑人员需要登录，并且添加的人员会自动添加到用户的好友列表中。</p>
+<!-- Let's first remove all persons not in anyone's friends list from the database.-->
+<p>首先让我们从数据库中删除所有不在任何人的好友列表中的人。</p>
+<!-- _addPerson_ mutation changes like so:-->
+<p>_addPerson_的改变是这样的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">Mutation</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">addPerson</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">context</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">({ ...</span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">context</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">currentUser</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">AuthenticationError</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">"not authenticated"</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">try</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">friends</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">friends</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">concat</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    } </span><span style="color: #66D9EF">catch</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">UserInputError</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">, {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">invalidArgs</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">//...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- If a logged-in user cannot be found from the context, an _AuthenticationError_ is thrown. Creating new persons is now done with _async/await_ syntax, because if the operation is successful, the created person is added to the friends list of the user.-->
+<p>如果不能从上下文中找到一个登录的用户，会抛出一个_AuthenticationError_。现在创建新的人是用_async/await_语法完成的，因为如果操作成功，创建的人将被添加到用户的好友列表中。</p>
+<!-- Let's also add functionality for adding an existing user to your friends list. The mutation is as follows:-->
+<p>我们也来增加将现有用户添加到好友列表的功能。改变的情况如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Mutation</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">addAsFriend</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  )</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- And the mutation's resolver:-->
+<p>还有改变的解析器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #A6E22E">addAsFriend</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">, { </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">nonFriendAlready</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">) =&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">friends</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">f</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">f</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toString</span><span style="color: #F8F8F2">()).</span><span style="color: #A6E22E">includes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">_id</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toString</span><span style="color: #F8F8F2">())</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">throw</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">AuthenticationError</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">"not authenticated"</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Person</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">findOne</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">name</span><span style="color: #F8F8F2"> })</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">nonFriendAlready</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">) ) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">friends</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">friends</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">concat</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">person</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">await</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">save</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span>
+<span style="color: #F8F8F2">  },</span>
+</code></pre></div>
+
+<!-- Note how the resolver <i>destructures</i> the logged-in user from the context. So instead of saving _currentUser_ to a separate variable in a function-->
+<p>注意解析器如何从上下文中<i>解构</i>登录的用户。所以不要把_currentUser_保存在一个函数中的单独变量中</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">addAsFriend</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">context</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">context</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">currentUser</span>
+</code></pre></div>
+
+<!-- it is received straight in the parameter definition of the function:-->
+<p>它被直接收到函数的参数定义中。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">addAsFriend</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">async</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">root</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">args</span><span style="color: #F8F8F2">, { </span><span style="color: #A6E22E">currentUser</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+</code></pre></div>
+
+<!-- The following query now returns the user's friends list:-->
+<p>下面的查询现在返回用户的好友列表。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">query</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">me</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">friends</span><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">name</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">phone</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The code of the backend can be found on [Github](https://github.com/fullstack-hy2020/graphql-phonebook-backend/tree/part8-5) branch <i>part8-5</i>.-->
+<p>后端的代码可以在<a href="https://github.com/fullstack-hy2020/graphql-phonebook-backend/tree/part8-5">Github</a>分支<i>part8-5</i>找到。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-5">Exercises 8.13.-8.16.</h3>
+<!-- The following exercises are quite likely to break your frontend. Do not worry about it yet; the frontend shall be fixed and expanded in the next chapter.-->
+<p>下面的练习很可能会破坏你的前端。先不要担心，前端将在下一章进行修复和扩展。</p>
+<h4>8.13: Database, part 1</h4>
+<!-- Change the library application so that it saves the data to a database. You can find the <i>mongoose schema</i> for books and authors from [here](https://github.com/fullstack-hy2020/misc/blob/master/library-schema.md).-->
+<p>改变库中的应用，使其将数据保存到数据库中。你可以从<a href="https://github.com/fullstack-hy2020/misc/blob/master/library-schema.md">这里</a>找到书籍和作者的<i>mongoose模式</i>。</p>
+<!-- Let's change the book graphql schema a little-->
+<p>让我们稍微改变一下图书graphql模式</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Book</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">title</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">published</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Int</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">author</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Author</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">genres</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span><span style="color: #F8F8F2">]</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ID</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- so that instead of just the author's name, the book object contains all the details of the author.-->
+<p>这样一来，书籍对象就不再只有作者的名字，而是包含了作者的所有细节。</p>
+<!-- You can assume that the user will not try to add faulty books or authors, so you don't have to care about validation errors.-->
+<p>你可以假设用户不会尝试添加有问题的书籍或作者，所以你不必关心验证错误。</p>
+<!-- The following things do <i>not</i> have to work just yet:-->
+<p>下面这些东西还不一定能用。</p>
+<!--  - _allBooks_ query with parameters-->
+<ul>
+<li>带有参数的_allBooks_查询</li>
+</ul>
+<!--  -  _bookCount_ field of an author object-->
+<ul>
+<li>作者对象的_bookCount_字段</li>
+</ul>
+<!--  -  _author_ field of a book-->
+<ul>
+<li>一本书的_作者_字段</li>
+</ul>
+<!--  - _editAuthor_ mutation-->
+<ul>
+<li>_editAuthor_变体</li>
+</ul>
+<!-- **Note**: despite the fact that author is now an <i>object </i>  within a book, the schema for adding a book can remain same, only the <i>name</i> of the author is given as a parameter-->
+<p><strong>注意</strong>：尽管作者现在是一本书中的一个<i>对象</i>，但添加一本书的模式可以保持不变，只是将作者的<i>名称</i>作为一个参数给出。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Mutation</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">addBook</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">title</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">author</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">published</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Int</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">genres</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span><span style="color: #F8F8F2">]</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  )</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Book</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">editAuthor</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setBornTo</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Int</span><span style="color: #FF4689">!</span><span style="color: #F8F8F2">)</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Author</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<h4>8.14: Database, part 2</h4>
+<!-- Complete the program so that all queries (to get _allBooks_ working with the parameter _author_ and _bookCount_ field of an author object is not required) and mutations work.-->
+<p>完成程序，使所有的查询（让_allBooks_与参数_author_和_bookCount_字段的作者对象一起工作是不需要的）和改变工作。</p>
+<!-- You might find [this](https://docs.mongodb.com/manual/reference/operator/query/in/) useful.-->
+<p>你可能会发现<a href="https://docs.mongodb.com/manual/reference/operator/query/in/">这个</a>很有用。</p>
+<h4>8.15 Database, part 3</h4>
+<!-- Complete the program so that database validation errors (e.g. book title or author name being too short) are handled sensibly. This means that they cause _UserInputError_ with a suitable error message to be thrown.-->
+<p>完成程序，使数据库验证错误（如书名或作者姓名太短）得到合理的处理。这意味着它们会导致_UserInputError_，并抛出一个合适的错误信息。</p>
+<h4>8.16 user and logging in</h4>
+<!-- Add user management to your application. Expand the schema like so:-->
+<p>在你的应用中加入用户管理。像这样扩展模式。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">favouriteGenre</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ID</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Token</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Query</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ..</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">me</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #A6E22E">type</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Mutation</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">createUser</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">favouriteGenre</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  )</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">User</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">login</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">username</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">password</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #FF4689">!</span>
+<span style="color: #F8F8F2">  )</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Token</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Create resolvers for query _me_ and the new mutations _createUser_ and-->
+<p>为查询_me_和新的改变_createUser_和=25784=创建解析器。</p>
+<!-- _login_. Like in the course material, you can assume all users have the same hardcoded password.-->
+<p><em>login</em>。像在教材中一样，你可以假设所有用户都有相同的硬编码密码。</p>
+<!-- Make the mutations _addBook_ and _editAuthor_ possible only if the request includes a valid token.-->
+<p>只有当请求包括一个有效的令牌时，才能使_addBook_和_editAuthor_的改变成为可能。</p>
+<!-- (Don't worry about fixing the frontend for the moment.)-->
+<p>(暂时不要担心修复前端。)</p>
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b3" href="46_part8b_Apollo_client.html">← 上一篇</a><a class="badge b3" href="48_part8d_User_login.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 2 改进错误信息｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b1">🌱 阶段一 · 打地基</span>
+      <span class="badge b2">Part 2 · 与服务端通信</span>
+      <span>第 14 篇</span>
+    </div>
+    <h1>改进错误信息</h1>
+    <div class="meta"><span>✏️ 练习：2.16.~2.17、2.18.~2.20</span><span>⏱ 约 23 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part2/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-2.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">改进错误信息</a><a class="l3" href="#sec-2">内联样式</a><a class="l3" href="#sec-3">一些重要的注意事项</a></nav>
+  <main class="fso-body">
+<div class="content">
+<!-- The appearance of our current Notes application is quite modest. In [exercise 0.2](https://fullstackopen.com/en/part0/fundamentals_of_web_apps#exercises-0-1-0-6), the assignment was to go through Mozilla's [CSS tutorial](https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/CSS_basics). -->
+<p>我们目前的笔记应用的外观是相当简陋的。在<a href="https://fullstackopen.com/zh/part0/web_应用的基础设施#练习-0-1-0-6">练习0.2</a>中，作业是阅读Mozilla的<a href="https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/CSS_basics">CSS教程</a>。</p>
+<!-- Let's take a look at how we can add styles to a React application. There are several different ways of doing this and we will take a look at the other methods later on. First, we will add CSS to our application the old-school way; in a single file without using a [CSS preprocessor](https://developer.mozilla.org/en-US/docs/Glossary/CSS_preprocessor) (although this is not entirely true as we will learn later on). -->
+<p>让我们看一下如何在React应用中添加样式。有几种不同的方法，我们将在后面看一下其他的方法。首先，我们将以传统的方式向我们的应用添加CSS；把CSS写入单个文件中，不使用<a href="https://developer.mozilla.org/en-US/docs/Glossary/CSS_preprocessor">CSS预处理器</a>（尽管我们将在后面学习到，实际上我们并非完全没有使用）。</p>
+<!-- Let's add a new <i>index.css</i> file under the <i>src</i> directory and then add it to the application by importing it in the <i>main.jsx</i> file: -->
+<p>让我们在<i>src</i>目录下添加一个新的<i>index.css</i>文件，然后在<i>main.jsx</i>文件中导入它来将其添加到应用：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./index.css'</span>
+</code></pre></div>
+
+<!-- Let's add the following CSS rule to the <i>index.css</i> file:-->
+<p>让我们在<i>index.css</i>文件中添加以下CSS规则：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">h1</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">color</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">green</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- CSS rules comprise of <i>selectors</i> and <i>declarations</i>. The selector defines which elements the rule should be applied to. The selector above is <i>h1</i>, which will match all of the <i>h1</i> header tags in our application.-->
+<p>CSS规则包括<i>选择器</i>和<i>声明</i>。选择器定义了规则应该应用于哪些元素。上面的选择器是<i>h1</i>，因此选择器将匹配我们应用中所有<i>h1</i>标题的标签。</p>
+<!-- The declaration sets the _color_ property to the value <i>green</i>.-->
+<p>声明将_color_属性设为值<i>green</i>。</p>
+<!-- One CSS rule can contain an arbitrary number of properties. Let's modify the previous rule to make the text cursive, by defining the font style as <i>italic</i>:-->
+<p>一条CSS规则可以包含任意数量的属性。让我们修改前面的规则，通过定义字体样式为<i>italic</i>，把文字变成草体。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">h1</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">color</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">green</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">font-style</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">italic</span><span style="color: #F8F8F2">;  </span><span style="color: #ED007E; background-color: #1E0010">//</span><span style="color: #F8F8F2"> </span><span style="color: #ED007E; background-color: #1E0010">highlight-line</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- There are many ways of matching elements by using [different types of CSS selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors).-->
+<p>通过使用<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors">不同类型的CSS选择器</a>，可以实现许多匹配元素的方法。</p>
+<!-- If we wanted to target, let's say, each one of the notes with our styles, we could use the selector <i>li</i>, as all of the notes are wrapped inside <i>li</i> tags:-->
+<p>如果我们想把我们的样式应用于，比方说，每一条笔记，我们可以使用选择器<i>li</i>，因为所有的笔记都被包裹在<i>li</i>标签里：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> ({ </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">toggleImportance</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">label</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'make not important'</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'make important'</span><span style="color: #F8F8F2">;</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">li</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">toggleImportance</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">label</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/li&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Let's add the following rule to our style sheet (since my knowledge of elegant web design is close to zero, the styles don't make much sense):-->
+<p>让我们在我们的样式表中加入以下规则（因为我对优雅的网页设计的知识接近于零，所以这些样式并没有什么意义）：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">li</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">color</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">grey</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">padding-top</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">3</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">font-size</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">15</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Using element types for defining CSS rules is slightly problematic. If our application contained other <i>li</i> tags, the same style rule would also be applied to them.-->
+<p>使用元素类型来定义CSS规则是有点问题的。如果我们的应用包含其他的<i>li</i>标签，它们也会应用同样的样式规则。</p>
+<!-- If we want to apply our style specifically to notes, then it is better to use [class selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/Class_selectors).-->
+<p>如果我们想把我们的样式专门应用于笔记，那么最好使用<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Class_selectors">类选择器</a>。</p>
+<!-- In regular HTML, classes are defined as the value of the <i>class</i> attribute:-->
+<p>在通常的HTML中，类的定义是<i>class</i>属性的值：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">&lt;</span><span style="color: #FF4689">li</span> <span style="color: #A6E22E">class</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"note"</span><span style="color: #F8F8F2">&gt;</span>some text...<span style="color: #F8F8F2">&lt;/</span><span style="color: #FF4689">li</span><span style="color: #F8F8F2">&gt;</span>
+</code></pre></div>
+
+<!-- In React we have to use the [className](https://react.dev/learn#adding-styles) attribute instead of the class attribute. With this in mind, let's make the following changes to our <i>Note</i> component: -->
+<p>在React中，我们必须使用<a href="https://react.dev/learn#adding-styles">className</a>属性而不是class属性。考虑到这一点，让我们对我们的<i>Note</i>组件做如下修改：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> ({ </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">toggleImportance</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">label</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'make not important'</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'make important'</span><span style="color: #F8F8F2">;</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">li</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">className</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">'note'</span><span style="color: #FF4689">&gt;</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">toggleImportance</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">label</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/li&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Class selectors are defined with the _.classname_ syntax:-->
+<p>类选择器是用_.classname_语法定义的：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">color</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">grey</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">padding-top</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">5</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">font-size</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">15</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- If you now add other <i>li</i> elements to the application, they will not be affected by the style rule above.-->
+<p>现在如果你在应用中添加其他<i>li</i>元素，它们就不会受上述样式规则的影响了。</p>
+<!-- ### Improved error message -->
+<h3 id="sec-1">改进错误信息</h3>
+<!-- We previously implemented the error message that was displayed when the user tried to toggle the importance of a deleted note with the <em>alert</em> method. Let's implement the error message as its own React component.-->
+<p>我们之前用<em>alert</em>方法实现了当用户试图切换已删除笔记的重要性时显示的错误信息。让我们把这个错误信息实现为它自己的React组件。</p>
+<!-- The component is quite simple:-->
+<p>组件很简单：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notification</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> ({ </span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">null</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">className</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">'error'</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">message</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- If the value of the <em>message</em> prop is <em>null</em>, then nothing is rendered to the screen, and in other cases the message gets rendered inside of a div element.-->
+<p>如果<em>message</em> props的值是<em>null</em>，那么就不会在屏幕上渲染信息，而在其他情况下，会把信息渲染到一个div元素中。</p>
+<!-- Let's add a new piece of state called <i>errorMessage</i> to the <i>App</i> component. Let's initialize it with some error message so that we can immediately test our component:-->
+<p>让我们向<i>App</i>组件中添加一个叫做<i>errorMessage</i>的新状态片段。让我们用一些错误信息来初始化它，这样我们就可以立即测试我们的组件：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">([])</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">errorMessage</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setErrorMessage</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'some error happened...'</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Notification</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">message</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">errorMessage</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">(</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">)}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">show</span><span style="color: #F8F8F2"> {</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'important'</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'all'</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Then let's add a style rule that suits an error message:-->
+<p>然后让我们添加一个适合错误信息的样式规则：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">color</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">red</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">background</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">lightgrey</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">font-size</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">20</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">border-style</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">solid</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">border-radius</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">5</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">padding</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">10</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">margin-bottom</span><span style="color: #F8F8F2">: </span><span style="color: #AE81FF">10</span><span style="color: #66D9EF">px</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Now we are ready to add the logic for displaying the error message. Let's change the <em>toggleImportanceOf</em> function in the following way:-->
+<p>现在我们准备添加显示错误信息的逻辑。让我们将<em>toggleImportanceOf</em>函数改成：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">n</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">n</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">changedNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> { ...</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2"> }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">noteService</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">update</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">changedNote</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">returnedNote</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">!==</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">returnedNote</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #66D9EF">catch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">error</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setErrorMessage</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">          </span><span style="color: #E6DB74">`Note '${</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">content</span><span style="color: #E6DB74">}' was already removed from server`</span>
+<span style="color: #F8F8F2">        )</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setTimeout</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">setErrorMessage</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">        }, </span><span style="color: #AE81FF">5000</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">        </span><span style="color: #959077">// highlight-end</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">n</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">n</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">!==</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">  }</span>
+</code></pre></div>
+
+<!-- When the error occurs we add a descriptive error message to the <em>errorMessage</em> state. At the same time, we start a timer, that will set the <em>errorMessage</em> state to <em>null</em> after five seconds.-->
+<p>当发生错误时，我们把错误信息的描述添加到<em>errorMessage</em>状态中。同时，我们启动一个定时器，在五秒后将<em>errorMessage</em>状态设为<em>null</em>。</p>
+<!-- The result looks like this:-->
+<p>结果看起来是这样的：</p>
+<p><img alt="" src="../docs/images/2/26e.png"></p>
+<!-- The code for the current state of our application can be found in the  <i>part2-7</i> branch on [GitHub](https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-7). -->
+<p>我们应用当前状态的代码可以在<a href="https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-7">GitHub</a>上的<i>part2-7</i>分支找到。</p>
+<!-- ### Inline styles -->
+<h3 id="sec-2">内联样式</h3>
+<!-- React also makes it possible to write styles directly in the code as so-called [inline styles](https://react-cn.github.io/react/tips/inline-styles.html).-->
+<p>在React中也可以直接在代码中编写样式，即所谓的<a href="https://react-cn.github.io/react/tips/inline-styles.html">内联样式</a>。</p>
+<!-- The idea behind defining inline styles is extremely simple. Any React component or element can be provided with a set of CSS properties as a JavaScript object through the [style](https://react.dev/reference/react-dom/components/common#applying-css-styles) attribute. -->
+<p>定义内联样式的想法非常简单。可以将一组CSS属性作为JavaScript对象通过<a href="https://reactjs.org/docs/dom-elements.html#style">style</a>属性提供给任何React组件或元素。</p>
+<!-- CSS rules are defined slightly differently in JavaScript than in normal CSS files. Let's say that we wanted to give some element the color green and italic font. In CSS, it would look like this: -->
+<p>JavaScript中的CSS规则定义与普通的CSS文件略有不同。比方说，我们想给某个元素加上绿色和斜体。CSS中会是这样的：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">color</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">green</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">font-style</span><span style="color: #F8F8F2">: </span><span style="color: #66D9EF">italic</span><span style="color: #F8F8F2">;</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- But as a React inline style object it would look like this:-->
+<p>但定义成React内联样式的对象是这样的：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">color</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'green'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">fontStyle</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'italic'</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Every CSS property is defined as a separate property of the JavaScript object. Numeric values for pixels can be simply defined as integers. One of the major differences compared to regular CSS, is that hyphenated (kebab case) CSS properties are written in camelCase.-->
+<p>每个CSS属性都被定义为JavaScript对象的一个单独的属性。像素的数字值可以简单地用整数定义。和普通CSS相比的一个主要区别是，CSS属性是用连字符*-*连接的（烤串命名法），JavaScript对象的属性是用驼峰式命名法（camelCase）的。</p>
+<!-- Let's add a footer component, <i>Footer</i>, to our application and define inline styles for it. The component is defined in the file _components/Footer.jsx_ and used in the file _App.jsx_ as follows: -->
+<p>让我们向我们的应用中添加一个脚注组件，<i>Footer</i>，并为其定义内联样式。组件像下面定义在文件_components/Footer.jsx_中，并在_App.jsx_文件中使用：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Footer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">footerStyle</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">color</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'green'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">fontStyle</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'italic'</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">footerStyle</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">br</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">p</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">app</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">Department</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">of</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Computer</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Science</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">University</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">of</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Helsinki</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2025</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/p&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Footer</span>
+</code></pre></div>
+
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Footer</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Footer'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Note'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notification</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Notification'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteService</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./services/notes'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Notification</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">message</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">errorMessage</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Footer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Inline styles come with certain limitations. For instance, so-called [pseudo-classes](https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes) can't be used straightforwardly.-->
+<p>内联样式有某些限制。例如，不能直接使用所谓的<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes">伪类</a>。</p>
+<!-- Inline styles and some of the other ways of adding styles to React components go completely against the grain of old conventions. Traditionally, it has been considered best practice to entirely separate CSS from the content (HTML) and functionality (JavaScript). According to this older school of thought, the goal was to write CSS, HTML, and JavaScript into their separate files.-->
+<p>内联样式以及一些其他为React组件添加样式的方法完全违背了旧的惯例。传统上，人们认为最好的做法是将CSS与内容（HTML）和功能（JavaScript）完全分开。根据这一传统的思想，我们要将CSS、HTML和JavaScript分开写成单独的文件。</p>
+<!-- The philosophy of React is, in fact, the polar opposite of this. Since the separation of CSS, HTML, and JavaScript into separate files did not seem to scale well in larger applications, React bases the division of the application along the lines of its logical functional entities.-->
+<p>React的哲学事实上与此截然相反。由于将CSS、HTML和JavaScript分离到不同的文件中，似乎会使大型应用不能很好地扩展，所以React将应用的划分建立在其逻辑功能实体的基础上。</p>
+<!-- The structural units that make up the application's functional entities are React components. A React component defines the HTML for structuring the content, the JavaScript functions for determining functionality, and also the component's styling; all in one place. This is to create individual components that are as independent and reusable as possible.-->
+<p>构成应用功能实体的结构单元是React组件。一个React组件定义了构造内容的HTML，决定功能的JavaScript函数，以及组件的样式；所有内容都在一个地方定义。这是为了创建尽可能独立和可重复使用的单个组件。</p>
+<!-- The code of the final version of our application can be found in the  <i>part2-8</i> branch on [GitHub](https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-8). -->
+<p>我们应用的最终版本的代码可以在<a href="https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-8">GitHub</a>上的<i>part2-8</i>分支中找到。</p>
+</div>
+<div class="tasks">
+<!-- <h3>Exercises 2.16.-2.17.</h3> -->
+<h3>练习 2.16.~2.17.</h3>
+<!-- <h4>2.16: Phonebook step 11</h4> -->
+<h4>2.16：电话簿 第11步</h4>
+<!-- Use the [improved error message](https://fullstackopen.com/en/part2/adding_styles_to_react_app#improved-error-message) example from part 2 as a guide to show a notification that lasts for a few seconds after a successful operation is executed (a person is added or a number is changed):-->
+<p>参考第2章节中<a href="https://fullstackopen.com/zh/part2/给_react应用加点样式#改进错误信息">改进错误信息</a>的例子，在执行了成功的操作（添加了一个人或更改了一个号码）后，显示一个持续几秒钟的通知：</p>
+<p><img alt="" src="../docs/images/2/27e.png"></p>
+<!-- <h4>2.17*: Phonebook step 12</h4> -->
+<h4>2.17*：电话簿 第12步</h4>
+<!-- Open your application in two browsers. **If you delete a person in browser 1** a short while before attempting to <i>change the person's phone number</i> in browser 2, you will get the following error message:-->
+<p>在两个浏览器中打开你的应用。<strong>如果你在浏览器1中删除一个人</strong>，然后又在浏览器2中尝试<i>更改这个人的电话号码</i>，你会得到以下错误信息：</p>
+<p><img alt="" src="../docs/images/2/29b.png"></p>
+<!-- Fix the issue according to the example shown in [promise and errors](https://fullstackopen.com/en/part2/altering_data_in_server#promises-and-errors) in part 2. Modify the example so that the user is shown a message when the operation does not succeed. The messages shown for successful and unsuccessful events should look different:-->
+<p>按照第2章节中<a href="https://fullstackopen.com/zh/part2/修改服务端的数据#promise和错误">Promise和错误</a>所示的例子来修复这个问题。修改这个例子，使用户在操作不成功时显示一条信息。操作不成功时显示的信息应与操作成功时的看起来不同：</p>
+<p><img alt="" src="../docs/images/2/28e.png"></p>
+<!-- **Note** that even if you handle the exception, the first "404" error message is still printed to the console. But you should not see "Uncaught (in promise) Error". -->
+<p><strong>注意</strong>即使你处理了异常，第一个“404”的错误信息也会打印到控制台。但你应该看不到“Uncaught (in promise) Error”了。</p>
+</div>
+<div class="content">
+<h3 id="sec-3">一些重要的注意事项</h3>
+<!-- At the end of this part there are a few more challenging exercises. At this stage, you can skip the exercises if they are too much of a headache, we will come back to the same themes again later. The material is worth reading through in any case. -->
+<p>在本部分的最后，有一些更具挑战性的练习。如果这些练习让你感到头疼，可以先跳过，我们后面会再次回到这些主题。无论如何，这部分的材料都值得阅读。</p>
+<!-- We have done one thing in our app that is masking away a very typical source of error. -->
+<p>在我们的应用中，我们做的一件事掩盖了一个非常典型的错误来源。</p>
+<!-- We set the state _notes_ to have initial value of an empty array: -->
+<p>我们将状态_notes_的初始值设为一个空数组：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">([])</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- This is a pretty natural initial value since the notes are a set, that is, there are many notes that the state will store. -->
+<p>这是一个非常自然的初始值，因为_notes_是一组笔记，也就是说，状态将存储许多笔记。</p>
+<!-- If the state were only saving "one thing", a more appropriate initial value would be _null_ denoting that there is <i>nothing</i> in the state at the start. Let's see what happens if we use this initial value: -->
+<p>如果状态只保存“一个东西”，更合适的初始值是 <em>null</em>，表示一开始状态中<i>什么都没有</i>。让我们看看如果使用_null_为初始值会发生什么：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The app breaks down: -->
+<p>应用崩溃了：</p>
+<p><img alt="" src="../docs/images/2/31a.png"></p>
+<!-- The error message gives the reason and location for the error. The code that caused the problems is the following: -->
+<p>错误信息给出了错误的原因和位置。导致问题的代码如下：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #959077">// notesToShow gets the value of notes</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">showAll</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  {</span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;  </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">  )}</span>
+</code></pre></div>
+
+<!-- The error message is -->
+<p>错误信息是</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>Cannot<span style="color: #F8F8F2"> </span><span style="color: #A6E22E">read</span><span style="color: #F8F8F2"> </span>properties<span style="color: #F8F8F2"> </span>of<span style="color: #F8F8F2"> </span>null<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>reading<span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'map'</span><span style="color: #FF4689">)</span>
+</code></pre></div>
+
+<!-- The variable _notesToShow_ is first assigned the value of the state _notes_ and then the code tries to call method _map_ to a nonexisting object, that is, to _null_. -->
+<p>变量_notesToShow_首先被赋值为状态_notes_的值，然后代码尝试对一个不存在的对象，也就是_null_，调用_map_方法。</p>
+<!-- What is the reason for that? -->
+<p>这是什么原因呢？</p>
+<!-- The effect hook uses the function _setNotes_ to set _notes_ to have the notes that the backend is returning: -->
+<p>Effect Hook使用函数_setNotes_将_notes_设为后端返回的笔记：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">noteService</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">getAll</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2">)  </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">  }, [])</span>
+</code></pre></div>
+
+<!-- However the problem is that the effect is executed only <i>after the first render</i>. -->
+<p>然而，问题在于Effect只在<i>第一次渲染之后</i>执行。</p>
+<!-- And because _notes_ has the initial value of null: -->
+<p>并且因为_notes_的初始值是null：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+</code></pre></div>
+
+<!-- on the first render the following code gets executed: -->
+<p>在第一次渲染时，以下代码被执行：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span>
+
+<span style="color: #959077">// ...</span>
+
+<span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; ...)</span>
+</code></pre></div>
+
+<!-- and this blows up the app since we can not call method _map_ of the value _null_. -->
+<p>这导致应用崩溃，因为我们不能对_null_值调用_map_方法。</p>
+<!-- When we set _notes_ to be initially an empty array, there is no error since it is allowed to call _map_ to an empty array. -->
+<p>当我们将_notes_的初始值设为空数组时，就不会出现错误，因为空数组是可以调用_map_的。</p>
+<!-- So, the initialization of the state "masked" the problem that is caused by the fact that the data is not yet fetched from the backend. -->
+<p>因此，状态的初始化“掩盖”了由于数据尚未从后端获取而导致的问题。</p>
+<!-- Another way to circumvent the problem is to use <i>conditional rendering</i> and return null if the component state is not properly initialized: -->
+<p>另一种解决问题的方法是使用<i>条件渲染</i>，如果组件状态未被正确初始化，则返回null：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">noteService</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">getAll</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">  }, [])</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// do not render anything if notes is still null</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">null</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- So on the first render, nothing is rendered. When the notes arrive from the backend, the effect used function _setNotes_ to set the value of the state _notes_. This causes the component to be rendered again, and at the second render, the notes get rendered to the screen. -->
+<p>因此，在第一次渲染时，不会渲染任何内容。当笔记从后端到达时，Effect使用函数_setNotes_来设状态_notes_的值。这会导致组件再次渲染，于是在第二次渲染时，笔记会被渲染到屏幕上。</p>
+<!-- The method based on conditional rendering is suitable in cases where it is impossible to define the state so that the initial rendering is possible. -->
+<p>基于条件渲染的方法适用于无法定义状态以致无法首次渲染的情况。</p>
+<!-- The other thing that we still need to have a closer look at is the second parameter of the useEffect: -->
+<p>另一件我们还需要进一步观察的事情是useEffect的第二个参数：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">noteService</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">getAll</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">initialNotes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">  }, []) </span><span style="color: #959077">// highlight-line</span>
+</code></pre></div>
+
+<!-- The second parameter of <em>useEffect</em> is used to [specify how often the effect is run](https://react.dev/reference/react/useEffect#parameters). The principle is that the effect is always executed after the first render of the component <i>and</i> when the value of the second parameter changes. -->
+<p><em>useEffect</em>的第二个参数用于<a href="https://react.dev/reference/react/useEffect#parameters">指定Effect的运行频率</a>。原则是Effect总是在组件第一次渲染后<i>以及</i>第二个参数的值发生变化时执行。</p>
+<!-- If the second parameter is an empty array <em>[]</em>, its content never changes and the effect is only run after the first render of the component. This is exactly what we want when we are initializing the app state from the server. -->
+<p>如果第二个参数是一个空数组<em>[]</em>，它的内容永远不会改变，于是Effect只会在组件第一次渲染后运行。这正是我们在从服务端初始化应用状态时所需要的。</p>
+<!-- However, there are situations where we want to perform the effect at other times, e.g. when the state of the component changes in a particular way. -->
+<p>然而，有些情况下我们还希望在其他时候执行 Effect，例如当组件的状态以特定方式发生变化时。</p>
+<!-- Consider the following simple application for querying currency exchange rates from the [Exchange rate API](https://www.exchangerate-api.com/): -->
+<p>考虑以下用于从<a href="https://www.exchangerate-api.com/">Exchange rate API</a>查询货币汇率的简单应用：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">axios</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'axios'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setValue</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">rates</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setRates</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">({})</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setCurrency</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'effect run, currency is now'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #959077">// skip if currency is not defined</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'fetching exchange rates...'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">axios</span>
+<span style="color: #F8F8F2">        .</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">`https://open.er-api.com/v6/latest/${</span><span style="color: #A6E22E">currency</span><span style="color: #E6DB74">}`</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">        .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">setRates</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">data</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">rates</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">        })</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }, [</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">])</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">handleChange</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">setValue</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSearch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">setCurrency</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">onSearch</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">currency</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">handleChange</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">exchange</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">rate</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">pre</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">JSON</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">stringify</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">rates</span><span style="color: #F8F8F2">, </span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">, </span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">)}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/pre&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span>
+</code></pre></div>
+
+<!-- The user interface of the application has a form, in the input field of which the name of the desired currency is written. If the currency exists, the application renders the exchange rates of the currency to other currencies: -->
+<p>该应用的用户界面有一个表单，用户可以在输入框中输入想要查询的货币的名称。如果货币存在，应用会渲染该货币和其他货币的汇率：</p>
+<p><img alt="" src="../docs/images/2/32new.png"></p>
+<!-- The application sets the name of the currency entered to the form to the state _currency_ at the moment the button is pressed. -->
+<p>在按下按钮时，应用将表单中输入的货币名称设为状态_currency_。</p>
+<!-- When the _currency_ gets a new value, the application fetches its exchange rates from the API in the effect function: -->
+<p>当_currency_得到新值时，应用会在Effect函数中从API获取其汇率：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setCurrency</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">useEffect</span><span style="color: #F8F8F2">(() =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'effect run, currency is now'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #959077">// skip if currency is not defined</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'fetching exchange rates...'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">axios</span>
+<span style="color: #F8F8F2">        .</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">`https://open.er-api.com/v6/latest/${</span><span style="color: #A6E22E">currency</span><span style="color: #E6DB74">}`</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">        .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">setRates</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">data</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">rates</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">        })</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }, [</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">]) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The useEffect hook now has _[currency]_ as the second parameter. The effect function is therefore executed after the first render, and <i>always</i> after the table as its second parameter _[currency]_ changes. That is, when the state _currency_ gets a new value, the content of the table changes and the effect function is executed. -->
+<p>现在useEffect Hook的第二个参数是_[currency]<em>。因此，Effect函数会在第一次渲染后执行，并且<i>总是</i>在表发生变化，也就是函数的第二个参数</em>[currency]_的值发生变化时执行。也就是说，每当状态_currency_获得新值时，表的内容发生变化，Effect函数被执行。</p>
+<!-- It is natural to choose _null_ as the initial value for the variable _currency_, because _currency_ represents a single item. The initial value _null_ indicates that there is nothing in the state yet, and it is also easy to check with a simple if statement whether a value has been assigned to the variable. The effect has the following condition -->
+<p>选择_null_作为变量_currency_的初始值是很自然的，因为_currency_只代表一件物品。初始值_null_表示状态中尚无任何内容，并且可以简单通过if语句检查变量是否已被赋值。Effect有以下条件：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">currency</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// exchange rates are fetched</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- which prevents requesting the exchange rates just after the first render when the variable _currency_ still has the initial value, i.e. a _null_ value. -->
+<p>这可以防止首次渲染后在变量_currency_仍然是初始值_null_的时候立即请求汇率。</p>
+<!-- So if the user writes e.g. <i>eur</i> in the search field, the application uses Axios to perform an HTTP GET request to the address <https://open.er-api.com/v6/latest/eur> and stores the response in the _rates_ state. -->
+<p>所以如果用户在搜索框中输入例如<i>eur</i>，应用会使用axios向地址<a href="https://open.er-api.com/v6/latest/eur">https://open.er-api.com/v6/latest/eur</a>发送HTTP GET请求，并将响应存储在_rates_状态中。</p>
+<!-- When the user then enters another value in the search field, e.g. <i>usd</i>, the effect function is executed again and the exchange rates of the new currency are requested from the API. -->
+<p>当用户随后在搜索框中输入另一个值，例如<i>usd</i>，Effect函数会再次执行，并通过API请求新货币的汇率。</p>
+<!-- The way presented here for making API requests might seem a bit awkward. -->
+<p>这里展示的进行API请求的方法可能看起来有点不方便。</p>
+<!-- This particular application could have been made completely without using the useEffect, by making the API requests directly in the form submit handler function: -->
+<p>这个特定的应用完全可以不使用useEffect，而直接在表单的提交处理函数中进行API请求：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSearch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">axios</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">get</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">`https://open.er-api.com/v6/latest/${</span><span style="color: #A6E22E">value</span><span style="color: #E6DB74">}`</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      .</span><span style="color: #A6E22E">then</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">setRates</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">response</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">data</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">rates</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">  }</span>
+</code></pre></div>
+
+<!-- However, there are situations where that technique would not work. For example, you <i>might</i> encounter one such a situation in the exercise 2.20 where the use of useEffect could provide a solution. Note that this depends quite much on the approach you selected, e.g. the model solution does not use this trick. -->
+<p>然而在有些情况下，这种方法是行不通的。例如，你<i>可能</i>会在练习2.20中遇到这种行不通的情况，此时可以使用useEffect来解决。注意这在很大程度上取决于你选择的方法，例如，model solution就没有使用这一技巧。</p>
+</div>
+<div class="tasks">
+<!-- <h3>Exercises 2.18.-2.20.</h3> -->
+<h3>练习2.18.~2.20.</h3>
+<!-- <h4>2.18* Data for countries, step 1</h4> -->
+<h4>2.18*：各国数据，第1步</h4>
+<!-- At [https://studies.cs.helsinki.fi/restcountries/](https://studies.cs.helsinki.fi/restcountries/) you can find a service that offers a lot of information related to different countries in a so-called machine-readable format via the REST API. Make an application that allows you to view information from different countries. -->
+<p>你可以在<a href="https://studies.cs.helsinki.fi/restcountries/">https://studies.cs.helsinki.fi/restcountries/</a>找到一个服务，它通过REST API以所谓机器可读的格式提供关于不同国家的许多信息。做一个可以让你查看不同国家信息的应用。</p>
+<!-- The user interface is very simple. The country to be shown is found by typing a search query into the search field.-->
+<p>用户界面非常简单。通过在搜索框里输入一个搜索查询来找到要显示的国家。</p>
+<!-- If there are too many (over 10) countries that match the query, then the user is prompted to make their query more specific:-->
+<p>如果有太多（超过10个）国家符合查询条件，则提示用户查得再具体些：</p>
+<p><img alt="" src="../docs/images/2/19b1.png"></p>
+<!-- If there are ten or fewer countries, but more than one, then all countries matching the query are shown:-->
+<p>如果有十个及以下，但超过一个国家，那么就会显示所有符合查询条件的国家：</p>
+<p><img alt="" src="../docs/images/2/19b2.png"></p>
+<!-- When there is only one country matching the query, then the basic data of the country (eg. capital and area), its flag and the languages spoken there, are shown:-->
+<p>如果只有一个国家符合查询条件，则显示该国的基本数据（如首都和面积）、国旗和使用的语言：</p>
+<p><img alt="" src="../docs/images/2/19c3.png"></p>
+<!-- **NB**: It is enough that your application works for most of the countries. Some countries, like <i>Sudan</i>, can be hard to support, since the name of the country is part of the name of another country, <i>South Sudan</i>. You don't need to worry about these edge cases.-->
+<p><strong>注意</strong>：你的应用对大多数国家都有效就可以了。有些国家，如<i>苏丹（Sudan）</i>，可能很难支持，因为这个国家的名字是另一个国家<i>南苏丹（South Sudan）</i>名字的一部分。你不需要担心这些边缘情况。</p>
+<!-- <h4>2.19*: Data for countries, step 2</h4> -->
+<h4>2.19*：各国数据，第2步</h4>
+<!-- **There is still a lot to do in this part, so don't get stuck on this exercise!**-->
+<p><strong>这部分还有很多事情要做，所以不要在这道练习上卡住！</strong></p>
+<!-- Improve on the application in the previous exercise, such that when the names of multiple countries are shown on the page there is a button next to the name of the country, which when pressed shows the view for that country:-->
+<p>改进前一道练习中的应用，使得当页面上显示多个国家的名字时，在国名旁边有一个按钮，按下后会展示该国家：</p>
+<p><img alt="" src="../docs/images/2/19b4.png"></p>
+<!-- In this exercise it is also enough that your application works for most of the countries. Countries whose name appears in the name of another country, like <i>Sudan</i>, can be ignored.-->
+<p>在这道练习中，也只要让你的应用对大多数国家都有效就足够了。可以忽略那些名字出现在另一个国家名字中的国家，如<i>苏丹</i>。</p>
+<!-- <h4>2.20*: Data for countries, step 3</h4> -->
+<h4>2.20*：各国数据，第3步</h4>
+<!-- Add to the view showing the data of a single country, the weather report for the capital of that country. There are dozens of providers for weather data. One suggested API is [https://openweathermap.org](https://openweathermap.org). Note that it might take some minutes until a generated API key is valid. -->
+<p>在显示单个国家数据的界面中，添加该国首都的天气预报。有许多提供天气数据的API。一个建议的API是<a href="https://openweathermap.org">https://openweathermap.org</a>。注意生成的API密钥可能需要过一段时间才会有效。</p>
+<p><img alt="" src="../docs/images/2/19x.png"></p>
+<!-- If you use Open weather map, [here](https://openweathermap.org/weather-conditions#Icon-list) is the description how to get weather icons.-->
+<p>如果你使用Open weather map，<a href="https://openweathermap.org/weather-conditions#Icon-list">这里</a>描述了如何获取天气图标。</p>
+<!-- **NB:** In some browsers (such as Firefox) the chosen API might send an error response, which indicates that HTTPS encryption is not supported, although the request URL starts with _http://_. This issue can be fixed by completing the exercise using Chrome.-->
+<p>**注意：**在某些浏览器（比如Firefox）中，你选用的API可能会发送一个错误响应，这表明不支持HTTPS加密，尽管请求的URL以_http://_ 开头。这个问题可以通过使用Chrome完成练习来解决。</p>
+<!-- **NB:** You need an api-key to use almost every weather service. Do not save the api-key to source control! Nor hardcode the api-key to your source code. Instead use an [environment variable](https://vitejs.dev/guide/env-and-mode.html) to save the key in this exercise. In real-life applications, it's considered insecure sending these keys directly from the browser, as anyone who can open the dev console would be able to intercept your keys! We will focus on implementing a separate backend in the next part of the course. -->
+<p>**注意：**几乎所有的气象服务都需要你有api密钥才能使用。不要把api密钥保存到源代码管理（如git）中！也不要在你的源代码中硬编码api密钥。而是用<a href="https://vitejs.dev/guide/env-and-mode.html">环境变量</a>来保存这道练习中使用的密钥。在实际的应用中，直接在浏览器中发送这些密钥是不安全的，因为任何能打开开发者控制台的人都可以窃取你的密钥！我们将在课程的下一章节集中实现独立的后端。</p>
+<!-- Assuming the api-key is <i>54l41n3n4v41m34rv0</i>, when the application is started like so: -->
+<p>假设api密钥是<i>54l41n3n4v41m34rv0</i>，这么启动应用后：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">export</span><span style="color: #F8F8F2"> VITE_SOME_KEY</span><span style="color: #FF4689">=</span>54l41n3n4v41m34rv0<span style="color: #F8F8F2"> </span><span style="color: #FF4689">&amp;&amp;</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>dev<span style="color: #F8F8F2"> </span>//<span style="color: #F8F8F2"> </span>For<span style="color: #F8F8F2"> </span>Linux/macOS<span style="color: #F8F8F2"> </span>Bash
+<span style="color: #FF4689">(</span><span style="color: #F8F8F2">$env</span>:VITE_SOME_KEY<span style="color: #FF4689">=</span><span style="color: #E6DB74">"54l41n3n4v41m34rv0"</span><span style="color: #FF4689">)</span><span style="color: #F8F8F2"> </span>-and<span style="color: #F8F8F2"> </span><span style="color: #FF4689">(</span>npm<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>dev<span style="color: #FF4689">)</span><span style="color: #F8F8F2"> </span>//<span style="color: #F8F8F2"> </span>For<span style="color: #F8F8F2"> </span>Windows<span style="color: #F8F8F2"> </span>PowerShell
+<span style="color: #A6E22E">set</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">"VITE_SOME_KEY=54l41n3n4v41m34rv0"</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&amp;&amp;</span><span style="color: #F8F8F2"> </span>npm<span style="color: #F8F8F2"> </span>run<span style="color: #F8F8F2"> </span>dev<span style="color: #F8F8F2"> </span>//<span style="color: #F8F8F2"> </span>For<span style="color: #F8F8F2"> </span>Windows<span style="color: #F8F8F2"> </span>cmd.exe
+</code></pre></div>
+
+<!-- you can access the value of the key from the _import.meta.env_ object: -->
+<p>你就可以通过_import.meta.env_对象来访问密钥的值：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">api_key</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">import</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">meta</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">env</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">VITE_SOME_KEY</span>
+<span style="color: #959077">// variable api_key now has the value set in startup</span>
+</code></pre></div>
+
+<!-- **NB:** To prevent accidentally leaking environment variables to the client, only variables prefixed with VITE_ are exposed to Vite. -->
+<p>**注意：**为了防止环境变量意外泄露到客户端，只有以VITE_开头的变量才对Vite可见。</p>
+<!-- Also remember that if you make changes to environment variables, you need to restart the development server for the changes to take effect. -->
+<p>同时记得如果你更改了环境变量，你需要重启开发服务端来使更改生效。</p>
+<!-- This was the last exercise of this part of the course. It's time to push your code to GitHub and mark all of your finished exercises to the [exercise submission system](https://studies.cs.helsinki.fi/stats/courses/fullstackopen).-->
+<p>这是课程中这一章节的最后一道练习。是时候把你的代码推送到GitHub，并在<a href="https://studies.cs.helsinki.fi/stats/courses/fullstackopen">练习上交系统</a>中标记你所有完成的练习了。</p>
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b1" href="13_part2d_REST.html">← 上一篇</a><a class="badge b1" href="15_part3_部分_3_概览_用_NodeJS_和_Expre.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>

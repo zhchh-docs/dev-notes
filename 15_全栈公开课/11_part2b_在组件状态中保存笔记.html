@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 2 在组件状态中保存笔记｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b1">🌱 阶段一 · 打地基</span>
+      <span class="badge b2">Part 2 · 与服务端通信</span>
+      <span>第 11 篇</span>
+    </div>
+    <h1>在组件状态中保存笔记</h1>
+    <div class="meta"><span>✏️ 练习：2.6.~2.10</span><span>⏱ 约 24 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part2/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-2.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">在组件状态中保存笔记</a><a class="l3" href="#sec-2">受控组件</a><a class="l3" href="#sec-3">筛选展示的元素</a></nav>
+  <main class="fso-body">
+<div class="content">
+<!-- Let's continue expanding our application by allowing users to add new notes. You can find the code for our current application [here](https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-1). -->
+<p>让我们继续扩展我们的应用，允许用户添加新的笔记。你可以在<a href="https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-1">这里</a>找到我们当前应用的代码。</p>
+<!-- ### Saving the notes in the component state -->
+<h3 id="sec-1">在组件状态中保存笔记</h3>
+<!-- To get our page to update when new notes are added it's best to store the notes in the <i>App</i> component's state. Let's import the [useState](https://react.dev/reference/react/useState) function and use it to define a piece of state that gets initialized with the initial notes array passed in the props. -->
+<p>为了让我们的页面在添加新的笔记时得到更新，最好将笔记存储在<i>App</i>组件的状态中。让我们导入<a href="https://react.dev/reference/react/useState">useState</a>函数，用它来定义一个状态片段，并将其初始化为props传递的初始笔记数组。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Note'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; { </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        )}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span>
+</code></pre></div>
+
+<!-- The component uses the <em>useState</em> function to initialize the piece of state stored in <em>notes</em> with the array of notes passed in the props:-->
+<p>组件使用<em>useState</em>函数来将存储在<em>notes</em>中的状态片段初始化为props传递的笔记数组：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- We can also use React Developer Tools to see that this really happens: -->
+<p>我们还可以用React开发者工具看到事实确实如此：</p>
+<p><img alt="browser showing dev react tools window" src="../docs/images/2/30.png"></p>
+<!-- If we wanted to start with an empty list of notes, we would set the initial value as an empty array, and since the props would not be used, we could omit the <em>props</em> parameter from the function definition:-->
+<p>如果我们想从一个空的笔记列表开始，我们会把初始值设置为一个空的数组，这样props就用不到了，于是我们可以从函数定义中省略<em>props</em>参数：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">([])</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Let's stick with the initial value passed in the props for the time being.-->
+<p>让我们先继续使用props中传递的初始值。</p>
+<!-- Next, let's add an HTML [form](https://developer.mozilla.org/en-US/docs/Learn/HTML/Forms) to the component that will be used for adding new notes.-->
+<p>接下来，让我们在组件中添加一个HTML<a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/Forms">表单</a>，用来添加新的笔记。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'button clicked'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        )}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">save</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// highlight-end</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- We have added the _addNote_ function as an event handler to the form element that will be called when the form is submitted, by clicking the submit button.-->
+<p>我们将_addNote_函数作为事件处理函数添加到表单元素中，当点击提交按钮时，就会提交表单，同时调用该函数。</p>
+<!-- We use the method discussed in [part 1](https://fullstackopen.com/en/part1/component_state_event_handlers#event-handling) for defining our event handler:-->
+<p>我们使用在<a href="https://fullstackopen.com/zh/part1/组件状态，事件处理#事件处理">第1章节</a>中讨论的方法来定义我们的事件处理函数：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'button clicked'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The <em>event</em> parameter is the [event](https://react.dev/learn/responding-to-events) that triggers the call to the event handler function: -->
+<p><em>event</em>参数是触发调用事件处理函数的<a href="https://react.dev/learn/responding-to-events">事件</a>。</p>
+<!-- The event handler immediately calls the <em>event.preventDefault()</em> method, which prevents the default action of submitting a form. The default action would, [among other things](https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event), cause the page to reload.-->
+<p>事件处理函数立即调用<em>event.preventDefault()</em>方法，防止提交表单的默认动作。默认动作会导致页面重新加载，<a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event">以及其他一些事情</a>。</p>
+<!-- The target of the event stored in _event.target_ is logged to the console:-->
+<p>存储在_event.target_中的事件目标被记录到控制台。</p>
+<p><img alt="" src="../docs/images/2/6e.png"></p>
+<!-- The target in this case is the form that we have defined in our component.-->
+<p>本例中的目标是我们在组件中定义的表单。</p>
+<!-- How do we access the data contained in the form's <i>input</i> element?-->
+<p>那么我们如何访问表单的<i>input</i>元素中包含的数据呢？</p>
+<!-- ### Controlled component -->
+<h3 id="sec-2">受控组件</h3>
+<!-- There are many ways to accomplish this; the first method we will take a look at is through the use of so-called [controlled components](https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable). -->
+<p>可以通过很多方法；我们要看的第一个方法是通过使用所谓的<a href="https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable">受控组件</a>。</p>
+<!-- Let's add a new piece of state called <em>newNote</em> for storing the user-submitted input **and** let's set it as the <i>input</i> element's <i>value</i> attribute:-->
+<p>让我们添加一个用来存储用户提交输入的新状态片段，叫做<em>newNote</em>，<strong>然后</strong>让我们把它设为<i>input</i>元素的<i>value</i>属性：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">'a new note...'</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'button clicked'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        )}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span><span style="color: #F8F8F2"> </span><span style="color: #959077">//highlight-line</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">save</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The placeholder text stored as the initial value of the <em>newNote</em> state appears in the <i>input</i> element, but the input text can't be edited. The console displays a warning that gives us a clue as to what might be wrong:-->
+<p>存储为<em>newNote</em>状态初始值的占位符文本出现在了<i>input</i>元素中，但输入框中的文本不能编辑。控制台显示了一个警告，提示了我们哪里可能出错：</p>
+<p><img alt="" src="../docs/images/2/7e.png"></p>
+<!-- Since we assigned a piece of the <i>App</i> component's state as the <i>value</i> attribute of the input element, the <i>App</i> component now [controls](https://reactjs.org/docs/forms.html#controlled-components) the behavior of the input element.-->
+<p>因为我们将<i>App</i>组件的一个状态片段赋值给input元素的<i>value</i>属性，<i>App</i>组件现在<a href="https://reactjs.org/docs/forms.html#controlled-components">控制</a>了input元素的行为。</p>
+<!-- In order to enable editing of the input element, we have to register an <i>event handler</i> that synchronizes the changes made to the input with the component's state:-->
+<p>为了实现对输入框元素的编辑，我们必须注册一个<i>事件处理函数</i>来将输入框的发生变化同步到组件的状态：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #E6DB74">'a new note...'</span>
+<span style="color: #F8F8F2">  )</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">handleNoteChange</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        )}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">handleNoteChange</span><span style="color: #F8F8F2">} </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">save</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- We have now registered an event handler to the <i>onChange</i> attribute of the form's <i>input</i> element:-->
+<p>我们现在已经为表单的<i>input</i>元素的<i>onChange</i>属性注册了一个事件处理函数：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">value</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">handleNoteChange</span><span style="color: #F8F8F2">}</span>
+<span style="color: #ED007E; background-color: #1E0010">/&gt;</span>
+</code></pre></div>
+
+<!-- The event handler is called every time <i>a change occurs in the input element</i>. The event handler function receives the event object as its <em>event</em> parameter:-->
+<p>每当<i>input元素发生变化时</i>都会调用事件处理函数。事件处理函数接收事件对象作为其<em>event</em>参数：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">handleNoteChange</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The <em>target</em> property of the event object now corresponds to the controlled <i>input</i> element, and <em>event.target.value</em> refers to the input value of that element.-->
+<p>事件对象的<em>target</em>属性现在对应于被控制的<i>input</i>元素，而<em>event.target.value</em>指的是该元素的输入值。</p>
+<!-- Note that we did not need to call the _event.preventDefault()_ method like we did in the <i>onSubmit</i> event handler. This is because there is no default action that occurs on an input change, unlike on a form submission.-->
+<p>注意我们不需要像在<i>onSubmit</i>的事件处理函数中那样调用_event.preventDefault()_方法。这是因为在输入框变化时没有默认动作，这与提交表单时不同。</p>
+<!-- You can follow along in the console to see how the event handler is called:-->
+<p>你可以盯着控制台，看看事件处理函数是如何被调用的：</p>
+<p><img alt="" src="../docs/images/2/8e.png"></p>
+<!-- You did remember to install [React devtools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi), right? Good. You can directly view how the state changes from the React Devtools tab:-->
+<p>记得安装<a href="https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi">React devtools</a>了吧？很好。你可以直接在React Devtools标签页中查看状态是如何变化的。</p>
+<p><img alt="" src="../docs/images/2/9ea.png"></p>
+<!-- Now the <i>App</i> component's <em>newNote</em> state reflects the current value of the input, which means that we can complete the <em>addNote</em> function for creating new notes:-->
+<p>现在<i>App</i>组件的<em>newNote</em>状态反映了输入框的当前值，这意味着我们可以完成创建新笔记的<em>addNote</em>功能了：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteObject</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Math</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">random</span><span style="color: #F8F8F2">() </span><span style="color: #FF4689">&lt;</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">0.5</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">String</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">length</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">+</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">),</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">concat</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">noteObject</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- First, we create a new object for the note called <em>noteObject</em> that will receive its content from the component's <em>newNote</em> state. The unique identifier <i>id</i> is generated based on the total number of notes. This method works for our application since notes are never deleted. With the help of the <em>Math.random()</em> function, our note has a 50% chance of being marked as important. -->
+<p>首先，我们为笔记创建一个新对象<em>noteObject</em>，它将从组件的<em>newNote</em>状态接收其内容。唯一标识符<i>id</i>是根据笔记的总数生成的。这种方法适用于我们的应用，因为笔记永远不会被删除。在<em>Math.random()</em>函数的帮助下，我们的笔记有50%的几率被标记为重要的。</p>
+<!-- The new note is added to the list of notes using the [concat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/concat) array method, introduced in [part 1](https://fullstackopen.com/en/part1/java_script#arrays):-->
+<p>新笔记通过<a href="https://fullstackopen.com/zh/part1/java_script#数组">第1章节</a>中介绍过的<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/concat">concat</a>数组方法添加到笔记列表中：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">concat</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">noteObject</span><span style="color: #F8F8F2">))</span>
+</code></pre></div>
+
+<!-- The method does not mutate the original <em>notes</em> array, but rather creates <i>a new copy of the array with the new item added to the end</i>. This is important since we must [never mutate state directly](https://react.dev/learn/updating-objects-in-state#why-is-mutating-state-not-recommended-in-react) in React! -->
+<p>该方法并不改变原始的<em>notes</em>数组，而是创建<i>一个新的数组副本，将新项添加到最后</i>。这很重要，因为在React中我们必须<a href="https://react.dev/learn/updating-objects-in-state#why-is-mutating-state-not-recommended-in-react">永远不要直接改变状态</a>！</p>
+<!-- The event handler also resets the value of the controlled input element by calling the <em>setNewNote</em> function of the <em>newNote</em> state:-->
+<p>事件处理函数也通过调用<em>newNote</em>状态的<em>setNewNote</em>函数来重置受控input元素的值：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- You can find the code for our current application in its entirety in the <i>part2-2</i> branch of [this GitHub repository](https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-2). -->
+<p>你可以在<a href="https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-2">这个GitHub仓库</a>的<i>part2-2</i>分支中找到我们当前应用的全部代码。</p>
+<!-- ### Filtering Displayed Elements -->
+<h3 id="sec-3">筛选展示的元素</h3>
+<!-- Let's add some new functionality to our application that allows us to only view the important notes.-->
+<p>让我们为我们的应用添加一些新功能，让我们可以选择只查看重要的笔记。</p>
+<!-- Let's add a piece of state to the <i>App</i> component that keeps track of which notes should be displayed:-->
+<p>让我们向<i>App</i>组件中添加一个状态片段来跟踪哪些笔记应该被显示：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Let's change the component so that it stores a list of all the notes to be displayed in the <em>notesToShow</em> variable. The items of the list depend on the state of the component:-->
+<p>让我们改变这个组件，让它在<em>notesToShow</em>变量中存储一个要显示的所有笔记的列表。列表的内容取决于组件的状态：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Note'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">showAll</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">)</span>
+<span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        )}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The definition of the <em>notesToShow</em> variable is rather compact:-->
+<p><em>notesToShow</em>变量的定义相当紧凑：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">showAll</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- The definition uses the [conditional](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Conditional_Operator) operator also found in many other programming languages.-->
+<p>该定义使用了<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Conditional_Operator">条件</a>运算符，在许多其他编程语言中也有。</p>
+<!-- The operator functions as follows. If we have:-->
+<p>该运算符的功能如下。如果我们有：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">result</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">condition</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">val1</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">val2</span>
+</code></pre></div>
+
+<!-- the <em>result</em> variable will be set to the value of <em>val1</em> if <em>condition</em> is true. If <em>condition</em> is false, the <em>result</em> variable will be set to the value of<em>val2</em>.-->
+<p>如果<em>condition</em>为true，<em>result</em>变量将被设为<em>val1</em>的值。如果<em>condition</em>为false，<em>result</em>变量将被设为<em>val2</em>的值。</p>
+<!-- If the value of <em>showAll</em> is false, the <em>notesToShow</em> variable will be assigned to a list that only contains notes that have the <em>important</em> property set to true. Filtering is done with the help of the array [filter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter) method:-->
+<p>如果<em>showAll</em>的值为false，<em>notesToShow</em>变量将被赋值为一个只包含<em>important</em>属性为true的笔记的列表。筛选的过程是借助数组方法<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter">filter</a>完成的：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- The comparison operator is in fact redundant, since the value of <em>note.important</em> is either <i>true</i> or <i>false</i>, which means that we can simply write:-->
+<p>比较运算符实际上是多余的，因为<em>note.important</em>的值不是<i>true</i>就是<i>false</i>，这意味着我们可以简写成：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- We showed the comparison operator first to emphasize an important detail: in JavaScript <em>val1 == val2</em> does not always work as expected. When performing comparisons, it's therefore safer to exclusively use <em>val1 === val2</em>. You can read more about the topic [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Equality_comparisons_and_sameness). -->
+<p>我们之所以先展示比较运算符，是为了强调一个重要的细节：在JavaScript中，<em>val1 == val2</em>并不是在所有情况下都与预期一样。因此，只用<em>val1 === val2</em>进行比较会更安全。你可以在<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Equality_comparisons_and_sameness">这里</a>阅读更多关于这个主题的内容。</p>
+<!-- You can test out the filtering functionality by changing the initial value of the <em>showAll</em> state.-->
+<p>你可以通过改变<em>showAll</em>状态的初始值来测试筛选的功能。</p>
+<!-- Next, let's add functionality that enables users to toggle the <em>showAll</em> state of the application from the user interface.-->
+<p>接下来，让我们添加让用户能够从用户界面上切换应用的<em>showAll</em>状态的功能。</p>
+<!-- The relevant changes are shown below:-->
+<p>相关的改变如下：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Note'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNotes</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewNote</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h1</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Notes</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h1&gt;</span>
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">(</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">)}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">show</span><span style="color: #F8F8F2"> {</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'important'</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'all'</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #959077">// highlight-end</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        {</span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">} </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        )}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The displayed notes (all versus important) are controlled with a button. The event handler for the button is so simple that it has been defined directly in the attribute of the button element. The event handler switches the value of _showAll_ from true to false and vice versa:-->
+<p>显示的笔记（所有的或者重要的）是用一个按钮控制的。这个按钮的事件处理函数非常简单，所以就直接在按钮元素的属性中定义了。该事件处理函数将_showAll_的值从true切换到false，或者反过来，从false切换回true。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">() =&gt; </span><span style="color: #A6E22E">setShowAll</span><span style="color: #F8F8F2">(</span><span style="color: #FF4689">!</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- The text of the button depends on the value of the <em>showAll</em> state:-->
+<p>按钮的文本取决于<em>showAll</em>状态的值：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">show</span><span style="color: #F8F8F2"> {</span><span style="color: #A6E22E">showAll</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'important'</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'all'</span><span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- You can find the code for our current application in its entirety in the <i>part2-3</i> branch of [this GitHub repository](https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-3). -->
+<p>你可以在<a href="https://github.com/fullstack-hy2020/part2-notes-frontend/tree/part2-3">这个GitHub仓库</a>的<i>part2-3</i>分支中找到我们当前应用的全部代码。</p>
+</div>
+<div class="tasks">
+<!-- <h3>Exercises 2.6.-2.10.</h3> -->
+<h3>练习 2.6.~2.10.</h3>
+<!-- In the first exercise, we will start working on an application that will be further developed in the later exercises. In related sets of exercises it is sufficient to return the final version of your application. You may also make a separate commit after you have finished each part of the exercise set, but doing so is not required.-->
+<p>在第一道练习中，我们将开始一个将在后面的练习中进一步开发的应用。在相关的练习集中，只要上交你应用的最终版本即可。你也可以在完成练习集的每一部分后就在git中提交一次，但不强求。</p>
+<!-- <h4>2.6: The Phonebook Step1</h4> -->
+<h4>2.6：电话簿 第1步</h4>
+<!-- Let's create a simple phonebook. <i>**In this part we will only be adding names to the phonebook.**</i>-->
+<p>我们来创建一个简单的电话簿。<i><strong>在这一部分，我们只会向电话簿中添加名字。</strong></i></p>
+<!-- Let us start by implementing the addition of a person to phonebook.-->
+<p>让我们从实现在电话簿中添加人的功能开始。</p>
+<!-- You can use the code below as a starting point for the <i>App</i> component of your application:-->
+<p>你可以用下面的代码作为你应用的<i>App</i>组件的起点：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">persons</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setPersons</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">([</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Arto Hellas'</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">  ])</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">newName</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setNewName</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">''</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h2</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Phonebook</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h2&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">add</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h2</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Numbers</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h2&gt;</span>
+<span style="color: #F8F8F2">      ...</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span>
+</code></pre></div>
+
+<!-- The <em>newName</em> state is meant for controlling the form input element.-->
+<p><em>newName</em>状态是用来控制表单的input元素的。</p>
+<!-- Sometimes it can be useful to render state and other variables as text for debugging purposes. You can temporarily add the following element to the rendered component:-->
+<p>有时为了调试的目的，把状态和其他变量渲染成文本是很有用的。你可以暂时在渲染的组件中加入以下元素：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">&lt;</span><span style="color: #FF4689">div</span><span style="color: #F8F8F2">&gt;</span>debug: {newName}<span style="color: #F8F8F2">&lt;/</span><span style="color: #FF4689">div</span><span style="color: #F8F8F2">&gt;</span>
+</code></pre></div>
+
+<!-- It's also important to put what we learned in the [debugging React applications](https://fullstackopen.com/en/part1/a_more_complex_state_debugging_react_apps) chapter of part one into good use. The [React developer tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi) extension is <i>incredibly</i> useful for tracking changes that occur in the application's state. -->
+<p>好好利用我们在第一章节<a href="https://fullstackopen.com/zh/part1/复杂状态，调试_react应用">调试React应用</a>一章中学到的东西也很重要。<a href="https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi">React开发者工具</a>扩展对于跟踪应用的状态变化<i>非常</i>有用。</p>
+<!-- After finishing this exercise your application should look something like this:-->
+<p>在完成这道练习后，你的应用应该如下所示：</p>
+<p><img alt="" src="../docs/images/2/10e.png"></p>
+<!-- Note the use of the React developer tools extension in the picture above!-->
+<p>注意上图中React开发者工具扩展的使用！</p>
+<!-- **NB:**-->
+<p><strong>注意：</strong></p>
+<!-- - you can use the person's name as value of the <i>key</i> property-->
+<ul>
+<li>你可以用人的名字作为<i>key</i>属性的值</li>
+</ul>
+<!-- - remember to prevent the default action of submitting HTML forms!-->
+<ul>
+<li>记得防止提交HTML表单的默认动作！</li>
+</ul>
+<!-- <h4>2.7: The Phonebook Step 2</h4> -->
+<h4>2.7：电话簿 第2步</h4>
+<!-- Prevent the user from being able to add names that already exist in the phonebook. JavaScript arrays have numerous suitable [methods](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) for accomplishing this task. Keep in mind [how object equality works](https://www.joshbritz.co/posts/why-its-so-hard-to-check-object-equality/) in Javascript.-->
+<p>防止用户添加已经存在于电话簿中的名字。JavaScript数组有许多合适的<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array">方法</a>来完成这个任务。记住在Javascript中<a href="https://www.joshbritz.co/posts/why-its-so-hard-to-check-object-equality/">是怎么比较对象是否相等的</a>。</p>
+<!-- Issue a warning with the [alert](https://developer.mozilla.org/en-US/docs/Web/API/Window/alert) command when such an action is attempted:-->
+<p>当用户试图向电话簿中添加已存在的名字时，用<a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/alert">alert</a>命令发出警告：</p>
+<p><img alt="" src="../docs/images/2/11e.png"></p>
+<!-- **Hint:** when you are forming strings that contain values from variables, it is recommended to use a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals):-->
+<p>**提示：**当你在构建包含变量值的字符串时，建议使用<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals">模板字符串</a>：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6DB74">`${</span><span style="color: #A6E22E">newName</span><span style="color: #E6DB74">} is already added to phonebook`</span>
+</code></pre></div>
+
+<!-- If the <em>newName</em> variable holds the value <i>Arto Hellas</i>, the template string expression returns the string-->
+<p>如果<em>newName</em>变量的值是<i>Arto Hellas</i>，模板字符串表达式返回字符串</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #E6DB74">`Arto Hellas is already added to phonebook`</span>
+</code></pre></div>
+
+<!-- The same could be done in a more Java-like fashion by using the plus operator:-->
+<p>同样的事也可以用更像Java的方式通过加号运算符完成：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">newName</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">+</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">' is already added to phonebook'</span>
+</code></pre></div>
+
+<!-- Using template strings is the more idiomatic option and the sign of a true JavaScript professional.-->
+<p>使用模板字符串是更符合语言习惯的选择，也是真正的JavaScript专家的标志。</p>
+<!-- <h4>2.8: The Phonebook Step 3</h4> -->
+<h4>2.8：电话簿 第3步</h4>
+<!-- Expand your application by allowing users to add phone numbers to the phone book. You will need to add a second <i>input</i> element to the form (along with its own event handler):-->
+<p>扩展你的应用，允许用户向电话簿中添加电话号码。你需要在表单中添加第二个<i>input</i>元素（以及它自己的事件处理函数）：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">number</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">add</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;&lt;/div&gt;</span>
+<span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+</code></pre></div>
+
+<!-- At this point the application could look something like this. The image also displays the application's state with the help of [React developer tools](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi):-->
+<p>现在该应用可能如下所示。图片中还借助<a href="https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi">React开发者工具</a>显示了应用的状态：</p>
+<p><img alt="" src="../docs/images/2/12e.png"></p>
+<!-- <h4>2.9*: The Phonebook Step 4</h4> -->
+<h4>2.9*：电话簿 第4步</h4>
+<!-- Implement a search field that can be used to filter the list of people by name:-->
+<p>实现一个搜索字段，可以用来按名字筛选人的列表：</p>
+<p><img alt="" src="../docs/images/2/13e.png"></p>
+<!-- You can implement the search field as an <i>input</i> element that is placed outside the HTML form. The filtering logic shown in the image is <i>case insensitive</i>, meaning that the search term <i>arto</i> also returns results that contain Arto with an uppercase A.-->
+<p>你可以将搜索字段实现为一个<i>input</i>元素，放在HTML表单之外。图片中显示筛选的逻辑是<i>大小写不敏感的</i>，意味着搜索<i>arto</i>也会返回包含大写A的Arto的结果。</p>
+<!-- **NB:** When you are working on new functionality, it's often useful to "hardcode" some dummy data into your application, e.g.-->
+<p>**注意：**当你开发新的功能时，在你的应用中“硬编码”一些样本数据往往是有用的，例如：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> [</span><span style="color: #A6E22E">persons</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">setPersons</span><span style="color: #F8F8F2">] </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useState</span><span style="color: #F8F8F2">([</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Arto Hellas'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">number</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'040-123456'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2"> },</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Ada Lovelace'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">number</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'39-44-5323523'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2"> },</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Dan Abramov'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">number</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'12-43-234345'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">3</span><span style="color: #F8F8F2"> },</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Mary Poppendieck'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">number</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'39-23-6423122'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">4</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">  ])</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- This saves you from having to manually input data into your application for testing out your new functionality.-->
+<p>这可以使你在测试新功能时不必手动将数据输入到你的应用中。</p>
+<!-- <h4>2.10: The Phonebook Step 5</h4> -->
+<h4>2.10：电话簿 第5步</h4>
+<!-- If you have implemented your application in a single component, refactor it by extracting suitable parts into new components. Maintain the application's state and all event handlers in the <i>App</i> root component.-->
+<p>如果你是在单个组件中实现你的应用的，通过提取合适部分到新的组件中来重构应用。在<i>App</i>根组件中维护应用的状态和所有事件处理函数。</p>
+<!-- It is sufficient to extract <i>**three**</i> components from the application. Good candidates for separate components are, for example, the search filter, the form for adding new people into the phonebook, a component that renders all people from the phonebook, and a component that renders a single person's details.-->
+<p>从应用中提取<i><strong>三个</strong></i>组件即可。提取这些组件都是不错的选择，例如，搜索筛选器、向电话簿添加新人的表单、显示电话簿中所有人的组件，以及显示一个人详细资料的组件。</p>
+<!-- The application's root component could look similar to this after the refactoring. The refactored root component below only renders titles and lets the extracted components take care of the rest.-->
+<p>在重构之后，应用的根组件可能看起来类似下面。下面这个重构后的根组件只渲染标题，其余的部分则让提取的组件来处理。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h2</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Phonebook</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h2&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Filter</span><span style="color: #F8F8F2"> ... </span><span style="color: #FF4689">/&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h3</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Add</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">a</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">new&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h3&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">PersonForm</span>
+<span style="color: #F8F8F2">        ...</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">/&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">h3</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">Numbers</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/h3&gt;</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Persons</span><span style="color: #F8F8F2"> ... </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- **NB**: You might run into problems in this exercise if you define your components "in the wrong place". Now would be a good time to rehearse the chapter [do not define a component in another component](https://fullstackopen.com/en/part1/a_more_complex_state_debugging_react_apps#do-not-define-components-within-components) from the last part. -->
+<p><strong>注意</strong>：如果你在“错误的地方”定义你的组件，你就可能会在这道练习中遇到问题。现在是实践一下上一章节的<a href="https://fullstackopen.com/zh/part1/复杂状态，调试_react应用#不要在组件中定义组件">不要在组件中定义组件</a>章节的好时机。</p>
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b1" href="10_part2a_console_log.html">← 上一篇</a><a class="badge b1" href="12_part2c_浏览器作为运行环境.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1529,6 +1529,460 @@ window.KB_MANIFEST = {
       "order": 11
     },
     {
+      "key": "15_全栈公开课",
+      "group": "tutorial",
+      "name": "全栈公开课",
+      "icon": "🎓",
+      "desc": "赫尔辛基大学 Full Stack Open 中文版 · React / Node / GraphQL / TS 循序渐进全栈实战",
+      "arts": [
+        {
+          "t": "课程导览与学习路线",
+          "f": "00_课程导览与学习路线.html",
+          "u": "15_全栈公开课/00_课程导览与学习路线.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 0 部分 0 概览：Web 应用的基础设施",
+          "f": "01_part0_部分_0_概览_Web_应用的基础设施.html",
+          "u": "15_全栈公开课/01_part0_部分_0_概览_Web_应用的基础设施.html",
+          "d": "basic"
+        },
+        {
+          "t": "Part 0 Prerequisites",
+          "f": "02_part0a_Prerequisites.html",
+          "u": "15_全栈公开课/02_part0a_Prerequisites.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 0 HTTP GET",
+          "f": "03_part0b_HTTP_GET.html",
+          "u": "15_全栈公开课/03_part0b_HTTP_GET.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 1 部分 1 概览：React 入门",
+          "f": "04_part1_部分_1_概览_React_入门.html",
+          "u": "15_全栈公开课/04_part1_部分_1_概览_React_入门.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 1 组件",
+          "f": "05_part1a_组件.html",
+          "u": "15_全栈公开课/05_part1a_组件.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 1 变量",
+          "f": "06_part1b_变量.html",
+          "u": "15_全栈公开课/06_part1b_变量.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 1 组件的辅助函数",
+          "f": "07_part1c_组件的辅助函数.html",
+          "u": "15_全栈公开课/07_part1c_组件的辅助函数.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 1 复杂状态",
+          "f": "08_part1d_复杂状态.html",
+          "u": "15_全栈公开课/08_part1d_复杂状态.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 2 部分 2 概览：与服务端通信",
+          "f": "09_part2_部分_2_概览_与服务端通信.html",
+          "u": "15_全栈公开课/09_part2_部分_2_概览_与服务端通信.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 2 console.log",
+          "f": "10_part2a_console_log.html",
+          "u": "15_全栈公开课/10_part2a_console_log.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 2 在组件状态中保存笔记",
+          "f": "11_part2b_在组件状态中保存笔记.html",
+          "u": "15_全栈公开课/11_part2b_在组件状态中保存笔记.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 2 浏览器作为运行环境",
+          "f": "12_part2c_浏览器作为运行环境.html",
+          "u": "15_全栈公开课/12_part2c_浏览器作为运行环境.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 2 REST",
+          "f": "13_part2d_REST.html",
+          "u": "15_全栈公开课/13_part2d_REST.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 2 改进错误信息",
+          "f": "14_part2e_改进错误信息.html",
+          "u": "15_全栈公开课/14_part2e_改进错误信息.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 3 部分 3 概览：用 NodeJS 和 Express 写服务端程序",
+          "f": "15_part3_部分_3_概览_用_NodeJS_和_Expre.html",
+          "u": "15_全栈公开课/15_part3_部分_3_概览_用_NodeJS_和_Expre.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 3 简单的 web 服务端",
+          "f": "16_part3a_简单的_web_服务端.html",
+          "u": "15_全栈公开课/16_part3a_简单的_web_服务端.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 3 同源策略和 CORS",
+          "f": "17_part3b_同源策略和_CORS.html",
+          "u": "15_全栈公开课/17_part3b_同源策略和_CORS.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 3 调试 Node 程序",
+          "f": "18_part3c_调试_Node_程序.html",
+          "u": "15_全栈公开课/18_part3c_调试_Node_程序.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 3 将数据库后端部署到生产环境",
+          "f": "19_part3d_将数据库后端部署到生产环境.html",
+          "u": "15_全栈公开课/19_part3d_将数据库后端部署到生产环境.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 4 部分 4 概览：测试 Express 服务端程序，以及用户管理",
+          "f": "20_part4_部分_4_概览_测试_Express_服务端程序.html",
+          "u": "15_全栈公开课/20_part4_部分_4_概览_测试_Express_服务端程序.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 4 Project structure",
+          "f": "21_part4a_Project_structure.html",
+          "u": "15_全栈公开课/21_part4a_Project_structure.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 4 Test environment",
+          "f": "22_part4b_Test_environment.html",
+          "u": "15_全栈公开课/22_part4b_Test_environment.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 4 References across collections",
+          "f": "23_part4c_References_across_collec.html",
+          "u": "15_全栈公开课/23_part4c_References_across_collec.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 4 Limiting creating new notes to logged in users",
+          "f": "24_part4d_Limiting_creating_new_no.html",
+          "u": "15_全栈公开课/24_part4d_Limiting_creating_new_no.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 5 部分 5 概览：测试 React 应用",
+          "f": "25_part5_部分_5_概览_测试_React_应用.html",
+          "u": "15_全栈公开课/25_part5_部分_5_概览_测试_React_应用.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 5 Adding a Login Form",
+          "f": "26_part5a_Adding_a_Login_Form.html",
+          "u": "15_全栈公开课/26_part5a_Adding_a_Login_Form.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 5 Displaying the login form only when appropriate",
+          "f": "27_part5b_Displaying_the_login_for.html",
+          "u": "15_全栈公开课/27_part5b_Displaying_the_login_for.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 5 Rendering the component for tests",
+          "f": "28_part5c_Rendering_the_component_.html",
+          "u": "15_全栈公开课/28_part5c_Rendering_the_component_.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 5 Playwright",
+          "f": "29_part5d_Playwright.html",
+          "u": "15_全栈公开课/29_part5d_Playwright.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 5 Cypress",
+          "f": "30_part5e_Cypress.html",
+          "u": "15_全栈公开课/30_part5e_Cypress.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 6 部分 6 概览：利用 Redux 进行状态管理",
+          "f": "31_part6_部分_6_概览_利用_Redux_进行状态管理.html",
+          "u": "15_全栈公开课/31_part6_部分_6_概览_利用_Redux_进行状态管理.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 6 Flux-architecture",
+          "f": "32_part6a_Flux_architecture.html",
+          "u": "15_全栈公开课/32_part6a_Flux_architecture.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 6 Store with complex state",
+          "f": "33_part6b_Store_with_complex_state.html",
+          "u": "15_全栈公开课/33_part6b_Store_with_complex_state.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 6 Exercises 6.13.-6.14.",
+          "f": "34_part6c_Exercises_6_13_6_14.html",
+          "u": "15_全栈公开课/34_part6c_Exercises_6_13_6_14.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 6 Managing data on the server with the React Query library",
+          "f": "35_part6d_Managing_data_on_the_ser.html",
+          "u": "15_全栈公开课/35_part6d_Managing_data_on_the_ser.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 6 Using the connect-function to share the redux store to components",
+          "f": "36_part6e_Using_the_connect_functi.html",
+          "u": "15_全栈公开课/36_part6e_Using_the_connect_functi.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 部分 7 概览：React router、自定义 hook、CSS 和 webpack 样式",
+          "f": "37_part7_部分_7_概览_React_router_自定义.html",
+          "u": "15_全栈公开课/37_part7_部分_7_概览_React_router_自定义.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 Application navigation structure",
+          "f": "38_part7a_Application_navigation_s.html",
+          "u": "15_全栈公开课/38_part7a_Application_navigation_s.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 Hooks",
+          "f": "39_part7b_Hooks.html",
+          "u": "15_全栈公开课/39_part7b_Hooks.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 Ready-made UI libraries",
+          "f": "40_part7c_Ready_made_UI_libraries.html",
+          "u": "15_全栈公开课/40_part7c_Ready_made_UI_libraries.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 Bundling",
+          "f": "41_part7d_Bundling.html",
+          "u": "15_全栈公开课/41_part7d_Bundling.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 Class Components",
+          "f": "42_part7e_Class_Components.html",
+          "u": "15_全栈公开课/42_part7e_Class_Components.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 7 Exercises 7.9.-7.21.",
+          "f": "43_part7f_Exercises_7_9_7_21.html",
+          "u": "15_全栈公开课/43_part7f_Exercises_7_9_7_21.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 8 部分 8 概览：GraphQL",
+          "f": "44_part8_部分_8_概览_GraphQL.html",
+          "u": "15_全栈公开课/44_part8_部分_8_概览_GraphQL.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 8 Schemas and queries",
+          "f": "45_part8a_Schemas_and_queries.html",
+          "u": "15_全栈公开课/45_part8a_Schemas_and_queries.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 8 Apollo client",
+          "f": "46_part8b_Apollo_client.html",
+          "u": "15_全栈公开课/46_part8b_Apollo_client.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 8 Mongoose and Apollo",
+          "f": "47_part8c_Mongoose_and_Apollo.html",
+          "u": "15_全栈公开课/47_part8c_Mongoose_and_Apollo.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 8 User login",
+          "f": "48_part8d_User_login.html",
+          "u": "15_全栈公开课/48_part8d_User_login.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 8 Fragments",
+          "f": "49_part8e_Fragments.html",
+          "u": "15_全栈公开课/49_part8e_Fragments.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 9 部分 9 概览：TypeScript",
+          "f": "50_part9_部分_9_概览_TypeScript.html",
+          "u": "15_全栈公开课/50_part9_部分_9_概览_TypeScript.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 9 Main principle",
+          "f": "51_part9a_Main_principle.html",
+          "u": "15_全栈公开课/51_part9a_Main_principle.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 9 Setting things up",
+          "f": "52_part9b_Setting_things_up.html",
+          "u": "15_全栈公开课/52_part9b_Setting_things_up.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 9 Setting up the project",
+          "f": "53_part9c_Setting_up_the_project.html",
+          "u": "15_全栈公开课/53_part9c_Setting_up_the_project.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 9 Create React App with TypeScript",
+          "f": "54_part9d_Create_React_App_with_Ty.html",
+          "u": "15_全栈公开课/54_part9d_Create_React_App_with_Ty.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 10 部分 10 概览：React Native",
+          "f": "55_part10_部分_10_概览_React_Native.html",
+          "u": "15_全栈公开课/55_part10_部分_10_概览_React_Native.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 10 About this part",
+          "f": "56_part10a_About_this_part.html",
+          "u": "15_全栈公开课/56_part10a_About_this_part.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 10 Core components",
+          "f": "57_part10b_Core_components.html",
+          "u": "15_全栈公开课/57_part10b_Core_components.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 10 HTTP requests",
+          "f": "58_part10c_HTTP_requests.html",
+          "u": "15_全栈公开课/58_part10c_HTTP_requests.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 10 Testing React Native applications",
+          "f": "59_part10d_Testing_React_Native_app.html",
+          "u": "15_全栈公开课/59_part10d_Testing_React_Native_app.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 11 部分 11 概览：CI/CD",
+          "f": "60_part11_部分_11_概览_CI_CD.html",
+          "u": "15_全栈公开课/60_part11_部分_11_概览_CI_CD.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 11 Getting software to production",
+          "f": "61_part11a_Getting_software_to_prod.html",
+          "u": "15_全栈公开课/61_part11a_Getting_software_to_prod.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 11 Basic needs",
+          "f": "62_part11b_Basic_needs.html",
+          "u": "15_全栈公开课/62_part11b_Basic_needs.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 11 Anything that can go wrong...",
+          "f": "63_part11c_Anything_that_can_go_wro.html",
+          "u": "15_全栈公开课/63_part11c_Anything_that_can_go_wro.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 11 Working with Pull Requests",
+          "f": "64_part11d_Working_with_Pull_Reques.html",
+          "u": "15_全栈公开课/64_part11d_Working_with_Pull_Reques.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 11 Visibility and Understanding",
+          "f": "65_part11e_Visibility_and_Understan.html",
+          "u": "15_全栈公开课/65_part11e_Visibility_and_Understan.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 12 部分 12 概览：容器",
+          "f": "66_part12_部分_12_概览_容器.html",
+          "u": "15_全栈公开课/66_part12_部分_12_概览_容器.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 12 About this part",
+          "f": "67_part12a_About_this_part.html",
+          "u": "15_全栈公开课/67_part12a_About_this_part.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 12 Dockerfile",
+          "f": "68_part12b_Dockerfile.html",
+          "u": "15_全栈公开课/68_part12b_Dockerfile.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 12 React in container",
+          "f": "69_part12c_React_in_container.html",
+          "u": "15_全栈公开课/69_part12c_React_in_container.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 13 部分 13 概览：使用关系型数据库",
+          "f": "70_part13_部分_13_概览_使用关系型数据库.html",
+          "u": "15_全栈公开课/70_part13_部分_13_概览_使用关系型数据库.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 13 Advantages and disadvantages of document databases",
+          "f": "71_part13a_Advantages_and_disadvant.html",
+          "u": "15_全栈公开课/71_part13a_Advantages_and_disadvant.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 13 Application structuring",
+          "f": "72_part13b_Application_structuring.html",
+          "u": "15_全栈公开课/72_part13b_Application_structuring.html",
+          "d": "std"
+        },
+        {
+          "t": "Part 13 Migrations",
+          "f": "73_part13c_Migrations.html",
+          "u": "15_全栈公开课/73_part13c_Migrations.html",
+          "d": "std"
+        }
+      ],
+      "order": 12
+    },
+    {
       "key": "01_前端基础",
       "group": "fe",
       "name": "前端基础",
@@ -1620,7 +2074,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 12
+      "order": 13
     },
     {
       "key": "02_前端框架与状态管理",
@@ -1708,7 +2162,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 13
+      "order": 14
     },
     {
       "key": "05_前端常用工具库",
@@ -1784,7 +2238,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 14
+      "order": 15
     },
     {
       "key": "03_数据可视化",
@@ -1854,7 +2308,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 15
+      "order": 16
     },
     {
       "key": "04_实时通信",
@@ -1912,7 +2366,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 16
+      "order": 17
     },
     {
       "key": "07_后端开发",
@@ -1994,7 +2448,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 17
+      "order": 18
     },
     {
       "key": "08_数据库与建模",
@@ -2082,7 +2536,7 @@ window.KB_MANIFEST = {
           "d": "basic"
         }
       ],
-      "order": 18
+      "order": 19
     },
     {
       "key": "13_Python",
@@ -2116,7 +2570,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 19
+      "order": 20
     },
     {
       "key": "06_前端工程化与工具链",
@@ -2198,7 +2652,7 @@ window.KB_MANIFEST = {
           "d": "deep"
         }
       ],
-      "order": 20
+      "order": 21
     },
     {
       "key": "09_DevOps部署与运维",
@@ -2286,7 +2740,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 21
+      "order": 22
     },
     {
       "key": "10_研发流程与AI辅助",
@@ -2344,7 +2798,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 22
+      "order": 23
     },
     {
       "key": "11_全面学习",
@@ -2426,7 +2880,7 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 23
+      "order": 24
     },
     {
       "key": "12_全栈技术路线图",
@@ -2484,8 +2938,8 @@ window.KB_MANIFEST = {
           "d": "std"
         }
       ],
-      "order": 24
+      "order": 25
     }
   ],
-  "total": 301
+  "total": 375
 };

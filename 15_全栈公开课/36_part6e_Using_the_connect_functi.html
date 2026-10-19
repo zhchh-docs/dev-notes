@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 6 Using the connect-function to share the redux store to components｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b3">🚀 阶段三 · 进阶实战</span>
+      <span class="badge b2">Part 6 · 利用 Redux 进行状态管理</span>
+      <span>第 36 篇</span>
+    </div>
+    <h1>Using the connect-function to share the redux store to components</h1>
+    <div class="meta"><span>⏱ 约 25 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part6/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-6.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">Using the connect-function to share the redux store to components</a><a class="l3" href="#sec-2">mapDispatchToProps</a><a class="l3" href="#sec-3">Referencing action creators passed as props</a><a class="l3" href="#sec-4">Alternative way of using mapDispatchToProps</a><a class="l3" href="#sec-5">Presentational/Container revisited</a><a class="l3" href="#sec-6">Redux and the component state</a><a class="l3" href="#sec-7">Exercises 6.19.-6.21</a></nav>
+  <main class="fso-body">
+<div class="tasks">
+<!--**NOTE**: this is the old ending section of the 6 part that has 30th January 2023 been replaced with material about [React Query, useReducer and context](https://fullstackopen.com/en/part6/react_query_use_reducer_and_the_contex). This section remains here for a couple of weeks.-->
+<p><strong>注意</strong>: 本章作为旧版第 6 部分的结束章节，已经在2023年1月30日被替换为“ <a href="https://fullstackopen.com/zh/part6/react_query_use_reducer_and_the_context">React Query, useReducer 和 context</a>“。这一章将仅在此保留几周。</p>
+<!--If you have started with the exercises (6.19-6.21) that use the Redux connect you may continue with those. If you have not yet started, I recommend to proceed with the new section.-->
+<p>如果你已经用 Redux 的 connect 方法开始了 6.19 - 6.21 的练习，你可以继续将它完成。但如果你还没有开始，我建议你从更新后的新章节开始。</p>
+</div>
+<div class="content">
+<h3></h3>
+<!-- So far we have used our redux-store with the help of the [hook](https://react-redux.js.org/api/hooks)-api from react-redux.-->
+<p>到目前为止，我们在react-redux的<a href="https://react-redux.js.org/api/hooks">hook</a>-api的帮助下使用我们的redux-store。</p>
+<!-- Practically this has meant using the [useSelector](https://react-redux.js.org/api/hooks#useselector) and [useDispatch](https://react-redux.js.org/api/hooks#usedispatch) functions.-->
+<p>实际上这意味着使用<a href="https://react-redux.js.org/api/hooks#useselector">useSelector</a>和<a href="https://react-redux.js.org/api/hooks#usedispatch">useDispatch</a>函数。</p>
+<!-- To finish this part we will look into another older and  more complicated way to use redux, the [connect](https://github.com/reduxjs/react-redux/blob/master/docs/api/connect.md)-function provided by react-redux.-->
+<p>为了完成这一部分，我们将研究另一种更古老、更复杂的使用redux的方式，即 react-redux 提供的 <a href="https://github.com/reduxjs/react-redux/blob/master/docs/api/connect.md">connect</a> 函数。</p>
+<p><i><strong>In new applications you should absolutely use the hook-api</strong></i>, but knowing how to use connect is useful when maintaining older projects using redux.</p>
+<h3 id="sec-1">Using the connect-function to share the redux store to components</h3>
+<!-- Let's modify the <i>Notes</i> component so that instead of using the hook-api (the *useDispatch* and  *useSelector* functions ) it uses the *connect*-function.-->
+<p>让我们修改<i>Notes</i>组件，使其不再使用hook-api（<em>useDispatch</em> 和 <em>useSelector</em> 函数）而是使用 <em>connect</em> 函数。</p>
+<!-- We have to modify the following parts of the component:-->
+<p>我们必须修改该组件的以下部分。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'../reducers/noteReducer'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(({</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">}) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt;</span>
+<span style="color: #F8F8F2">            </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">          }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span>
+</code></pre></div>
+
+<!-- The *connect* function can be used for transforming "regular" React components so that the state of the Redux store can be "mapped" into the component's props.-->
+<p><em>connect</em> 函数可以用来转换 "常规 "的React组件，这样Redux商店的状态就可以 "映射 "到组件的props中。</p>
+<!-- Let's first use the connect function to transform our <i>Notes</i> component into a <i>connected component</i>:-->
+<p>让我们首先使用connect函数将我们的<i>Notes</i>组件转换成<i>connected component</i>。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'../reducers/noteReducer'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">()(</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span><span style="color: #F8F8F2">           </span><span style="color: #959077">// highlight-line</span>
+</code></pre></div>
+
+<!-- The module exports the <i>connected component</i> that works exactly like the previous regular component for now.-->
+<p>该模块导出了<i>连接组件</i>，其工作原理与之前的普通组件完全相同。</p>
+<!-- The component needs the list of notes and the value of the filter from the Redux store. The *connect* function accepts a so-called [mapStateToProps](https://github.com/reduxjs/react-redux/blob/master/docs/api/connect.md#mapstatetoprops-state-ownprops--object) function as its first parameter. The function can be used for defining the props of the <i>connected component</i> that are based on the state of the Redux store.-->
+<p>该组件需要Redux商店中的笔记列表和过滤器的值。<em>connect</em>函数接受一个所谓的<a href="https://github.com/reduxjs/react-redux/blob/master/docs/api/connect.md#mapstatetoprops-state-ownprops--object">mapStateToProps</a>函数作为其第一个参数。该函数可用于定义<i>连接组件的prop</i>，这些prop是基于Redux商店的状态。</p>
+<!-- If we define:-->
+<p>如果我们定义。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; { </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">  </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">notesToShow</span><span style="color: #F8F8F2">().</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt;</span>
+<span style="color: #F8F8F2">            </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">          }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span>
+</code></pre></div>
+
+<!-- The <i>Notes</i> component can access the state of the store directly, e.g. through <i>props.notes</i> that contains the list of notes.  Similarly, <i>props.filter</i> references the value of the filter.-->
+<p><i>Notes</i>组件可以直接访问商店的状态，例如，通过包含笔记列表的<i>props.notes</i>。  类似地，<i>props.filter</i>引用过滤器的值。</p>
+<!-- The situation that results from using <i>connect</i> with the <i>mapStateToProps</i> function we defined can be visualized like this:-->
+<p>使用<i>connect</i>和我们定义的<i>mapStateToProps</i>函数所产生的情况可以这样可视化。</p>
+<p><img alt="" src="../docs/images/6/24c.png"></p>
+<!-- The <i>Notes</i> component has "direct access" via <i>props.notes</i> and <i>props.filter</i> for inspecting the state of the Redux store.-->
+<p><i>Notes</i>组件可以通过<i>props.notes</i>和<i>props.filter</i>"直接访问 "Redux商店的状态。</p>
+<!-- The *NoteList* component actually does not need the information about which filter is selected, so we can move the filtering logic elsewhere.-->
+<p><em>NoteList</em>组件实际上不需要关于哪个过滤器被选中的信息，所以我们可以将过滤逻辑移到其他地方。</p>
+<!-- We just have to give it correctly filtered notes in the *notes* prop:-->
+<p>我们只需要在<em>notes</em>prop中给它正确的过滤的笔记。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt;</span>
+<span style="color: #F8F8F2">            </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">          }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">  </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    )</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+<span style="color: #959077">// highlight-end</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2">)</span>
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span>
+</code></pre></div>
+
+<h3 id="sec-2">mapDispatchToProps</h3>
+<!-- Now we have gotten rid of *useSelector*, but <i>Notes</i> still uses the *useDispatch* hook and the *dispatch* function returning it:-->
+<p>现在我们已经摆脱了<em>useSelector</em>，但是<i>Notes</i>仍然使用<em>useDispatch</em>钩子和返回它的<em>dispatch</em>函数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">() </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt;</span>
+<span style="color: #F8F8F2">            </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">          }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The second parameter of the *connect* function can be used for defining [mapDispatchToProps](https://github.com/reduxjs/react-redux/blob/master/docs/api/connect.md#mapdispatchtoprops-object--dispatch-ownprops--object) which is a group of <i>action creator</i> functions passed to the connected component as props. Let's make the following changes to our existing connect operation:-->
+<p><em>connect</em>函数的第二个参数可用于定义<a href="https://github.com/reduxjs/react-redux/blob/master/docs/api/connect.md#mapdispatchtoprops-object--dispatch-ownprops--object">mapDispatchToProps</a>，这是一组<i>action creator</i>函数，作为props传递给连接的组件。让我们对我们现有的连接操作做如下修改。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapDispatchToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">}</span>
+<span style="color: #959077">// highlight-end</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapDispatchToProps</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ConnectedNotes</span>
+</code></pre></div>
+
+<!-- Now the component can directly dispatch the action defined by the *toggleImportanceOf* action creator by calling the function through its props:-->
+<p>现在，组件可以直接调度由<em>toggleImportanceOf</em>动作创建者定义的动作，通过其props调用该函数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)}</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- This means that instead of dispatching the action like this:-->
+<p>这意味着，不再像这样调度动作了。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">))</span>
+</code></pre></div>
+
+<!-- When using *connect* we can simply do this:-->
+<p>当使用<em>connect</em>时，我们可以简单地这样做。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- There is no need to call the *dispatch* function separately since *connect* has already modified the *toggleImportanceOf* action creator into a form that contains the dispatch.-->
+<p>没有必要单独调用<em>dispatch</em>函数，因为<em>connect</em>已经将<em>toggleImportanceOf</em>动作创建者修改为包含调度的形式。</p>
+<!-- It can take some to time to wrap your head around how _mapDispatchToProps_ works, especially once we take a look at an [alternative way of using it](https://fullstackopen.com/en/part6/connect_the_old_part#an-alternative-way-of-using-map-dispatch-to-props).-->
+<p>你可能需要一些时间来理解_mapDispatchToProps_的工作原理，尤其是当我们看了一个<a href="https://fullstackopen.com/en/part6/connect_the_old_part#an-alternative-way-of-using-map-dispatch-to-props">使用它的替代方法</a>。</p>
+<!-- The resulting situation from using *connect* can be visualized like this:-->
+<p>使用<em>connect</em>所产生的情况可以被可视化为这样。</p>
+<p><img alt="" src="../docs/images/6/25b.png"></p>
+<!-- In addition to accessing the store's state via <i>props.notes</i> and <i>props.filter</i>, the component also references a function that can be used for dispatching <i>notes/toggleImportanceOf</i>-type actions via its <i>toggleImportanceOf</i> prop.-->
+<p>除了通过<i>props.notes</i>和<i>props.filter</i>访问商店的状态外，该组件还引用了一个函数，该函数可用于通过其<i>toggleImportanceOf</i>prop调度<i>notes/toggleImportanceOf</i>型动作。</p>
+<!-- The code for the newly refactored <i>Notes</i> component looks like this:-->
+<p>新重构的<i>Notes</i>组件的代码如下所示：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'../reducers/noteReducer'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)}</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">  </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    )</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapDispatchToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">toggleImportanceOf</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapDispatchToProps</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Let's also use *connect* to create new notes:-->
+<p>让我们也使用<em>connect</em>来创建新的笔记。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'../reducers/noteReducer'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; { </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">''</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"note"</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">add</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2">)</span>
+<span style="color: #959077">// highlight-end</span>
+</code></pre></div>
+
+<!-- Since the component does not need to access the store's state, we can simply pass <i>null</i> as the first parameter to *connect*.-->
+<p>由于该组件不需要访问商店的状态，我们可以简单地传递<i>null</i>作为<em>connect</em>的第一个参数。</p>
+<!-- You can find the code for our current application in its entirety in the <i>part6-5</i> branch of [this GitHub repository](https://github.com/fullstack-hy2020/redux-notes/tree/part6-5).-->
+<p>你可以在<a href="https://github.com/fullstack-hy2020/redux-notes/tree/part6-5">这个Github仓库</a>的<i>part6-5</i>分支中找到我们当前应用的全部代码。</p>
+<h3 id="sec-3">Referencing action creators passed as props</h3>
+<!-- Let's direct our attention to one interesting detail in the <i>NewNote</i> component:-->
+<p>让我们注意一下<i>NewNote</i>组件中一个有趣的细节。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'../reducers/noteReducer'</span><span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">''</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">)  </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"note"</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">add</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> }  </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Developers who are new to connect may find it puzzling that there are two versions of the <i>createNote</i> action creator in the component.-->
+<p>初次接触连接的开发者可能会发现，组件中的<i>createNote</i>动作创建者有两个版本，这令人费解。</p>
+<!-- The function must be referenced as <i>props.createNote</i> through the component's props, as this is the version that <i>contains the automatic dispatch</i> added by *connect*.-->
+<p>该函数必须通过组件的props被引用为<i>props.createNote</i>，因为这是<i>包含<em>connect</em>添加的自动调度</i>的那个版本。</p>
+<!-- Due to the way that the action creator is imported:-->
+<p>由于动作创建者的导入方式。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./../reducers/noteReducer'</span>
+</code></pre></div>
+
+<!-- The action creator can also be referenced directly by calling *createNote*. You should not do this, since this is the unmodified version of the action creator that does not contain the added automatic dispatch.-->
+<p>也可以通过调用<em>createNote</em>直接引用动作创建者。你不应该这样做，因为这是未经修改的动作创建者的版本，不包含添加的自动调度。</p>
+<!-- If we print the functions to the console from the code (we have not yet looked at this useful debugging trick):-->
+<p>如果我们从代码中把这些函数打印到控制台（我们还没有看这个有用的调试技巧）。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">''</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- We can see the difference between the two functions:-->
+<p>我们可以看到这两个函数之间的区别。</p>
+<p><img alt="" src="../docs/images/6/10.png"></p>
+<!-- The first function is a regular <i>action creator</i> whereas the second function contains the additional dispatch to the store that was added by connect.-->
+<p>第一个函数是一个普通的<i>动作创建者</i>，而第二个函数则包含了由connect添加的对存储的额外调度。</p>
+<!-- Connect is an incredibly useful tool although it may seem difficult at first due to its level of abstraction.-->
+<p>Connect是一个非常有用的工具，尽管由于它的抽象程度，一开始可能看起来很困难。</p>
+<h3 id="sec-4">Alternative way of using mapDispatchToProps</h3>
+<!-- We defined the function for dispatching actions from the connected <i>NewNote</i> component in the following way:-->
+<p>我们以如下方式定义了用于从连接的<i>NewNote</i>组件中调度动作的函数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> }</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- The connect expression above enables the component to dispatch actions for creating new notes with the <code>props.createNote('a new note')</code> command.-->
+<p>上面的连接表达式使该组件能够通过<code>props.createNote("a new note")</code>命令来调度创建新笔记的动作。</p>
+<!-- The functions passed in <i>mapDispatchToProps</i> must be <i>action creators</i>, that is, functions that return Redux actions.-->
+<p><i>mapDispatchToProps</i>中传递的函数必须是<i>action creators</i>，也就是返回Redux动作的函数。</p>
+<!-- It is worth noting that the <i>mapDispatchToProps</i> parameter is a <i>JavaScript object</i>, as the definition:-->
+<p>值得注意的是，<i>mapDispatchToProps</i>参数是一个<i>JavaScript对象</i>，正如其定义。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">createNote</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Is just shorthand for defining the object literal:-->
+<p>这只是定义对象字面的速记。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">createNote</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">createNote</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Which is an object that has a single <i>createNote</i> property with the <i>createNote</i> function as its value.-->
+<p>这是一个具有单一的<i>createNote</i>属性的对象，其值为<i>createNote</i>函数。</p>
+<!-- Alternatively, we could pass the following <i>function</i> definition as the second parameter to *connect*:-->
+<p>另外，我们可以把下面的<i>函数</i>定义作为第二个参数传递给 <em>connect</em>。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapDispatchToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">createNote</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+<span style="color: #959077">// highlight-end</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">null</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapDispatchToProps</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- In this alternative definition, <i>mapDispatchToProps</i> is a function that *connect* will invoke by passing it the *dispatch*-function as its parameter. The return value of the function is an object that defines a group of functions that get passed to the connected component as props. Our example defines the function passed as the <i>createNote</i> prop:-->
+<p>在这个替代定义中，<i>mapDispatchToProps</i>是一个函数，<em>connect</em>将把<em>dispatch</em>-函数作为其参数传递给它，从而调用该函数。该函数的返回值是一个定义了一组函数的对象，这些函数被作为prop传递给连接的组件。我们的例子定义了作为<i>createNote</i>prop传递的函数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">value</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Which simply dispatches the action created with the <i>createNote</i> action creator.-->
+<p>它简单地分配了用<i>createNote</i>动作创建器创建的动作。</p>
+<!-- The component then references the function through its props by calling <i>props.createNote</i>:-->
+<p>然后组件通过它的prop调用<i>props.createNote</i>来引用这个函数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">preventDefault</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">target</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">''</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">form</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onSubmit</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">addNote</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"note"</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">button</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"submit"</span><span style="color: #FF4689">&gt;</span><span style="color: #A6E22E">add</span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/button&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/form&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The concept is quite complex and describing it through text is challenging. In most cases it is sufficient to use the simpler form of <i>mapDispatchToProps</i>. However, there are situations where the more complicated definition is necessary, like if the <i>dispatched actions</i> need to reference [the props of the component](https://github.com/gaearon/redux-devtools/issues/250#issuecomment-186429931).-->
+<p>这个概念相当复杂，通过文字来描述它是有难度的。在大多数情况下，使用<i>mapDispatchToProps</i>的较简单形式就足够了。然而，在某些情况下，更复杂的定义是必要的，例如，如果<i>dispatched actions</i>需要引用<a href="https://github.com/gaearon/redux-devtools/issues/250#issuecomment-186429931">组件的prop</a>。</p>
+<!-- The creator of Redux Dan Abramov has created a wonderful tutorial called [Getting started with Redux](https://egghead.io/courses/getting-started-with-redux) that you can find on Egghead.io. I highly recommend the tutorial to everyone. The last four videos discuss the *connect* method, particularly the more "complicated" way of using it.-->
+<p>Redux的创造者Dan Abramov创造了一个精彩的教程，叫做<a href="https://egghead.io/courses/getting-started-with-redux">Redux入门</a>，你可以在Egghead.io上找到。我向大家强烈推荐这个教程。最后四个视频讨论了<em>connect</em>方法，特别是使用它的更 "复杂 "的方式。</p>
+<h3 id="sec-5">Presentational/Container revisited</h3>
+<!-- The refactored <i>Notes</i> component is almost entirely focused on rendering notes and is quite close to being a so-called [presentational component](https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0). According to the [description](https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0) provided by Dan Abramov, presentation components:-->
+<p>重构后的<i>Notes</i>组件几乎完全专注于渲染笔记，而且相当接近于所谓的<a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">展示性组件</a>。根据Dan Abramov提供的<a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">描述</a>，演示组件。</p>
+<!-- - Are concerned with how things look.-->
+<ul>
+<li>关注事物的外观。</li>
+</ul>
+<!-- - May contain both presentational and container components inside, and usually have some DOM markup and styles of their own.-->
+<ul>
+<li>里面可能同时包含展示组件和容器组件，并且通常有一些DOM标记和它们自己的样式。</li>
+</ul>
+<!-- - Often allow containment via props.children.-->
+<ul>
+<li>通常允许通过props.children进行包含。</li>
+</ul>
+<!-- - Have no dependencies on the rest of the app, such as Redux actions or stores.-->
+<ul>
+<li>对应用的其他部分没有依赖性，例如Redux动作或商店。</li>
+</ul>
+<!-- - Don’t specify how the data is loaded or mutated.-->
+<ul>
+<li>不指定数据是如何被加载或改变的。</li>
+</ul>
+<!-- - Receive data and callbacks exclusively via props.-->
+<ul>
+<li>完全通过props接收数据和回调。</li>
+</ul>
+<!-- - Rarely have their own state (when they do, it’s UI state rather than data).-->
+<ul>
+<li>很少有自己的状态（如果有，也是UI状态而不是数据）。</li>
+</ul>
+<!-- - Are written as functional components unless they need state, lifecycle hooks, or performance optimizations.-->
+<ul>
+<li>除非它们需要状态、生命周期钩子或性能优化，否则就被写成功能组件。</li>
+</ul>
+<!-- The _connected component_ that is created with the *connect* function:-->
+<p>用<em>connect</em>函数创建的_connected组件_。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">  </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    )</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">mapDispatchToProps</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">connect</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapStateToProps</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">mapDispatchToProps</span>
+<span style="color: #F8F8F2">)(</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Fits the description of a <i>container</i> component. According to the [description](https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0) provided by Dan Abramov, container components:-->
+<p>符合<i>container</i>组件的描述。根据Dan Abramov提供的<a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">描述</a>，容器组件。</p>
+<!-- - Are concerned with how things work.-->
+<ul>
+<li>关注事物的工作方式。</li>
+</ul>
+<!-- - May contain both presentational and container components inside but usually don’t have any DOM markup of their own except for some wrapping divs, and never have any styles.-->
+<ul>
+<li>里面可能同时包含展示性组件和容器组件，但除了一些包裹性的div，通常没有任何自己的DOM标记，也没有任何样式。</li>
+</ul>
+<!-- - Provide the data and behavior to presentational or other container components.-->
+<ul>
+<li>为展示性或其他容器组件提供数据和行为。</li>
+</ul>
+<!-- - Call Redux actions and provide these as callbacks to the presentational components.-->
+<ul>
+<li>调用Redux动作，并将其作为回调提供给渲染组件。</li>
+</ul>
+<!-- - Are often stateful, as they tend to serve as data sources.-->
+<ul>
+<li>通常是有状态的，因为它们往往作为数据源。</li>
+</ul>
+<!-- - Are usually generated using higher order components such as connect from React Redux, rather than written by hand.-->
+<ul>
+<li>通常使用高阶组件生成，如来自React Redux的connect，而不是手工编写。</li>
+</ul>
+<!-- Dividing the application into presentational and container components is one way of structuring React applications that has been deemed beneficial. The division may be a good design choice or it may not, it depends on the context.-->
+<p>将应用分为展示性组件和容器组件是一种被认为是有益的React应用结构的方式。这种划分可能是一个好的设计选择，也可能不是，这取决于环境。</p>
+<!-- Abramov attributes the following [benefits](https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0) to the division:-->
+<p>Abramov将以下<a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">好处</a>归于这种划分。</p>
+<!-- - Better separation of concerns. You understand your app and your UI better by writing components this way.-->
+<ul>
+<li>更好地分离关注点。通过这样写组件，你可以更好地理解你的应用和你的用户界面。</li>
+</ul>
+<!-- - Better reusability. You can use the same presentational component with completely different state sources, and turn those into separate container components that can be further reused.-->
+<ul>
+<li>更好的重用性。你可以在完全不同的状态源中使用相同的表现型组件，并将这些组件变成可以进一步重用的独立容器组件。</li>
+</ul>
+<!-- - Presentational components are essentially your app’s “palette”. You can put them on a single page and let the designer tweak all their variations without touching the app’s logic. You can run screenshot regression tests on that page.-->
+<ul>
+<li>渲染式组件本质上是你的应用的 "调色板"。你可以把它们放在一个页面上，让设计者调整它们的所有变化，而不触及应用的逻辑。你可以在该页面上运行屏幕截图回归测试。</li>
+</ul>
+<!-- Abramov mentions the term [high order component](https://reactjs.org/docs/higher-order-components.html). The <i>Notes</i> component is an example of a regular component, whereas the <i>connect</i> method provided by React-Redux is an example of a <i>high order component</i>. Essentially, a high order component is a function that accept a "regular" component as its parameter, that then returns a new "regular" component as its return value.-->
+<p>阿布拉莫夫提到了术语<a href="https://reactjs.org/docs/higher-order-components.html">高阶组件</a>。<i>Notes</i>组件是一个普通组件的例子，而React-Redux提供的<i>connect</i>方法是一个<i>高阶组件</i>的例子。从本质上讲，高阶组件是一个接受 "常规 "组件作为其参数的函数，然后返回一个新的 "常规 "组件作为其返回值。</p>
+<!-- High order components, or HOCs, are a way of defining generic functionality that can be applied to components. This is a concept from functional programming that very slightly resembles inheritance in object oriented programming.-->
+<p>高阶组件，或称HOC，是一种定义可以应用于组件的通用功能的方式。这是一个来自函数式编程的概念，与面向对象编程中的继承非常相似。</p>
+<!-- HOCs are a generalization of the [High Order Function](https://en.wikipedia.org/wiki/Higher-order_function) (HOF) concept. HOFs are functions that either accept functions as parameters or return functions. We have actually been using HOFs throughout the course, e.g. all of the methods used for dealing with arrays like *map, filter and find* are HOFs.-->
+<p>HOCs实际上是<a href="https://en.wikipedia.org/wiki/Higher-order_function">高阶函数</a> (HOF)概念的概括。HOFs是接受函数作为参数或返回函数的函数。实际上，我们在整个课程中一直在使用HOF，例如，所有用于处理数组的方法，如<em>map、filter和find</em>都是HOF。</p>
+<!-- Reactin hook-apin ilmestymisen jälkeen HOC:ien suosio on kääntynyt laskuun, ja melkein kaikki kirjastot, joiden käyttö on aiemmin perustunut HOC:eihin on saanut hook-perustaisen apin. Useimmiten , kuten myös reduxin kohdalla, hook-perustaiset apit ovat HOC-apeja huomattavasti yksinkertaisempia. -->
+<!-- After the React hook-api was published, HOCs have become less and less popular. Almost all libraries which used to be based on HOCs have now been modified to use hooks. Most of the time hook based apis are a lot simpler than HOC based ones, as is the case with redux as well.-->
+<p>在React hook-api发布后，HOCs变得越来越不流行了。几乎所有曾经基于HOCs的库现在都被修改为使用钩子。大多数时候，基于钩子的api比基于HOC的api要简单得多，redux也是如此。</p>
+<h3 id="sec-6">Redux and the component state</h3>
+<!-- We have come a long way in this course and, finally, we have come to the point at which we are using React "the right way", meaning React only focuses on generating the views, and the application state is separated completely from the React components and passed on to Redux, its actions, and its reducers.-->
+<p>在这个课程中，我们已经走了很长的路，最后，我们已经走到了 "正确的方式 "使用React的地步，这意味着React只专注于生成视图，应用状态完全与React组件分离，并传递给Redux、其动作和其还原器。</p>
+<!-- What about the *useState*-hook, which provides components with their own state? Does it have any role if an application is using Redux or some other external state management solution? If the application has more complicated forms, it may be beneficial to implement their local state using the state provided by the *useState* function. One can, of course, have Redux manage the state of the forms, however, if the state of the form is only relevant when filling the form (e.g. for validation) it may be wise to leave the management of state to the component responsible for the form.-->
+<p>那么<em>useState</em>-hook呢，它为组件提供了它们自己的状态？如果一个应用使用Redux或其他外部状态管理解决方案，它是否有任何作用？如果应用有更复杂的表单，使用<em>useState</em>函数提供的状态来实现它们的本地状态可能是有益的。当然，人们可以让Redux管理表单的状态，然而，如果表单的状态只在填写表单时才相关（例如用于验证），那么将状态的管理留给负责表单的组件可能是明智的。</p>
+<!-- Should we always use redux? Probably not. Dan Abramov, the developer of redux, discusses this in his article [You Might Not Need Redux](https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367).-->
+<p>我们应该总是使用redux吗？也许不是。redux的开发者Dan Abramov在他的文章<a href="https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367">You Might Not Need Redux</a>中讨论了这个问题。</p>
+<!-- Nowadays it is possible to implement redux-like state management without redux by using the React [context](https://reactjs.org/docs/context.html)-api and the [useReducer](https://reactjs.org/docs/hooks-reference.html#usereducer)-hook.-->
+<p>现在可以通过使用React <a href="https://reactjs.org/docs/context.html">context</a>-api和<a href="https://reactjs.org/docs/hooks-reference.html#usereducer">useReducer</a>-hook来实现类似redux的状态管理，而无需redux。</p>
+<!-- More about this [here](https://www.simplethread.com/cant-replace-redux-with-hooks/) and [here](https://hswolff.com/blog/how-to-usecontext-with-usereducer/). We will also practice this in-->
+<p>关于这个的更多信息<a href="https://www.simplethread.com/cant-replace-redux-with-hooks/">这里</a>和<a href="https://hswolff.com/blog/how-to-usecontext-with-usereducer/">这里</a>。我们还将在以下方面进行实践</p>
+<!-- [part 9](https://fullstackopen.com/en/part9).-->
+<p><a href="https://fullstackopen.com/en/part9">第9章节</a>。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-7">Exercises 6.19.-6.21</h3>
+<!--**NOTE**: this is the old ending section of the 6 part that has 30th January 2023 been replaced with material about [React Query, useReducer and context](https://fullstackopen.com/en/part6/react_query_use_reducer_and_the_contex). This section remains here for a couple of weeks.-->
+<p><strong>注意</strong>: 本章作为旧版第 6 部分的结束章节，已经在2023年1月30日被替换为“ <a href="https://fullstackopen.com/zh/part6/react_query_use_reducer_and_the_contex">React Query, useReducer 和 context</a>“。这一章将仅在此保留几周。</p>
+<!--If you have started with the exercises (6.19-6.21) that use the Redux connect you may continue with those. If you have not yet started, I recommend to proceed with the new section.-->
+<p>如果你已经用 Redux 的 connect 方法开始了 6.19 - 6.21 的练习，你可以继续将它完成。但如果你还没有开始，我建议你从更新后的新章节开始。</p>
+<h4>6.19 anecdotes and connect, step1</h4>
+<!-- The <i>redux store</i> is currently being accessed by the components through the <em>useSelector</em> and <em>useDispatch</em> hooks.-->
+<p><i>redux存储</i>目前被组件通过<em>useSelector</em>和<em>useDispatch</em>挂钩访问。</p>
+<!-- Modify the <i>Notification</i> component so that it uses the *connect* function instead of the hooks.-->
+<p>修改<i>Notification</i>组件，使其使用<em>connect</em>函数而不是钩子。</p>
+<h4>6.20 anecdotes and connect, step2</h4>
+<!-- Do the same for the <i>Filter</i> and <i>AnecdoteForm</i> components.-->
+<p>对<i>Filter</i>和<i>AnecdoteForm</i>组件进行同样的修改。</p>
+<h4>6.21 anecdotes, the grand finale</h4>
+<!-- You (probably) have one nasty bug in your application. If the user clicks the vote button multiple times in a row, the notification is displayed funnily. For example if a user votes twice in three seconds,-->
+<p>你的应用中（可能）有一个讨厌的错误。如果用户连续多次点击投票按钮，通知就会有趣地显示出来。例如，如果一个用户在三秒钟内投票两次。</p>
+<!-- the last notification is only displayed for two seconds (assuming the notification is normally shown for 5 seconds). This happens because removing the first notification accidentally removes the second notification.-->
+<p>最后一个通知只显示两秒（假设通知通常显示5秒）。出现这种情况是因为删除第一条通知时，意外地删除了第二条通知。</p>
+<!-- Fix the bug so that after multiple votes in a row, the notification for the last vote is displayed for five seconds.-->
+<p>修复这个错误，使连续多次投票后，最后一次投票的通知显示5秒。</p>
+<!-- This can be done by cancelling the removal of the previous notification when a new notification is displayed whenever necessary.-->
+<p>这可以通过在必要时显示新的通知时取消对前一个通知的删除来实现。</p>
+<!-- The [documentation](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout) for the setTimeout function might also be useful for this.-->
+<p>setTimeout函数的<a href="https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout">文档</a>也可能对此有用。</p>
+<!-- This was the last exercise for this part of the course and it's time to push your code to GitHub and mark all of your completed exercises to the [exercise submission system](https://fullstackopen.com/zh/new-platform/).-->
+<p>这是这部分课程的最后一个练习，是时候把你的代码推送到GitHub，并把你所有完成的练习标记到<a href="https://fullstackopen.com/zh/new-platform/">练习提交系统</a>。</p>
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b3" href="35_part6d_Managing_data_on_the_ser.html">← 上一篇</a><a class="badge b3" href="37_part7_部分_7_概览_React_router_自定义.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>

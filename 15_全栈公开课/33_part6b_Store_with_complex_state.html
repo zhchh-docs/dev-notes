@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 6 Store with complex state｜全栈技术知识库</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+:root{--ink:#2A3D2A;--ink2:#4F6348;--forest:#3D7A4F;--deep:#255A36;--sun:#F2D06B;--card:#F8FAF0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(180deg,#DCE8D0,#C5DDB0 60%,#B5D0A5);color:var(--ink);line-height:1.85;
+  -webkit-font-smoothing:antialiased}
+.fso-wrap{max-width:880px;margin:0 auto;padding:32px 20px 40px}
+.hero{background:var(--card);border:1px solid rgba(61,122,79,.18);border-radius:18px;
+  padding:26px 30px;margin-bottom:22px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.hero .part-line{font-size:13px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12.5px;font-weight:600}
+.b1{background:#DFF0D8;color:#2E6B3E}.b2{background:#FDF3D1;color:#8A6D1A}
+.b3{background:#DDEBFA;color:#2B5C8A}.b4{background:#FBE3D8;color:#9A4A2A}
+.hero .part-line a{color:var(--forest);text-decoration:underline}
+.hero h1{font-size:26px;line-height:1.35;color:var(--deep);margin-bottom:10px}
+.hero .meta{font-size:13px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:14px}
+.hero img.main-image{display:block;margin:14px auto 0;max-width:210px;width:100%;height:auto}
+nav.toc{background:rgba(255,255,255,.75);border:1px dashed rgba(61,122,79,.35);border-radius:14px;
+  padding:16px 22px;margin-bottom:22px}
+nav.toc .toc-title{font-weight:700;font-size:14px;color:var(--deep);margin-bottom:6px}
+nav.toc a{display:block;color:var(--forest);font-size:13.5px;padding:2px 0;text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+nav.toc a.l3{padding-left:18px;color:var(--ink2)}
+.fso-body{background:var(--card);border:1px solid rgba(61,122,79,.15);border-radius:18px;
+  padding:34px 38px;box-shadow:0 6px 24px rgba(37,90,54,.08)}
+.fso-body h2{font-size:22px;color:var(--deep);margin:34px 0 14px;padding-left:12px;
+  border-left:4px solid var(--forest);line-height:1.4}
+.fso-body h3{font-size:18px;color:var(--deep);margin:26px 0 10px}
+.fso-body h4{font-size:15.5px;color:var(--ink2);margin:20px 0 8px}
+.fso-body p{margin:10px 0}
+.fso-body a{color:#2B6CB0}
+.fso-body img{max-width:100%;height:auto;border-radius:8px;margin:8px auto;display:block;
+  border:1px solid rgba(61,122,79,.2);padding:4px;background:#fff}
+.fso-body code{background:rgba(61,122,79,.1);color:#1F4A2C;padding:1px 6px;border-radius:5px;
+  font-family:Consolas,Menlo,monospace;font-size:.9em}
+.fso-body pre{background:#272822;border-radius:10px;padding:14px 16px;overflow-x:auto;
+  margin:14px 0;line-height:1.6}
+.fso-body pre code{background:none;color:#F8F8F2;padding:0;font-size:13px}
+.fso-body .codehilite{background:#272822;border-radius:10px;margin:14px 0;overflow-x:auto}
+.fso-body .codehilite pre{margin:0;background:none;border-radius:0}
+.fso-body blockquote{border-left:4px solid var(--sun);background:rgba(242,208,107,.12);
+  padding:8px 16px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--ink2)}
+.fso-body table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:#fff}
+.fso-body th,.fso-body td{border:1px solid rgba(61,122,79,.3);padding:7px 12px;text-align:left}
+.fso-body th{background:#DFF0D8;color:var(--deep)}
+.fso-body ul,.fso-body ol{padding-left:26px;margin:10px 0}
+.fso-body hr{border:none;border-top:1px dashed rgba(61,122,79,.4);margin:26px 0}
+.fso-body .tasks{background:rgba(242,208,107,.14);border:1px solid rgba(242,208,107,.55);
+  border-radius:12px;padding:14px 20px;margin:18px 0}
+.fso-body .tasks h3{margin-top:4px;color:#8A6D1A}
+.fso-body .intro{background:rgba(61,122,79,.07);border-radius:12px;padding:14px 20px;margin:14px 0}
+.fso-body .missing-img{color:var(--ink2);font-size:13px;background:rgba(61,122,79,.06);
+  border-radius:8px;padding:8px 14px;text-align:center}
+.fso-footer{margin-top:22px;background:rgba(255,255,255,.7);border-radius:14px;
+  padding:16px 22px;font-size:12.5px;color:var(--ink2);line-height:1.8}
+.fso-footer a{color:var(--forest)}
+@media (max-width:640px){.fso-body{padding:22px 18px}.hero{padding:20px 18px}}
+</style>
+</head>
+<body>
+<div class="fso-wrap">
+  <header class="hero">
+    <div class="part-line">
+      <span class="badge b3">🚀 阶段三 · 进阶实战</span>
+      <span class="badge b2">Part 6 · 利用 Redux 进行状态管理</span>
+      <span>第 33 篇</span>
+    </div>
+    <h1>Store with complex state</h1>
+    <div class="meta"><span>⏱ 约 22 分钟</span><span>🌐 <a href="https://fullstackopen.com/zh/part6/" target="_blank" rel="noopener">官网原文</a></span></div>
+    <img class="main-image" src="../docs/images/part-6.svg" alt="">
+  </header>
+  <nav class="toc"><div class="toc-title">📑 本章目录</div><a class="l3" href="#sec-1">Store with complex state</a><a class="l3" href="#sec-2">Combined reducers</a><a class="l3" href="#sec-3">Finishing the filters</a><a class="l3" href="#sec-4">Redux Toolkit</a><a class="l3" href="#sec-5">Redux DevTools</a><a class="l3" href="#sec-6">Exercises 6.9.-6.12.</a></nav>
+  <main class="fso-body">
+<div class="content">
+<!-- Let's continue our work with the simplified [redux version](https://fullstackopen.com/en/part6/flux_architecture_and_redux#redux-notes) of our notes application.-->
+<p>让我们用简化的<a href="https://fullstackopen.com/en/part6/flux_architecture_and_redux#redux-notes">redux版本</a>来继续我们的笔记应用的工作。</p>
+<!-- In order to ease our development, let's change our reducer so that the store gets initialized with a state that contains a couple of notes:-->
+<p>为了简化我们的开发，让我们改变我们的还原器，使存储空间被初始化为一个包含几个笔记的状态。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">initialState</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'reducer defines how redux store works'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'state of store can contain any data'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">]</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">initialState</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #959077">// ...</span>
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span>
+</code></pre></div>
+
+<h3 id="sec-1">Store with complex state</h3>
+<!-- Let's implement filtering for the notes that are displayed to the user. The user interface for the filters will be implemented with [radio buttons](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio):-->
+<p>让我们实现对显示给用户的笔记的过滤。过滤器的用户界面将用<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/radio">单选按钮</a>来实现。</p>
+<p><img alt="" src="../docs/images/6/01e.png"></p>
+<!-- Let's start with a very simple and straightforward implementation:-->
+<p>让我们从一个非常简单和直接的实现开始。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/NewNote'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Notes'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #959077">//highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterSelected</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">value</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #959077">//highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #959077">//highlight-start</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">all</span><span style="color: #F8F8F2">          </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"radio"</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"filter"</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">filterSelected</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2">)} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"radio"</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"filter"</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">filterSelected</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'IMPORTANT'</span><span style="color: #F8F8F2">)} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">nonimportant</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"radio"</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"filter"</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">filterSelected</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'NONIMPORTANT'</span><span style="color: #F8F8F2">)} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #959077">//highlight-end</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Since the <i>name</i> attribute of all the radio buttons is the same, they form a <i>button group</i> where only one option can be selected.-->
+<p>由于所有的单选按钮的<i>名称</i>属性是相同的，它们形成一个<i>按钮组</i>，其中只有一个选项可以选择。</p>
+<!-- The buttons have a change handler that currently only prints the string associated with the clicked button to the console.-->
+<p>这些按钮有一个变化处理程序，目前只将与被点击的按钮相关的字符串打印到控制台。</p>
+<!-- We decide to implement the filter functionality by storing <i>the value of the filter</i> in the redux store in addition to the notes themselves. The state of the store should look like this after making these changes:-->
+<p>我们决定通过在redux存储中存储<i>过滤器的值</i>来实现过滤器的功能，除了笔记本身之外。在做了这些改变之后，商店的状态应该是这样的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'reducer defines how redux store works'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">},</span>
+<span style="color: #F8F8F2">    { </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'state of store can contain any data'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">  ],</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Only the array of notes is stored in the state of the current implementation of our application. In the new implementation the state object has two properties, <i>notes</i> that contains the array of notes and <i>filter</i> that contains a string indicating which notes should be displayed to the user.-->
+<p>在我们应用的当前实现中，只有笔记数组被存储在状态中。在新的实现中，状态对象有两个属性，<i>notes</i>包含笔记数组，<i>filter</i>包含一个字符串，表示哪些笔记应该被显示给用户。</p>
+<h3 id="sec-2">Combined reducers</h3>
+<!-- We could modify our current reducer to deal with the new shape of the state. However, a better solution in this situation is to define a new separate reducer for the state of the filter:-->
+<p>我们可以修改我们当前的还原器来处理状态的新形状。然而，在这种情况下，一个更好的解决方案是为过滤器的状态定义一个新的单独的还原器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">switch</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">type</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">case</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'SET_FILTER'</span><span style="color: #FF4689">:</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">default</span><span style="color: #FF4689">:</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- The actions for changing the state of the filter look like this:-->
+<p>改变过滤器状态的动作如下所示：</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #F8F8F2">{</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'SET_FILTER'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Let's also create a new _action creator_ function. We will write the code for the action creator in a new <i>src/reducers/filterReducer.js</i> module:-->
+<p>让我们也创建一个新的_action creator_函数。我们将在一个新的<i>src/reducers/filterReducer.js</i>模块中编写动作创建者的代码。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'SET_FILTER'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span>
+</code></pre></div>
+
+<!-- We can create the actual reducer for our application by combining the two existing reducers with the [combineReducers](https://redux.js.org/api/combinereducers) function.-->
+<p>我们可以通过使用<a href="https://redux.js.org/api/combinereducers">combinedReducers</a>函数结合两个现有的减速器，为我们的应用创建实际的减速器。</p>
+<!-- Let's define the combined reducer in the <i>index.js</i> file:-->
+<p>让我们在<i>index.js</i>文件中定义组合减速器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">React</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ReactDOM</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-dom/client'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createStore</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">combineReducers</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'redux'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">Provider</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./App'</span>
+
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/noteReducer'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/filterReducer'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">reducer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">combineReducers</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span>
+<span style="color: #F8F8F2">})</span>
+<span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">createStore</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">reducer</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getState</span><span style="color: #F8F8F2">())</span>
+
+<span style="color: #A6E22E">ReactDOM</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createRoot</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">document</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getElementById</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">)).</span><span style="color: #A6E22E">render</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">/*</span>
+<span style="color: #959077">  &lt;Provider store={store}&gt;</span>
+<span style="color: #959077">    &lt;App /&gt;</span>
+<span style="color: #959077">  &lt;/Provider&gt;,</span>
+<span style="color: #959077">  */</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Since our application breaks completely at this point, we render an empty <i>div</i> element instead of the <i>App</i> component.-->
+<p>由于我们的应用在此时完全中断，我们渲染一个空的<i>div</i>元素而不是<i>App</i>组件。</p>
+<!-- The state of the store gets printed to the console:-->
+<p>商店的状态被打印到控制台。</p>
+<p><img alt="" src="../docs/images/6/4e.png"></p>
+<!-- As we can see from the output, the store has the exact shape we wanted it to!-->
+<p>从输出中我们可以看到，商店的形状正是我们想要的!</p>
+<!-- Let's take a closer look at how the combined reducer is created:-->
+<p>让我们仔细看看组合减速器是如何创建的。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">reducer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">combineReducers</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- The state of the store defined by the reducer above is an object with two properties: <i>notes</i> and <i>filter</i>. The value of the <i>notes</i> property is defined by the <i>noteReducer</i>, which does not have to deal with the other properties of the state. Likewise, the <i>filter</i> property is managed by the <i>filterReducer</i>.-->
+<p>上面的还原器所定义的商店的状态是一个有两个属性的对象。<i>notes</i>和<i>filter</i>。<i>notes</i>属性的值由<i>noteReducer</i>定义，它不需要处理状态的其他属性。同样地，<i>filter</i>属性也由<i>filterReducer</i>管理。</p>
+<!-- Before we make more changes to the code, let's take a look at how different actions change the state of the store defined by the combined reducer. Let's add the following to the <i>index.js</i> file:-->
+<p>在我们对代码做更多修改之前，让我们看看不同的动作是如何改变由组合式还原器定义的存储的状态的。让我们在<i>index.js</i>文件中添加以下内容。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/noteReducer'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/filterReducer'</span>
+<span style="color: #959077">//...</span>
+<span style="color: #A6E22E">store</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">subscribe</span><span style="color: #F8F8F2">(() =&gt; </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getState</span><span style="color: #F8F8F2">()))</span>
+<span style="color: #A6E22E">store</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'IMPORTANT'</span><span style="color: #F8F8F2">))</span>
+<span style="color: #A6E22E">store</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'combineReducers forms one reducer from many simple reducers'</span><span style="color: #F8F8F2">))</span>
+</code></pre></div>
+
+<!-- By simulating the creation of a note and changing the state of the filter in this fashion, the state of the store gets logged to the console after every change that is made to the store:-->
+<p>通过模拟创建一个笔记，并以这种方式改变过滤器的状态，商店的状态会在每次对商店进行改变后被记录到控制台。</p>
+<p><img alt="" src="../docs/images/6/5e.png"></p>
+<!-- At this point it is good to become aware of a tiny but important detail. If we add a console log statement <i>to the beginning of both reducers</i>:-->
+<p>在这一点上，最好能意识到一个微小但重要的细节。如果我们<i>在两个还原器的开头</i>添加一个控制台日志语句，那么。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'ACTION: '</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// ...</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Based on the console output one might get the impression that every action gets duplicated:-->
+<p>根据控制台的输出，人们可能会得到这样的印象：每个动作都被重复了。</p>
+<p><img alt="" src="../docs/images/6/6.png"></p>
+<!-- Is there a bug in our code? No. The combined reducer works in such a way that every <i>action</i> gets handled in <i>every</i> part of the combined reducer. Typically only one reducer is interested in any given action, but there are situations where multiple reducers change their respective parts of the state based on the same action.-->
+<p>我们的代码中存在一个错误吗？不是的。组合式还原器的工作方式是每个<i>动作</i>都在组合式还原器的<i>每个</i>部分得到处理。通常情况下，只有一个还原器对任何给定的动作感兴趣，但也有这样的情况：多个还原器基于同一个动作改变各自的状态部分。</p>
+<h3 id="sec-3">Finishing the filters</h3>
+<!-- Let's finish the application so that it uses the combined reducer. We start by changing the rendering of the application and hooking up the store to the application in the <i>index.js</i> file:-->
+<p>让我们完成应用，使其使用组合式还原器。我们首先改变应用的渲染，并在<i>index.js</i>文件中把商店与应用挂起。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">ReactDOM</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createRoot</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">document</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getElementById</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">)).</span><span style="color: #A6E22E">render</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Provider</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">store</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/Provider&gt;,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">document</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getElementById</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Next, let's fix a bug that is caused by the code expecting the application store to be an array of notes:-->
+<p>接下来，让我们修复一个bug，这个bug是由代码期望应用商店是一个笔记数组所引起的。</p>
+<p><img alt="" src="../docs/images/6/7ea.png"></p>
+<!-- It's an easy fix. Because the notes are in the store's field <i>notes</i>, we only have to make a little change to the selector function:-->
+<p>这是个简单的修正。因为笔记是在商店的字段<i>notes</i>中，我们只需对选择器函数做一点改变。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt;</span>
+<span style="color: #F8F8F2">            </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">          }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- Aiemminhan selektorifunktio palautti koko storen tilan: -->
+<!-- Previously the selector function returned the whole state of the store:-->
+<p>以前的选择器函数返回整个商店的状态。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- And now it returns only its field <i>notes</i>-->
+<p>而现在它只返回它的字段<i>notes</i>。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Let's extract the visibility filter into its own <i>src/components/VisibilityFilter.js</i> component:-->
+<p>让我们把可见性过滤器提取到自己的<i>src/components/VisibilityFilter.js</i>组件中。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'../reducers/filterReducer'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">VisibilityFilter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">props</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">()</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">all</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"radio"</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"filter"</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2">))}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">important</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"radio"</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"filter"</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'IMPORTANT'</span><span style="color: #F8F8F2">))}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">nonimportant</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"radio"</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">=</span><span style="color: #E6DB74">"filter"</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt; </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">filterChange</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'NONIMPORTANT'</span><span style="color: #F8F8F2">))}</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">VisibilityFilter</span>
+</code></pre></div>
+
+<!-- With the new component <i>App</i> can be simplified as follows:-->
+<p>有了这个新的组件，<i>App</i>就可以简化成如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/Notes'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/NewNote'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">VisibilityFilter</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./components/VisibilityFilter'</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">NewNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">VisibilityFilter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span>
+</code></pre></div>
+
+<!-- The implementation is rather straightforward. Clicking the different radio buttons changes the state of the store's <i>filter</i> property.-->
+<p>实现起来相当简单。点击不同的单选按钮可以改变商店的<i>过滤器</i>属性的状态。</p>
+<!-- Let's change the <i>Notes</i> component to incorporate the filter:-->
+<p>让我们改变<i>Notes</i>组件以纳入过滤器。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useDispatch</span><span style="color: #F8F8F2">()</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">  </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">      </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">  </span><span style="color: #959077">// highlight-end</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">ul</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Note</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">key</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">note</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">}</span>
+<span style="color: #F8F8F2">          </span><span style="color: #A6E22E">handleClick</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{() =&gt;</span>
+<span style="color: #F8F8F2">            </span><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">))</span>
+<span style="color: #F8F8F2">          }</span>
+<span style="color: #F8F8F2">        </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">      )}</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/ul&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+</code></pre></div>
+
+<!-- Muutos kohdistuu siis ainoastaan selektorifunktioon, joka oli aiemmnin muotoa -->
+<!-- We only make changes to the selector function, which used to be-->
+<p>我们只对选择器函数做了修改，它以前是</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- Yksinkertaistetaan vielä selektoria destrukturoimalla parametrina olevasta tilasta sen kentät erilleen: -->
+<!-- Let's simplify the selector by destructuring the fields from the state it receives as a parameter:-->
+<p>让我们简化选择器，从它收到的状态中解构字段作为一个参数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(({ </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2"> }) =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">if</span><span style="color: #F8F8F2"> ( </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'ALL'</span><span style="color: #F8F8F2"> ) {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">  </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'IMPORTANT'</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notes</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<!-- There is a slight cosmetic flaw in our application. Even though the filter is set to <i>ALL</i> by default, the associated radio button is not selected. Naturally this issue can be fixed, but since this is an unpleasant but ultimately harmless bug we will save the fix for later. To ease these common Redux related problems-->
+<p>在我们的应用中存在一个轻微的外观缺陷。即使过滤器被默认设置为<i>ALL</i>，相关的单选按钮也没有被选中。自然，这个问题可以被修复，但由于这是一个令人不快但最终无害的错误，我们将把修复工作留到以后。为了缓解这些常见的Redux相关问题</p>
+<h3 id="sec-4">Redux Toolkit</h3>
+<!-- As we have seen so far, Redux's configuration and state management implementation requires quite a lot of effort. This is manifested for example in the reducer and action creator related code which has somewhat repetitive boilerplate code. [Redux Toolkit](https://redux-toolkit.js.org/) is a library that solves these common Redux-related problems. The library for example greatly simplifies the configuration of the Redux store and offers a large variety of tools to ease state management.-->
+<p>正如我们到目前为止所看到的，Redux's的配置和状态管理实现需要相当多的努力。例如，这体现在减速器和动作创建者的相关代码中，这些代码有一些重复的模板。<a href="https://redux-toolkit.js.org/">Redux Toolkit</a>是一个解决这些常见的Redux相关问题的库。例如，该库大大简化了Redux商店的配置，并提供了大量的工具来简化状态管理。</p>
+<!-- Let's start using Redux Toolkit in our application by refactoring the existing code. First, we will need to install the library:-->
+<p>让我们通过重构现有代码开始在我们的应用中使用Redux工具包。首先，我们需要安装该库。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code>npm install @reduxjs/toolkit
+</code></pre></div>
+
+<!-- Next, open the <i>index.js</i> file which currently creates the Redux store. Instead of Redux's <em>createStore</em> function, let's create the store using Redux Toolkit's [configureStore](https://redux-toolkit.js.org/api/configureStore) function:-->
+<p>接下来，打开目前创建Redux商店的<i>index.js</i>文件。取代Redux的<em>createStore</em>函数，让我们使用Redux工具包的<a href="https://redux-toolkit.js.org/api/configureStore">configureStore</a>函数创建商店。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">React</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">ReactDOM</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-dom/client'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">Provider</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">configureStore</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'@reduxjs/toolkit'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./App'</span>
+
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/noteReducer'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/filterReducer'</span>
+
+<span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">configureStore</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">reducer</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">notes</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">filter</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">filterReducer</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">})</span>
+<span style="color: #959077">// highlight-end</span>
+
+<span style="color: #A6E22E">console</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">log</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getState</span><span style="color: #F8F8F2">())</span>
+
+<span style="color: #A6E22E">ReactDOM</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">createRoot</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">document</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getElementById</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">)).</span><span style="color: #A6E22E">render</span><span style="color: #F8F8F2">(</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">Provider</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">store</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">store</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">App</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/Provider&gt;,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">document</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">getElementById</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'root'</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">)</span>
+</code></pre></div>
+
+<!-- We already got rid of a few lines codes now that we don't need the <em>combineReducers</em> function to create the reducer for the store. We will soon see that the <em>configureStore</em> function has many additional benefits such as the effortless integration of development tools and many commonly used libraries without the need for additional configuration.-->
+<p>我们已经摆脱了几行代码，现在我们不需要<em>combineReducers</em>函数来创建商店的还原器。我们很快就会看到，<em>configureStore</em>函数有许多额外的好处，比如毫不费力地集成开发工具和许多常用的库，而不需要额外的配置。</p>
+<!-- Let's move on to refactoring the reducers, which really brings forth the benefits of Redux Toolkit. With Redux Toolkit, we can easily create reducer and related action creators using the [createSlice](https://redux-toolkit.js.org/api/createSlice) function. We can use the <em>createSlice</em> function to refactor the reducer and action creators in the <i>reducers/noteReducer.js</i> file in the following manner:-->
+<p>让我们继续重构还原器，这才真正体现了Redux Toolkit的好处。通过Redux Toolkit，我们可以使用<a href="https://redux-toolkit.js.org/api/createSlice">createSlice</a>函数轻松创建还原器和相关的动作创建器。我们可以使用<em>createSlice</em>函数来重构<i>reducers/noteReducer.js</i>文件中的reducer和action creators，方法如下。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createSlice</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'@reduxjs/toolkit'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">initialState</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'reducer defines how redux store works'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">  {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'state of store can contain any data'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">]</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">generateId</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt;</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">Number</span><span style="color: #F8F8F2">((</span><span style="color: #A6E22E">Math</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">random</span><span style="color: #F8F8F2">() </span><span style="color: #FF4689">*</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1000000</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">toFixed</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">))</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteSlice</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">createSlice</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">name</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'notes'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">initialState</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">reducers</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">payload</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">push</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">generateId</span><span style="color: #F8F8F2">(),</span>
+<span style="color: #F8F8F2">      })</span>
+<span style="color: #F8F8F2">    },</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">payload</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteToChange</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">find</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">n</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">n</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">===</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">changedNote</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">        ...</span><span style="color: #A6E22E">noteToChange</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">!</span><span style="color: #A6E22E">noteToChange</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">important</span>
+<span style="color: #F8F8F2">      }</span>
+
+<span style="color: #F8F8F2">      </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> =&gt;</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">!==</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">id</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">?</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">note</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">changedNote</span>
+<span style="color: #F8F8F2">      )</span>
+<span style="color: #F8F8F2">    }</span>
+<span style="color: #F8F8F2">  },</span>
+<span style="color: #F8F8F2">})</span>
+<span style="color: #959077">// highlight-end</span>
+</code></pre></div>
+
+<!-- The <em>createSlice</em> function's <em>name</em> parameter defines the prefix which is used in the action's type values. For example the <em>createNote</em> action defined later will have the type value of <em>notes/createNote</em>. It is a good practice to give the parameter a value which is unique among the reducers. This way there won't be unexpected collisions between the application's action type values. The <em>initialState</em> parameter defines the reducer's initial state. The <em>reducers</em> parameter takes the reducer itself as an object, of which functions handle state changes caused by certain action. Note that the <em>action.payload</em> in the function contains the argument provided by calling the action creator:-->
+<p><em>createSlice</em>函数的<em>name</em>参数定义了动作类型值中使用的前缀。例如，稍后定义的<em>createNote</em>动作将有<em>notes/createNote</em>类型值。一个好的做法是给参数一个在还原器中唯一的值。这样就不会出现应用的动作类型值之间的意外冲突。<em>initialState</em>参数定义了还原器的初始状态。<em>reducers</em>参数把reducer本身作为一个对象，其中的函数处理由某些动作引起的状态变化。注意，函数中的<em>action.payload</em>包含调用动作创建者提供的参数。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'Redux Toolkit is awesome!'</span><span style="color: #F8F8F2">))</span>
+</code></pre></div>
+
+<!-- This dispatch call responds to dispatching the following object:-->
+<p>这个调度调用响应了调度以下对象。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">dispatch</span><span style="color: #F8F8F2">({ </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'notes/createNote'</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">payload</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'Redux Toolkit is awesome!'</span><span style="color: #F8F8F2"> })</span>
+</code></pre></div>
+
+<!-- If you followed closely, you might have noticed that inside the <em>createNote</em> action, there seems to happen something that violates the reducers' immutability principle mentioned earlier:-->
+<p>如果你密切关注，你可能已经注意到在<em>createNote</em>动作里面，似乎发生了一些违反前面提到的reducers'' immutability原则的事情。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">) {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">payload</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">push</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">generateId</span><span style="color: #F8F8F2">(),</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- We are mutating <em>state</em> argument's array by calling the <em>push</em> method instead of returning a new instance of the array. What's this all about?-->
+<p>我们通过调用<em>push</em>方法来改变<em>state</em>参数的数组，而不是返回数组的一个新实例。这到底是怎么回事？</p>
+<!-- Redux Toolkit utilizes the [Immer](https://immerjs.github.io/immer/) library with reducers created by <em>createSlice</em> function, which makes it possible to mutate the <em>state</em> argument inside the reducer. Immer uses the mutated state to produce a new, immutable state and thus the state changes remain immutable. Note that state can be changed without "mutating" it, as we have done with the <em>toggleImportanceOf</em> action. In this case function <i>returns</i> the new state. Nevertheless mutating the state will often come in handy especially when a complex state needs to be updated.-->
+<p>Redux Toolkit利用<a href="https://immerjs.github.io/immer/">Immer</a>库与由<em>createSlice</em>函数创建的还原器，这使得在还原器内部改变<em>state</em>参数成为可能。Immer使用改变的状态来产生一个新的、不可变的状态，因此状态的改变仍然是不可变的。请注意，状态可以在不 "改变 "的情况下被改变，就像我们在<em>toggleImportanceOf</em>动作中做的那样。在这种情况下，函数<i>会返回</i>新的状态。然而，改变状态经常会派上用场，特别是当一个复杂的状态需要被更新时。</p>
+<!-- The <em>createSlice</em> function returns an object containing the reducer as well as the action creators defined by the <em>reducers</em> parameter. The reducer can be accessed by the <em>noteSlice.reducer</em> property, whereas the action creators by the <em>noteSlice.actions</em> property. We can produce the file's exports in the following way:-->
+<p><em>createSlice</em>函数返回一个对象，包含还原器以及由<em>reducers</em>参数定义的动作创建者。可以通过<em>noteSlice.reducer</em>属性访问还原器，而通过<em>noteSlice.actions</em>属性访问动作创建者。我们可以通过以下方式产生文件''的输出。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteSlice</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">createSlice</span><span style="color: #F8F8F2">(</span><span style="color: #959077">/* ... */</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #959077">// highlight-start</span>
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2"> } </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteSlice</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">actions</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteSlice</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">reducer</span>
+<span style="color: #959077">// highlight-end</span>
+</code></pre></div>
+
+<!-- The imports in other files will work just as they did before:-->
+<p>其他文件中的导入将像以前一样工作。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2">, { </span><span style="color: #A6E22E">createNote</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">toggleImportanceOf</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./reducers/noteReducer'</span>
+</code></pre></div>
+
+<!-- We need to alter the tests a bit due to naming conventions of ReduxToolkit:-->
+<p>由于ReduxToolkit的命名惯例，我们需要改变一下测试。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'./noteReducer'</span>
+<span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">deepFreeze</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'deep-freeze'</span>
+
+<span style="color: #A6E22E">describe</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'noteReducer'</span><span style="color: #F8F8F2">, () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">test</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'returns new state with action notes/createNote'</span><span style="color: #F8F8F2">, () =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> []</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'notes/createNote'</span><span style="color: #F8F8F2">, </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">payload</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'the app state is in redux store'</span><span style="color: #F8F8F2">, </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">deepFreeze</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">toHaveLength</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">1</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">map</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">s</span><span style="color: #F8F8F2"> =&gt; </span><span style="color: #A6E22E">s</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">content</span><span style="color: #F8F8F2">)).</span><span style="color: #A6E22E">toContainEqual</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">.</span><span style="color: #A6E22E">payload</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  })</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #A6E22E">test</span><span style="color: #F8F8F2">(</span><span style="color: #E6DB74">'returns new state with action notes/toggleImportanceOf'</span><span style="color: #F8F8F2">, () =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> [</span>
+<span style="color: #F8F8F2">      {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'the app state is in redux store'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span>
+<span style="color: #F8F8F2">      },</span>
+<span style="color: #F8F8F2">      {</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'state changes are made with actions'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">false</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">        </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span>
+<span style="color: #F8F8F2">      }]</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">type</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'notes/toggleImportanceOf'</span><span style="color: #F8F8F2">, </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">payload</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    }</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">deepFreeze</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">)</span>
+<span style="color: #F8F8F2">    </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">noteReducer</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">, </span><span style="color: #A6E22E">action</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">toHaveLength</span><span style="color: #F8F8F2">(</span><span style="color: #AE81FF">2</span><span style="color: #F8F8F2">)</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">toContainEqual</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">state</span><span style="color: #F8F8F2">[</span><span style="color: #AE81FF">0</span><span style="color: #F8F8F2">])</span>
+
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">expect</span><span style="color: #F8F8F2">(</span><span style="color: #A6E22E">newState</span><span style="color: #F8F8F2">).</span><span style="color: #A6E22E">toContainEqual</span><span style="color: #F8F8F2">({</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">content</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'state changes are made with actions'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">important</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">true</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">id</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">2</span>
+<span style="color: #F8F8F2">    })</span>
+<span style="color: #F8F8F2">  })</span>
+<span style="color: #F8F8F2">})</span>
+</code></pre></div>
+
+<h3 id="sec-5">Redux DevTools</h3>
+<!-- [Redux DevTools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) is a Chrome addon that offers useful development tools for Redux. It can be used for example to inspect the Redux store's state and dispatch actions through the browser's console. When the store is created using Redux Toolkit's <em>configureStore</em> function, no additional configuration is needed for Redux DevTools to work.-->
+<p><a href="https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd">Redux DevTools</a> 是一个Chrome插件，为Redux提供有用的开发工具。例如，它可以用来检查Redux商店的状态，并通过浏览器的控制台调度行动。当使用Redux Toolkit的<em>configureStore</em>函数创建存储时，Redux DevTools不需要额外的配置就可以工作。</p>
+<!-- Once the addon in installed, clicking the <i>Redux</i> tab in the browser's console should open the development tools:-->
+<p>一旦插件安装完毕，点击浏览器控制台中的<i>Redux</i>标签就可以打开开发工具。</p>
+<p><img alt="" src="../docs/images/6/11ea.png"></p>
+<!-- You can inspect how dispatching a certain action changes the state by clicking the action:-->
+<p>你可以通过点击某个动作来检查调度某个动作如何改变状态。</p>
+<p><img alt="" src="../docs/images/6/12ea.png"></p>
+<!-- It is also possible to dispatch actions to the store using the development tools:-->
+<p>也可以使用开发工具向商店调度动作。</p>
+<p><img alt="" src="../docs/images/6/13ea.png"></p>
+<!-- You can find the code for our current application in its entirety in the <i>part6-2</i> branch of [this GitHub repository](https://github.com/fullstack-hy2020/redux-notes/tree/part6-2).-->
+<p>你可以在<a href="https://github.com/fullstack-hy2020/redux-notes/tree/part6-2">这个Github仓库</a>的<i>part6-2</i>分支中找到我们当前应用的全部代码。</p>
+</div>
+<div class="tasks">
+<h3 id="sec-6">Exercises 6.9.-6.12.</h3>
+<!-- Let's continue working on the anecdote application using Redux that we started in exercise 6.3.-->
+<p>让我们继续研究我们在练习6.3中开始的使用Redux的名言警句应用。</p>
+<h4>6.9 Better anecdotes, step7</h4>
+<!-- Install Redux Toolkit for the project. Move the Redux store creation into its own file <i>store.js</i> and use Redux Toolkit's <em>configureStore</em> to create the store. Also, start using Redux DevTools to debug the application's state easier.-->
+<p>为该项目安装Redux工具包。将Redux商店的创建移到自己的文件<i>store.js</i>中，并使用Redux Toolkit's <em>configureStore</em>来创建商店。同时，开始使用Redux DevTools来更容易地调试应用的状态。</p>
+<h4>6.10 Better anecdotes, step8</h4>
+<!-- The application has a ready-made body for the <i>Notification</i> component:-->
+<p>该应用有一个现成的<i>Notification</i>组件主体。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notification</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">border</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'solid'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">padding</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">10</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">borderWidth</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">style</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">render</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">here</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notification</span><span style="color: #F8F8F2">...</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notification</span>
+</code></pre></div>
+
+<!-- Extend the component so that it renders the message stored in the Redux store, making the component take the following form:-->
+<p>扩展该组件，使其渲染存储在Redux商店中的消息，使该组件采取以下形式。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">import</span><span style="color: #F8F8F2"> { </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2"> } </span><span style="color: #66D9EF">from</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'react-redux'</span><span style="color: #F8F8F2"> </span><span style="color: #959077">// highlight-line</span>
+
+<span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Notification</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">notification</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">useSelector</span><span style="color: #F8F8F2">(</span><span style="color: #959077">/* something here */</span><span style="color: #F8F8F2">) </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">border</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #E6DB74">'solid'</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">padding</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">10</span><span style="color: #F8F8F2">,</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">borderWidth</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">1</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">style</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      {</span><span style="color: #A6E22E">notification</span><span style="color: #F8F8F2">} </span><span style="color: #959077">// highlight-line</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+</code></pre></div>
+
+<!-- You will have to make changes to the application's existing reducer. Create a separate reducer for the new functionality by using the Redux Toolkit's <em>createSlice</em> function. Also, refactor the application so that it uses a combined reducer as shown in this part of the course material.-->
+<p>你将不得不对应用现有的还原器进行修改。通过使用Redux工具包的<em>createSlice</em>函数，为新功能创建一个单独的reducer。同时，重构应用，使其使用一个组合的还原器，如教材中的这一部分所示。</p>
+<!-- The application does not have to use the <i>Notification</i> component in an intelligent way at this point in the exercises. It is enough for the application to display the initial value set for the message in the <i>notificationReducer</i>.-->
+<p>在练习的这一点上，应用不需要以智能方式使用<i>Notification</i>组件。应用只需显示在<i>notificationReducer</i>中为消息设置的初始值即可。</p>
+<h4>6.11 Better anecdotes, step9</h4>
+<!-- Extend the application so that it uses the <i>Notification</i> component to display a message for five seconds when the user votes for an anecdote or creates a new anecdote:-->
+<p>扩展应用，使其使用<i>Notification</i>组件，在用户为名言警句投票或创建新的名言警句时，显示一条消息五秒钟。</p>
+<p><img alt="" src="../docs/images/6/8ea.png"></p>
+<!-- It's recommended to create separate [action creators](https://redux-toolkit.js.org/api/createSlice#reducers) for setting and removing notifications.-->
+<p>建议创建单独的<a href="https://redux-toolkit.js.org/api/createSlice#reducers">动作创建者</a>来设置和删除通知。</p>
+<h4>6.12* Better anecdotes, step10</h4>
+<!-- Implement filtering for the anecdotes that are displayed to the user.-->
+<p>对显示给用户的名言警句实施过滤。</p>
+<p><img alt="" src="../docs/images/6/9ea.png"></p>
+<!-- Store the state of the filter in the redux store. It is recommended to create a new reducer and action creators for this purpose. Implement the reducer and action creators using the Redux Toolkit's <em>createSlice</em> function.-->
+<p>在redux存储中存储过滤器的状态。建议为此目的创建一个新的还原器和动作创建器。使用Redux工具包的<em>createSlice</em>函数实现还原器和动作创建器。</p>
+<!-- Create a new <i>Filter</i> component for displaying the filter. You can use the following code as a template for the component:-->
+<p>创建一个新的<i>Filter</i>组件来显示过滤器。你可以使用下面的代码作为该组件的模板。</p>
+<div class="codehilite" style="background: #272822"><pre style="line-height: 125%;"><span></span><code><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> () =&gt; {</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">handleChange</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> (</span><span style="color: #A6E22E">event</span><span style="color: #F8F8F2">) =&gt; {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #959077">// input-field value is in variable event.target.value</span>
+<span style="color: #F8F8F2">  }</span>
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">const</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">=</span><span style="color: #F8F8F2"> {</span>
+<span style="color: #F8F8F2">    </span><span style="color: #A6E22E">marginBottom</span><span style="color: #FF4689">:</span><span style="color: #F8F8F2"> </span><span style="color: #AE81FF">10</span>
+<span style="color: #F8F8F2">  }</span>
+
+<span style="color: #F8F8F2">  </span><span style="color: #66D9EF">return</span><span style="color: #F8F8F2"> (</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">div</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">style</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">style</span><span style="color: #F8F8F2">}</span><span style="color: #FF4689">&gt;</span>
+<span style="color: #F8F8F2">      </span><span style="color: #A6E22E">filter</span><span style="color: #F8F8F2"> </span><span style="color: #FF4689">&lt;</span><span style="color: #A6E22E">input</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">onChange</span><span style="color: #FF4689">=</span><span style="color: #F8F8F2">{</span><span style="color: #A6E22E">handleChange</span><span style="color: #F8F8F2">} </span><span style="color: #FF4689">/&gt;</span>
+<span style="color: #F8F8F2">    </span><span style="color: #FF4689">&lt;</span><span style="color: #ED007E; background-color: #1E0010">/div&gt;</span>
+<span style="color: #F8F8F2">  )</span>
+<span style="color: #F8F8F2">}</span>
+
+<span style="color: #66D9EF">export</span><span style="color: #F8F8F2"> </span><span style="color: #66D9EF">default</span><span style="color: #F8F8F2"> </span><span style="color: #A6E22E">Filter</span>
+</code></pre></div>
+
+</div>
+  </main>
+  <nav class="doc-nav" style="display:flex;justify-content:space-between;gap:10px;margin-top:22px"><a class="badge b3" href="32_part6a_Flux_architecture.html">← 上一篇</a><a class="badge b3" href="34_part6c_Exercises_6_13_6_14.html">下一篇 →</a></nav>
+  <footer class="fso-footer">
+    <p>📖 本文来自 <a href="https://fullstackopen.com/zh/" target="_blank" rel="noopener">Full Stack Open</a>（赫尔辛基大学全栈公开课）中文版离线镜像，作者
+    <a href="https://github.com/mluukkai" target="_blank" rel="noopener">Matti Luukkainen</a> 等，中文翻译
+    ZhangWei（richardzhangv）。内容遵循 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+    target="_blank" rel="noopener">CC BY-NC-SA 3.0</a> 协议——保留本署名即可自由学习分享，禁止商用。</p>
+  </footer>
+</div>
+<script src="../assets/app.js"></script>
+</body>
+</html>
