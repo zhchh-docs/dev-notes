@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 11 章 分支的本质：一个指针而已｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第二篇 分支与协作</p>
+    <h1>第 11 章 分支的本质：一个指针而已</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 11 章 / 共 40 章 · 预计 40 分钟 · 概念核心章</span>
+    </div>
+    <p class="hero-desc">"开分支"在很多人的想象里是"复制一份代码"——所以他们不敢频繁开分支。真相是：Git 的分支只是一个 40 字节的指针文件。理解这一点，你就理解了 Git 为什么快、为什么轻量，也理解了切换分支时到底发生了什么。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../10_第一篇_入门与对象模型/010_第10章_提交信息规范：怎么写才算好.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="012_第12章_创建、切换与合并.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">11.1 分支的物理形态</a></li>
+    <li><a href="#sec3">11.2 HEAD：当前分支的游标</a></li>
+    <li><a href="#sec4">11.3 场景演练：手工造一个分支</a></li>
+    <li><a href="#sec5">11.4 切换分支时到底发生了什么</a></li>
+    <li><a href="#sec6">11.5 分离 HEAD（detached HEAD）</a></li>
+    <li><a href="#sec7">11.6 分支命名与管理</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能用 <code>cat .git/refs/heads/...</code> 亲眼看到"分支 = 一个哈希值文件"；</li>
+    <li>理解 <strong>HEAD 是指向分支的指针</strong>（两级间接），以及分离 HEAD 的成因；</li>
+    <li>知道切换分支时 Git 做的三件事，以及"有未提交改动时不能切换"的原因；</li>
+    <li>能手工创建一个分支（不借助 <code>git branch</code>），从底层理解分支成本。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">11.1</span> 分支的物理形态</h2>
+  <pre class="code" data-lang="bash"><code># 分支列表与当前分支
+git branch
+# * main
+#   feature-login
+
+# 分支在磁盘上是什么？
+ls .git/refs/heads/
+# feature-login  main
+
+cat .git/refs/heads/main
+# 3f2e1d0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e   ← 就一行，一个提交哈希
+
+# 用底层命令把任意哈希变成一个分支名
+git branch demo-branch 3f2e1d0     # 不需要任何复制操作</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="分支指针示意">
+      <defs><marker id="a11" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分支 = 指向提交的可移动指针</text>
+      <circle cx="120" cy="120" r="22" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="120" y="125" text-anchor="middle" font-size="11" fill="#2d6a3f">C1</text>
+      <circle cx="260" cy="120" r="22" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="260" y="125" text-anchor="middle" font-size="11" fill="#2d6a3f">C2</text>
+      <circle cx="400" cy="120" r="22" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="400" y="125" text-anchor="middle" font-size="11" fill="#2d6a3f">C3</text>
+      <line x1="143" y1="120" x2="235" y2="120" stroke="#7a8a70" stroke-width="2" marker-end="url(#a11)"/>
+      <line x1="283" y1="120" x2="375" y2="120" stroke="#7a8a70" stroke-width="2" marker-end="url(#a11)"/>
+      <rect x="330" y="52" width="120" height="30" rx="6" fill="#fef3c7" stroke="#b45309"/>
+      <text x="390" y="72" text-anchor="middle" font-size="11.5" fill="#b45309">main → C3</text>
+      <rect x="186" y="52" width="130" height="30" rx="6" fill="#d1fae5" stroke="#047857"/>
+      <text x="251" y="72" text-anchor="middle" font-size="11.5" fill="#047857">feature → C2</text>
+      <rect x="330" y="24" width="120" height="24" rx="6" fill="#e0e7ff" stroke="#3730a3"/>
+      <text x="390" y="40" text-anchor="middle" font-size="11" fill="#3730a3">HEAD → main</text>
+      <line x1="390" y1="48" x2="390" y2="52" stroke="#3730a3" stroke-width="2"/>
+      <line x1="390" y1="82" x2="400" y2="98" stroke="#b45309" stroke-width="2" marker-end="url(#a11)"/>
+      <line x1="251" y1="82" x2="260" y2="98" stroke="#047857" stroke-width="2" marker-end="url(#a11)"/>
+      <text x="400" y="182" text-anchor="middle" font-size="12" fill="#4f6348">新建分支 = 新建一个 41 字节文件；切换分支 = 改 HEAD 内容 + 签出文件</text>
+      <text x="400" y="204" text-anchor="middle" font-size="11" fill="#7a8a70">提交时：只有"当前分支"（HEAD 指向的那个）会向前移动</text>
+    </svg>
+    <p class="diagram-caption">图 11-1 分支是指针，不是容器：C1~C3 这些提交对象才是真正的内容</p>
+  </div>
+  <p class="key-sentence">创建分支的代价 = 在 <code>.git/refs/heads/</code> 里写一个 40 字符的文件。这就是为什么 Git 团队敢说"早分支、常分支"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">11.2</span> HEAD：当前分支的游标</h2>
+  <pre class="code" data-lang="bash"><code>cat .git/HEAD
+# ref: refs/heads/main        ← 正常状态：HEAD 指向一个分支
+
+# 在 main 上提交一次
+git commit -m "feat: 新改动"
+cat .git/refs/heads/main      # 变成新提交哈希（分支自动前进）
+cat .git/refs/heads/feature   # 不变（其他分支不动）</code></pre>
+  <p>于是有清晰的<strong>两级间接</strong>：<code>HEAD → 分支名 → 提交</code>。这带来一个重要性质：</p>
+  <ul>
+    <li>提交时前进的是<strong>HEAD 指向的那个分支</strong>，其他分支原地不动；</li>
+    <li>切换分支只是<strong>把 HEAD 指向另一个分支名</strong>，再把工作区文件换成该提交的内容。</li>
+  </ul>
+  <pre class="code" data-lang="bash"><code># 常用：查看 HEAD 的最终指向（解析两级）
+git rev-parse HEAD            # 当前提交的完整哈希
+git rev-parse --abbrev-ref HEAD  # 当前分支名（分离 HEAD 时输出 HEAD）
+git symbolic-ref HEAD         # refs/heads/main（分离时会报错）</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">11.3</span> 场景演练：手工造一个分支</h2>
+  <p>不用 <code>git branch</code>，直接写文件——验证"分支就是指针"：</p>
+  <pre class="code" data-lang="bash"><code>cd ~/git-lab/ch11
+git log --oneline
+# 3f2e1d0 (HEAD -&gt; main) feat: 第三次改动
+
+# 方式一：用底层命令 update-ref
+git update-ref refs/heads/handmade 3f2e1d0
+git branch
+#   handmade
+# * main
+
+# 方式二：直接写文件（教学演示，实际别这么干）
+echo 3f2e1d0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e &gt; .git/refs/heads/handmade2
+git branch --list 'handmade*'
+#   handmade
+#   handmade2
+
+# 验证：切过去，工作区内容一致
+git switch handmade
+git log --oneline -1          # 3f2e1d0 ... 与 main 相同</code></pre>
+  <div class="note"><strong>命令对比</strong>：<code>git branch &lt;name&gt;</code>（在当前提交建分支）、<code>git branch &lt;name&gt; &lt;起点&gt;</code>（在指定提交建分支）、<code>git switch -c &lt;name&gt;</code>（建并切换）、<code>git switch -c &lt;name&gt; &lt;起点&gt;</code>。后两者最常用。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">11.4</span> 切换分支时到底发生了什么</h2>
+  <p><code>git switch feature</code> 做了三件事：</p>
+  <ol>
+    <li><strong>移动 HEAD</strong>：把 <code>.git/HEAD</code> 内容改成 <code>ref: refs/heads/feature</code>；</li>
+    <li><strong>更新暂存区（index）</strong>：把 index 替换为 feature 尖端提交的树；</li>
+    <li><strong>更新工作区</strong>：把工作区文件替换成该提交的内容——<strong>删除</strong>只存在于旧分支的文件、<strong>创建</strong>只存在于新分支的文件、<strong>覆盖</strong>两边都有但内容不同的文件。</li>
+  </ol>
+  <p>第 3 步解释了那个经典报错：</p>
+  <pre class="code" data-lang="bash"><code>git switch feature
+# error: Your local changes to the following files would be overwritten by checkout:
+#         src/app.py
+# Please commit your changes or stash them before you switch branches.</code></pre>
+  <p>Git 拒绝切换，是因为<strong>切换会覆盖你未提交的改动</strong>，而这些改动还没进对象库、丢了找不回。三种合法选择：</p>
+  <pre class="code" data-lang="bash"><code># A. 提交（最稳妥，改动进入历史）
+git add -A &amp;&amp; git commit -m "wip: 临时存档"
+
+# B. 暂存（stash，第 25 章）
+git stash push -m "切分支前存档"
+git switch feature
+# ...干完活回来...
+git switch main &amp;&amp; git stash pop
+
+# C. 带走改动一起切（Git 会尝试合并，可能冲突）
+git switch feature            # 若两边改动不冲突，Git 允许带着改动切</code></pre>
+  <p><span class="tag-point">未被任何分支引用的"未跟踪文件"不会被切换影响</span>——它们不属于任何提交，Git 切换时不动它们。所以新建的文件可以"跟着你"跨分支存在（这有时会造成困惑）。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">11.5</span> 分离 HEAD（detached HEAD）</h2>
+  <p>当 <code>HEAD</code> 直接指向<strong>某个提交</strong>而不是分支名时，就叫分离 HEAD：</p>
+  <pre class="code" data-lang="bash"><code>git switch --detach 3f2e1d0
+# 或老写法：git checkout 3f2e1d0
+cat .git/HEAD
+# 3f2e1d0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e   ← 直接是哈希，不是 ref:
+
+git status
+# HEAD detached at 3f2e1d0</code></pre>
+  <div class="danger-box"><strong>危险点</strong>：在分离 HEAD 状态下<strong>可以继续提交</strong>，但这些提交<strong>不被任何分支引用</strong>。一旦你 <code>git switch main</code> 切走，这些提交就成了"悬空对象"，只能靠 reflog（第 23 章）找回，且 30 天后可能被垃圾回收。</div>
+  <pre class="code" data-lang="bash"><code># 已经在分离 HEAD 上提交了有用代码？立刻建分支保住它！
+git switch -c rescue-work
+
+# 只是想看看旧版本，看完就走（不提交任何东西）
+git switch --detach 3f2e1d0     # 看
+git switch main                 # 回来（安全，因为没提交）</code></pre>
+  <p>分离 HEAD 的正当用途：<strong>临时查看历史版本</strong>、<strong>基于某提交做实验</strong>（决定保留就建分支）。<code>git bisect</code>（第 26 章）也工作在分离 HEAD 状态。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">11.6</span> 分支命名与管理</h2>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:38%"><col style="width:34%"></colgroup>
+    <thead><tr><th>操作</th><th>命令</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>列出</td><td><code>git branch</code> / <code>-a</code>（含远程）/ <code>-vv</code>（含追踪）</td><td><code>*</code> 标记当前分支</td></tr>
+      <tr><td>新建</td><td><code>git branch 名字 [起点]</code></td><td>不切换；<code>switch -c</code> 建并切</td></tr>
+      <tr><td>重命名</td><td><code>git branch -m 旧名 新名</code></td><td>当前分支：<code>git branch -m 新名</code></td></tr>
+      <tr><td>删除（已合并）</td><td><code>git branch -d 名字</code></td><td>安全：未合并会拒绝</td></tr>
+      <tr><td>强制删除</td><td><code>git branch -D 名字</code></td><td>丢弃未合并提交，慎用</td></tr>
+      <tr><td>删除远程分支</td><td><code>git push origin --delete 名字</code></td><td>第 18 章详解</td></tr>
+      <tr><td>清理已失效的追踪分支</td><td><code>git fetch --prune</code></td><td>远程已删但本地还在</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="text"><code># 常见命名约定（第 37 章会形成团队规范）
+feature/user-login      # 功能
+fix/cart-total          # 修复
+release/1.4.0           # 发布
+hotfix/login-500        # 紧急修复
+chore/upgrade-vite      # 杂项
+# 建议：小写 + 连字符 + 斜杠分组；可含 issue 号：feature/482-login</code></pre>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：在分离 HEAD 上开发 → 提交悬空；发现后立刻 <code>git switch -c 新分支</code>；</li>
+    <li><span class="tag-pit">坑 2</span>：<code>git checkout &lt;commit&gt;</code> 误以为只是"看看" → 用 <code>git show</code> 或 <code>git switch --detach</code> 明确意图；</li>
+    <li><span class="tag-pit">坑 3</span>：切分支失败提示覆盖 → 先 commit 或 stash，别用 <code>-f</code> 强切；</li>
+    <li><span class="tag-pit">坑 4</span>：<code>git branch -D</code> 删掉了未合并工作 → 用 reflog 找回（第 23 章）；</li>
+    <li><span class="tag-pit">坑 5</span>：分支名与文件名冲突（如分支叫 <code>src</code>）→ 命令歧义，用 <code>git switch -- src</code> 或改名规避。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>分支本质</td><td><code>.git/refs/heads/</code> 里存哈希的小文件，创建成本≈0</td></tr>
+      <tr><td>HEAD</td><td>指向"当前分支"的指针（两级间接）；提交只推进当前分支</td></tr>
+      <tr><td>切换分支</td><td>改 HEAD + 换 index + 换工作区文件三步</td></tr>
+      <tr><td>切换被拒</td><td>有未提交改动会被覆盖 → commit / stash / 带着走</td></tr>
+      <tr><td>分离 HEAD</td><td>HEAD 直接指向提交；提交会悬空，用 <code>switch -c</code> 保住</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 <code>cat .git/refs/heads/分支名</code> 与 <code>cat .git/HEAD</code> 观察仓库，画出当前分支与 HEAD 的指向关系。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 <code>git update-ref</code> 手工在某历史提交上建分支并切换，验证工作区内容确实回到了那个版本。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>进入分离 HEAD 状态并提交两次，然后切回 main 观察"提交消失"，再用 <code>git reflog</code> 找回它们并建立分支（预习第 23 章）。</div>
+  <p class="note">下一章：创建、切换与合并——fast-forward 与三方合并的区别，以及合并提交的产生条件。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../10_第一篇_入门与对象模型/010_第10章_提交信息规范：怎么写才算好.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="012_第12章_创建、切换与合并.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 11 章 分支的本质：一个指针而已</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

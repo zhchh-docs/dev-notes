@@ -1,0 +1,301 @@
+<!--CH
+title: props：声明、校验与单向流
+part: 第二篇 组件化
+desc: props 是组件的输入接口。这一章讲清三种声明方式、完整校验规则、单向数据流为什么不能违背，以及"确实需要改 props"时的三种正确做法。
+toc: 本章目标|11.1 声明 props 的三种方式|11.2 校验：type / required / default / validator|11.3 单向数据流：为什么不能改 props|11.4 想改 props 时的三种正确做法|11.5 传参细节与 $attrs|11.6 只读与响应式：别解构 props|11.7 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 props 的<strong>三种声明方式</strong>（数组、对象、TS 泛型）；</li>
+    <li>能写出<strong>完整校验</strong>：<code>type</code>、<code>required</code>、<code>default</code>、<code>validator</code>；</li>
+    <li>理解<strong>单向数据流</strong>的真实含义与违背它的后果；</li>
+    <li>掌握"需要修改 props"时的<strong>三种正确模式</strong>；</li>
+    <li>清楚<strong>命名转换</strong>（camelCase ↔ kebab-case）与 <code>$attrs</code> 透传。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">11.1</span> 声明 props 的三种方式</h2>
+  <h3>① 数组形式（最简，不校验）</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const props = defineProps(['title', 'count'])
+&lt;/script&gt;</code></pre>
+  <h3>② 对象形式（推荐，可校验）</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const props = defineProps({
+  title: { type: String, required: true },
+  count: { type: Number, default: 0 },
+  list: { type: Array, default: () =&gt; [] },   // 注意：对象/数组用工厂函数
+  status: {
+    type: String,
+    default: 'pending',
+    validator: (v) =&gt; ['pending', 'done', 'failed'].includes(v)
+  }
+})
+&lt;/script&gt;</code></pre>
+  <h3>③ TypeScript 泛型（类型即文档）</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup lang="ts"&gt;
+interface User { id: number; name: string; avatar?: string }
+
+// 方式 A：运行时类型推导（Vue 3.3+ 支持复杂类型）
+const props = defineProps&lt;{
+  user: User
+  size?: 'small' | 'large'
+  disabled?: boolean
+}&gt;()
+
+// 方式 B：带默认值（withDefaults）
+const props = withDefaults(defineProps&lt;{
+  user: User
+  size?: 'small' | 'large'
+  count?: number
+}&gt;(), {
+  size: 'small',
+  count: 0
+})
+&lt;/script&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>方式</th><th>优点</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>数组</td><td>最快</td><td>原型、内部小组件</td></tr>
+      <tr><td>对象</td><td>运行时校验 + 默认值</td><td>JS 项目主力写法</td></tr>
+      <tr><td>TS 泛型</td><td>编译期类型 + IDE 提示</td><td>TS 项目首选</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>注意</strong>：<code>defineProps</code> 是<strong>编译宏</strong>，不需要 import；只能在 <code>&lt;script setup&gt;</code> 顶层调用；它的返回值要赋给变量（模板里也能直接用 props 名）。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">11.2</span> 校验：type / required / default / validator</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const props = defineProps({
+  // 基础类型
+  name: String,
+  age: Number,
+  active: Boolean,
+  tags: Array,
+  meta: Object,
+  onChange: Function,
+
+  // 多类型
+  id: [String, Number],
+
+  // 必填
+  title: { type: String, required: true },
+
+  // 默认值（基础类型直接给）
+  size: { type: Number, default: 24 },
+
+  // 默认值（对象/数组必须用工厂函数返回新对象）
+  options: { type: Array, default: () =&gt; [] },
+  config: { type: Object, default: () =&gt; ({ theme: 'light' }) },
+
+  // 自定义校验：返回 false 会在控制台告警
+  status: {
+    type: String,
+    default: 'pending',
+    validator(value) {
+      return ['pending', 'running', 'done', 'failed'].includes(value)
+    }
+  },
+
+  // 构造函数作为类型（自定义类）
+  author: { type: Person }   // Person 是一个 class
+})
+&lt;/script&gt;</code></pre>
+  <div class="danger-box"><strong>对象/数组默认值必须写成工厂函数</strong>：<code>default: () =&gt; []</code>。若写成 <code>default: []</code>，<strong>所有组件实例会共享同一个数组</strong>（引用复用），一个实例改了它，别的实例跟着变——这是极其隐蔽的 bug。</div>
+  <div class="warn-box"><span class="tag-pit">校验时机</span>props 校验只在<strong>开发模式</strong>下进行（生产构建会被剥离以减小体积），且<strong>只告警不阻断</strong>：校验失败不会阻止渲染，只在控制台输出警告。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">11.3</span> 单向数据流：为什么不能改 props</h2>
+  <p class="lead">Vue 的 props 是<strong>单向</strong>的：父组件的数据向下流向子组件，子组件<strong>不应</strong>反向修改它。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="单向数据流示意">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">单向数据流：数据向下、事件向上</text>
+      <rect x="80" y="50" width="180" height="50" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="170" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">父组件 state</text>
+      <rect x="310" y="50" width="180" height="50" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">子组件 props</text>
+      <rect x="540" y="50" width="180" height="50" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="630" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">子组件模板</text>
+      <path d="M262,70 L306,70" stroke="#2d6a3f" stroke-width="2.5" fill="none" marker-end="url(#a111)"/>
+      <path d="M492,70 L536,70" stroke="#2d6a3f" stroke-width="2.5" fill="none" marker-end="url(#a111)"/>
+      <path d="M630,140 L310,140" stroke="#b91c1c" stroke-width="2.5" fill="none" marker-end="url(#a112)"/>
+      <text x="470" y="132" text-anchor="middle" font-size="12" fill="#b91c1c">想改数据？发事件（emit），让父组件自己改</text>
+      <text x="470" y="172" text-anchor="middle" font-size="12" fill="#4f6348">禁止：子组件直接 props.xxx = y（父组件状态被"远程修改"，来源无法追踪）</text>
+      <defs>
+        <marker id="a111" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2d6a3f"/></marker>
+        <marker id="a112" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b91c1c"/></marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 11-1 单向数据流：向下传 props，向上发事件</p>
+  </div>
+  <p>为什么必须单向：</p>
+  <ol>
+    <li><strong>可追踪</strong>：数据只有一个"所有者"，改动的来源永远只有一个地方；</li>
+    <li><strong>可预测</strong>：子组件是"纯展示"的，同样的 props 一定渲染同样的结果；</li>
+    <li><strong>避免循环</strong>：双向随意改会让父子互相触发更新，最终演变成"谁改的？"的调试噩梦。</li>
+  </ol>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const props = defineProps({ count: Number })
+
+// ❌ 反例：直接改 props
+props.count++        // 控制台告警：Set operation on key "count" failed: target is readonly
+
+// ❌ 反例：对象类型的属性也不能"改内部"（若父传的是响应式对象，会影响父状态）
+props.user.name = 'x'  // 不告警但违反约定，父组件状态被偷偷改了
+&lt;/script&gt;</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">11.4</span> 想改 props 时的三种正确做法</h2>
+  <h3>做法一：作为本地初始值的副本（最常用）</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const props = defineProps({ initialName: String })
+// props 只作为初值，之后改本地副本
+const name = ref(props.initialName)
+&lt;/script&gt;</code></pre>
+  <h3>做法二：可写计算属性（与父状态保持同步）</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const props = defineProps({ modelValue: String })
+const emit = defineEmits(['update:modelValue'])
+
+// 读走 props，写走 emit —— 这就是 v-model 的本质（第 13 章）
+const value = computed({
+  get: () =&gt; props.modelValue,
+  set: v =&gt; emit('update:modelValue', v)
+})
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;input v-model="value"&gt;
+&lt;/template&gt;</code></pre>
+  <h3>做法三：发事件让父组件改（最规范）</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件 --&gt;
+&lt;script setup&gt;
+const props = defineProps({ user: Object })
+const emit = defineEmits(['update-name'])
+&lt;/script&gt;
+&lt;template&gt;
+  &lt;input :value="user.name" @input="emit('update-name', $event.target.value)"&gt;
+&lt;/template&gt;
+
+&lt;!-- 父组件 --&gt;
+&lt;UserCard :user="user" @update-name="user.name = $event" /&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>做法</th><th>父子是否同步</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>本地副本</td><td>❌ 之后不同步</td><td>表单初始值、配置快照</td></tr>
+      <tr><td>可写计算属性</td><td>✅ 完全同步</td><td>受控组件、v-model 实现</td></tr>
+      <tr><td>emit 通知父改</td><td>✅ 完全同步</td><td>通用首选</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">11.5</span> 传参细节与 $attrs</h2>
+  <h3>命名转换</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 定义用 camelCase，模板里推荐 kebab-case --&gt;
+&lt;script setup&gt;
+defineProps({ userId: Number, userName: String })
+&lt;/script&gt;
+
+&lt;!-- 父组件两种写法都行，推荐后者（与 HTML 属性风格一致） --&gt;
+&lt;UserCard :user-id="1" :user-name="'小明'" /&gt;</code></pre>
+  <h3>静态 vs 动态</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 静态：传字符串 --&gt;
+&lt;UserCard title="标题" /&gt;
+
+&lt;!-- 动态：传表达式（数字、布尔、变量、对象） --&gt;
+&lt;UserCard :count="42" :disabled="true" :user="currentUser" /&gt;
+
+&lt;!-- 布尔简写：写属性名即 true --&gt;
+&lt;UserCard disabled /&gt;      &lt;!-- 等价 :disabled="true" --&gt;
+
+&lt;!-- 整体传入一个对象：用 v-bind 展开 --&gt;
+&lt;UserCard v-bind="userProps" /&gt;
+&lt;!-- 等价：&lt;UserCard :id="userProps.id" :name="userProps.name" /&gt; --&gt;</code></pre>
+  <h3>$attrs：未被 props 声明的属性</h3>
+<pre class="code" data-lang="vue"><code>&lt;!-- 父组件 --&gt;
+&lt;MyInput class="w-full" placeholder="请输入" data-test="input" /&gt;
+
+&lt;!-- MyInput.vue --&gt;
+&lt;script setup&gt;
+defineProps({ modelValue: String })   // 只声明了 modelValue
+// 其余 class / placeholder / data-test 都会进 $attrs
+&lt;/script&gt;
+&lt;template&gt;
+  &lt;!-- 默认会自动透传到根元素；想指定位置就显式绑定 --&gt;
+  &lt;div class="wrap"&gt;
+    &lt;input v-bind="$attrs" :value="modelValue"&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script setup&gt;
+defineOptions({ inheritAttrs: false })   // 关掉默认透传，避免挂到 .wrap 上
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence"><code>$attrs</code> 是"属性分发的下水道"：<strong>封装第三方组件时，把没声明的属性全部透传进去</strong>，使用者就能像用原生组件一样传任意属性（第 61 章二次封装会大量使用）。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">11.6</span> 只读与响应式：别解构 props</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { toRefs, toRef, computed } from 'vue'
+const props = defineProps({ count: Number, user: Object })
+
+// ❌ 解构会丢失响应性：count 只是一个数字快照
+const { count } = props
+
+// ✅ 方式一：用 toRefs 保持响应
+const { count: countRef } = toRefs(props)
+console.log(countRef.value)
+
+// ✅ 方式二：用 toRef 取单个字段
+const count2 = toRef(props, 'count')
+
+// ✅ 方式三：在计算属性/模板里直接读 props.xxx（最省事）
+const double = computed(() =&gt; props.count * 2)
+&lt;/script&gt;</code></pre>
+  <div class="note">Vue 3.5+ 引入<strong>响应式 props 解构</strong>：<code>const { count = 0 } = defineProps(...)</code> 在开启相应编译选项后可保持响应性。未确认项目是否启用时，仍用 <code>toRefs</code> 更稳妥。</div>
+  <p>另外，props 对象本身是<strong>浅层只读</strong>的：改 <code>props.count</code> 会告警；但 <code>props.user.name = 'x'</code>（改对象内部）不会告警——因为它修改的是父组件创建的那个对象。<strong>不告警 ≠ 正确</strong>，这依然违反单向数据流。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">11.7</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>对象默认值写成字面量</strong>：<code>default: []</code> → 所有实例共享同一数组。必须 <code>default: () =&gt; []</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>直接改 props</strong>：告警且违反单向流。用 emit 或可写计算属性。</li>
+    <li><span class="tag-pit">坑 3</span><strong>解构 props 丢响应</strong>：用 <code>toRefs</code> / <code>toRef</code> 或直接读 <code>props.x</code>。</li>
+    <li><span class="tag-pit">坑 4</span><strong>传参漏冒号</strong>：<code>count="42"</code> 传的是字符串 "42"，<code>:count="42"</code> 才是数字。</li>
+    <li><span class="tag-pit">坑 5</span><strong>Boolean 类型的坑</strong>：布尔 prop 的 <code>default</code> 若为 <code>false</code> 可以省略；但注意<strong>空字符串也是 false 之外的真值判断</strong>——写了 <code>disabled=""</code> 表示 true。</li>
+    <li><span class="tag-pit">坑 6</span><strong>validator 里写异步</strong>：校验函数<strong>必须同步返回布尔值</strong>，异步校验无意义（且不会被 await）。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>声明方式</td><td>数组（简）/ 对象（可校验）/ TS 泛型（类型强）</td></tr>
+      <tr><td>校验项</td><td><code>type</code>、<code>required</code>、<code>default</code>、<code>validator</code>（同步）</td></tr>
+      <tr><td>默认值</td><td>对象/数组必须用工厂函数，避免实例间共享</td></tr>
+      <tr><td>单向数据流</td><td>父 → 子向下传；子改数据只能发事件向上</td></tr>
+      <tr><td>三种改法</td><td>本地副本 / 可写计算属性 / emit 通知父</td></tr>
+      <tr><td>$attrs</td><td>未声明的属性集合，用于透传；<code>inheritAttrs: false</code> 可控位置</td></tr>
+      <tr><td>解构</td><td>直接解构丢响应，用 <code>toRefs</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个 <code>BaseTag</code> 组件：props 含 <code>text</code>（必填字符串）、<code>type</code>（枚举校验：info/success/warn/error，默认 info）、<code>size</code>（数字，默认 12）。故意传一个非法 type，观察控制台告警。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现一个"受控输入组件"：父组件持有值，子组件通过可写计算属性实现读写同步；再实现一个"非受控版本"（本地副本 + <code>watch</code> 同步 props 变化），比较两者的差异与适用场景。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>封装 <code>BaseInput</code>：内部包一层 <code>&lt;div class="wrap"&gt;</code>，要求父组件写的 <code>class</code>、<code>placeholder</code>、<code>data-*</code> 都落到内部 <code>&lt;input&gt;</code> 上（用 <code>$attrs</code> + <code>inheritAttrs: false</code>），并验证多根模板下不这样做会怎样。</div>
+  <p class="note">参考答案见附录 C。下一章讲自定义事件 emit。</p>
+</section>

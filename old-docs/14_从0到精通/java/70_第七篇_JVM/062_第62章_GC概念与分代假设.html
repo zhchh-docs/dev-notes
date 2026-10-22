@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 62 章 GC 概念与分代假设｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第七篇 JVM</p>
+    <h1>第 62 章 GC 概念与分代假设</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 62 章 / 共 112 章 · 预计 40 分钟 · 上一章：对象的创建与内存布局</span>
+    </div>
+    <p class="hero-desc">GC 不是魔法，而是一套"判定死亡 + 回收空间"的策略体系。本章先讲死亡判定（可达性分析），再讲分代假设如何塑造了整个堆的形状——搞懂这两点，第 63 章的各类收集器就只是算法组合。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="061_第61章_对象的创建与内存布局.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="063_第63章_垃圾回收器CMS_G1_ZGC.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">62.1 对象已死？两种判定法</a></li>
+    <li><a href="#sec3">62.2 GC Roots 有哪些</a></li>
+    <li><a href="#sec4">62.3 引用强弱与对象自救</a></li>
+    <li><a href="#sec5">62.4 分代假设与堆的形状</a></li>
+    <li><a href="#sec6">62.5 一次 Minor GC 的全过程</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清<strong>引用计数与可达性分析</strong>的差别，以及 Java 为什么选后者；</li>
+    <li>列举至少 5 种 <strong>GC Roots</strong>；</li>
+    <li>区分<strong>强、软、弱、虚</strong>四种引用并说出典型应用；</li>
+    <li>理解<strong>分代假设</strong>（弱分代 + 强分代）如何推导出新生代/老年代的设计。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">62.1</span> 对象已死？两种判定法</h2>
+  <p class="lead"><strong>一句话定位</strong>：回收之前必须先判定对象"不可达"。主流方案是引用计数与可达性分析，Java 用后者。</p>
+  <h3>引用计数：简单但有洞</h3>
+  <p>给每个对象挂一个计数器，被引用 +1、引用失效 -1，为 0 即可回收。判定快、开销小，但<strong>无法处理循环引用</strong>：</p>
+  <pre class="code" data-lang="java"><code>public class Cycle {
+    Cycle partner;
+    public static void main(String[] args) {
+        Cycle a = new Cycle();   // a 计数 1
+        Cycle b = new Cycle();   // b 计数 1
+        a.partner = b;           // b 计数 2
+        b.partner = a;           // a 计数 2
+        a = null; b = null;      // 局部引用失效
+        // 若用引用计数：两个对象计数各剩 1，永远回收不掉 → 内存泄漏
+        System.gc();             // Java 的可达性分析能正常回收它们
+        System.out.println("结束后堆仍可正常回收，无泄漏");
+    }
+}</code></pre>
+  <h3>可达性分析：从根出发</h3>
+  <p>从一组 <strong>GC Roots</strong> 出发，沿着引用链走，能走到的对象是活的，走不到的就是垃圾——循环引用自然被解掉：互相引用但谁也够不着根，照样回收。</p>
+  <div class="key-sentence">注意：可达性分析要求"冻结现场"——分析期间所有线程停摆（STW）。现代收集器做的各种优化（三色标记、增量更新），本质都是在减少这段时间。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">62.2</span> GC Roots 有哪些</h2>
+  <table>
+    <colgroup><col style="width:40%"><col style="width:60%"></colgroup>
+    <thead><tr><th>GC Roots</th><th>举例</th></tr></thead>
+    <tbody>
+      <tr><td>虚拟机栈中的引用</td><td>各线程栈帧的局部变量表参数、临时变量</td></tr>
+      <tr><td>本地方法栈中的引用</td><td>JNI 引用的对象</td></tr>
+      <tr><td>方法区的类静态变量</td><td><code>static User cache</code> 指向的对象</td></tr>
+      <tr><td>方法区的常量引用</td><td>字符串常量池中的引用</td></tr>
+      <tr><td>同步锁持有的对象</td><td>synchronized 锁住的对象</td></tr>
+      <tr><td>JVM 内部引用</td><td>基本类型 Class 对象、异常对象、系统类加载器</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence"><span class="tag-pit">实战联想</span>：静态集合（如 <code>static Map cache</code>）只进不出，是最常见的"GC 认为它活着、你以为它死了"的内存泄漏——第 66 章 OOM 案例会用到。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">62.3</span> 引用强弱与对象自救</h2>
+  <pre class="code" data-lang="java"><code>import java.lang.ref.*;
+
+public class RefDemo {
+    public static void main(String[] args) {
+        // 软引用：内存不足才回收（适合缓存）
+        SoftReference&lt;byte[]&gt; soft = new SoftReference&lt;&gt;(new byte[1024]);
+        // 弱引用：下次 GC 必回收（适合 WeakHashMap 元数据）
+        WeakReference&lt;byte[]&gt; weak = new WeakReference&lt;&gt;(new byte[1024]);
+        // 虚引用：随时回收，仅用于跟踪回收事件（配合 ReferenceQueue）
+        PhantomReference&lt;byte[]&gt; phantom =
+            new PhantomReference&lt;&gt;(new byte[1024], new ReferenceQueue&lt;&gt;());
+
+        System.out.println(soft.get() != null);   // true
+        System.out.println(weak.get() != null);   // true
+        System.out.println(phantom.get());        // 永远 null
+
+        System.gc();
+        System.out.println("GC 后弱引用：" + (weak.get() == null ? "已回收" : "存活"));
+        System.out.println("GC 后软引用：" + (soft.get() == null ? "已回收" : "存活"));
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:42%"><col style="width:42%"></colgroup>
+    <thead><tr><th>强度</th><th>回收时机</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td>强</td><td>可达就不回收</td><td>普通变量、集合元素</td></tr>
+      <tr><td>软</td><td>内存不足才回收</td><td>图片缓存、缓存框架</td></tr>
+      <tr><td>弱</td><td>下次 GC 必回收</td><td>WeakHashMap、ThreadLocal 的 key</td></tr>
+      <tr><td>虚</td><td>不影响生命周期</td><td>堆外内存回收通知（DirectByteBuffer）</td></tr>
+    </tbody>
+  </table>
+  <h3>对象的最后自救：finalize</h3>
+  <p>可达性分析判死的对象若重写过 <code>finalize()</code> 且未执行过，会进入 F-Queue 执行一次——执行后若重新被引用即可"复活"。但 finalize 不保证执行、耗时且危险，<strong>JDK 9 起已标记废弃</strong>，新代码一律用 try-with-resources 或 Cleaner。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">62.4</span> 分代假设与堆的形状</h2>
+  <p class="lead"><strong>一句话定位</strong>：两条经验规律——<strong>弱分代假设</strong>：绝大多数对象朝生夕死；<strong>强分代假设</strong>：熬过多次 GC 的对象往往长寿。整个堆的设计都由此推导。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="分代堆结构">
+      <defs><marker id="arr62" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">分代堆：新生代（Eden + 2 Survivor）+ 老年代</text>
+      <rect x="40" y="46" width="470" height="130" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="275" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">新生代（默认约 1/3 堆，比例 8:1:1）</text>
+      <rect x="60" y="84" width="280" height="70" rx="6" fill="#d8e8c8"/><text x="200" y="116" text-anchor="middle" font-size="12" fill="#2d6a3f">Eden（8）—— 对象出生地</text>
+      <rect x="350" y="84" width="70" height="70" rx="6" fill="#fff" stroke="#4f6348"/><text x="385" y="116" text-anchor="middle" font-size="11" fill="#4f6348">S0</text>
+      <rect x="428" y="84" width="70" height="70" rx="6" fill="#fff" stroke="#4f6348"/><text x="463" y="116" text-anchor="middle" font-size="11" fill="#4f6348">S1</text>
+      <rect x="530" y="46" width="230" height="130" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="645" y="68" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">老年代（约 2/3 堆）</text>
+      <text x="645" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">熬过 15 次 Minor GC</text>
+      <text x="645" y="124" text-anchor="middle" font-size="11.5" fill="#4f6348">或大对象直接进入</text>
+      <line x1="463" y1="154" x2="600" y2="176" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr62)"/>
+      <text x="645" y="196" text-anchor="middle" font-size="11" fill="#7a8a70">晋升（Promotion）→ 触发 Major/Mixed GC</text>
+      <text x="275" y="196" text-anchor="middle" font-size="11" fill="#7a8a70">Minor GC：复制存活对象，快</text>
+    </svg>
+    <p class="diagram-caption">图 62-1 分代堆结构：8:1:1 的 Eden 与 Survivor</p>
+  </div>
+  <ul>
+    <li><strong>新生代</strong>用复制算法：朝生夕死的对象占多数，只复制少量存活者，代价小、速度快；</li>
+    <li><strong>老年代</strong>用标记-清除或标记-整理：存活率高，复制太浪费；</li>
+    <li>两个 Survivor 交替使用，解决复制算法的碎片与空间浪费；</li>
+    <li>晋升年龄阈值默认 15（对象头 Mark Word 只有 4 bit 存年龄）。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">62.5</span> 一次 Minor GC 的全过程</h2>
+  <ol>
+    <li>Eden 满了，触发 Minor GC，所有应用线程 STW；</li>
+    <li>GC Roots 扫描 Eden + 当前使用的 Survivor，标记存活对象；</li>
+    <li>存活对象复制到另一个空 Survivor（年龄 +1），年龄达标或 Survivor 放不下的晋升老年代；</li>
+    <li>Eden 与旧 Survivor 整体清空，恢复线程。</li>
+  </ol>
+  <pre class="code" data-lang="bash"><code># 观察 Minor GC 与 Full GC 频率、耗时
+java -Xlog:gc* -jar app.jar          # JDK 9+ 统一日志
+java -XX:+PrintGCDetails -jar app.jar  # JDK 8 传统参数
+
+# 典型输出解读
+# [gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause)
+#      238M-&gt;28M(1024M) 12.345ms     ← 回收前后堆占用与暂停时长</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：Minor GC 本身很快（毫秒级），但若存在<strong>跨代引用多、Survivor 太小导致过早晋升</strong>，会引发频繁老年代回收——那才是慢的根源。调优第一步永远是看 GC 日志，而不是拍脑袋改参数。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>死亡判定</td><td>可达性分析替代引用计数，天然解决循环引用</td></tr>
+      <tr><td>GC Roots</td><td>栈帧局部变量、静态变量、常量、JNI、锁对象、JVM 内部</td></tr>
+      <tr><td>四种引用</td><td>强不收、软缺收、弱必收、虚只通知</td></tr>
+      <tr><td>分代假设</td><td>弱分代：多数早死；强分代：熬过的长寿 → 8:1:1 新生代 + 老年代</td></tr>
+      <tr><td>Minor GC</td><td>复制存活对象到 Survivor，毫秒级；晋升才是慢的来源</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用画图说明循环引用场景下，引用计数与可达性分析各自的结论。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写程序验证弱引用：GC 前后 <code>weak.get()</code> 的返回值变化；再换成软引用，用 <code>-Xmx32m</code> 制造内存不足观察差异。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>解释为什么 Survivor 需要两个而不是一个，并用 -Xlog:gc* 观察一次对象晋升过程。</div>
+  <p class="note">下一章：分代思想落地成产品——CMS、G1、ZGC 三代收集器巡礼。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="061_第61章_对象的创建与内存布局.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="063_第63章_垃圾回收器CMS_G1_ZGC.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 62 章 GC 概念与分代假设</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

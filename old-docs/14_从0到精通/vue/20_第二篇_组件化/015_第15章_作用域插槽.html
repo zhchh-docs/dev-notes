@@ -1,0 +1,294 @@
+<!--CH
+title: 作用域插槽：子传父渲染数据
+part: 第二篇 组件化
+desc: 插槽内容在父作用域编译，那父组件想用子组件的数据渲染怎么办？作用域插槽把子组件的数据"作为参数"传给插槽，让父组件决定渲染方式。这是表格、列表、无限滚动等组件的基石。
+toc: 本章目标|15.1 问题：父要渲染子的数据|15.2 基本用法：slot props|15.3 具名作用域插槽|15.4 解构与重命名|15.5 无渲染组件（Renderless）|15.6 实战：可配置表格|15.7 与作用域样式的关系|15.8 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>为什么需要作用域插槽</strong>（插槽内容在父作用域，但数据来自子）；</li>
+    <li>掌握 <code>&lt;slot :item="x"&gt;</code> + <code>v-slot="{ item }"</code> 的配对写法；</li>
+    <li>掌握<strong>具名作用域插槽</strong>与<strong>解构重命名</strong>；</li>
+    <li>理解<strong>无渲染组件</strong>模式（只提供逻辑，渲染交给使用者）；</li>
+    <li>能写一个<strong>可配置列的表格组件</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">15.1</span> 问题：父要渲染子的数据</h2>
+  <p>上一章留下一个矛盾：插槽内容在<strong>父作用域</strong>编译，因此访问不到子组件的数据。但真实需求恰恰是：</p>
+  <ul>
+    <li>表格组件知道<strong>每一行的数据</strong>，但"这一行怎么显示"应由使用者决定（日期格式、按钮、标签）；</li>
+    <li>列表组件知道<strong>加载状态、是否有更多</strong>，但"加载中显示什么"应由使用者决定。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;!-- 需求：父组件想这样写 --&gt;
+&lt;DataTable :data="users"&gt;
+  &lt;template #row="{ item }"&gt;
+    &lt;!-- 这个 item 来自子组件（每一行的数据） --&gt;
+    &lt;td&gt;{{ item.name }}&lt;/td&gt;
+    &lt;td&gt;{{ formatDate(item.createdAt) }}&lt;/td&gt;
+    &lt;td&gt;&lt;button @click="remove(item.id)"&gt;删除&lt;/button&gt;&lt;/td&gt;
+  &lt;/template&gt;
+&lt;/DataTable&gt;</code></pre>
+  <p class="key-sentence">作用域插槽的机制：<strong>子组件在 <code>&lt;slot&gt;</code> 上"传参"，父组件在 <code>v-slot</code> 上"接参"</strong>——就像调用一个函数把数据交出去。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">15.2</span> 基本用法：slot props</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- UserList.vue（子组件） --&gt;
+&lt;template&gt;
+  &lt;ul&gt;
+    &lt;li v-for="user in users" :key="user.id"&gt;
+      &lt;!-- 把数据绑到 slot 上，称为"插槽 props" --&gt;
+      &lt;slot :user="user" :index="index" :is-last="index === users.length - 1"&gt;
+        &lt;!-- 后备内容：没传插槽时用默认渲染 --&gt;
+        {{ user.name }}
+      &lt;/slot&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+defineProps({ users: { type: Array, required: true } })
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 父组件 --&gt;
+&lt;UserList :users="users"&gt;
+  &lt;!-- v-slot 的值就是子组件传出的那个对象 --&gt;
+  &lt;template v-slot:default="slotProps"&gt;
+    &lt;span&gt;{{ slotProps.index + 1 }}. {{ slotProps.user.name }}&lt;/span&gt;
+    &lt;em v-if="slotProps.isLast"&gt;（最后一位）&lt;/em&gt;
+  &lt;/template&gt;
+&lt;/UserList&gt;
+
+&lt;!-- 简写：#default="slotProps"（推荐直接解构） --&gt;
+&lt;UserList :users="users"&gt;
+  &lt;template #default="{ user, index, isLast }"&gt;
+    &lt;span&gt;{{ index + 1 }}. {{ user.name }}&lt;/span&gt;
+    &lt;em v-if="isLast"&gt;（最后一位）&lt;/em&gt;
+  &lt;/template&gt;
+&lt;/UserList&gt;</code></pre>
+  <p class="key-sentence">记忆方式：<code>&lt;slot :user="user"&gt;</code> 相当于"函数调用时传参"，<code>v-slot="{ user }"</code> 相当于"函数定义时接参"。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">15.3</span> 具名作用域插槽</h2>
+  <p>具名 + 作用域组合，写法是 <code>#名字="参数"</code>：</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- DataTable.vue --&gt;
+&lt;template&gt;
+  &lt;table&gt;
+    &lt;thead&gt;
+      &lt;tr&gt;
+        &lt;slot name="head" :columns="columns"&gt;
+          &lt;th v-for="c in columns" :key="c.key"&gt;{{ c.title }}&lt;/th&gt;
+        &lt;/slot&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr v-for="(row, i) in data" :key="row.id"&gt;
+        &lt;slot name="row" :row="row" :index="i"&gt;
+          &lt;td v-for="c in columns" :key="c.key"&gt;{{ row[c.key] }}&lt;/td&gt;
+        &lt;/slot&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+    &lt;tfoot&gt;
+      &lt;slot name="empty" :is-empty="data.length === 0"&gt;
+        &lt;tr v-if="!data.length"&gt;&lt;td colspan="99"&gt;暂无数据&lt;/td&gt;&lt;/tr&gt;
+      &lt;/slot&gt;
+    &lt;/tfoot&gt;
+  &lt;/table&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+defineProps({ data: Array, columns: Array })
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 使用 --&gt;
+&lt;DataTable :data="users" :columns="cols"&gt;
+  &lt;template #head="{ columns }"&gt;
+    &lt;th v-for="c in columns" :key="c.key"&gt;{{ c.title.toUpperCase() }}&lt;/th&gt;
+  &lt;/template&gt;
+
+  &lt;template #row="{ row, index }"&gt;
+    &lt;td&gt;{{ index + 1 }}&lt;/td&gt;
+    &lt;td&gt;{{ row.name }}&lt;/td&gt;
+    &lt;td&gt;&lt;StatusTag :status="row.status" /&gt;&lt;/td&gt;
+  &lt;/template&gt;
+
+  &lt;template #empty="{ isEmpty }"&gt;
+    &lt;tr v-if="isEmpty"&gt;&lt;td colspan="99"&gt;没有找到用户~&lt;/td&gt;&lt;/tr&gt;
+  &lt;/template&gt;
+&lt;/DataTable&gt;</code></pre>
+  <div class="note"><strong>默认插槽的两种写法</strong>：<code>#default="{ x }"</code> 显式写法；或省略 template 直接把内容写在组件标签内（此时无法接参数）。要接参数就必须写 template。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">15.4</span> 解构与重命名</h2>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 解构 --&gt;
+  &lt;template #row="{ row }"&gt;{{ row.name }}&lt;/template&gt;
+
+  &lt;!-- 重命名（a: b 的形式） --&gt;
+  &lt;template #row="{ row: user }"&gt;{{ user.name }}&lt;/template&gt;
+
+  &lt;!-- 默认值（子组件没传该项时兜底） --&gt;
+  &lt;template #row="{ row = {}, index = 0 }"&gt;{{ index }} {{ row.name }}&lt;/template&gt;
+
+  &lt;!-- 直接拿到整个对象 --&gt;
+  &lt;template #row="props"&gt;{{ props.row.name }}&lt;/template&gt;
+&lt;/template&gt;</code></pre>
+  <p>解构特别适合<strong>嵌套组件</strong>：避免变量名冲突（例如外层也叫 row）。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">15.5</span> 无渲染组件（Renderless）</h2>
+  <p class="lead">把"逻辑"和"渲染"彻底分离：<strong>组件不渲染任何 DOM，只通过作用域插槽把状态与方法交出去</strong>。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- MouseTracker.vue：只负责追踪鼠标位置，不渲染任何东西 --&gt;
+&lt;template&gt;
+  &lt;slot :x="x" :y="y"&gt;&lt;/slot&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, onMounted, onUnmounted } from 'vue'
+const x = ref(0)
+const y = ref(0)
+
+function update(e) { x.value = e.clientX; y.value = e.clientY }
+
+onMounted(() =&gt; window.addEventListener('mousemove', update))
+onUnmounted(() =&gt; window.removeEventListener('mousemove', update))
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 用法一：渲染成文字 --&gt;
+&lt;MouseTracker v-slot="{ x, y }"&gt;鼠标位置：{{ x }}, {{ y }}&lt;/MouseTracker&gt;
+
+&lt;!-- 用法二：渲染成方块（同一份逻辑，完全不同的 UI） --&gt;
+&lt;MouseTracker v-slot="{ x, y }"&gt;
+  &lt;div class="dot" :style="{ left: x + 'px', top: y + 'px' }"&gt;&lt;/div&gt;
+&lt;/MouseTracker&gt;</code></pre>
+  <p>价值：<strong>逻辑复用率最高、UI 完全自由</strong>。它的现代替代方案是<strong>组合式函数</strong>（第 23 章 <code>useMouse()</code>）——后者没有额外组件层级，性能更好。二者取舍：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead>
+    <tbody>
+      <tr><td>无渲染组件</td><td>模板里一目了然；可在纯模板场景使用</td><td>多一层组件实例（有开销）</td></tr>
+      <tr><td>组合式函数</td><td>无额外层级、可组合、易测试</td><td>只能在 <code>script setup</code> 里用</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">Vue3 的主流选择是<strong>组合式函数优先</strong>；无渲染组件仍适合"需要把逻辑做成可视化配置"或团队以模板为主的场景。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">15.6</span> 实战：可配置表格</h2>
+  <p>这是企业级项目最常见的组件之一：列配置 + 自定义单元格。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- ConfigTable.vue --&gt;
+&lt;template&gt;
+  &lt;table class="ct"&gt;
+    &lt;thead&gt;
+      &lt;tr&gt;
+        &lt;th v-for="col in columns" :key="col.key" :style="{ width: col.width }"&gt;
+          {{ col.title }}
+        &lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr v-for="(row, i) in data" :key="rowKey ? row[rowKey] : i"&gt;
+        &lt;td v-for="col in columns" :key="col.key"&gt;
+          &lt;!-- 每列都可以有具名插槽：#cell-字段名 --&gt;
+          &lt;slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]" :index="i"&gt;
+            &lt;!-- 默认：直接显示值，支持格式化函数 --&gt;
+            {{ col.formatter ? col.formatter(row) : row[col.key] }}
+          &lt;/slot&gt;
+        &lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr v-if="!data.length"&gt;
+        &lt;td :colspan="columns.length" class="empty"&gt;
+          &lt;slot name="empty"&gt;暂无数据&lt;/slot&gt;
+        &lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+defineProps({
+  data: { type: Array, default: () =&gt; [] },
+  columns: { type: Array, required: true },   // [{ key, title, width, formatter }]
+  rowKey: { type: String, default: 'id' }
+})
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 使用 --&gt;
+&lt;ConfigTable :data="users" :columns="cols"&gt;
+  &lt;!-- 自定义"状态"列 --&gt;
+  &lt;template #cell-status="{ value }"&gt;
+    &lt;StatusTag :status="value" /&gt;
+  &lt;/template&gt;
+
+  &lt;!-- 自定义"操作"列：能拿到整行 --&gt;
+  &lt;template #cell-actions="{ row }"&gt;
+    &lt;button @click="edit(row)"&gt;编辑&lt;/button&gt;
+    &lt;button @click="remove(row.id)"&gt;删除&lt;/button&gt;
+  &lt;/template&gt;
+
+  &lt;template #empty&gt;&lt;Empty description="还没有用户" /&gt;&lt;/template&gt;
+&lt;/ConfigTable&gt;
+
+&lt;script setup&gt;
+const cols = [
+  { key: 'name', title: '姓名', width: '120px' },
+  { key: 'status', title: '状态' },
+  { key: 'createdAt', title: '创建时间', formatter: r =&gt; formatDate(r.createdAt) },
+  { key: 'actions', title: '操作', width: '160px' }
+]
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence">这个模式是 <strong>Element Plus 的 <code>el-table-column</code>、Ant Design Vue 的表格</strong>的核心思路：<strong>列用配置描述，单元格用插槽定制</strong>。第 59 章会再深入表格组件设计。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">15.7</span> 与作用域样式的关系</h2>
+  <p>再强调一次作用域规则的实践影响：</p>
+  <ul>
+    <li>插槽内容在<strong>父组件作用域</strong>编译 → 父组件的 <code>scoped</code> 样式直接生效；</li>
+    <li>子组件 scoped 样式<strong>不会</strong>作用于插槽内容（因为内容不带子的 data-v 属性）；</li>
+    <li>子组件若想给插槽内容加样式，需要 <code>:deep()</code> 或在父组件写。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件内：改不到插槽内容 --&gt;
+&lt;style scoped&gt;
+.slot-text { color: red; }      /* ❌ 无效（内容由父渲染） */
+:deep(.slot-text) { color: red; } /* ✅ 可以 */
+&lt;/style&gt;</code></pre>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">15.8</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>忘了在 slot 上绑定数据</strong>：写了 <code>&lt;slot&gt;</code> 却没写 <code>:item</code>，父组件解构出来是 undefined。</li>
+    <li><span class="tag-pit">坑 2</span><strong>在组件标签上直接写 <code>v-slot</code> 接参</strong>：<code>&lt;Comp #default="{x}"&gt;</code> 只能用于<strong>只有默认插槽</strong>的组件；有具名插槽时必须用 template。</li>
+    <li><span class="tag-pit">坑 3</span><strong>同名变量冲突</strong>：内外层都叫 <code>row</code> 时看不出是谁的。用重命名解决。</li>
+    <li><span class="tag-pit">坑 4</span><strong>插槽 props 不是响应式的误解</strong>：它本身就是每次渲染重新计算的，父组件拿到的就是最新值；但别把它存进普通变量再用于模板（存进 ref 或直接用）。</li>
+    <li><span class="tag-pit">坑 5</span><strong>性能</strong>：插槽内容会在父组件更新时重新渲染。把插槽内容抽成子组件 + <code>v-memo</code> 可优化（第 71 章）。</li>
+  </ul>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>解决什么</td><td>父作用域要渲染子组件的数据</td></tr>
+      <tr><td>写法</td><td>子：<code>&lt;slot :item="x"&gt;</code>；父：<code>#name="{ item }"</code></td></tr>
+      <tr><td>具名 + 作用域</td><td><code>#row="{ row, index }"</code></td></tr>
+      <tr><td>解构</td><td>支持重命名 <code>{ row: user }</code> 与默认值</td></tr>
+      <tr><td>无渲染组件</td><td>只提供逻辑不渲染 DOM；Vue3 更推荐组合式函数</td></tr>
+      <tr><td>样式</td><td>插槽内容归父作用域，子的 scoped 需 <code>:deep</code></td></tr>
+      <tr><td>实战</td><td>可配置表格：列配置 + <code>#cell-xxx</code> 插槽</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个 <code>&lt;List&gt;</code> 组件：接收数组，通过作用域插槽把 <code>item</code>、<code>index</code> 交出去；父组件用它渲染"编号 + 名称 + 删除按钮"。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现 15.6 的 <code>ConfigTable</code>：支持列配置、<code>#cell-字段名</code> 插槽、空状态插槽、行格式化函数；用它渲染一张含状态标签与操作按钮的用户表。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把 <code>ConfigTable</code> 改造成"无渲染"版本 <code>&lt;TableRenderless&gt;</code>：它只负责分页/排序/选中逻辑，把 <code>rows</code>、<code>sort</code>、<code>toggleSort</code>、<code>selected</code> 通过插槽交出；父组件用同一份逻辑渲染成表格和卡片两种 UI。思考：这个场景用组合式函数会不会更好？</div>
+  <p class="note">参考答案见附录 C。下一章讲生命周期。</p>
+</section>

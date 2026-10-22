@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 12 章 创建、切换与合并｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第二篇 分支与协作</p>
+    <h1>第 12 章 创建、切换与合并</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 12 章 / 共 40 章 · 预计 45 分钟 · 动手核心章</span>
+    </div>
+    <p class="hero-desc">分支建好了，怎么合回去？本章讲透合并的两种形态——fast-forward（快进）与三方合并（产生合并提交），以及 --no-ff、--squash 的战略选择，附带一套可完整重放的演练脚本。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="011_第11章_分支的本质：一个指针而已.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="013_第13章_冲突解决全流程.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">12.1 创建与切换：branch / switch / checkout</a></li>
+    <li><a href="#sec3">12.2 快进合并 fast-forward</a></li>
+    <li><a href="#sec4">12.3 三方合并与合并提交</a></li>
+    <li><a href="#sec5">12.4 场景演练：完整走一遍分支生命周期</a></li>
+    <li><a href="#sec6">12.5 --no-ff 与 --squash 的战略选择</a></li>
+    <li><a href="#sec7">12.6 中止与撤销合并</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>熟练使用 <code>git switch -c</code> 建分支、<code>git switch</code> 切换、<code>git switch -</code> 快速回上一个分支；</li>
+    <li>判断一次合并会是 <strong>fast-forward</strong> 还是 <strong>三方合并</strong>；</li>
+    <li>理解 <code>--no-ff</code>（保留分支形状）与 <code>--squash</code>（压成一条）的取舍；</li>
+    <li>会安全地<strong>中止一次进行中的合并</strong>（<code>git merge --abort</code>）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">12.1</span> 创建与切换：branch / switch / checkout</h2>
+  <pre class="code" data-lang="bash"><code># 创建（不切换）
+git branch feature/login
+git branch feature/login 3f2e1d0        # 指定起点提交
+git branch feature/login origin/main    # 以远程追踪分支为起点
+
+# 创建并切换（最常用）
+git switch -c feature/login
+git switch -c hotfix/login-500 main     # 从 main 分出
+
+# 切换
+git switch main
+git switch -                # 回到"上一个分支"（相当于 cd -）
+
+# 从远程分支创建本地分支（clone 后常见）
+git switch -c develop origin/develop    # 或简写：git switch develop（自动匹配）
+
+# 老写法对照（checkout 的历史负担，见第 6 章）
+git checkout -b feature/login    # ≡ git switch -c feature/login</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>场景</th><th>推荐命令</th></tr></thead>
+    <tbody>
+      <tr><td>开新功能分支</td><td><code>git switch -c feature/xxx main</code></td></tr>
+      <tr><td>回主线</td><td><code>git switch main</code></td></tr>
+      <tr><td>在两个分支间来回切</td><td><code>git switch -</code></td></tr>
+      <tr><td>只看看历史版本（不提交）</td><td><code>git switch --detach &lt;commit&gt;</code></td></tr>
+      <tr><td>误建分支想删</td><td><code>git branch -d 名字</code>（未合并用 <code>-D</code>）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">12.2</span> 快进合并 fast-forward</h2>
+  <p>当你在 <code>main</code> 上切出 <code>feature</code>，期间 <strong>main 没有任何新提交</strong>，合并时 Git 只需把 <code>main</code> 指针"快进"到 feature 的位置——不需要计算任何差异，也不会产生新提交。</p>
+  <pre class="code" data-lang="bash"><code>git switch main
+git merge feature/login
+# Updating 3f2e1d0..5b2e9d1
+# Fast-forward
+#  src/login.js | 12 ++++++++++++
+#  1 file changed, 12 insertions(+)
+
+git log --oneline --graph -5
+# * 5b2e9d1 (HEAD -&gt; main, feature/login) feat: 登录功能   ← 一条直线
+# * 3f2e1d0 feat: 第三次改动</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="快进合并示意">
+      <defs><marker id="a12" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">fast-forward：只是把指针往前挪</text>
+      <text x="150" y="52" text-anchor="middle" font-size="12" fill="#4f6348">合并前</text>
+      <circle cx="90" cy="110" r="18" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="90" y="115" text-anchor="middle" font-size="11" fill="#2d6a3f">C1</text>
+      <circle cx="190" cy="110" r="18" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="190" y="115" text-anchor="middle" font-size="11" fill="#2d6a3f">C2</text>
+      <circle cx="290" cy="110" r="18" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="290" y="115" text-anchor="middle" font-size="11" fill="#2d6a3f">C3</text>
+      <line x1="109" y1="110" x2="168" y2="110" stroke="#7a8a70" marker-end="url(#a12)"/>
+      <line x1="209" y1="110" x2="268" y2="110" stroke="#7a8a70" marker-end="url(#a12)"/>
+      <text x="190" y="72" text-anchor="middle" font-size="11" fill="#b45309">main</text>
+      <text x="290" y="72" text-anchor="middle" font-size="11" fill="#047857">feature</text>
+      <text x="150" y="160" text-anchor="middle" font-size="11" fill="#7a8a70">main 落后于 feature，且没有自己的新提交</text>
+      <text x="620" y="52" text-anchor="middle" font-size="12" fill="#4f6348">合并后</text>
+      <circle cx="520" cy="110" r="18" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="520" y="115" text-anchor="middle" font-size="11" fill="#2d6a3f">C1</text>
+      <circle cx="620" cy="110" r="18" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="620" y="115" text-anchor="middle" font-size="11" fill="#2d6a3f">C2</text>
+      <circle cx="720" cy="110" r="18" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="720" y="115" text-anchor="middle" font-size="11" fill="#2d6a3f">C3</text>
+      <line x1="539" y1="110" x2="598" y2="110" stroke="#7a8a70" marker-end="url(#a12)"/>
+      <line x1="639" y1="110" x2="698" y2="110" stroke="#7a8a70" marker-end="url(#a12)"/>
+      <text x="720" y="72" text-anchor="middle" font-size="11" fill="#b45309">main = feature</text>
+      <text x="620" y="160" text-anchor="middle" font-size="11" fill="#7a8a70">无新提交产生，历史保持一条直线</text>
+    </svg>
+    <p class="diagram-caption">图 12-1 fast-forward：指针前移，零冲突风险，历史干净但没有"分支曾经存在"的痕迹</p>
+  </div>
+  <p class="key-sentence">快进的前提：<strong>被合并分支是当前分支的直接后继</strong>（即当前分支没有分叉出去的新提交）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">12.3</span> 三方合并与合并提交</h2>
+  <p>若 <code>main</code> 在 feature 分出后<strong>也有新提交</strong>（典型：期间别人修了个 bug），就无法快进。Git 会做<strong>三方合并</strong>：</p>
+  <ol>
+    <li>找<strong>共同祖先</strong>（merge base）：两个分支分开的那个提交；</li>
+    <li>比较 <code>main</code> 相对祖先的改动、<code>feature</code> 相对祖先的改动；</li>
+    <li>把两边改动<strong>合并成一个结果</strong>，并生成一个<strong>有两个父提交的合并提交（merge commit）</strong>。</li>
+  </ol>
+  <pre class="code" data-lang="bash"><code>git switch main
+git merge feature/login
+# Merge made by the 'ort' strategy.
+#  src/login.js | 12 +++++++
+#  1 file changed, 12 insertions(+)
+
+git log --oneline --graph -6
+# *   7a3f1c2 (HEAD -&gt; main) Merge branch 'feature/login'
+# |\
+# | * 5b2e9d1 (feature/login) feat: 登录功能
+# * | 3c1a8f0 fix: 紧急修复
+# |/
+# * 9d8e7c6 feat: 第 3 次改动
+
+# 看合并提交的两个父
+git cat-file -p HEAD
+# parent 3c1a8f0...     ← 第一父：被合入的分支（main）
+# parent 5b2e9d1...     ← 第二父：被合并进来的分支（feature）</code></pre>
+  <div class="note"><strong>ort 策略</strong>：Git 2.34+ 的默认合并策略（原 recursive 的继任者），能处理重命名、多个共同祖先等复杂情况。绝大多数场景无需手动指定。</div>
+  <p>第一父/第二父很重要：<code>git log --first-parent</code> 只看主线（顺着第一父走），是阅读"主干历史"的利器（第 5 章提过）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">12.4</span> 场景演练：完整走一遍分支生命周期</h2>
+  <pre class="code" data-lang="bash"><code>mkdir -p ~/git-lab/ch12 &amp;&amp; cd ~/git-lab/ch12 &amp;&amp; git init
+echo "v1" &gt; app.js &amp;&amp; git add . &amp;&amp; git commit -m "feat: 初始化"
+
+# ① 开功能分支
+git switch -c feature/cart
+echo "cart" &gt;&gt; app.js &amp;&amp; git commit -am "feat(cart): 购物车功能"
+
+# ② 同时主线被别人修了 bug（制造分叉）
+git switch main
+echo "hotfix" &gt;&gt; app.js &amp;&amp; git commit -am "fix: 紧急修复支付"
+
+# ③ 回到功能分支继续开发
+git switch feature/cart
+echo "coupon" &gt;&gt; app.js &amp;&amp; git commit -am "feat(cart): 优惠券"
+
+# ④ 合并前先看差异（好习惯）
+git log --oneline main..feature/cart      # 我将带入什么
+git diff main...feature/cart --stat       # 三点语法：从共同祖先起
+
+# ⑤ 合回主线（此时无法快进 → 三方合并）
+git switch main
+git merge feature/cart -m "merge: 合并购物车功能"
+
+# ⑥ 清理已合并的分支
+git branch -d feature/cart
+git log --oneline --graph --all</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">演练中的关键点</span>：第 ④ 步的 <code>main..feature</code>（两点）看"feature 独有的提交"，而 <code>main...feature</code>（三点）在 diff 里表示"从共同祖先到 feature 的改动"。<strong>log 与 diff 的两点/三点含义不同</strong>，这是常被混淆的一组语法。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">12.5</span> --no-ff 与 --squash 的战略选择</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:34%"><col style="width:44%"></colgroup>
+    <thead><tr><th>方式</th><th>结果</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td><code>merge</code>（默认）</td><td>能快进就快进，否则三方合并</td><td>个人项目、小步快跑</td></tr>
+      <tr><td><code>merge --no-ff</code></td><td><strong>总是</strong>生成合并提交，保留分支形状</td><td>需要"这个功能是一批提交"的可视边界；Git Flow</td></tr>
+      <tr><td><code>merge --squash</code></td><td>把对方所有改动<strong>压成一个改动</strong>放进暂存区，<strong>不生成合并提交</strong>，需自己 commit</td><td>功能分支有 20 条 wip 提交，只想在主线留一条干净记录</td></tr>
+      <tr><td><code>rebase</code> 后快进</td><td>历史一条直线，无合并提交</td><td>第 14 章详解</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 保留分支边界
+git merge --no-ff feature/cart -m "merge: 合并购物车功能"
+
+# 压成一条（注意：不会自动提交！）
+git merge --squash feature/cart
+git status -s        # 改动都在暂存区
+git commit -m "feat(cart): 购物车与优惠券功能"
+git branch -D feature/cart    # 该分支已"被吸收"，可强制删除</code></pre>
+  <div class="warn-box"><strong>--squash 的代价</strong>：原分支的逐条提交历史<strong>不会</strong>进入主线（它们仍存在于对象库直至 GC，但主线上只有一条）。若日后需要精细 bisect 该功能内部某次提交，就找不到了。适合"过程混乱、结果清晰"的分支。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">12.6</span> 中止与撤销合并</h2>
+  <pre class="code" data-lang="bash"><code># 合并中出现冲突，想"算了，先不合"
+git merge --abort          # 回到合并前状态（Git 1.7.4+）
+
+# 老版本或无冲突但想反悔：
+git reset --hard HEAD      # ⚠ 会丢弃工作区所有改动，确认无未提交内容再用
+
+# 合并已完成并推送 → 不要 reset，用 revert 反向提交（保留历史）
+git revert -m 1 HEAD       # -m 1 表示保留第一父（main）的改动，撤销第二父带来的</code></pre>
+  <p><span class="tag-point">冲突怎么办</span>：合并冲突是正常现象而非错误，解决流程见下一章（第 13 章）——本章只需记住：<strong>冲突时 Git 会停下来等你，此时 <code>git status</code> 会明确列出冲突文件</strong>，千万别慌着 <code>--abort</code>。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：忘了自己在哪个分支就提交 → 提交前 <code>git status -sb</code>，或用 <code>git branch --show-current</code>；</li>
+    <li><span class="tag-pit">坑 2</span>：合错了方向（把 main 合进 feature）→ 合并前确认 <code>git switch 目标分支</code> 再 merge；</li>
+    <li><span class="tag-pit">坑 3</span>：<code>--squash</code> 后以为合并完成了 → 它只改暂存区，必须再 commit；</li>
+    <li><span class="tag-pit">坑 4</span>：合并冲突后直接 <code>git add .</code> 提交，没真正解决冲突 → 必须删除冲突标记、确认逻辑正确；</li>
+    <li><span class="tag-pit">坑 5</span>：长期不合并导致冲突爆炸 → 主干每天同步（第 14 章 rebase 或第 32 章 trunk-based）。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>建切分支</td><td><code>switch -c</code> 建并切；<code>switch -</code> 回上一个</td></tr>
+      <tr><td>fast-forward</td><td>无分叉时指针直接前移，不产生提交</td></tr>
+      <tr><td>三方合并</td><td>基于共同祖先合并两边改动，生成双父合并提交</td></tr>
+      <tr><td>--no-ff / --squash</td><td>保留分支形状 / 压成一条（后者需手动 commit）</td></tr>
+      <tr><td>中止合并</td><td><code>git merge --abort</code>；已推送的合并用 <code>revert -m 1</code></td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>完整重放 12.4 的演练脚本，用 <code>git log --graph</code> 观察合并提交的双父结构。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>分别用默认 merge、<code>--no-ff</code>、<code>--squash</code> 合并同一个功能分支，对比三种结果的 <code>git log --oneline --graph</code> 与"能否 bisect 到功能内部提交"。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>制造一次"把 main 合进 feature"的错误合并，练习 <code>git merge --abort</code> 与（已提交情况下）<code>git reset --hard HEAD~1</code> 两种撤销，说明二者适用条件。</div>
+  <p class="note">下一章：冲突解决全流程——冲突标记怎么读、三方对比怎么用、以及"解决后必须做的验证"。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="011_第11章_分支的本质：一个指针而已.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="013_第13章_冲突解决全流程.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 12 章 创建、切换与合并</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

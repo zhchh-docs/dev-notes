@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 70 章 JDBC 增删改查全流程｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第八篇 数据库与 JDBC</p>
+    <h1>第 70 章 JDBC 增删改查全流程</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 70 章 / 共 112 章 · 预计 45 分钟 · 上一章：环境准备与驱动加载</span>
+    </div>
+    <p class="hero-desc">Connection、Statement、PreparedStatement、ResultSet——四个接口撑起所有数据库操作。本章把增删改查各走一遍，重点讲清 PreparedStatement 为什么是默认选择。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="069_第69章_环境准备与驱动加载.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="071_第71章_连接池HikariCP.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">70.1 JDBC 四大核心对象</a></li>
+    <li><a href="#sec3">70.2 查询：executeQuery 与结果集遍历</a></li>
+    <li><a href="#sec4">70.3 增删改：executeUpdate 与主键回填</a></li>
+    <li><a href="#sec4b">70.4 资源关闭顺序与 try-with-resources</a></li>
+    <li><a href="#sec5">70.5 ResultSet 行映射成对象</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>画出 <strong>Connection → Statement → ResultSet</strong> 的对象层级与生命周期；</li>
+    <li>用 PreparedStatement 完成<strong>增删改查</strong>四类操作；</li>
+    <li>掌握<strong>自增主键回填</strong>与<strong>受影响行数</strong>两种写操作结果；</li>
+    <li>养成<strong>资源关闭</strong>的肌肉记忆（顺序 + 自动化）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">70.1</span> JDBC 四大核心对象</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:44%"><col style="width:32%"></colgroup>
+    <thead><tr><th>对象</th><th>职责</th><th>生命周期</th></tr></thead>
+    <tbody>
+      <tr><td>DriverManager</td><td>管理驱动、创建连接</td><td>JVM 级</td></tr>
+      <tr><td>Connection</td><td>与数据库的一条会话（含事务上下文）</td><td>昂贵！应复用（连接池）</td></tr>
+      <tr><td>Statement/PreparedStatement</td><td>承载 SQL 与参数、执行</td><td>随语句创建销毁</td></tr>
+      <tr><td>ResultSet</td><td>查询结果的游标</td><td>随语句关闭而失效</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">建连是重操作（TCP 握手 + 认证 + 会话初始化），单次几毫秒到几十毫秒——所以下一章要讲连接池。本章先用 DriverManager 原生方式把流程学透。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">70.2</span> 查询：executeQuery 与结果集遍历</h2>
+  <pre class="code" data-lang="java"><code>import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class UserQuery {
+    public static List&lt;String&gt; findByName(String keyword) throws SQLException {
+        String url = "jdbc:mysql://localhost:3306/jdbc_demo?serverTimezone=Asia/Shanghai";
+        List&lt;String&gt; names = new ArrayList&lt;&gt;();
+        String sql = "SELECT id, name, email FROM user WHERE name LIKE ?";
+
+        try (Connection conn = DriverManager.getConnection(url, "app", "App#123456");
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "%" + keyword + "%");        // 参数从 1 开始
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {                       // 游标先前进再读
+                    long id = rs.getLong("id");
+                    String name = rs.getString("name");
+                    String email = rs.getString("email");
+                    names.add(id + " / " + name + " / " + email);
+                }
+            }
+        }
+        return names;
+    }
+    public static void main(String[] args) throws SQLException {
+        findByName("张").forEach(System.out::println);
+    }
+}</code></pre>
+  <ul>
+    <li><code>?</code> 占位符 + <code>setXxx(index, value)</code>：参数下标<strong>从 1 开始</strong>，不是 0；</li>
+    <li><code>rs.next()</code>：游标初始指向第一行之前，必须先 next 再读；</li>
+    <li>读字段<strong>建议用列名</strong>（<code>getString("name")</code>）而非序号——SQL 改列顺序时代码不炸；</li>
+    <li>取值方法与类型匹配：<code>getLong/getInt/getString/getObject</code>，错配会有隐式转换陷阱。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">70.3</span> 增删改：executeUpdate 与主键回填</h2>
+  <pre class="code" data-lang="java"><code>public class UserDao {
+    private final Connection conn;
+    public UserDao(Connection conn) { this.conn = conn; }
+
+    /** 插入并回填自增主键 —— 返回新记录 id */
+    public long insert(String name, String email) throws SQLException {
+        String sql = "INSERT INTO user(name, email) VALUES(?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(
+                sql, Statement.RETURN_GENERATED_KEYS)) {   // 关键参数
+            ps.setString(1, name);
+            ps.setString(2, email);
+            int rows = ps.executeUpdate();                 // 返回受影响行数
+            if (rows != 1) throw new SQLException("插入失败 rows=" + rows);
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                keys.next();
+                return keys.getLong(1);                    // 拿到自增 id
+            }
+        }
+    }
+
+    public int updateEmail(long id, String email) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE user SET email = ? WHERE id = ?")) {
+            ps.setString(1, email);
+            ps.setLong(2, id);
+            return ps.executeUpdate();                     // 0 表示没匹配到行
+        }
+    }
+
+    public int delete(long id) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM user WHERE id = ?")) {
+            ps.setLong(1, id);
+            return ps.executeUpdate();
+        }
+    }
+}</code></pre>
+  <div class="warn-box"><strong>语义提醒</strong>：<code>executeUpdate</code> 返回的行数在 MySQL 中默认是"真正被改变的行"——更新成相同值算 0。需要"匹配到的行数"时在 URL 加 <code>useAffectedRows=false</code>（默认即匹配行数语义的另一种驱动配置，务必以实测为准并在团队内统一）。</div>
+</section>
+
+<section id="sec4b" class="card">
+  <h2><span class="num">70.4</span> 资源关闭顺序与 try-with-resources</h2>
+  <p>关闭顺序必须与创建顺序相反：<strong>ResultSet → Statement → Connection</strong>。写错顺序可能造成连接泄漏。try-with-resources 按声明逆序自动关闭，天然正确：</p>
+  <pre class="code" data-lang="java"><code>// 嵌套 try 写法（推荐）：作用域清晰，逐层自动关闭
+try (Connection conn = ds.getConnection()) {
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setXxx(...);
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) { /* ... */ }
+        }   // rs 关闭
+    }       // ps 关闭
+}           // conn 关闭（归还给连接池）</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：连接池时代，"忘了关"不是连接消失，而是<strong>池被借空</strong>——症状是服务突然全部请求卡在获取连接处。第 71 章连接池配置里会有对应排查法。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">70.5</span> ResultSet 行映射成对象</h2>
+  <pre class="code" data-lang="java"><code>public record User(long id, String name, String email) {}
+
+public List&lt;User&gt; mapAll(Connection conn) throws SQLException {
+    List&lt;User&gt; list = new ArrayList&lt;&gt;();
+    try (PreparedStatement ps = conn.prepareStatement(
+             "SELECT id, name, email FROM user ORDER BY id");
+         ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+            list.add(new User(
+                rs.getLong("id"),
+                rs.getString("name"),
+                rs.getString("email")));   // 每行 → 一个 record
+        }
+    }
+    return list;
+}
+// 注意：NULL 值的处理——rs.getString 对 NULL 返回 null（安全），
+// rs.getInt 对 NULL 返回 0（危险！）。可能为 NULL 的数值列用 getObject 判空。</code></pre>
+  <p class="key-sentence">手写映射是最朴素的 ORM。MyBatis（第 76 章）只是把这个"行 → 对象"的过程配置化、缓存化——映射的本质不变。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>对象层级</td><td>Connection 会话 → Statement 语句 → ResultSet 游标</td></tr>
+      <tr><td>查询</td><td>? 占位 + setXxx(1 起)；next() 先行；按列名取值</td></tr>
+      <tr><td>写操作</td><td>executeUpdate 返回行数；RETURN_GENERATED_KEYS 回填主键</td></tr>
+      <tr><td>关闭</td><td>rs→ps→conn 逆序；try-with-resources 一劳永逸</td></tr>
+      <tr><td>NULL 陷阱</td><td>getInt 对 NULL 返 0；数值可空列用 getObject</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出完整的"插入并返回自增 id"方法，指出两个关键 API。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个 <code>countByKeyword</code> 统计模糊匹配行数；故意用 getInt 读 NULL 列验证陷阱。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个通用的 <code>queryForList(conn, sql, rowMapper, params...)</code> 工具方法，用函数式接口消除重复映射代码。</div>
+  <p class="note">下一章：每次新建连接太奢侈——连接池 HikariCP 原理与配置。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="069_第69章_环境准备与驱动加载.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="071_第71章_连接池HikariCP.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 70 章 JDBC 增删改查全流程</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

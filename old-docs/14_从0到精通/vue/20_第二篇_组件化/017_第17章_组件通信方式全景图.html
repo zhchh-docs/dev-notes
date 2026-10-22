@@ -1,0 +1,286 @@
+<!--CH
+title: 组件通信方式全景图
+part: 第二篇 组件化
+desc: props、emit、v-model、插槽、provide/inject、ref/expose、Pinia、事件总线——八种通信方式一次拉平对比。这一章给出明确的选型决策树，避免"什么都用全局状态"或"层层透传 props"两种极端。
+toc: 本章目标|17.1 八种方式一览|17.2 父子：props / emit / v-model|17.3 父到子内容：插槽|17.4 祖孙跨层：provide / inject|17.5 父调子：ref + expose|17.6 全局共享：Pinia|17.7 事件总线：mitt 及其代价|17.8 选型决策树|17.9 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>列出 Vue 中<strong>全部八种通信方式</strong>及其适用距离；</li>
+    <li>能针对任意场景<strong>选出最合适的一种</strong>（并说明理由）；</li>
+    <li>掌握跨层通信 <code>provide/inject</code> 与"父调子"的 <code>ref + defineExpose</code>；</li>
+    <li>知道<strong>全局状态与事件总线</strong>的适用边界与代价；</li>
+    <li>避免两种极端：<strong>props 疯狂透传</strong>与<strong>什么都塞进全局</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">17.1</span> 八种方式一览</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:24%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>方式</th><th>方向 / 距离</th><th>传什么</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><strong>props</strong></td><td>父 → 子（一层）</td><td>数据</td><td>所有父子传值</td></tr>
+      <tr><td><strong>emit</strong></td><td>子 → 父（一层）</td><td>事件 + 参数</td><td>子组件报告用户操作</td></tr>
+      <tr><td><strong>v-model</strong></td><td>父子双向（一层）</td><td>数据（语法糖）</td><td>表单控件、弹窗显隐</td></tr>
+      <tr><td><strong>插槽</strong></td><td>父 → 子（内容）</td><td>模板结构</td><td>布局、卡片、表格单元格</td></tr>
+      <tr><td><strong>作用域插槽</strong></td><td>子 → 父（渲染数据）</td><td>数据 + 结构</td><td>表格行、列表项定制</td></tr>
+      <tr><td><strong>provide / inject</strong></td><td>祖先 → 任意后代（跨层）</td><td>数据 / 方法</td><td>主题、表单上下文、组件库内部</td></tr>
+      <tr><td><strong>ref + expose</strong></td><td>父 → 子（命令式）</td><td>调用子组件方法</td><td>表单校验、播放器控制、重置</td></tr>
+      <tr><td><strong>Pinia / 事件总线</strong></td><td>任意组件之间</td><td>全局状态 / 消息</td><td>登录态、购物车、跨页面通知</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="通信方式距离示意">
+      <text x="400" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">通信距离决定选型：越远的工具越"重"，越要慎用</text>
+      <rect x="40" y="50" width="150" height="60" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="115" y="72" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">一层（父子）</text>
+      <text x="115" y="95" text-anchor="middle" font-size="11" fill="#4f6348">props / emit / v-model / 插槽 / ref</text>
+      <rect x="230" y="50" width="150" height="60" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="305" y="72" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">跨多层（祖孙）</text>
+      <text x="305" y="95" text-anchor="middle" font-size="11" fill="#4f6348">provide / inject</text>
+      <rect x="420" y="50" width="150" height="60" rx="8" fill="#f0f6ff" stroke="#2d6a3f"/>
+      <text x="495" y="72" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">任意（兄弟/远亲）</text>
+      <text x="495" y="95" text-anchor="middle" font-size="11" fill="#4f6348">Pinia（状态）</text>
+      <rect x="610" y="50" width="150" height="60" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="685" y="72" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">任意（一次性通知）</text>
+      <text x="685" y="95" text-anchor="middle" font-size="11" fill="#4f6348">mitt（事件总线，慎用）</text>
+      <text x="400" y="145" text-anchor="middle" font-size="12" fill="#4f6348">原则一：能用近的就不用远的 —— 近的方式依赖关系显式、可追踪</text>
+      <text x="400" y="170" text-anchor="middle" font-size="12" fill="#4f6348">原则二：状态放最近公共祖先；只有"确实跨页面共享"才提升到 Pinia</text>
+      <text x="400" y="195" text-anchor="middle" font-size="12" fill="#4f6348">原则三：事件总线是"逃生舱"，用多了等于把单向数据流扔掉</text>
+      <text x="400" y="220" text-anchor="middle" font-size="12" fill="#4f6348">原则四：同步用 props/emit，异步副作用用 Pinia action</text>
+    </svg>
+    <p class="diagram-caption">图 17-1 通信距离与选型</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">17.2</span> 父子：props / emit / v-model</h2>
+  <p>这三者已在第 11-13 章详讲，这里只给选型要点：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>方式</th><th>用在哪</th><th>反模式</th></tr></thead>
+    <tbody>
+      <tr><td>props</td><td>父给子"输入"</td><td>子组件直接改 props</td></tr>
+      <tr><td>emit</td><td>子向父"报告"</td><td>用 emit 同步一份本可用 computed 的值</td></tr>
+      <tr><td>v-model</td><td>父子需要双向（表单、显隐）</td><td>双向绑太多导致状态分散</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="vue"><code>&lt;!-- 典型组合：父持有数据，子受控渲染 --&gt;
+&lt;template&gt;
+  &lt;UserForm
+    v-model:name="form.name"
+    :loading="loading"
+    @submit="onSubmit"
+  /&gt;
+&lt;/template&gt;</code></pre>
+  <p class="key-sentence">父子通信的黄金组合：<strong>props 向下、emit 向上</strong>。90% 的需求到这里就解决了。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">17.3</span> 父到子内容：插槽</h2>
+  <p>插槽解决的是"<strong>结构</strong>的传递"，而不是数据。判断标准：</p>
+  <ul>
+    <li>要传的是<strong>一段模板</strong>（按钮组、表头、空状态）→ 插槽；</li>
+    <li>要传的是<strong>一个值</strong>（字符串、数字、对象）→ props。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;!-- ❌ 用 props 传结构：只能靠 v-html，危险且不可交互 --&gt;
+&lt;Card :footer-html="'&lt;button&gt;确定&lt;/button&gt;'" /&gt;
+
+&lt;!-- ✅ 用插槽：真实组件，可绑定事件 --&gt;
+&lt;Card&gt;
+  &lt;template #footer&gt;
+    &lt;button @click="submit"&gt;确定&lt;/button&gt;
+  &lt;/template&gt;
+&lt;/Card&gt;</code></pre>
+  <p>作用域插槽（第 15 章）则是"子把数据交给父渲染"，是<strong>表格/列表组件</strong>的标准解法。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">17.4</span> 祖孙跨层：provide / inject</h2>
+  <p class="lead">当组件层级很深（如 表单 → 表单项 → 输入框 → 图标），层层透传 props 会让中间组件变成"传声筒"。<code>provide/inject</code> 让祖先直接"投放"数据，任意后代按需"注入"。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 祖先：Form.vue --&gt;
+&lt;script setup&gt;
+import { provide, ref } from 'vue'
+const formData = ref({})
+const errors = ref({})
+
+// 投放：key + value
+provide('form-context', { formData, errors, validate })
+function validate() { /* ... */ }
+&lt;/script&gt;
+
+&lt;!-- 任意后代：FormInput.vue（中间隔了多少层都行） --&gt;
+&lt;script setup&gt;
+import { inject } from 'vue'
+const { formData, errors } = inject('form-context')
+&lt;/script&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>维度</th><th>props 透传</th><th>provide / inject</th></tr></thead>
+    <tbody>
+      <tr><td>层级</td><td>逐层传递</td><td>跨任意层</td></tr>
+      <tr><td>依赖可见性</td><td>显式（看 props 就知道）</td><td>隐式（需搜索 inject）</td></tr>
+      <tr><td>重构安全</td><td>高（改名会报错）</td><td>低（字符串 key 易写错）</td></tr>
+      <tr><td>适用</td><td>通用组件</td><td>强耦合的组件族（Form/FormItem、Tabs/TabPane）</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">provide/inject 会<strong>隐藏依赖关系</strong>，是"耦合度较高"的方案。它最适合<strong>同一组件族内部</strong>（你自己写的 Form 与 FormItem），不适合跨业务模块共享数据——那是 Pinia 的活。第 18 章详讲。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">17.5</span> 父调子：ref + expose</h2>
+  <p>props/emit 是"声明式"的；有时父组件需要<strong>命令式</strong>地调用子组件方法（校验表单、播放视频、重置状态）。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件：显式暴露接口 --&gt;
+&lt;script setup&gt;
+import { ref } from 'vue'
+const value = ref('')
+function validate() { return value.value.length &gt; 0 }
+function reset() { value.value = '' }
+
+// 只暴露这两个方法（不写则父组件拿不到任何东西）
+defineExpose({ validate, reset })
+&lt;/script&gt;
+
+&lt;!-- 父组件 --&gt;
+&lt;template&gt;
+  &lt;MyInput ref="inputRef" /&gt;
+  &lt;button @click="onSubmit"&gt;提交&lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref } from 'vue'
+const inputRef = ref(null)
+
+async function onSubmit() {
+  const ok = inputRef.value?.validate()   // 调用子组件方法
+  if (!ok) return
+  // 提交...
+}
+&lt;/script&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>在 <code>&lt;script setup&gt;</code> 下组件默认是<strong>封闭</strong>的：父组件通过 ref 拿到的实例里没有内部方法，必须 <code>defineExpose</code> 显式开放。这是 Vue3 的封装性改进（Vue2 中默认全暴露）。</div>
+  <p class="key-sentence">把 <code>ref + expose</code> 当作<strong>"逃生舱"</strong>：能用 props/emit 声明式解决的，就别用命令式调用——后者让父子耦合变紧，且难以单测。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">17.6</span> 全局共享：Pinia</h2>
+  <p>当数据被<strong>多个不相邻的组件</strong>共享，或需要<strong>跨路由/页面</strong>保留时，提升到 Pinia（第五篇详讲）。</p>
+<pre class="code" data-lang="js"><code>// stores/user.js
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+export const useUserStore = defineStore('user', () =&gt; {
+  const token = ref(localStorage.getItem('token') || '')
+  const profile = ref(null)
+  const isLogin = computed(() =&gt; !!token.value)
+
+  async function login(payload) {
+    const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify(payload) })
+    const data = await res.json()
+    token.value = data.token
+    profile.value = data.user
+  }
+  function logout() { token.value = ''; profile.value = null }
+
+  return { token, profile, isLogin, login, logout }
+})</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 任意组件：无需层层传递 --&gt;
+&lt;script setup&gt;
+import { useUserStore } from '@/stores/user'
+const user = useUserStore()
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;span v-if="user.isLogin"&gt;{{ user.profile.name }}&lt;/span&gt;
+  &lt;button v-else @click="user.login({ ... })"&gt;登录&lt;/button&gt;
+&lt;/template&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>判断问题</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>这个数据只有父子两层用？</td><td>用 props/emit，不要上 Pinia</td></tr>
+      <tr><td>兄弟组件要共享？</td><td>提升到<strong>最近公共父组件</strong>；层级太深才考虑 Pinia</td></tr>
+      <tr><td>跨页面/刷新后仍需保留？</td><td>Pinia（+ 持久化插件）</td></tr>
+      <tr><td>是服务端数据（列表、详情）？</td><td>通常不需要 Pinia，用请求缓存（第 43 章）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">17.7</span> 事件总线：mitt 及其代价</h2>
+  <p>Vue3 移除了实例上的 <code>$on/$off/$emit</code>，官方推荐用 <code>mitt</code> 之类的库做全局事件总线。</p>
+<pre class="code" data-lang="js"><code>// utils/bus.js
+import mitt from 'mitt'
+export const bus = mitt()
+
+// A 组件（任意位置）
+bus.emit('refresh-list', { id: 1 })
+
+// B 组件
+import { onMounted, onUnmounted } from 'vue'
+onMounted(() =&gt; bus.on('refresh-list', handler))
+onUnmounted(() =&gt; bus.off('refresh-list', handler))   // 必须清理！</code></pre>
+  <div class="danger-box"><strong>事件总线的三大问题：</strong>
+    <ul>
+      <li><strong>不可追踪</strong>：不知道谁发的、谁收的，调试时只能全局搜索事件名；</li>
+      <li><strong>生命周期风险</strong>：忘记 <code>off</code> 会内存泄漏，且回调可能作用于已销毁的组件；</li>
+      <li><strong>时序依赖</strong>：组件还没挂载就 emit，消息直接丢失。</li>
+    </ul>
+  </div>
+  <p class="key-sentence">判断：<strong>需要"状态共享"用 Pinia；只有"一次性通知"（如"刷新一下"）才适合事件总线</strong>，且用完即弃、务必在卸载时 off。</p>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">17.8</span> 选型决策树</h2>
+<pre class="code" data-lang="text"><code>要传的东西是什么？
+├─ 一个值 / 对象 ────────────► 父子？props（+ emit 回传）
+│                              跨多层？provide/inject（同组件族）
+│                              任意组件？Pinia
+├─ 一段模板结构 ─────────────► 插槽（普通 / 作用域）
+├─ 双向同步（表单、显隐）────► v-model（modelValue / defineModel）
+├─ 调用子组件方法 ───────────► ref + defineExpose（逃生舱）
+├─ 一次性通知（刷新/跳转）───► 事件总线（mitt，务必 off）
+└─ 服务端数据 ──────────────► 请求层 + 缓存（不一定需要 Pinia）
+
+优先级（从高到低）：
+props/emit &gt; v-model &gt; 插槽 &gt; provide/inject（组件族内） &gt; Pinia &gt; 事件总线</code></pre>
+  <p class="key-sentence">记住这条经验：<strong>方案越"远"，耦合越隐蔽、越难重构</strong>。先用最近的方案，不行再往远走。</p>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">17.9</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>props 透传地狱</strong>：中间组件只为转发 props 而存在。解决：用 provide/inject、插槽，或把状态提升到更合理的层级。</li>
+    <li><span class="tag-pit">坑 2</span><strong>什么都塞进 Pinia</strong>：本地 UI 状态（某个弹窗是否展开）也放全局，导致 store 膨胀、组件不可复用。</li>
+    <li><span class="tag-pit">坑 3</span><strong>inject 拿到 undefined</strong>：祖先没有 provide，或 key 写错（大小写/空格）。建议 provide 时给默认值或用 Symbol 作 key。</li>
+    <li><span class="tag-pit">坑 4</span><strong>ref 拿不到子组件方法</strong>：忘了 <code>defineExpose</code>；或子组件是异步组件还没加载完。</li>
+    <li><span class="tag-pit">坑 5</span><strong>事件总线忘记 off</strong>：组件反复挂载导致回调重复执行 N 次。</li>
+    <li><span class="tag-pit">坑 6</span><strong>用 emit 在兄弟间通信</strong>：emit 只能向上到直接父组件，兄弟之间要走父组件中转或 Pinia。</li>
+  </ul>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>八种方式</td><td>props / emit / v-model / 插槽 / 作用域插槽 / provide-inject / ref-expose / Pinia</td></tr>
+      <tr><td>近距离</td><td>父子用 props + emit（+ v-model 双向）</td></tr>
+      <tr><td>传结构</td><td>插槽；子数据父渲染用作用域插槽</td></tr>
+      <tr><td>跨多层</td><td>provide/inject，适合组件族内部</td></tr>
+      <tr><td>命令式</td><td>ref + defineExpose，作为逃生舱</td></tr>
+      <tr><td>全局</td><td>Pinia 管状态；mitt 只做一次性通知且必须 off</td></tr>
+      <tr><td>选型原则</td><td>用最近的方案；越远越隐蔽、越难重构</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec12" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>列出八种通信方式，并为每种写一个不超过 10 行的最小示例（能跑即可）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>重构一个"透传地狱"：现有 A → B → C → D 四层组件，A 的 <code>theme</code> 一路透传到 D。分别用 provide/inject 与 Pinia 改造，比较两者的代码量与耦合度差异。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一个"多步骤表单"：父组件持有全部数据，子组件（每一步）通过 v-model 绑定自己的字段；父组件需要在提交前<strong>调用每个子组件的 validate()</strong>（ref + expose），并在切换步骤时保留已填内容。思考：这个场景用 Pinia 会不会更简单？为什么？</div>
+  <p class="note">参考答案见附录 C。下一章深入 provide/inject 的组合式用法。</p>
+</section>

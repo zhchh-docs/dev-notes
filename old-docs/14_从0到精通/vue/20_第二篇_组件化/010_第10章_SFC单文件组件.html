@@ -1,0 +1,272 @@
+<!--CH
+title: SFC 单文件组件结构
+part: 第二篇 组件化
+desc: SFC（.vue 单文件组件）是 Vue 项目的组织单元。这一章讲清它的三个区块各自能写什么、script setup 到底做了什么、scoped 样式如何生效，以及文件命名与组件注册的工程约定。
+toc: 本章目标|10.1 为什么需要单文件组件|10.2 三个区块的职责|10.3 script setup：编译器的魔法|10.4 样式区块：scoped、module 与 :deep|10.5 组件注册：局部、全局、自动导入|10.6 命名与文件组织约定|10.7 常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 <strong>SFC 解决了什么问题</strong>，以及它与"字符串模板""JSX"的差异；</li>
+    <li>掌握 <code>&lt;template&gt;</code>、<code>&lt;script setup&gt;</code>、<code>&lt;style&gt;</code> 三个区块的写法与边界；</li>
+    <li>理解 <code>&lt;script setup&gt;</code> 的<strong>编译行为</strong>（自动暴露、自动注册组件）；</li>
+    <li>掌握 <code>scoped</code> 样式的<strong>实现原理</strong>与 <code>:deep</code> / <code>:global</code> 的用途；</li>
+    <li>建立<strong>命名与目录</strong>的工程约定（团队一致性的基础）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">10.1</span> 为什么需要单文件组件</h2>
+  <p>组件本质是"可复用的界面单元"。不用 SFC 也能写，但体验差别很大：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>写法</th><th>形式</th><th>问题</th></tr></thead>
+    <tbody>
+      <tr><td>字符串模板</td><td><code>template: '&lt;div&gt;...&lt;/div&gt;'</code></td><td>没有语法高亮、没有补全、换行要拼字符串</td></tr>
+      <tr><td>JSX / render 函数</td><td><code>return h('div', ...)</code></td><td>灵活但模板可读性差，样式仍需单独文件</td></tr>
+      <tr><td><strong>SFC（推荐）</strong></td><td><code>.vue</code> 文件三段式</td><td>需要编译（Vite 已处理）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">SFC 把<strong>结构（template）、逻辑（script）、样式（style）</strong>放进同一个文件，同时保留各自的语法高亮——这是 Vue 在工程体验上的核心优势。</p>
+  <p>一个重要认知：<strong>SFC 不是浏览器原生支持的</strong>，它由 <code>@vitejs/plugin-vue</code> 在构建时编译成 JS 渲染函数。所以".vue 文件"只存在于源码阶段。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">10.2</span> 三个区块的职责</h2>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 结构：必须有（也可以只有一个根节点，Vue3 支持多根） --&gt;
+  &lt;div class="user-card"&gt;
+    &lt;img :src="user.avatar" :alt="user.name"&gt;
+    &lt;h3&gt;{{ user.name }}&lt;/h3&gt;
+    &lt;slot name="extra" /&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+// 逻辑：组合式 API，顶层变量自动暴露给模板
+import { ref, computed } from 'vue'
+import UserBadge from './UserBadge.vue'   // import 后模板可直接用
+
+const props = defineProps({ user: { type: Object, required: true } })
+const emit = defineEmits(['follow'])
+
+const following = ref(false)
+const label = computed(() =&gt; following.value ? '已关注' : '关注')
+
+function toggle() {
+  following.value = !following.value
+  emit('follow', props.user.id, following.value)
+}
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+/* 样式：scoped 表示只作用于本组件 */
+.user-card { display: flex; gap: 12px; padding: 12px; }
+.user-card h3 { margin: 0; font-size: 16px; }
+&lt;/style&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>区块</th><th>必填</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;template&gt;</code></td><td>是（也可用 render 函数替代）</td><td>Vue3 支持多根节点；不能有 <code>v-if</code> 之外的顶层逻辑</td></tr>
+      <tr><td><code>&lt;script setup&gt;</code></td><td>否（纯展示组件可省）</td><td>顶层绑定自动暴露；每组件实例独立执行</td></tr>
+      <tr><td><code>&lt;style&gt;</code></td><td>否</td><td>可写多个 style 块；<code>scoped</code> / <code>module</code> / 预处理器</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>多根组件（Fragment）</strong>：Vue3 允许 <code>&lt;template&gt;</code> 下有多个根元素。代价是<strong>属性透传失效</strong>（class/style 不知道挂到哪），需要显式 <code>v-bind="$attrs"</code>（第 7 章已提）。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">10.3</span> script setup：编译器的魔法</h2>
+  <p class="lead"><code>&lt;script setup&gt;</code> 不是新语法，而是<strong>编译期语法糖</strong>：编译器把你在顶层写的代码"搬进" <code>setup()</code> 函数，并把变量自动 return 给模板。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 你写的 --&gt;
+&lt;script setup&gt;
+import { ref } from 'vue'
+import MyComp from './MyComp.vue'
+const count = ref(0)
+function inc() { count.value++ }
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;MyComp :n="count" @click="inc" /&gt;
+&lt;/template&gt;
+
+&lt;!-- 编译器大致生成（简化示意） --&gt;
+&lt;script&gt;
+import { ref } from 'vue'
+import MyComp from './MyComp.vue'
+export default {
+  components: { MyComp },          // 自动注册
+  setup() {
+    const count = ref(0)
+    function inc() { count.value++ }
+    return { count, inc }           // 自动暴露给模板
+  }
+}
+&lt;/script&gt;</code></pre>
+  <p>由此得到的四条规则：</p>
+  <ol>
+    <li><strong>顶层变量自动可用</strong>：import 的组件、函数、常量、ref 都能直接在模板里用，不用注册也不用 return；</li>
+    <li><strong>组件名自动推导</strong>：<code>MyComp.vue</code> 直接以 <code>&lt;MyComp&gt;</code> 使用（推荐 PascalCase）；</li>
+    <li><strong>只在 setup 阶段执行</strong>：不要在里面写"只在挂载后才该跑"的代码，那是 <code>onMounted</code> 的事；</li>
+    <li><strong>不能写 export default</strong>：需要额外选项时用 <code>defineOptions</code>（如 <code>defineOptions({ name: 'UserCard' })</code>）。</li>
+  </ol>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+// 定义组件名（用于 devtools、递归组件、keep-alive include）
+defineOptions({ name: 'UserCard', inheritAttrs: false })
+
+// 定义 props / emits / 暴露给父组件的接口
+const props = defineProps({ title: String })
+const emit = defineEmits(['close'])
+defineExpose({ reset })      // 父组件通过 ref 能调用的方法
+
+function reset() { /* ... */ }
+&lt;/script&gt;</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">10.4</span> 样式区块：scoped、module 与 :deep</h2>
+  <h3>scoped 的原理</h3>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;div class="card"&gt;&lt;p&gt;文字&lt;/p&gt;&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;style scoped&gt;
+.card { padding: 12px; }
+&lt;/style&gt;</code></pre>
+<pre class="code" data-lang="html"><code>&lt;!-- 编译后：元素被加上 data-v-xxx 属性，选择器也带上属性限定 --&gt;
+&lt;div class="card" data-v-7ba5bd90&gt;&lt;p data-v-7ba5bd90&gt;文字&lt;/p&gt;&lt;/div&gt;
+
+&lt;style&gt;
+.card[data-v-7ba5bd90] { padding: 12px; }
+&lt;/style&gt;</code></pre>
+  <p>因此：</p>
+  <ul>
+    <li><strong>本组件根元素也会带上</strong>父组件的 scopeId（方便父组件控制子组件根元素样式）；</li>
+    <li>子组件<strong>内部</strong>的元素不带父组件的 data 属性，所以父组件 scoped 样式默认改不到子组件内部——需要 <code>:deep()</code>。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;style scoped&gt;
+/* 穿透到子组件内部：修改 Element Plus 等第三方组件的内部类名 */
+:deep(.el-input__inner) { height: 32px; }
+
+/* 插槽内容属于父组件作用域，也要用 deep */
+:deep(.slot-content) { color: red; }
+
+/* 声明一段全局样式（不推荐滥用） */
+:global(.global-tip) { font-size: 12px; }
+
+/* 多个 style 块：一个 scoped，一个全局 */
+&lt;/style&gt;
+
+&lt;style&gt;
+html body .force-global { z-index: 9999; }
+&lt;/style&gt;</code></pre>
+  <h3>CSS Modules</h3>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;div :class="$style.card"&gt;内容&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;style module&gt;
+.card { padding: 12px; }   /* 类名会被哈希成唯一值，通过 $style 访问 */
+&lt;/style&gt;</code></pre>
+  <p class="key-sentence">选择建议：业务组件用 <code>scoped</code>（简单直观）；基础组件库或需要绝对隔离时用 <code>module</code>。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">10.5</span> 组件注册：局部、全局、自动导入</h2>
+<pre class="code" data-lang="js"><code>// ① 局部注册（推荐）：script setup 里 import 即用
+import UserCard from './UserCard.vue'
+
+// ② 全局注册：适合极高频的基础组件
+// main.js
+import BaseButton from '@/components/BaseButton.vue'
+app.component('BaseButton', BaseButton)
+
+// ③ 自动导入（需插件 unplugin-vue-components）
+// vite.config.js
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    Components({
+      dts: 'src/components.d.ts',
+      resolvers: [ElementPlusResolver()]   // 按需自动引入 Element Plus
+    })
+  ]
+})</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>方式</th><th>优点</th><th>缺点</th></tr></thead>
+    <tbody>
+      <tr><td>局部 import</td><td>依赖清晰、tree-shaking 好</td><td>每个文件都要写 import</td></tr>
+      <tr><td>全局注册</td><td>到处能直接用</td><td>依赖关系隐藏；无法被 tree-shaking，体积增大</td></tr>
+      <tr><td>自动导入</td><td>二者兼得（推荐大型项目）</td><td>需配置，新人可能困惑"这组件哪来的"</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">10.6</span> 命名与文件组织约定</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>项目</th><th>规范</th><th>示例</th></tr></thead>
+    <tbody>
+      <tr><td>文件名</td><td>PascalCase（大驼峰）</td><td><code>UserCard.vue</code>、<code>BaseButton.vue</code></td></tr>
+      <tr><td>基础组件</td><td><code>Base</code> / <code>App</code> 前缀</td><td><code>BaseInput.vue</code></td></tr>
+      <tr><td>单例组件</td><td><code>The</code> 前缀（每页只用一次）</td><td><code>TheHeader.vue</code></td></tr>
+      <tr><td>紧密耦合的子组件</td><td>父名前缀</td><td><code>TodoList.vue</code> + <code>TodoListItem.vue</code></td></tr>
+      <tr><td>模板中使用</td><td>PascalCase 优先（可自闭合）</td><td><code>&lt;UserCard /&gt;</code>（DOM 内模板除外）</td></tr>
+      <tr><td>props 定义</td><td>camelCase，模板用 kebab-case</td><td>定义 <code>userId</code>，用 <code>:user-id="1"</code></td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="bash"><code>src/
+├── components/          # 通用组件（跨页面复用）
+│   ├── BaseButton.vue
+│   └── UserCard.vue
+├── views/               # 页面级组件（路由直接对应）
+│   └── user/
+│       ├── UserList.vue
+│       └── components/  # 只属于该页面的子组件
+│           └── UserFilter.vue
+└── composables/         # 组合式函数（第三篇）</code></pre>
+  <div class="warn-box"><span class="tag-pit">提醒</span>在 <strong>DOM 内模板</strong>（直接写在 HTML 文件里、没有构建步骤）中，浏览器会把标签名统一小写，因此<strong>必须</strong>用 kebab-case：<code>&lt;user-card&gt;&lt;/user-card&gt;</code>。SFC 场景不受此限制。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">10.7</span> 常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>在 <code>&lt;script setup&gt;</code> 里写 <code>export default</code></strong>：不允许，用 <code>defineOptions</code> 代替。</li>
+    <li><span class="tag-pit">坑 2</span><strong>以为 scoped 能改子组件内部样式</strong>：需要 <code>:deep()</code>；第三方组件库尤其常见。</li>
+    <li><span class="tag-pit">坑 3</span><strong>多根组件导致 class 透传失效</strong>：需要 <code>v-bind="$attrs"</code>。</li>
+    <li><span class="tag-pit">坑 4</span><strong>组件名与 HTML 原生标签冲突</strong>：如命名 <code>&lt;Button&gt;</code> 会与原生 button 冲突，加前缀（<code>BaseButton</code>）。</li>
+    <li><span class="tag-pit">坑 5</span><strong>循环引用组件</strong>：A 引 B、B 引 A。用异步导入或在 <code>defineOptions</code> 里显式命名后按名引用（Vite 通常能处理，但要注意 <code>name</code>）。</li>
+    <li><span class="tag-pit">坑 6</span><strong>在模板里访问未暴露的变量</strong>：<code>&lt;script setup&gt;</code> 里写在 <code>if</code>/<code>function</code> 内部的变量不会暴露（只有顶层绑定才会）。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>SFC 价值</td><td>结构/逻辑/样式同文件，且各自保留语法高亮</td></tr>
+      <tr><td>三区块</td><td>template（结构）、script setup（逻辑）、style（样式，可多个）</td></tr>
+      <tr><td>script setup</td><td>编译期语法糖：顶层绑定自动暴露、组件自动注册</td></tr>
+      <tr><td>scoped 原理</td><td>元素与选择器同时加 <code>data-v-xxx</code> 属性限定</td></tr>
+      <tr><td>:deep</td><td>穿透到子组件内部；插槽内容也需它</td></tr>
+      <tr><td>注册方式</td><td>局部 import（默认）、全局注册（基础组件）、自动导入（大项目）</td></tr>
+      <tr><td>命名</td><td>文件 PascalCase；Base/The 前缀区分用途</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>新建一个 <code>BaseCard.vue</code>（含默认插槽与 scoped 样式），在父组件中使用，并验证：父组件的 scoped 样式能否改到卡片<strong>内部</strong>元素？加上 <code>:deep()</code> 后再试。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把一个"用户信息 + 关注按钮"的页面拆成 3 个组件（列表 / 卡片 / 按钮），按 10.6 的目录与命名规范组织文件，用 <code>&lt;script setup&gt;</code> 完成传参与事件回传。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在项目中接入 <code>unplugin-vue-components</code> + Element Plus resolver，删除所有手写 import，确认：① 模板里直接用 <code>&lt;ElButton&gt;</code> 是否生效；② 打包体积是否只含用到的组件；③ 生成的 <code>components.d.ts</code> 有什么作用。</div>
+  <p class="note">参考答案见附录 C。下一章讲 props：组件的输入接口与单向数据流。</p>
+</section>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 3 章 库、表、行与数据类型选型｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 3 章 库、表、行与数据类型选型</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 3 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">数据库的最小认知单元是"库-表-行"三级结构，而数据类型是每张表的骨架——选错类型，轻则浪费空间，重则丢精度、乱排序。本章带你认识三级结构，并把最常用的十来个数据类型一次讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="002_第2章_安装与客户端_Docker起库与DBeaver.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="004_第4章_建库建表_DDL与约束.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">3.1 库：数据的第一层隔离</a></li>
+    <li><a href="#sec3">3.2 表与行：结构化存储的单元</a></li>
+    <li><a href="#sec4">3.3 常用数据类型速览</a></li>
+    <li><a href="#sec5">3.4 选型原则与经典坑</a></li>
+    <li><a href="#sec6">3.5 查看结构的三板斧</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>库-表-行</strong>三级结构，以及库在权限、备份、命名上的作用；</li>
+    <li>认识常用数据类型：<code>TINYINT/INT/BIGINT</code>、<code>DECIMAL</code>、<code>VARCHAR/CHAR</code>、<code>TEXT</code>、<code>DATETIME/TIMESTAMP</code>；</li>
+    <li>掌握三条选型铁律：<strong>钱用 DECIMAL、时间想清楚时区、字符串定够用长度</strong>；</li>
+    <li>会用 <code>DESC</code>、<code>SHOW CREATE TABLE</code> 查看表结构。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">3.1</span> 库：数据的第一层隔离</h2>
+  <p>一个 MySQL 服务实例里可以建多个<strong>库（Database / Schema）</strong>。库是组织数据的第一层文件夹，也是<strong>权限隔离</strong>（第 2 章 GRANT ON bookshop.*）和<strong>备份单位</strong>（mysqldump 通常按库导）。典型分法：</p>
+  <ul>
+    <li>按<strong>业务域</strong>分：订单库、商品库、用户库各一个，微服务架构下每个服务一个库；</li>
+    <li>按<strong>环境</strong>分：生产上 dev / test / prod 通常使用不同实例，而不是同一实例里的不同库。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>CREATE DATABASE IF NOT EXISTS bookshop
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+
+SHOW CREATE DATABASE bookshop;   -- 回看库的字符集配置
+DROP DATABASE bookshop;          -- 危险操作：连表带数据一起删，无确认、难恢复</code></pre>
+  <div class="pit-sentence">为什么强调 utf8mb4：MySQL 的 <code>utf8</code> 实际只支持 1-3 字节，存不了 emoji 和部分生僻字。<code>utf8mb4</code> 才是完整 UTF-8。8.0 默认已是 utf8mb4，但 5.7 遗留库仍常见 utf8——接手旧库先查字符集。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3.2</span> 表与行：结构化存储的单元</h2>
+  <p>表是行的集合，行是字段的集合。与 Excel 不同，表结构（有哪些列、什么类型）必须<strong>先定义后使用</strong>，每行都遵守同样的结构——这正是数据库能做一致性检查的原因。</p>
+  <pre class="code" data-lang="sql"><code>USE bookshop;
+
+-- 先建一张最简单的表练手（语法细节下一章展开）
+CREATE TABLE student (
+  id     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name   VARCHAR(50)  NOT NULL,
+  age    TINYINT UNSIGNED NULL,
+  score  DECIMAL(5,2) NULL
+);
+
+INSERT INTO student (name, age, score) VALUES ('张三', 20, 88.50);
+INSERT INTO student (name, age, score) VALUES ('李四', 21, 92.00);
+
+SELECT * FROM student;   -- 看到的每一行就是一条记录</code></pre>
+  <p>三个关键认知：</p>
+  <ul>
+    <li><strong>行没有固有顺序</strong>：两次 SELECT 的返回顺序可能不同，要顺序必须显式 <code>ORDER BY</code>；</li>
+    <li><strong>NULL 不是 0 也不是空串</strong>：它表示"未知/未填写"，比较时要用 <code>IS NULL</code>；</li>
+    <li><strong>行数没有硬上限</strong>：单表千万行很常见，但到达一定量级仍要考虑分表（第 49 章展开）。</li>
+  </ul>
+</section>
+<section id="sec4" class="card">
+  <h2><span class="num">3.3</span> 常用数据类型速览</h2>
+  <table>
+    <colgroup><col style="width:14%"><col style="width:24%"><col style="width:38%"><col style="width:24%"></colgroup>
+    <thead><tr><th>类别</th><th>类型</th><th>范围 / 说明</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3">整数</td><td>TINYINT</td><td>有符号 -128~127；UNSIGNED 0~255</td><td>状态、开关、年龄</td></tr>
+      <tr><td>INT</td><td>约 ±21 亿；UNSIGNED 约 0~42 亿</td><td>一般 ID、数量</td></tr>
+      <tr><td>BIGINT</td><td>约 ±9.2×10^18</td><td>订单号、分布式 ID</td></tr>
+      <tr><td>小数</td><td>DECIMAL(M,D)</td><td>精确定点数，DECIMAL(10,2) 可到亿级金额带 2 位小数</td><td>金额、费率</td></tr>
+      <tr><td rowspan="3">字符串</td><td>CHAR(N)</td><td>定长，不足补空格</td><td>手机号、固定编码</td></tr>
+      <tr><td>VARCHAR(N)</td><td>变长，N 为字符数</td><td>姓名、标题、地址</td></tr>
+      <tr><td>TEXT</td><td>长文本，不能设默认值</td><td>文章正文、JSON 串</td></tr>
+      <tr><td rowspan="3">时间</td><td>DATE</td><td>只有日期</td><td>生日、账期</td></tr>
+      <tr><td>DATETIME</td><td>日期+时间，与时区无关，范围 1000~9999 年</td><td>业务发生时间（推荐）</td></tr>
+      <tr><td>TIMESTAMP</td><td>UTC 存储、读时转会话时区，只到 2038 年</td><td>创建/更新时间戳</td></tr>
+    </tbody>
+  </table>
+  <p>还有两个"枚举"工具：<code>ENUM('男','女')</code> 与 <code>SET('a','b')</code>。能用，但<strong>不推荐</strong>——每加一个选项都要改表结构（DDL），用 TINYINT 状态列 + 字典表（或应用层枚举）更灵活。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">3.4</span> 选型原则与经典坑</h2>
+  <p><strong>铁律一：钱永远用 DECIMAL。</strong>FLOAT/DOUBLE 是二进制浮点，存 0.1 就不精确，累计对账必然对不上：</p>
+  <pre class="code" data-lang="sql"><code>SELECT 0.1 + 0.2;   -- 0.30000000000000004（浮点的锅）
+SELECT CAST(0.1 AS DECIMAL(10,2)) + CAST(0.2 AS DECIMAL(10,2));  -- 0.30，精确</code></pre>
+  <p><strong>铁律二：时间想清楚时区。</strong>DATETIME 存"字面时间"（你写 8 点就是 8 点），TIMESTAMP 存 UTC、按会话时区转换。业务字段（下单时间、发货时间）用 DATETIME 直观省心；TIMESTAMP 的 2038 上限是真实风险。</p>
+  <p><strong>铁律三：字符串长度够用就好，但别抠到没余地。</strong>VARCHAR(N) 的 N 影响索引长度与内存临时表，常用经验值：姓名 50、手机号 CHAR(11)、邮箱 100、地址 255、标题 255。上千字符的长文本考虑 TEXT 或拆表。</p>
+  <p>其他经典坑：</p>
+  <ul>
+    <li><span class="tag-pit">坑</span><code>INT(11)</code> 的 11 只是显示宽度，不代表存储范围；范围只看类型本身，8.0 已弃用显示宽度写法；</li>
+    <li><span class="tag-pit">坑</span>类型管不了内容合法性：VARCHAR 手机号列能存进 "abc"，内容约束靠 CHECK 约束或应用层校验（下一章）；</li>
+    <li><span class="tag-pit">坑</span>用 VARCHAR 存逗号分隔标签（"a,b,c"）再 LIKE 查询——无法走索引、无法统计，多值关系应拆成关联表。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">3.5</span> 查看结构的三板斧</h2>
+  <pre class="code" data-lang="sql"><code>DESC student;              -- 快速看列名、类型、是否可空、键
+SHOW COLUMNS FROM student; -- 等价于 DESC
+SHOW CREATE TABLE student; -- 完整建表语句（含引擎、字符集、索引）——最有用
+
+-- 想知道表有多少行、多大：
+SELECT COUNT(*) FROM student;
+SHOW TABLE STATUS LIKE 'student';   -- Rows / Avg_row_length / Data_length</code></pre>
+  <p><code>SHOW CREATE TABLE</code> 是排障神器：线上表"看起来不对"时先看真实定义，90% 的疑问（字符集、默认值、索引缺失）在这里直接现形。今后每接手一张陌生表，第一件事就是跑它。</p>
+  <div class="key-sentence">表结构是"合同"：一旦被程序依赖，改它就要付出代价。上线前的类型选型，值得多花十分钟。</div>
+</section>
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>三级结构</td><td>库做隔离与权限，表定义结构，行存数据且无固有顺序</td></tr>
+      <tr><td>字符集</td><td>永远选 utf8mb4；MySQL 的 utf8 是残缺实现</td></tr>
+      <tr><td>数值选型</td><td>金额 DECIMAL；状态 TINYINT；大 ID 用 BIGINT</td></tr>
+      <tr><td>时间选型</td><td>业务时间用 DATETIME；TIMESTAMP 只到 2038 年</td></tr>
+      <tr><td>查看结构</td><td>DESC 快览，SHOW CREATE TABLE 看全貌</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为"图书"设计字段并列出类型：书名、作者、价格、库存、出版日期、内容简介。写出所选类型并说明理由。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>建一张 <code>t_demo</code>，金额列误用 <code>FLOAT</code>，插入 0.1 三次后 <code>SELECT SUM(amount)</code> 观察误差；再 <code>ALTER TABLE</code> 改成 <code>DECIMAL(10,2)</code>，看值是否恢复精确。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>解释：为什么"手机号"推荐 CHAR(11) 而不是 VARCHAR(20)？如果要存国际号码（带国家码、可含 + 和空格），你的选择会变吗？</div>
+  <p class="note">类型选好了，下一章正式学 DDL：建库建表、约束，以及 ALTER 的常用姿势。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="002_第2章_安装与客户端_Docker起库与DBeaver.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="004_第4章_建库建表_DDL与约束.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 3 章 库、表、行与数据类型选型</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

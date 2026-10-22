@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 9 章 样式方案：CSS Modules 与原子类｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 9 章 样式方案：CSS Modules 与原子类</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 9 章 / 共 64 章 · 预计 40 分钟 · 第一篇收尾</span>
+    </div>
+    <p class="hero-desc">React 不负责写样式，但怎么写样式直接决定项目的可维护性。本章把五种主流方案放在同一张表上对比，重点讲 CSS Modules（中文项目默认推荐）与 Tailwind 原子类（新项目增长最快），以及动态类名、主题变量与样式冲突的处理。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="008_第8章_受控与非受控表单.html">第 8 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../20_第二篇_Hooks核心/010_第10章_useEffect同步器心智.html">第 10 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">9.1 五种样式方案横向对比</a></li>
+    <li><a href="#sec3">9.2 CSS Modules 完整用法</a></li>
+    <li><a href="#sec4">9.3 动态类名：clsx / classnames</a></li>
+    <li><a href="#sec5">9.4 原子类：Tailwind 的心智模型</a></li>
+    <li><a href="#sec6">9.5 CSS 变量与主题切换</a></li>
+    <li><a href="#sec7">9.6 常见坑与选型清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>在一个表格里看清五种样式方案的取舍：内联、普通 CSS、CSS Modules、CSS-in-JS、原子类；</li>
+    <li>熟练使用 <strong>CSS Modules</strong>：<code>composes</code>、<code>:global</code>、哈希类名规则；</li>
+    <li>会用 <code>clsx</code> 处理条件类名，避免字符串拼接的脏代码；</li>
+    <li>理解 <strong>Tailwind</strong> 的设计哲学与适用边界，能判断要不要用；</li>
+    <li>实现基于 <strong>CSS 变量</strong>的主题切换。</li>
+  </ul>
+  <div class="note">本书第七篇第 56 章会落到具体组件库（Ant Design）的定制方案，本章只打地基。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">9.1</span> 五种样式方案横向对比</h2>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:22%"><col style="width:22%"><col style="width:22%"><col style="width:18%"></colgroup>
+    <thead><tr><th>方案</th><th>作用域</th><th>动态样式</th><th>上手成本</th><th>适合</th></tr></thead>
+    <tbody>
+      <tr><td>内联 style</td><td>单节点</td><td>天然支持</td><td>极低</td><td>少量动态值<br>（宽高、定位）</td></tr>
+      <tr><td>普通 CSS</td><td>全局</td><td>差</td><td>低</td><td>小型 Demo</td></tr>
+      <tr><td>CSS Modules</td><td>组件级</td><td>中</td><td>低</td><td>中后台、设计规范明确</td></tr>
+      <tr><td>CSS-in-JS<br>（styled / emotion）</td><td>组件级</td><td>强（可用 props）</td><td>中</td><td>主题强、<br>组件库产品</td></tr>
+      <tr><td>原子类 Tailwind</td><td>原子</td><td>中</td><td>中</td><td>快速迭代、<br>设计一致性差时</td></tr>
+    </tbody>
+  </table>
+  <p>判断的第一性问题其实是：<strong>这个项目的样式规范由谁定义？</strong></p>
+  <ul>
+    <li>有专职 UI/设计并且要长期维护 → <strong>CSS Modules / CSS-in-JS</strong>，语义类名便于对话与迭代；</li>
+    <li>快速出原型、追求跨项目视觉一致 → <strong>Tailwind</strong>；</li>
+    <li>同时使用组件库 → 以组件库主题为主，业务代码用 Modules 兜细节。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">9.2</span> CSS Modules 完整用法</h2>
+  <p>Vite 内置支持：文件名带 <code>.module.css</code> 即自动启用，无需任何配置。</p>
+  <pre class="code" data-lang="css"><code>/* Button.module.css */
+.btn { padding: 6px 16px; border: 1px solid #d8e2cc; border-radius: 6px; }
+.primary { background: #2d6a3f; color: #fff; }
+/* 组合：复用其它类的规则 */
+.large { composes: btn; padding: 10px 22px; }
+/* 引用全局类 */
+.icon { composes: app-icon from global; }
+/* 局部作用域里写全局选择器 */
+.card :global(.ant-btn) { margin-left: 8px; }</code></pre>
+  <pre class="code" data-lang="jsx"><code>import styles from './Button.module.css';
+
+export default function Button({ type = 'primary', size, children }) {
+  const cls = [styles.btn, styles[type], size === 'large' &amp;&amp; styles.large]
+    .filter(Boolean).join(' ');
+  return &lt;button className={cls}&gt;{children}&lt;/button&gt;;
+}</code></pre>
+  <p>构建后类名会变成 <code>_btn_1a2b3</code> 这类哈希串，因此<strong>不同文件中的同名类不会互相污染</strong>。</p>
+  <div class="warn-box"><span class="tag-pit">坑 1</span>选择器里写标签选择器（<code>.btn span</code>）没问题，但<strong>不能靠外部覆写模块类</strong>：哈希类名对外不可见。组件应当在 props 上开放 <code>className</code> 让外部合并（第 4 章准则 6）。</div>
+  <div class="warn-box"><span class="tag-pit">坑 2</span><code>styles['primary']</code> 能用，但 <code>styles.primary</code> 更利于 IDE 补全；连字符类名只能用方括号：<code>styles['btn-lg']</code>。建议统一用 camelCase 命名。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">9.3</span> 动态类名：clsx / classnames</h2>
+  <pre class="code" data-lang="bash"><code>npm install clsx</code></pre>
+  <pre class="code" data-lang="jsx"><code>import clsx from 'clsx';
+
+function Alert({ type = 'info', muted, className, children }) {
+  return (
+    &lt;div className={clsx(styles.alert, styles[type], muted &amp;&amp; styles.muted, className)}&gt;
+      {children}
+    &lt;/div&gt;
+  );
+}
+
+// 也支持对象形式，条件复杂时更易读
+clsx({
+  [styles.btn]: true,
+  [styles.disabled]: disabled,
+  [styles.large]: size === 'large',
+});</code></pre>
+  <p class="key-sentence">原则：类名组装逻辑放进 clsx，JSX 里只留一行。这样 review 时一眼能看出"哪些类在哪些条件下生效"。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">9.4</span> 原子类：Tailwind 的心智模型</h2>
+  <p>Tailwind 提供大量<strong>单一职责的工具类</strong>，直接在 JSX 里组合出样式：</p>
+  <pre class="code" data-lang="jsx"><code>// 不再先写 CSS 再起类名，而是"所见即所得"
+&lt;button className="px-4 py-2 rounded-md bg-green-700 text-white hover:bg-green-800
+                   disabled:opacity-50 transition-colors"&gt;
+  提交
+&lt;/button&gt;</code></pre>
+  <pre class="code" data-lang="bash"><code># Vite + React 接入（Tailwind v3）
+npm i -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p</code></pre>
+  <pre class="code" data-lang="js"><code>// tailwind.config.js
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],  // 据此摇树，务必写全
+  theme: { extend: { colors: { brand: '#2d6a3f' } } },
+  plugins: [],
+};</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>收益</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td>开发速度</td><td>不用起类名、不用切文件</td><td>JSX 变长，可读性两极分化</td></tr>
+      <tr><td>一致性</td><td>配色/间距被约束在几档</td><td>设计师给的任意像素值难以还原</td></tr>
+      <tr><td>产物体积</td><td>摇树后很小</td><td><code>content</code> 配错会导致样式全丢</td></tr>
+      <tr><td>动态类</td><td>可用模板字符串</td><td><strong>不能拼接</strong>：<code>`text-${color}`</code> 会被摇树删掉</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// ✗ 动态拼接无效（构建时扫不到完整类名）
+&lt;span className={`text-${size}`} /&gt;
+
+// ✓ 建映射表，写出完整字符串
+const SIZE = { sm: 'text-sm', md: 'text-base', lg: 'text-lg' };
+&lt;span className={SIZE[size]} /&gt;</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">9.5</span> CSS 变量与主题切换</h2>
+  <p>主题切换最省心的实现是 <strong>CSS 自定义属性</strong>：变量随根节点切换而全局生效，无需 React 重渲染。</p>
+  <pre class="code" data-lang="css"><code>/* theme.css */
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1f2e1f;
+  --color-primary: #2d6a3f;
+}
+[data-theme='dark'] {
+  --color-bg: #152010;
+  --color-text: #d8e2cc;
+  --color-primary: #4f8a63;
+}
+.card { background: var(--color-bg); color: var(--color-text); }</code></pre>
+  <pre class="code" data-lang="jsx"><code>function ThemeToggle() {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() =&gt; {
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  }, [dark]);
+
+  return &lt;button onClick={() =&gt; setDark(d =&gt; !d)}&gt;切换主题&lt;/button&gt;;
+}</code></pre>
+  <p>关键点：<strong>把主题写在 DOM 属性上，而不是往每个组件传 props</strong>——后者会让主题变更引发全树重渲染。这一点在第 21 章（Context 粒度）会再回来。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">9.6</span> 常见坑与选型清单</h2>
+  <ol>
+    <li><strong>样式不生效</strong>：检查优先级（第三方库用 <code>!important</code> 时，业务侧可用 <code>:where()</code> 降低自身优先级、或提高层级）；</li>
+    <li><strong>CSS Modules 类名冲突</strong>：只可能发生在同一文件内；<code>:global</code> 声明的类会逃逸出作用域，慎用；</li>
+    <li><strong>全局样式放哪</strong>：<code>src/index.css</code>（reset、字体、变量），组件样式一律 Modules；</li>
+    <li><strong>动态内联值的性能</strong>：拖拽/动画场景直接改 <code>style</code> 会频繁触发样式计算，宜用 CSS 变量 + transform；</li>
+    <li><strong>产物体积</strong>：Tailwind 配好 <code>content</code>；Modules 天然按需。</li>
+  </ol>
+  <div class="note"><strong>本书默认</strong>：后续章节示例统一使用 CSS Modules 的类名写法（如 <code>&lt;div className={styles.panel}&gt;</code>），并在必要时加一行 Tailwind 等价写法。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>方案选择</td><td>有设计规范用 Modules，快速迭代用 Tailwind，动态主题用 CSS-in-JS</td></tr>
+      <tr><td>CSS Modules</td><td>Vite 零配置，<code>.module.css</code> 出哈希类名，天然隔离</td></tr>
+      <tr><td>composes</td><td>类之间复用；<code>from global</code> 引入全局类</td></tr>
+      <tr><td>动态类名</td><td>clsx 组装，组件开放 className 让外部合并</td></tr>
+      <tr><td>Tailwind 注意</td><td>动态类名必须完整出现，禁止字符串拼接</td></tr>
+      <tr><td>主题</td><td>CSS 变量 + 根节点 data-theme，避免全树重渲染</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 CSS Modules 写一个 <code>Tag</code> 组件（三种颜色 + 两种尺寸），并允许外部通过 <code>className</code> 追加类名。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 CSS 变量实现明暗主题：要求切换时不触发任何 React 重渲染（除 Toggle 自身），并说明为什么不把 theme 放进 Context 传给所有组件。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把同一张"数据统计卡片"分别用 CSS Modules 与 Tailwind 实现，对比：代码行数、可复用方式、设计还原成本、新手上手难度，写下你的选型结论。</div>
+  <p class="note">参考答案见附录 C。<strong>下一篇</strong>：进入本书最核心的一段——Hooks 体系。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="008_第8章_受控与非受控表单.html">← 第 8 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="../20_第二篇_Hooks核心/010_第10章_useEffect同步器心智.html">第 10 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 9 章 样式方案：CSS Modules 与原子类</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 9 章 位图、HyperLogLog 与 GEO｜Redis 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+
+/* ===== 全库统一导航 ===== */
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+
+/* ===== 全库统一 Prism 深色主题 ===== */
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#272822}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}
+/* 适配库内代码块：保留 --code-bg 深底与 --mono 字体，去除主题自带背景/阴影 */
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+
+/* ===== 全库统一可读性排版 ===== */
+/* 正文阅读密度：行距加大、留白充足 */
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+/* 一级要点：主题色圆点/序号 */
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+/* 二级细节：细色条 + 缩进 + 次级色 marker */
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+/* 行内强调标签：关键术语 / 要点 / 坑 */
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+/* 强调句：结论/易错点 左侧色条 */
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+/* 概念块「一句话定位」 */
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+/* 长代码/长句折行保护 */
+section.card li strong{color:var(--ink)}
+@media(max-width:760px){
+  body{line-height:1.8}
+  section.card{padding:22px 18px}
+  section.card h2{font-size:21px}
+  section.card h3{font-size:17.5px;margin:28px 0 10px}
+  section.card h4{font-size:15.5px;margin:20px 0 8px}
+  .lead{padding:8px 10px;font-size:14.5px}
+}
+
+
+
+
+
+
+/* ===== 左侧目录树样式（覆盖原来的） ===== */
+@media(min-width:1024px){
+  nav.toc {
+    position: fixed !important;
+    left: 20px;
+    top: 80px;
+    width: 240px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d8e2cc;
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 60;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    color: #22331f;
+    margin: 0 0 12px 0 !important;
+    padding: 0 0 8px 0 !important;
+    border-bottom: 1px solid #d8e2cc !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: normal !important;
+  }
+  nav.toc ol {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    columns: 1 !important;
+    column-count: 1 !important;
+  }
+  nav.toc ol li {
+    margin: 6px 0 !important;
+    break-inside: avoid !important;
+  }
+  nav.toc ol li a {
+    display: block !important;
+    padding: 6px 10px !important;
+    color: #7a8a70 !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-radius: 6px !important;
+    transition: all .15s !important;
+    background: transparent !important;
+    border: none !important;
+    font-weight: normal !important;
+  }
+  nav.toc ol li a:hover {
+    background: #f0f5e6 !important;
+    color: #2d6a3f !important;
+  }
+  .container {
+    margin-left: 280px !important;
+    max-width: calc(100% - 300px) !important;
+  }
+}
+@media(max-width:1023px){
+  nav.toc {
+    position: static !important;
+    width: auto !important;
+  }
+}
+
+
+
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 20px 16px !important;
+  }
+  .hero h1 {
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  .breadcrumb {
+    font-size: 12px !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 12px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 16px 0 !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    margin-bottom: 10px !important;
+  }
+  nav.toc ol li a {
+    font-size: 13px !important;
+    padding: 5px 8px !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 18px 16px !important;
+    margin: 16px 0 !important;
+    border-radius: 10px !important;
+  }
+  section.card h2 {
+    font-size: 19px !important;
+    margin-bottom: 16px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 24px 0 10px !important;
+  }
+  section.card h4 {
+    font-size: 15px !important;
+    margin: 18px 0 8px !important;
+  }
+  section.card p {
+    font-size: 14px !important;
+    line-height: 1.75 !important;
+  }
+  section.card li {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 12px !important;
+    overflow-x: auto !important;
+  }
+  code {
+    font-size: 13px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+    overflow-x: auto !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 12px !important;
+    flex-wrap: wrap;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+  }
+  .glossary-item {
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+    margin: 4px !important;
+  }
+
+
+
+/* ===== 手机端深度优化 ===== */
+@media(max-width:768px){
+  /* 全局 */
+  body {
+    line-height: 1.7 !important;
+    font-size: 15px !important;
+  }
+  
+  /* 顶部导航 */
+  .doc-nav.top {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 16px 14px !important;
+  }
+  .hero h1 {
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 10px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 16px 14px !important;
+    margin: 12px 0 !important;
+    border-radius: 8px !important;
+  }
+  section.card h2 {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+    padding-left: 10px !important;
+  }
+  section.card h2 .num {
+    min-width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    font-size: 13px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 20px 0 8px !important;
+    padding-left: 8px !important;
+  }
+  section.card h4 {
+    font-size: 14.5px !important;
+    margin: 16px 0 6px !important;
+  }
+  section.card p {
+    font-size: 14.5px !important;
+    line-height: 1.75 !important;
+    margin: 10px 0 !important;
+  }
+  section.card ul, section.card ol {
+    padding-left: 20px !important;
+    margin: 10px 0 !important;
+  }
+  section.card li {
+    font-size: 14.5px !important;
+    line-height: 1.7 !important;
+    margin: 6px 0 !important;
+  }
+  
+  /* 行内代码 - 关键优化！ */
+  code {
+    font-size: 13px !important;
+    padding: 2px 5px !important;
+    border-radius: 4px !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    display: inline !important;
+    max-width: 100% !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 10px !important;
+    overflow-x: auto !important;
+    border-radius: 6px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+    overflow-x: auto !important;
+    border-radius: 8px !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 12px 0 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  nav.toc h2 {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+  nav.toc ol li a {
+    font-size: 12.5px !important;
+    padding: 4px 6px !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 10px !important;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+  }
+  .glossary-item {
+    font-size: 12.5px !important;
+    padding: 3px 6px !important;
+    margin: 3px !important;
+  }
+  
+  /* 强调句 */
+  .key-sentence, .pit-sentence {
+    padding: 8px 10px !important;
+    margin: 10px 0 !important;
+    font-size: 14px !important;
+  }
+  
+  /* lead */
+  .lead {
+    padding: 8px 10px !important;
+    font-size: 13.5px !important;
+    margin: 10px 0 !important;
+  }
+}
+
+
+/* ===== 修复手机端页面溢出 ===== */
+html, body {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+* {
+  max-width: 100% !important;
+}
+
+img, svg, video {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* 代码块内部可以滚动，但不撑开页面 */
+pre, .code, .diagram {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* 行内代码不换行但不溢出 */
+code {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+
+/* ===== 强制修复行内代码溢出 ===== */
+code {
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  word-wrap: break-word !important;
+  max-width: 100% !important;
+  display: inline !important;
+  overflow: hidden !important;
+}
+
+p, li, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+
+/* ===== 教科书模块专属样式 ===== */
+.book-toc{columns:2;column-gap:36px;padding-left:24px}
+.book-toc li{break-inside:avoid;font-size:13.5px;color:var(--ink-2);margin:4px 0;line-height:1.6;list-style:disc}
+.book-toc li b{color:var(--accent);margin-right:6px}
+@media(max-width:760px){.book-toc{columns:1}}
+.bstat{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:2px;white-space:nowrap}
+.bstat.plan{background:#eef3e8;color:#4f6348;border:1px solid #d8e2cc}
+.bstat.doing{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.bstat.done{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.book-part h3{margin-top:22px}
+
+/* ===== 教科书章页专属 ===== */
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Redis 从 0 到精通》 · 第一篇 入门与数据结构</p>
+    <h1>第 9 章 位图、HyperLogLog 与 GEO</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 9 章 / 共 54 章 · 预计 35 分钟 · 需第一篇前 8 章基础</span>
+    </div>
+    <p class="hero-desc">三种特殊结构解决三类特殊问题：签到用 Bitmap、亿级 UV 用 HyperLogLog、附近的人用 GEO——每个都只要几 MB 内存。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">9.1 Bitmap：把每个 bit 都用在刀刃上</a></li>
+    <li><a href="#sec3">9.2 签到场景的完整实现</a></li>
+    <li><a href="#sec4">9.3 HyperLogLog：亿级 UV 只要 12KB</a></li>
+    <li><a href="#sec5">9.4 GEO：附近的人与外卖距离</a></li>
+    <li><a href="#sec6">9.5 三者横向对比与选型</a></li>
+    <li><a href="#sec7">9.6 常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>用 <strong>Bitmap</strong> 实现用户签到、活跃标记，并算得清它的内存账；</li>
+    <li>理解 <strong>HyperLogLog</strong> 的"用 12KB 换 0.81% 误差"，知道它能和不能做的事；</li>
+    <li>用 <strong>GEO</strong> 命令算出"附近 3 公里的车/店"，并知道它底层其实是 ZSet；</li>
+    <li>能在三个结构之间快速选型：<strong>精确小集合用 Set，亿级基数估算用 HLL，空间/距离搜索用 GEO</strong>；</li>
+    <li>避开三者的常见误用（尤其是 HLL 不能取单个元素、GEO 在大范围上的行为）。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 4-8 章五大基本结构。本章是"特殊工具箱"。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">9.1</span> Bitmap：把每个 bit 都用在刀刃上</h2>
+  <p class="lead"><b>Bitmap <b>不是一种新类型</b>，它就是 String（SDS）按 bit 位操作——所以最大容量仍是 512MB（约 42.9 亿 bit）。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SETBIT sign:2026-10:u1001 0 1     # 第 0 位（1 号）设为 1 = 已签到
+(integer) 0                    # 返回该位原来的值
+127.0.0.1:6379&gt; SETBIT sign:2026-10:u1001 1 1     # 2 号签到
+(integer) 0
+127.0.0.1:6379&gt; SETBIT sign:2026-10:u1001 3 1     # 4 号签到（3 号没签）
+(integer) 0
+127.0.0.1:6379&gt; GETBIT sign:2026-10:u1001 2       # 3 号签了吗 → 0
+(integer) 0
+127.0.0.1:6379&gt; BITCOUNT sign:2026-10:u1001       # 这个月签到几次 → 3
+(integer) 3
+127.0.0.1:6379&gt; BITCOUNT sign:2026-10:u1001 0 1   # 前 2 个字节内的签到数（按 BYTE 范围）
+(integer) 2
+127.0.0.1:6379&gt; BITPOS sign:2026-10:u1001 1       # 第一次签到是第几位
+(integer) 0
+127.0.0.1:6379&gt; STRLEN sign:2026-10:u1001         # 占用了几个字节 → 1
+(integer) 1</code></pre>
+
+  <h4>内存账（为什么签到必须用它）</h4>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>方案</th><th>1000 万用户/月的签到存储</th><th>备注</th></tr></thead>
+    <tbody>
+      <tr><td>MySQL 一行一条</td><td>~1.5GB+（含索引）</td><td>还要 I/O 成本</td></tr>
+      <tr><td>Set 存 sign:{date}（一天一个 key）</td><td>1000 万/天 ≈ 数百 MB/天</td><td>每个 userId 都要完整存一份</td></tr>
+      <tr><td><strong>Bitmap 每人一个 key</strong></td><td><strong>~4MB（1000万 × 31bit ÷ 8）</strong></td><td> <strong>31 天只需 4 字节/人</strong></td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 每位运营经理都想看的：本月签到总人数 → BITOP 把所有人 OR 起来再 BITCOUNT
+BITOP OR sign:2026-10:all sign:2026-10:u1 sign:2026-10:u2 ...   # 实际要分批 + Lua 聚合
+BITCOUNT sign:2026-10:all
+# 连续签到人数 = 每天签到 bitmap AND
+BITOP AND sign:consecutive sign:2026-10-18 sign:2026-10-19
+BITCOUNT sign:consecutive</code></pre>
+  <p class="key-sentence">BITOP 支持 AND / OR / XOR / NOT，且结果存到 dest key。<b>它是把"批量布尔运算"从数据库搬到内存的利器</b>，但要留意：超大 Bitmap 的 BITOP 同样是 O(N) 阻塞操作。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">9.2</span> 签到场景的完整实现</h2>
+  <pre class="code" data-lang="bash"><code># key 设计：sign:{userId}:{yyyyMM}
+# offset 设计：0 = 当月第 1 天 → offset = day - 1
+127.0.0.1:6379&gt; SETBIT sign:1001:202610 18 1     # 19 号签到
+(integer) 0
+
+# 幂等天然保证：同一天重复 SETBIT 返回原值，不影响计数
+127.0.0.1:6379&gt; SETBIT sign:1001:202610 18 1
+(integer) 1
+
+# 查询某天是否签到
+127.0.0.1:6379&gt; GETBIT sign:1001:202610 18
+(integer) 1
+
+# 本月签到总天数
+127.0.0.1:6379&gt; BITCOUNT sign:1001:202610
+(integer) 5
+
+# 首次签到日（有的产品这里发额外奖励）
+127.0.0.1:6379&gt; BITPOS sign:1001:202610 1
+(integer) 2                     → 第 3 天
+
+# 「连续签到天数」——Bitmap 不好算，通常改用另一种设计：
+#   维护一个计数器 + 上次签到日期（Hash/JSON），见下</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>统计需求</th><th>Bitmap 能否</th><th>更好方案</th></tr></thead>
+    <tbody>
+      <tr><td>某天是否签到</td><td><strong>完美</strong> O(1)</td><td>GETBIT</td></tr>
+      <tr><td>本月签到总数</td><td><strong>完美</strong></td><td>BITCOUNT</td></tr>
+      <tr><td>首次签到日</td><td>可以</td><td>BITPOS</td></tr>
+      <tr><td>连续签到天数</td><td>麻烦（要反解 bit 序列）</td><td><strong>额外维护 last_sign_date + streak 计数器</strong></td></tr>
+      <tr><td>某天全部签到用户名单</td><td>要遍历所有人的 bitmap</td><td><strong>当天再维护一个 Set</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>设计结论</strong>：Bitmap 适合"<strong>按主体（用户）聚合、以时间/整数为下标</strong>"的查询；反过来"<strong>按时间查主体名单</strong>"就需要额外的倒排索引。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">9.3</span> HyperLogLog：亿级 UV 只要 12KB</h2>
+  <p class="lead"><b>HLL = 概率算法数据结构：用固定约 <strong>12KB</strong> 内存估算集合基数（去重后的元素个数），标准误差 <strong>0.81%</strong>。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; PFADD uv:2026-10-19 u1 u2 u3 u4 u5
+(integer) 1                          # 返回 1 = 内部估计值可能变了；0 = 没变化
+127.0.0.1:6379&gt; PFCOUNT uv:2026-10-19
+(integer) 5
+127.0.0.1:6379&gt; PFADD uv:2026-10-19 u1 u2 u3      # 重复元素不影响
+(integer) 0
+127.0.0.1:6379&gt; PFCOUNT uv:2026-10-19
+(integer) 5
+
+# 合并多天 → 一周 UV（去重，不是简单相加）
+127.0.0.1:6379&gt; PFMERGE uv:week42 uv:2026-10-13 uv:2026-10-14 ... uv:2026-10-19
+OK
+127.0.0.1:6379&gt; PFCOUNT uv:week42
+(integer) 27
+
+127.0.0.1:6379&gt; MEMORY USAGE uv:2026-10-19
+(integer) 12304                      # ≈12KB，无论里面装 1 万还是 1 亿个元素</code></pre>
+  <h4>三种实现模式（重要）</h4>
+  <ul>
+    <li><strong>稀疏（sparse）</strong>：元素少时用，内存可能只有几百字节。</li>
+    <li><strong>稠密（dense）</strong>：元素多时自动转稠密，固定 ~12KB。转换由 <code>hll-sparse-max-bytes 3000</code> 控制，<strong>不可逆</strong>。</li>
+  </ul>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>维度</th><th>HyperLogLog</th><th>Set</th></tr></thead>
+    <tbody>
+      <tr><td>内存（1 亿元素）</td><td><strong>~12KB</strong></td><td>数 GB</td></tr>
+      <tr><td>精确度</td><td>估算，误差 0.81%</td><td><strong>精确</strong></td></tr>
+      <tr><td>能取出单个元素吗</td><td><strong>不能</strong>（只有哈希）</td><td>可以（SMEMBERS）</td></tr>
+      <tr><td>能判断某元素是否存在吗</td><td><strong>不能</strong></td><td>SISMEMBER 可以</td></tr>
+      <tr><td>支持合并</td><td><strong>PFMERGE（去重合并）</strong></td><td>SUNION（更贵）</td></tr>
+      <tr><td>适用</td><td>UV、IP 数、搜索词去重总数</td><td>需要名单/判重时</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">一句话选型：<b>只要一个数字 → HLL；要"某用户今天访问过吗"这种判重/名单 → 必须用 Set 或 Bitmap。</b></p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">9.4</span> GEO：附近的人与外卖距离</h2>
+  <p class="lead"><b>Redis GEO 底层就是 <b>ZSet</b>：把经纬度通过 Geohash 编码成一个 52 位整数当 score，所以 GEO 的所有 key 都能用 ZSET 命令操作。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; GEOADD drivers:gps 120.155070 30.274080 driver:1 120.200000 30.260000 driver:2
+(integer) 2
+127.0.0.1:6379&gt; GEOPOS drivers:gps driver:1        # 取坐标
+1) 1) "120.15507048368453979"
+   2) "30.27407993550386663"
+127.0.0.1:6379&gt; GEODIST drivers:gps driver:1 driver:2 km   # 两点距离
+"4.4630"
+127.0.0.1:6379&gt; GEOHASH drivers:gps driver:1
+1) "wtmkqe1t210"
+
+# 核心：找附近（6.2 起推荐 GEOSEARCH，老版用 GEORADIUS）
+127.0.0.1:6379&gt; GEOSEARCH drivers:gps FROMLONLAT 120.15 30.27 BYRADIUS 5 km ASC COUNT 10 WITHDIST WITHCOORD
+1) 1) "driver:1"
+   2) "0.5619"                       # 距离 km
+   3) 1) "120.15507048368453979"
+      2) "30.27407993550386663"
+2) 1) "driver:2"
+   2) "4.4630"
+
+# 也可以按矩形 BOX 搜
+127.0.0.1:6379&gt; GEOSEARCH drivers:gps FROMLONLAT 120.15 30.27 BYBOX 10 10 km ASC COUNT 20
+
+# 结果存起来复用
+127.0.0.1:6379&gt; GEOSEARCHSTORE near:cache drivers:gps FROMLONLAT 120.15 30.27 BYRADIUS 3 km ASC</code></pre>
+  <h4>典型业务：附近的车辆/门店</h4>
+  <pre class="code" data-lang="bash"><code># ① 司机端每 5 秒上报位置（单个 key 会变得很大 → 按城市分片）
+GEOADD drivers:city:hangzhou 120.15 30.27 driver:8801
+# ② 用户打车请求 → 搜周边 3km 最近 20 个
+GEOSEARCH drivers:city:hangzhou FROMLONLAT ${lng} ${lat} BYRADIUS 3 km ASC COUNT 20 WITHDIST
+# ③ 司机下线时要删除（别忘了，否则会给出已下线的司机）
+ZREM drivers:city:hangzhou driver:8801        # 注意：用 ZREM 而不是 GEO 命令！
+# ④ 活跃度过滤：GEOSEARCH 只能按位置，业务还要过滤"是否接单中" → 取回后自己在应用层过滤</code></pre>
+  <div class="warn-box"><strong>关键限制</strong>：GEO 只能按地理范围检索，<strong>不能加任何其它条件</strong>（无法"3 公里内评分 4.8 以上的店"）。解决方式：GEO 粗筛 → 应用层/ 数据库再过滤；或者用专门的搜索引擎。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">9.5</span> 三者横向对比与选型</h2>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:24%"><col style="width:22%"><col style="width:18%"><col style="width:18%"></colgroup>
+    <thead><tr><th>结构</th><th>底层</th><th>空间</th><th>精确</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>Bitmap</td><td>String(SDS)</td><td>1 bit/标记位</td><td><strong>精确</strong></td><td>签到、活跃标记、布隆过滤自实现</td></tr>
+      <tr><td>HyperLogLog</td><td>String(HLL 编码)</td><td>~12KB</td><td>估算 ±0.81%</td><td>UV、IP 数、搜索词总数</td></tr>
+      <tr><td>GEO</td><td>ZSet(Geohash score)</td><td>~成员数 × 几十字节</td><td>精确的距离计算</td><td>附近的车辆/门店/人</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">速记：想知道"<b>有没有</b>"→ Bitmap；想知道"<b>多少个</b>"→ HyperLogLog；想知道"<b>多远/在哪附近</b>"→ GEO。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">9.6</span> 常见坑</h2>
+  <div class="warn-box"><strong>坑 1（Bitmap）</strong>：offset 从 0 开始，很多人把"日期 day-1"写漏，导致 1 号和 2 号错位。</div>
+  <div class="warn-box"><strong>坑 2（Bitmap）</strong>：<code>SETBIT key 1000000000 1</code> 会把 String 撑成 ~125MB 并<strong>立刻分配</strong> —— 稀疏但超大的 offset 是内存杀手。用人的 id 当 offset 时必须先做<strong>连续编号映射</strong>（如自增代理主键）。</div>
+  <div class="warn-box"><strong>坑 3（Bitmap）</strong>：<code>BITCOUNT</code> 整个大 bitmap 是 O(N)；范围参数按<strong>字节</strong>不是 bit。</div>
+  <div class="warn-box"><strong>坑 4（HLL）</strong>：以为能"<strong>判断某用户今天是否来过</strong>"。HLL 做不到（不存原始元素），需要名单/判重请用 Set/Bitmap。</div>
+  <div class="warn-box"><strong>坑 5（HLL）</strong>：<code>PFCOUNT</code> 单次约几毫秒，<strong>高频调用会累积开销</strong>；可以每次读本地缓存化。</div>
+  <div class="warn-box"><strong>坑 6（GEO）</strong>：忘记<strong>删除下线对象</strong>（用 <code>ZREM</code>），导致用户打到不存在的司机。</div>
+  <div class="warn-box"><strong>坑 7（GEO）</strong>：GEORADIUS 在大半径、大集合下是 <strong>O(N)</strong>，且结果 COUNT 只是"返回上限"不是"提前终止"（会算完再排序）。半径设小、集合分片。</div>
+  <div class="warn-box"><strong>坑 8（GEO）</strong>：经纬度的合法范围（经度 ±180，纬度 ±85.05112878），传错会报错 <code>invalid longitude,latitude pair</code>。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>Bitmap</td><td>String 按 bit 操作；31 天签到只要 4 字节/人</td></tr>
+      <tr><td>Bitmap 命令</td><td>SETBIT / GETBIT / BITCOUNT / BITOP / BITPOS / BITFIELD</td></tr>
+      <tr><td>HLL</td><td>~12KB + 0.81% 误差估算基数；<strong>不能取元素、不能判存在</strong></td></tr>
+      <tr><td>HLL 合并</td><td>PFMERGE 天然去重合并，做周/月 UV 极方便</td></tr>
+      <tr><td>GEO</td><td>底层是 ZSet(Geohash)；删除要用 ZREM</td></tr>
+      <tr><td>GEO 限制</td><td>只能按地理范围选；无法附加"评分&gt;4.8"之类的条件</td></tr>
+      <tr><td>速记</td><td>有没有→Bitmap；多少个→HLL；多远→GEO</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 Bitmap 实现一个"某用户 10 月签到表"：完成签到、查询某天是否签到、统计本月签到天数，最后用 <code>MEMORY USAGE</code> 看它占了多少字节。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>猜测：一个 GEO key 用 <code>TYPE</code> 看是什么类型？用 <code>ZRANGE ... WITHSCORES</code> 看它会看到什么？实际动手验证，并解释为什么可以用 ZREM 删除成员。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>需求："统计今天访问过商品详情页的独立用户数，同时要支持查询某个用户今天是否访问过"。请给出组合方案（说明每种结构各负责什么），并估算 1000 万 UV 时的总内存。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章揭开 TTL 的真相——过期机制。</p>
+</section>
+
+</main>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<footer>从 0 到精通 · 《Redis 从 0 到精通》 · 第 {num} 章 {title}</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+{scripts}</body>
+</html>

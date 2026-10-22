@@ -1,0 +1,298 @@
+<!--CH
+title: 插槽：默认与具名
+part: 第二篇 组件化
+desc: props 传数据，插槽传结构。这一章讲清为什么需要插槽、默认插槽与后备内容、具名插槽的两种写法、动态插槽名，以及"插槽内容的作用域属于父组件"这条关键规则。
+toc: 本章目标|14.1 为什么需要插槽|14.2 默认插槽|14.3 后备内容（默认值）|14.4 具名插槽|14.5 动态插槽名|14.6 插槽内容的作用域|14.7 实战：可配置布局卡片|14.8 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>插槽解决什么问题</strong>（props 传不了"结构"）；</li>
+    <li>掌握<strong>默认插槽</strong>与<strong>后备内容</strong>；</li>
+    <li>掌握<strong>具名插槽</strong>：定义（<code>&lt;slot name&gt;</code>）与使用（<code>v-slot:name</code> / <code>#name</code>）；</li>
+    <li>会用<strong>动态插槽名</strong>做可配置布局；</li>
+    <li>牢记<strong>插槽内容在父组件作用域编译</strong>这条规则。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">14.1</span> 为什么需要插槽</h2>
+  <p>props 能把<strong>数据</strong>传进子组件，但传不了<strong>结构</strong>。看一个真实需求：卡片组件。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- ❌ 用 props 传结构？做不到（或只能用危险的 v-html） --&gt;
+&lt;Card :title="标题" :html="'&lt;button&gt;操作&lt;/button&gt;'" /&gt;
+
+&lt;!-- ✅ 插槽：把"结构"当参数传进去 --&gt;
+&lt;Card&gt;
+  &lt;template #header&gt;
+    &lt;h3&gt;标题&lt;/h3&gt;
+  &lt;/template&gt;
+
+  &lt;p&gt;这里是卡片正文，可以是任意结构&lt;/p&gt;
+
+  &lt;template #footer&gt;
+    &lt;button&gt;确定&lt;/button&gt;
+    &lt;button&gt;取消&lt;/button&gt;
+  &lt;/template&gt;
+&lt;/Card&gt;</code></pre>
+  <p class="key-sentence">一句话区分：<strong>props 传"数据"，插槽传"内容"；事件传"动作"。</strong>三者构成组件的完整对外接口。</p>
+  <p>插槽的价值在于：<strong>组件负责结构与行为，使用者负责内容</strong>——这是弹窗、表格、布局类组件能被复用的根本原因。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">14.2</span> 默认插槽</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- Card.vue --&gt;
+&lt;template&gt;
+  &lt;div class="card"&gt;
+    &lt;slot&gt;&lt;/slot&gt;          &lt;!-- 出口：父组件传的内容会渲染到这里 --&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;!-- 使用 --&gt;
+&lt;Card&gt;
+  &lt;p&gt;任意内容&lt;/p&gt;
+  &lt;button&gt;按钮&lt;/button&gt;
+&lt;/Card&gt;</code></pre>
+  <p>渲染结果：</p>
+<pre class="code" data-lang="html"><code>&lt;div class="card"&gt;
+  &lt;p&gt;任意内容&lt;/p&gt;
+  &lt;button&gt;按钮&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+  <p>默认插槽的名字是 <code>default</code>，完整写法是 <code>&lt;template #default&gt;</code>，通常省略。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">14.3</span> 后备内容（默认值）</h2>
+  <p>在 <code>&lt;slot&gt;</code> 标签里写的内容是<strong>后备内容</strong>：父组件没传时显示它。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- SubmitButton.vue --&gt;
+&lt;template&gt;
+  &lt;button type="submit"&gt;
+    &lt;slot&gt;提交&lt;/slot&gt;      &lt;!-- 没传内容时显示"提交" --&gt;
+  &lt;/button&gt;
+&lt;/template&gt;
+
+&lt;!-- 用法一：用默认值 --&gt;
+&lt;SubmitButton /&gt;          &lt;!-- 按钮文字：提交 --&gt;
+
+&lt;!-- 用法二：覆盖默认值 --&gt;
+&lt;SubmitButton&gt;保存草稿&lt;/SubmitButton&gt;</code></pre>
+  <p class="key-sentence">后备内容是<strong>组件设计友好度</strong>的体现：常用场景零配置可用，特殊场景可完全定制（Element Plus 的按钮、空状态组件都大量使用）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">14.4</span> 具名插槽</h2>
+  <p>一个组件可能需要多个"出口"，比如布局组件的 header / main / footer。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- PageLayout.vue --&gt;
+&lt;template&gt;
+  &lt;div class="layout"&gt;
+    &lt;header&gt;
+      &lt;slot name="header"&gt;&lt;/slot&gt;
+    &lt;/header&gt;
+
+    &lt;main&gt;
+      &lt;slot&gt;&lt;/slot&gt;                 &lt;!-- 未命名的就是 default --&gt;
+    &lt;/main&gt;
+
+    &lt;aside&gt;
+      &lt;slot name="sidebar"&gt;&lt;/slot&gt;
+    &lt;/aside&gt;
+
+    &lt;footer&gt;
+      &lt;slot name="footer"&gt;&lt;/slot&gt;
+    &lt;/footer&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 完整写法：v-slot:name --&gt;
+&lt;PageLayout&gt;
+  &lt;template v-slot:header&gt;
+    &lt;h1&gt;页面标题&lt;/h1&gt;
+  &lt;/template&gt;
+
+  &lt;!-- 简写：#name（强烈推荐） --&gt;
+  &lt;template #sidebar&gt;
+    &lt;nav&gt;侧边导航&lt;/nav&gt;
+  &lt;/template&gt;
+
+  &lt;!-- 默认插槽：可省略 template，也可显式写 #default --&gt;
+  &lt;p&gt;正文内容&lt;/p&gt;
+
+  &lt;template #footer&gt;
+    &lt;small&gt;© 2026&lt;/small&gt;
+  &lt;/template&gt;
+&lt;/PageLayout&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>写法</th><th>说明</th><th>推荐度</th></tr></thead>
+    <tbody>
+      <tr><td><code>v-slot:header</code></td><td>完整写法</td><td>一般</td></tr>
+      <tr><td><code>#header</code></td><td>简写，与前者完全等价</td><td>✅ 推荐</td></tr>
+      <tr><td><code>#default</code></td><td>默认插槽显式写法</td><td>需要时</td></tr>
+      <tr><td>元素上直接 <code>slot="header"</code></td><td>Vue2 遗留写法</td><td>❌ 已废弃</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">注意</span><code>v-slot</code> 只能写在<strong>组件标签</strong>或 <code>&lt;template&gt;</code> 上，不能写在普通元素上（如 <code>&lt;div #header&gt;</code> 是错误的）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">14.5</span> 动态插槽名</h2>
+  <p>插槽名可以来自变量，用于"可配置布局"这类高级场景：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;PageLayout&gt;
+    &lt;template #[currentSection]&gt;
+      &lt;p&gt;这段内容会进入名为 {{ currentSection }} 的区域&lt;/p&gt;
+    &lt;/template&gt;
+  &lt;/PageLayout&gt;
+
+  &lt;button @click="currentSection = 'sidebar'"&gt;移到侧边&lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref } from 'vue'
+const currentSection = ref('header')
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence">动态插槽名用得少，但它是"配置驱动页面"（低代码/表单生成器）的关键技术之一：后端下发 <code>{ slot: 'header', component: 'Xxx' }</code>，前端用 <code>&lt;component :is&gt;</code> + 动态插槽拼装页面（第 19 章会组合使用）。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">14.6</span> 插槽内容的作用域</h2>
+  <p class="lead">这是插槽最重要、也最容易理解错的一条规则：<strong>插槽内容在父组件的作用域中编译</strong>。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- Child.vue --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;slot&gt;&lt;/slot&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script setup&gt;
+import { ref } from 'vue'
+const innerMsg = ref('子组件的数据')     // 只在子组件可见
+&lt;/script&gt;
+
+&lt;!-- 父组件 --&gt;
+&lt;Child&gt;
+  &lt;!-- ✅ 可以访问父组件的数据 --&gt;
+  &lt;p&gt;{{ parentMsg }}&lt;/p&gt;
+
+  &lt;!-- ❌ 访问不到子组件的 innerMsg：插槽内容不是在这里编译的 --&gt;
+  &lt;p&gt;{{ innerMsg }}&lt;/p&gt;
+&lt;/Child&gt;</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 180" role="img" aria-label="插槽作用域示意">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">插槽内容在父作用域编译：只能访问父组件的数据</text>
+      <rect x="50" y="45" width="300" height="110" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="200" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">父组件作用域</text>
+      <text x="200" y="95" text-anchor="middle" font-size="11.5" fill="#4f6348">parentMsg ✅ 可访问</text>
+      <text x="200" y="118" text-anchor="middle" font-size="11.5" fill="#4f6348">插槽内容在这里被编译</text>
+      <text x="200" y="141" text-anchor="middle" font-size="11.5" fill="#4f6348">样式也受父组件 scoped 影响</text>
+      <rect x="450" y="45" width="300" height="110" rx="10" fill="#fef3c7" stroke="#d97706"/>
+      <text x="600" y="70" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">子组件作用域</text>
+      <text x="600" y="95" text-anchor="middle" font-size="11.5" fill="#4f6348">innerMsg ❌ 默认不可访问</text>
+      <text x="600" y="118" text-anchor="middle" font-size="11.5" fill="#4f6348">想把 innerMsg 给父用？</text>
+      <text x="600" y="141" text-anchor="middle" font-size="11.5" fill="#4f6348">→ 作用域插槽（第 15 章）</text>
+    </svg>
+    <p class="diagram-caption">图 14-1 插槽内容的作用域归属</p>
+  </div>
+  <p>两个实际影响：</p>
+  <ul>
+    <li><strong>样式</strong>：插槽内容属于父组件，所以父组件的 <code>scoped</code> 样式能作用到它（不需要 <code>:deep</code>）；而子组件的 scoped 样式<strong>作用不到</strong>插槽内容。</li>
+    <li><strong>数据访问</strong>：想让插槽里用子组件的数据，必须用<strong>作用域插槽</strong>（下一章）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">14.7</span> 实战：可配置布局卡片</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- BaseCard.vue --&gt;
+&lt;template&gt;
+  &lt;section class="card"&gt;
+    &lt;header v-if="$slots.header" class="card__head"&gt;
+      &lt;slot name="header"&gt;
+        &lt;h3&gt;{{ title }}&lt;/h3&gt;          &lt;!-- 后备内容也能用 props --&gt;
+      &lt;/slot&gt;
+    &lt;/header&gt;
+
+    &lt;div class="card__body"&gt;
+      &lt;slot&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+
+    &lt;footer v-if="$slots.footer" class="card__foot"&gt;
+      &lt;slot name="footer"&gt;&lt;/slot&gt;
+    &lt;/footer&gt;
+
+    &lt;div v-if="$slots.extra" class="card__extra"&gt;
+      &lt;slot name="extra"&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+defineProps({ title: { type: String, default: '' } })
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+.card { border: 1px solid #d8e2cc; border-radius: 12px; background: #fff; }
+.card__head { padding: 12px 16px; border-bottom: 1px solid #eee; }
+.card__body { padding: 16px; }
+.card__foot { padding: 12px 16px; border-top: 1px solid #eee; text-align: right; }
+&lt;/style&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 使用 --&gt;
+&lt;BaseCard title="用户统计"&gt;
+  &lt;template #header&gt;
+    &lt;div class="row"&gt;
+      &lt;h3&gt;用户统计&lt;/h3&gt;
+      &lt;el-tag&gt;实时&lt;/el-tag&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+
+  &lt;p&gt;本月新增 1,284 人，环比 +12%&lt;/p&gt;
+
+  &lt;template #footer&gt;
+    &lt;button&gt;导出报表&lt;/button&gt;
+  &lt;/template&gt;
+&lt;/BaseCard&gt;</code></pre>
+  <p>关键技巧：<strong>用 <code>$slots.xxx</code> 判断插槽是否被传入</strong>，从而决定外层容器是否渲染（避免出现空的 header 边框）。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- $slots 是插槽对象，常用于条件渲染 --&gt;
+&lt;header v-if="$slots.header"&gt;...&lt;/header&gt;
+&lt;div v-if="$slots.default"&gt;...&lt;/div&gt;
+
+&lt;!-- 在 JS 里访问（script setup 中用 useSlots） --&gt;
+&lt;script setup&gt;
+import { useSlots } from 'vue'
+const slots = useSlots()
+console.log(!!slots.header)   // 父组件是否传了 header 插槽
+&lt;/script&gt;</code></pre>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">14.8</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>在插槽里访问子组件数据</strong>：默认不行，需要作用域插槽（第 15 章）。</li>
+    <li><span class="tag-pit">坑 2</span><strong><code>v-slot</code> 写在普通元素上</strong>：只能用于组件标签或 <code>&lt;template&gt;</code>。</li>
+    <li><span class="tag-pit">坑 3</span><strong>混用新旧写法</strong>：<code>slot="header"</code>（Vue2）与 <code>v-slot</code> 不能在同一组件内混用。</li>
+    <li><span class="tag-pit">坑 4</span><strong>以为子组件的 scoped 样式能改插槽内容</strong>：不能，插槽内容属父作用域，样式应在父组件写或用 <code>:deep</code> 反向处理。</li>
+    <li><span class="tag-pit">坑 5</span><strong>多个同名插槽</strong>：后写的会覆盖先写的（只有最后一个生效）。</li>
+    <li><span class="tag-pit">坑 6</span><strong>插槽内容里的事件冒泡路径</strong>：事件按<strong>渲染后的 DOM 结构</strong>冒泡，不是按模板嵌套关系——子组件内部元素上的事件会冒泡到子组件根元素。</li>
+  </ul>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>为什么用</td><td>props 传数据、插槽传结构，组件才能被复用</td></tr>
+      <tr><td>默认插槽</td><td><code>&lt;slot&gt;</code>；名字是 default</td></tr>
+      <tr><td>后备内容</td><td>写在 <code>&lt;slot&gt;</code> 里，父未传时显示</td></tr>
+      <tr><td>具名插槽</td><td><code>&lt;slot name="x"&gt;</code> + <code>&lt;template #x&gt;</code></td></tr>
+      <tr><td>动态插槽名</td><td><code>#[变量名]</code>，配置驱动场景</td></tr>
+      <tr><td>作用域规则</td><td>插槽内容在<strong>父作用域</strong>编译，样式也归父</td></tr>
+      <tr><td>$slots</td><td>判断是否传了某插槽，控制容器渲染</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个 <code>BaseButton</code>：默认显示"按钮"，父组件可通过默认插槽自定义文字与图标；再用后备内容实现"不传内容时显示默认文案"。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现一个三区布局组件（header / default / footer），要求：未传 header 时不渲染 header 容器（用 <code>$slots</code> 判断）；在父组件里验证 scoped 样式对插槽内容是否生效。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用动态插槽名做一个"可拖拽区块配置"的简化版：配置数组 <code>[{ slot: 'header', text: 'A' }, { slot: 'sidebar', text: 'B' }]</code>，用 <code>v-for</code> + <code>#[item.slot]</code> 渲染到布局组件的对应区域，并实现"移动某个区块到另一个区域"。</div>
+  <p class="note">参考答案见附录 C。下一章是插槽的进阶：作用域插槽。</p>
+</section>

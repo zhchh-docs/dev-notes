@@ -1,0 +1,76 @@
+title: 第 12 章 斜杠语义与 URI 重写细节
+part: 第二篇 反向代理与 HTTPS
+outdir: 20_第二篇_反向代理与HTTPS
+file: 012_第12章_斜杠语义与URI重写细节.html
+prev: 011_第11章_反向代理基础：proxy_pass.html
+next: 013_第13章_请求头透传与真实IP.html
+meta: 第 12 章 / 共 32 章 · 预计 30 分钟 · 高频事故区
+desc: "proxy_pass http://backend 与 proxy_pass http://backend/ 的差别，能让接口从全对变全错。本章给出完整的 URL 传递规则表、内部改写链路图与验证方法。"
+toc: sec1|本章目标;sec2|12.1 一张表看懂 URL 传递规则;sec3|12.2 实验：亲眼对比四种写法;sec4|12.3 带变量的 proxy_pass;sec5|12.4 内部改写链路全景;sec6|12.5 常见坑;sec7|小结与习题
+---
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握规则："proxy_pass <strong>带 URI 就替换 location 匹配部分，不带就原样透传</strong>"；</li>
+    <li>知道带变量时这条规则<strong>完全失效</strong>的全量透传语义；</li>
+    <li>能用 curl + 一个回显后端验证任意组合的真实转发 URI；</li>
+    <li>理解 rewrite → proxy_pass 链路上 $uri 的变化。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">12.1</span> 一张表看懂 URL 传递规则</h2>
+  <p>设请求为 <code>GET /api/user?id=1</code>：</p>
+  <table>
+    <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+    <thead><tr><th>location 与 proxy_pass</th><th>上游收到的 URI</th></tr></thead>
+    <tbody>
+      <tr><td><code>location /api/ { proxy_pass http://b; }</code></td><td><code>/api/user?id=1</code>（原样）</td></tr>
+      <tr><td><code>location /api/ { proxy_pass http://b/; }</code></td><td><code>/user?id=1</code>（/api/ → /）</td></tr>
+      <tr><td><code>location /api/ { proxy_pass http://b/v2/; }</code></td><td><code>/v2/user?id=1</code>（/api/ → /v2/）</td></tr>
+      <tr><td><code>location /api/ { proxy_pass http://b$uri; }</code></td><td><code>/api/user?id=1</code>（带变量：只看表达式求值结果）</td></tr>
+      <tr><td><code>location /api/ { rewrite ^/api/(.*)$ /$1 break; proxy_pass http://b; }</code></td><td><code>/user?id=1</code>（rewrite 改 $uri 后原样透传）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">判断口诀：<strong>proxy_pass 尾巴上有没有"URI 部分"（哪怕只是一个 /）</strong>——有，替换；没有，透传。唯一例外是值里含变量：此时 Nginx 只看变量算出来的最终值。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">12.2</span> 实验：亲眼对比四种写法</h2>
+  <p>准备一个回显后端（打印收到的路径与参数）：</p>
+  <pre class="code" data-lang="python"><code># echo_server.py
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = f"path={self.path}\n".encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(body)
+
+HTTPServer(("127.0.0.1", 8080), H).serve_forever()</code></pre>
+  <pre class="code" data-lang="nginx"><code># 四个 location 分别指向回显服务
+server {
+    listen 80;
+    location /a/ { proxy_pass http://127.0.0.1:8080; }
+    location /b/ { proxy_pass http://127.0.0.1:8080/; }
+    location /c/ { proxy_pass http://127.0.0.1:8080/v2/; }
+    location /d/ { proxy_pass http://127.0.0.1:8080$uri; }
+}</code></pre>
+  <pre class="code" data-lang="bash"><code>curl http://127.0.0.1/a/user?id=1    # path=/a/user?id=1
+curl http://127.0.0.1/b/user?id=1    # path=/user?id=1
+curl http://127.0.0.1/c/user?id=1    # path=/v2/user?id=1
+curl http://127.0.0.1/d/user?id=1    # path=/d/user?id=1（参数丢了！）</code></pre>
+  <p>第四行两个细节值得咀嚼：$uri 含 location 前缀 /d/（没被剥掉）；<strong>查询串没有跟随</strong>——带变量的 proxy_pass 不会自动附加 $args。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">12.3</span> 带变量的 proxy_pass 的特殊语义</h2>
+  <ul>
+    <li>值里出现任意变量，Nginx 放弃内置规则，<strong>转发 URI = 变量表达式求值结果</strong>；</li>
+    <li>查询串需要手动保留：<code>proxy_pass http://b$uri$is_args$args;</code>（$is_args 是 ? 或空串）；</li>
+    <li>主机名含变量时需要 <code>resolver</code> 指令（Docker/K8s 环境常用 <code>resolver 127.0.0.11 valid=10s;</code>）；</li>
+    <li>变量化即"每请求解析上游"，性能低于静态 upstream（第 14 章），仅用于动态路由/灰度。</li>
+  </ul>
+</section>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 11 章 依赖数组与 cleanup 三时机｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第二篇 Hooks 核心</p>
+    <h1>第 11 章 依赖数组与 cleanup 三时机</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 11 章 / 共 64 章 · 预计 50 分钟 · 承第 10 章</span>
+    </div>
+    <p class="hero-desc">90% 的 effect bug 出在两处：依赖数组写错、cleanup 没写对。本章把依赖数组的三种形态、取依赖的原则、函数/对象依赖的处理办法，以及 cleanup 生效的三个时机逐条讲清，并给出竞态处理的标准答案。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="010_第10章_useEffect同步器心智.html">第 10 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="012_第12章_useLayoutEffect与绘制时机.html">第 12 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">11.1 依赖数组的三种形态</a></li>
+    <li><a href="#sec3">11.2 取依赖的唯一原则</a></li>
+    <li><a href="#sec4">11.3 函数依赖与对象依赖</a></li>
+    <li><a href="#sec5">11.4 cleanup 的三个时机</a></li>
+    <li><a href="#sec6">11.5 竞态：ignore 与 AbortController</a></li>
+    <li><a href="#sec7">11.6 常见坑与排查清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清依赖数组<strong>省略 / 空数组 / 有值</strong>三种形态各自的执行语义；</li>
+    <li>掌握取依赖的唯一原则：<strong>effect 中用到的所有响应式值都要写进去</strong>；</li>
+    <li>处理函数与对象依赖：搬进 effect、<code>useCallback</code>、或改用 <code>useEffectEvent</code> 思路；</li>
+    <li>记住 cleanup 的三个时机，并能用它解释 StrictMode 下的双次调用；</li>
+    <li>会用 <code>ignore</code> 标记与 <code>AbortController</code> 处理请求竞态。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">11.1</span> 依赖数组的三种形态</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:38%"><col style="width:40%"></colgroup>
+    <thead><tr><th>写法</th><th>何时执行 effect</th><th>用途 / 风险</th></tr></thead>
+    <tbody>
+      <tr><td><code>useEffect(fn)</code><br>（不传）</td><td>每次渲染后</td><td>极少正确；通常意味着"忘了写依赖"，容易自激循环</td></tr>
+      <tr><td><code>useEffect(fn, [])</code></td><td>仅挂载后（严格模式下还要吃一次双调用）</td><td>一次性订阅、全局监听；注意它会捕获首次渲染的变量</td></tr>
+      <tr><td><code>useEffect(fn, [a, b])</code></td><td>a 或 b 的引用/值变化后</td><td>标准写法；依赖是自己声明的"同步条件"</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 场景演示：count 变化时的三种表现
+useEffect(() =&gt; { console.log('每次都跑', count); });              // 每次渲染
+useEffect(() =&gt; { console.log('只跑一次', count); }, []);          // count 永远停在初始值
+useEffect(() =&gt; { console.log('count 变了才跑', count); }, [count]);</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑 1</span><code>[]</code> 不代表"只关心挂载"，而代表"<strong>我确定这里用到的值永远不会变</strong>"。若 effect 里读了 props/state 却写空数组，就必然产生<strong>陈旧闭包</strong>（读到的永远是第一次渲染的值）。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">11.2</span> 取依赖的唯一原则</h2>
+  <div class="lead"><strong>原则</strong>：effect 内部用到的<strong>所有"响应式值"</strong>（props、state、以及由它们派生出的函数/对象）都必须出现在依赖数组中；不需要响应式的值（refs、模块级常量、setState 函数）不写。</div>
+  <pre class="code" data-lang="jsx"><code>function Timer({ interval, onTick }) {
+  const [count, setCount] = useState(0);
+  const len = interval.length;   // 派生变量
+
+  useEffect(() =&gt; {
+    const id = setInterval(() =&gt; {
+      setCount(c =&gt; c + 1);     // setCount 稳定，不必写进依赖
+      console.log(len);          // len 是派生值 → 必须进依赖
+    }, interval);                // interval 来自 props → 必须进依赖
+    return () =&gt; clearInterval(id);
+  }, [interval, len]);           // ✓ 依赖 = effect 里用到的全部响应式值
+}</code></pre>
+  <p>判断某个东西要不要进依赖，只需问一句：<strong>它会随渲染变化吗？</strong></p>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>值</th><th>是否响应式</th><th>进依赖？</th></tr></thead>
+    <tbody>
+      <tr><td>props / state</td><td>是</td><td>✅</td></tr>
+      <tr><td>组件内计算出的对象/函数</td><td>是</td><td>✅</td></tr>
+      <tr><td><code>setXxx</code>（useState 的 setter）</td><td>否（引用稳定）</td><td>❌</td></tr>
+      <tr><td><code>ref.current</code></td><td>否（React 不追踪）</td><td>❌</td></tr>
+      <tr><td>模块级常量、导入的函数</td><td>否</td><td>❌</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>工具</strong>：把 ESLint 插件 <code>eslint-plugin-react-hooks</code>（Vite 模板默认启用）的 <code>exhaustive-deps</code> 规则当作硬约束。它比人脑可靠得多。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">11.3</span> 函数依赖与对象依赖</h2>
+  <p>对象/函数每次渲染都是新引用，放进依赖会导致 effect 每次都跑。三种正解：</p>
+  <h4>方案一：把函数搬进 effect（首选，最简单）</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ onTick 每次渲染都是新函数 → effect 每次都重建定时器
+useEffect(() =&gt; {
+  const id = setInterval(() =&gt; onTick(), 1000);
+  return () =&gt; clearInterval(id);
+}, [onTick]);
+
+// ✓ 把逻辑搬进来
+useEffect(() =&gt; {
+  const id = setInterval(() =&gt; {
+    setCount(c =&gt; c + 1);      // 直接用 setter，无需依赖外部函数
+  }, 1000);
+  return () =&gt; clearInterval(id);
+}, []);</code></pre>
+  <h4>方案二：useCallback / useMemo 稳定引用</h4>
+  <pre class="code" data-lang="jsx"><code>const fetchUser = useCallback(async () =&gt; {
+  const r = await fetch(`/api/users/${id}`);
+  setUser(await r.json());
+}, [id]);                       // 只有 id 变才换新函数
+
+useEffect(() =&gt; { fetchUser(); }, [fetchUser]);</code></pre>
+  <h4>方案三：把不需要触发重新同步的"最新值"放进 ref</h4>
+  <pre class="code" data-lang="jsx"><code>function Chat({ toUser }) {
+  const themeRef = useRef(theme);      // 只想读最新值，不希望它参与依赖
+  useEffect(() =&gt; { themeRef.current = theme; }, [theme]);
+
+  useEffect(() =&gt; {
+    const conn = createConnection(toUser);
+    conn.on('msg', m =&gt; showToast(themeRef.current, m));  // 不用进依赖
+    return () =&gt; conn.disconnect();
+  }, [toUser]);                          // 只有换人才重连 ✓
+}</code></pre>
+  <div class="key-sentence">选择顺序：<strong>搬进来 &gt; useCallback 稳定 &gt; ref 兜底</strong>。不要为了消除 lint 警告而用 <code>// eslint-disable-next-line</code> 屏蔽规则——那等于关掉火警报警器。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">11.4</span> cleanup 的三个时机</h2>
+  <ol>
+    <li><strong>依赖变化前</strong>：先执行上一次 effect 的 cleanup，再执行新的 effect（断开旧连接 → 建立新连接）；</li>
+    <li><strong>组件卸载时</strong>：执行最后一次 cleanup，且不再建立新 effect；</li>
+    <li><strong>严格模式下的挂载前</strong>：开发环境中 React 会"挂载 → 卸载 → 再挂载"一次，因此你会看到 cleanup 在首次 effect 之后立刻被调用（第 19 章详解）。</li>
+  </ol>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  console.log('effect: 建立');
+  return () =&gt; console.log('cleanup: 断开');
+}, [dep]);
+
+// dep 从 a 变为 b 时的控制台顺序：
+// cleanup: 断开      ← 清理 a 那次
+// effect: 建立       ← 为 b 建立新的
+
+// StrictMode 首次挂载时：
+// effect: 建立 → cleanup: 断开 → effect: 建立</code></pre>
+  <p>它解决了什么实际问题？看一个"不写 cleanup 就漏 table 请求"的例子：</p>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  const socket = io(url);
+  socket.on('data', setData);
+  // ✗ 没写 cleanup：切换路由后旧 socket 仍在收数据并 setState
+  //    → 内存泄漏 + 报错 "Can't perform a React state update on an unmounted component"
+  return () =&gt; socket.disconnect();   // ✓ 卸载/换依赖时断开
+}, [url]);</code></pre>
+  <p class="pit-sentence">记住：effect 里每建立一样东西（监听、订阅、timer、连接、第三方实例），cleanup 里就必须有对应的"反向操作"。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">11.5</span> 竞态：ignore 与 AbortController</h2>
+  <p>快速输入关键词 abc → ab → a，三个请求几乎同时发出，但返回顺序不可控。若不加处理，<strong>后返回的老结果会覆盖先返回的新结果</strong>，界面显示与输入对不上。</p>
+  <pre class="code" data-lang="jsx"><code>// 方案一：布尔标记（最简洁）
+useEffect(() =&gt; {
+  let ignore = false;
+  setLoading(true);
+  api.search(keyword).then(res =&gt; {
+    if (ignore) return;             // 已过期，丢弃
+    setData(res); setLoading(false);
+  });
+  return () =&gt; { ignore = true; };  // 依赖变化/卸载时作废本次请求
+}, [keyword]);</code></pre>
+  <pre class="code" data-lang="jsx"><code>// 方案二：AbortController（真正取消请求，省流量）
+useEffect(() =&gt; {
+  const ctrl = new AbortController();
+  api.search(keyword, { signal: ctrl.signal })
+    .then(setData)
+    .catch(e =&gt; { if (e.name !== 'CanceledError') report(e); });
+
+  return () =&gt; ctrl.abort();        // 真正中断 HTTP 请求
+}, [keyword]);</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>方式</th><th>是否真正取消请求</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>ignore 标记</td><td>否（只是不采纳结果）</td><td>简单场景、fetch 封装不统一时</td></tr>
+      <tr><td>AbortController</td><td>是</td><td>请求体量大、弱网、需要省带宽</td></tr>
+      <tr><td>TanStack Query</td><td>是（内建）</td><td>第 25 章，生产默认方案</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">11.6</span> 常见坑与排查清单</h2>
+  <ol>
+    <li><strong>effect 反复执行</strong> → 依赖里有每次都变的对象/内联数组；把它提到外面、<code>useMemo</code>、或只依赖原始值（如 <code>dep: obj.id</code>）。</li>
+    <li><strong>取到旧值</strong> → 依赖漏写；开启 <code>exhaustive-deps</code> 并按提示修正。</li>
+    <li><strong>自激循环</strong> → effect 里 setState，而 state 又出现在依赖里；先判断是否根本不需要 effect（第 10 章 10.4）。</li>
+    <li><strong>StrictMode 下双调用</strong> → 不是 bug，是在提醒你"cleanup 写得不干净"。</li>
+    <li><strong>请求散落在各处 effect</strong> → 各自重写 loading/error/竞态逻辑，行为不一致且难维护；统一收敛到数据层（第 25 章）。</li>
+  </ol>
+  <div class="warn-box"><span class="tag-pit">排查套路</span>遇到 effect 异常，按三步定位：① 打印 <code>console.log('run', deps)</code> 看触发频率；② 检查 cleanup 是否成对；③ 临时把依赖数组写成 <code>[]</code> 若能修好，说明是引用不稳定问题而非逻辑问题。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>三种形态</td><td>省略=每次渲染；[] =挂载一次；有值=依赖变化时</td></tr>
+      <tr><td>取依赖原则</td><td>用到的响应式值全写进去；setter / ref 不用写</td></tr>
+      <tr><td>函数对象依赖</td><td>搬进 effect → useCallback 稳定 → ref 兜底</td></tr>
+      <tr><td>cleanup 三时机</td><td>依赖变化前、卸载时、StrictMode 首挂载</td></tr>
+      <tr><td>竞态</td><td>ignore 标记或 AbortController 取消旧请求</td></tr>
+      <tr><td>lint</td><td>exhaustive-deps 当作硬约束，不许 disable 了事</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说出下列三种写法下 effect 的触发时机：<code>useEffect(fn)</code>、<code>useEffect(fn, [])</code>、<code>useEffect(fn, [a])</code>；并说明 <code>[]</code> 里读 props 会有什么后果。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>修复这段 count 永远停在 1 的定时器代码：<code>useEffect(() =&gt; { const id = setInterval(() =&gt; setCount(count + 1), 1000); return () =&gt; clearInterval(id); }, []);</code> 要求每秒 +1，且不把 count 写进依赖。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个搜索建议组件：输入 300ms 后触发请求；切换关键词时取消上一次未完成的请求；组件卸载时不产生任何 setState 警告。</div>
+  <p class="note">参考答案见附录 C。下一章：绘制时机与 useLayoutEffect。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="010_第10章_useEffect同步器心智.html">← 第 10 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="012_第12章_useLayoutEffect与绘制时机.html">第 12 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 11 章 依赖数组与 cleanup 三时机</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 12 章 斜杠语义与 URI 重写细节｜Nginx 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  #backTop{right:16px;bottom:20px}
+}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+@media(min-width:1024px){
+  nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}
+  nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;columns:1!important;column-count:1!important}
+  nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}
+  nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}
+  nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}
+  .container{margin-left:280px!important;max-width:calc(100% - 300px)!important}
+}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Nginx 从 0 到精通》 · 第二篇 反向代理与 HTTPS</p>
+    <h1>第 12 章 斜杠语义与 URI 重写细节</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 12 章 / 共 32 章 · 预计 30 分钟 · 高频事故区</span>
+    </div>
+    <p class="hero-desc">"proxy_pass http://backend 与 proxy_pass http://backend/ 的差别，能让接口从全对变全错。本章给出完整的 URL 传递规则表、内部改写链路图与验证方法。"</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="011_第11章_反向代理基础：proxy_pass.html">← 上一章</a>
+  <a class="doc-nav-btn" href="013_第13章_请求头透传与真实IP.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">12.1 一张表看懂 URL 传递规则</a></li>
+    <li><a href="#sec3">12.2 实验：亲眼对比四种写法</a></li>
+    <li><a href="#sec4">12.3 带变量的 proxy_pass</a></li>
+    <li><a href="#sec5">12.4 内部改写链路全景</a></li>
+    <li><a href="#sec6">12.5 常见坑</a></li>
+    <li><a href="#sec7">小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握规则："proxy_pass <strong>带 URI 就替换 location 匹配部分，不带就原样透传</strong>"；</li>
+    <li>知道带变量时这条规则<strong>完全失效</strong>的全量透传语义；</li>
+    <li>能用 curl + 一个回显后端验证任意组合的真实转发 URI；</li>
+    <li>理解 rewrite → proxy_pass 链路上 $uri 的变化。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">12.1</span> 一张表看懂 URL 传递规则</h2>
+  <p>设请求为 <code>GET /api/user?id=1</code>：</p>
+  <table>
+    <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+    <thead><tr><th>location 与 proxy_pass</th><th>上游收到的 URI</th></tr></thead>
+    <tbody>
+      <tr><td><code>location /api/ { proxy_pass http://b; }</code></td><td><code>/api/user?id=1</code>（原样）</td></tr>
+      <tr><td><code>location /api/ { proxy_pass http://b/; }</code></td><td><code>/user?id=1</code>（/api/ → /）</td></tr>
+      <tr><td><code>location /api/ { proxy_pass http://b/v2/; }</code></td><td><code>/v2/user?id=1</code>（/api/ → /v2/）</td></tr>
+      <tr><td><code>location /api/ { proxy_pass http://b$uri; }</code></td><td><code>/api/user?id=1</code>（带变量：只看表达式求值结果）</td></tr>
+      <tr><td><code>location /api/ { rewrite ^/api/(.*)$ /$1 break; proxy_pass http://b; }</code></td><td><code>/user?id=1</code>（rewrite 改 $uri 后原样透传）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">判断口诀：<strong>proxy_pass 尾巴上有没有"URI 部分"（哪怕只是一个 /）</strong>——有，替换；没有，透传。唯一例外是值里含变量：此时 Nginx 只看变量算出来的最终值。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">12.2</span> 实验：亲眼对比四种写法</h2>
+  <p>准备一个回显后端（打印收到的路径与参数）：</p>
+  <pre class="code" data-lang="python"><code># echo_server.py
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = f"path={self.path}\n".encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(body)
+
+HTTPServer(("127.0.0.1", 8080), H).serve_forever()</code></pre>
+  <pre class="code" data-lang="nginx"><code># 四个 location 分别指向回显服务
+server {
+    listen 80;
+    location /a/ { proxy_pass http://127.0.0.1:8080; }
+    location /b/ { proxy_pass http://127.0.0.1:8080/; }
+    location /c/ { proxy_pass http://127.0.0.1:8080/v2/; }
+    location /d/ { proxy_pass http://127.0.0.1:8080$uri; }
+}</code></pre>
+  <pre class="code" data-lang="bash"><code>curl http://127.0.0.1/a/user?id=1    # path=/a/user?id=1
+curl http://127.0.0.1/b/user?id=1    # path=/user?id=1
+curl http://127.0.0.1/c/user?id=1    # path=/v2/user?id=1
+curl http://127.0.0.1/d/user?id=1    # path=/d/user?id=1（参数丢了！）</code></pre>
+  <p>第四行两个细节值得咀嚼：$uri 含 location 前缀 /d/（没被剥掉）；<strong>查询串没有跟随</strong>——带变量的 proxy_pass 不会自动附加 $args。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">12.3</span> 带变量的 proxy_pass 的特殊语义</h2>
+  <ul>
+    <li>值里出现任意变量，Nginx 放弃内置规则，<strong>转发 URI = 变量表达式求值结果</strong>；</li>
+    <li>查询串需要手动保留：<code>proxy_pass http://b$uri$is_args$args;</code>（$is_args 是 ? 或空串）；</li>
+    <li>主机名含变量时需要 <code>resolver</code> 指令（Docker/K8s 环境常用 <code>resolver 127.0.0.11 valid=10s;</code>）；</li>
+    <li>变量化即"每请求解析上游"，性能低于静态 upstream（第 14 章），仅用于动态路由/灰度。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">12.4</span> 内部改写链路全景</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 820 170" role="img" aria-label="URI 在转发链路中的变化">
+      <defs><marker id="arrD" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <rect x="20" y="55" width="130" height="46" rx="8" fill="#eef3e8" stroke="#2d6a3f"/>
+      <text x="85" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">用户请求</text>
+      <text x="85" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">/api/user?id=1</text>
+      <rect x="210" y="55" width="160" height="46" rx="8" fill="#fefce8" stroke="#b45309"/>
+      <text x="290" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">rewrite（可选）</text>
+      <text x="290" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">改写 $uri；$request_uri 不变</text>
+      <rect x="430" y="55" width="140" height="46" rx="8" fill="#f0f6ff" stroke="#0f4c81"/>
+      <text x="500" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#0f4c81">location 匹配</text>
+      <text x="500" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">决定 proxy_pass 写法</text>
+      <rect x="630" y="55" width="160" height="46" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="710" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">上游收到的 URI</text>
+      <text x="710" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">透传 or 前缀替换</text>
+      <line x1="150" y1="78" x2="208" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrD)"/>
+      <line x1="370" y1="78" x2="428" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrD)"/>
+      <line x1="570" y1="78" x2="628" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrD)"/>
+      <text x="410" y="140" text-anchor="middle" font-size="12" fill="#7a8a70">$request_uri 全程不变——它记录用户最初的输入，排障与跳转都靠它</text>
+    </svg>
+    <p class="diagram-caption">图 12-1 URI 从用户到上游的变化链路</p>
+  </div>
+  <p>把 12.1 的规则放进这条链路就通了：rewrite 阶段改的是 $uri；proxy_pass 无 URI 时把（可能已被改写的）$uri 整体透传；带 URI 时做前缀替换。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">12.5</span> 常见坑</h2>
+  <ol>
+    <li><strong>多打的 / 让接口消失</strong>：<code>proxy_pass http://b/;</code> 想剥前缀，但上游其实要完整路径——回显实验一分钟定位；</li>
+    <li><strong>带变量后参数蒸发</strong>：忘拼 <code>$is_args$args</code>，上游收到无参请求；</li>
+    <li><strong>正则 location 中 proxy_pass 带 URI</strong>：直接报配置错（正则 location 不能有 URI 部分），只能用 rewrite 或变量方案；</li>
+    <li><strong>前缀替换引发部分匹配错切</strong>：location /api 与 proxy_pass http://b/api/ 组合，/apifoo 也会被错误替换——location 一律带尾斜杠；</li>
+    <li><strong>resolver 缺失</strong>：变量化主机名报 <code>no resolver defined to resolve xxx</code>。</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>总规则</td><td>proxy_pass 带 URI 则替换 location 前缀，不带则透传 $uri</td></tr>
+      <tr><td>变量例外</td><td>含变量 = 全量自定义，$args 与 $is_args 要手动拼</td></tr>
+      <tr><td>排障方法</td><td>回显后端 + curl，直接看上游收到什么</td></tr>
+      <tr><td>正则限制</td><td>正则 location 里 proxy_pass 不能带 URI</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>跑通 12.2 的回显实验，四种写法逐一验证。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 <code>rewrite ^/old/(.*)$ /new/$1 break;</code> + 无 URI proxy_pass 实现 /old/x → 上游 /new/x，对照前缀替换写法。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现变量化转发 <code>proxy_pass http://b$uri$is_args$args;</code> 并验证带参请求完整到达；再补 resolver 消除告警。</div>
+  <p class="note">下一章：请求头透传与真实 IP——多层代理下的用户识别难题。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="011_第11章_反向代理基础：proxy_pass.html">← 上一章</a>
+  <a class="doc-nav-btn" href="013_第13章_请求头透传与真实IP.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Nginx 从 0 到精通》 · 第 12 章 斜杠语义与 URI 重写细节</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){var b=document.getElementById('backTop');if(!b)return;
+var t=function(){b.classList.toggle('show',window.scrollY>480)};
+window.addEventListener('scroll',t,{passive:true});t();
+b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

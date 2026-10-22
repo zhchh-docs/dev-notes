@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 53 章 并发集合：ConcurrentHashMap 等｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45;color:var(--accent-2)}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card li strong{color:var(--ink)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+p,li,h1,h2,h3,h4{overflow-wrap:break-word}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(min-width:1024px){
+nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.toc h2{font-size:14px;color:#22331f;margin:0 0 12px;padding:0 0 8px;border-bottom:1px solid #d8e2cc;font-weight:600}
+nav.toc ol{list-style:none;padding:0;margin:0;display:block}
+nav.toc ol li{margin:6px 0}
+nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;text-decoration:none;font-size:13px;line-height:1.4;border-radius:6px;transition:all .15s;background:transparent;border:none}
+nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f}
+.container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+.container{padding:0 14px;margin:0;max-width:100%}
+.hero{padding:20px 16px}
+.hero h1{font-size:22px}
+.hero-desc{font-size:14px}
+.toc ol{grid-template-columns:1fr}
+section.card{padding:20px 18px;margin:16px 0}
+section.card h2{font-size:19px;margin-bottom:16px}
+section.card h3{font-size:16px;margin:24px 0 10px}
+section.card h4{font-size:15px;margin:18px 0 8px}
+pre.code{font-size:12px;padding:12px}
+code{font-size:13px}
+#backTop{right:16px;bottom:20px}
+.doc-nav{gap:6px;padding-left:14px;padding-right:14px}
+.doc-nav-btn{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第六篇 并发编程</p>
+    <h1>第 53 章 并发集合：ConcurrentHashMap 等</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 53 章 / 共 112 章 · 预计 40 分钟 · 边读边练</span>
+    </div>
+    <p class="hero-desc">Collections.synchronized 的性能问题与 ConcurrentHashMap 的分段锁到 CAS+红黑树演进；CopyOnWrite、BlockingQueue 家族选型。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="052_第52章_线程池参数与拒绝策略.html">← 上一章</a>
+  <a class="doc-nav-btn" href="054_第54章_ThreadLocal与内存泄漏.html">下一章 →</a>
+</nav>
+<div class="container">
+<main>
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">53.1 老办法为什么不行</a></li>
+    <li><a href="#sec3">53.2 ConcurrentHashMap 演进</a></li>
+    <li><a href="#sec4">53.3 CopyOnWrite 与 BlockingQueue</a></li>
+    <li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 HashMap 并发使用的两大问题：丢数据与死循环（JDK 7）；</li>
+    <li>讲清 ConcurrentHashMap 从分段锁到 CAS+红黑树的演进；</li>
+    <li>掌握 CopyOnWriteArrayList 的读写分离取舍；</li>
+    <li>会用 BlockingQueue 家族搭建生产者-消费者。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">53.1</span> 老办法为什么不行</h2>
+<pre class="code" data-lang="java"><code>// HashMap 多线程 put → 结构被破坏：数据丢失、get 返回 null
+// JDK 7 扩容时头插法还会形成环形链表 → CPU 100% 的经典事故
+// Hashtable：全表一把锁，所有操作排队——安全但慢
+Map&lt;K,V&gt; sync = Collections.synchronizedMap(new HashMap&lt;&gt;());  // 同样全表锁
+// 而且"复合操作"依然不安全：
+if (!sync.containsKey(k)) { sync.put(k, v); }   // check 与 put 之间会被插队！</code></pre>
+  <ul>
+    <li>复合操作（先检查后行动）即使用了同步包装类也有竞态——需要 putIfAbsent/computeIfAbsent 这类<strong>原子复合方法</strong>；</li>
+    <li>结论：并发容器不是"加锁的集合"，而是<strong>为高频并发场景重新设计</strong>的数据结构。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">53.2</span> ConcurrentHashMap：分段锁 → CAS+红黑树</h2>
+  <p><strong>JDK 7：Segment 分段锁</strong>——默认 16 段，每段一把锁。不同段的写互不阻塞，理论并发度 = 段数。缺点：结构复杂、并发度固定。</p>
+  <p><strong>JDK 8：CAS + synchronized 锁单个桶</strong>——结构回归 HashMap（数组+链表+红黑树）：</p>
+<pre class="code" data-lang="java"><code>// put 的核心逻辑（简化）
+static final int HASH = spread(key.hashCode());
+Node&lt;K,V&gt;[] tab = table;
+int i = (n - 1) &amp; HASH;
+Node&lt;K,V&gt; f = tabAt(tab, i);          // volatile 读桶头
+if (f == null) {
+    // 桶空：CAS 放入新节点，无锁！
+    casTabAt(tab, i, null, new Node&lt;K,V&gt;(HASH, key, value));
+} else {
+    synchronized (f) {                 // 桶非空：只锁这个桶头
+        // 链表遍历/红黑树插入
+    }
+}</code></pre>
+  <ul>
+    <li>锁粒度从"段"细化到"桶"，冲突概率大幅下降；空桶写入纯 CAS，零锁开销；</li>
+    <li>size() 不再数一遍：用 <strong>CounterCell 分段计数</strong>（LongAdder 思路，第 55 章），弱一致；</li>
+    <li>get 全程无锁（Node.val 和 next 是 volatile）；迭代器是<strong>弱一致</strong>的——遍历时看到的是某一时刻的快照，不抛 ConcurrentModificationException；</li>
+    <li>key/value 都不允许 null（并发下 null 语义有歧义：是"没有"还是"值为 null"？）。</li>
+  </ul>
+  <div class="key-sentence">CHM 并发读安全、写粒度极细，但要原子组合用 API：putIfAbsent、computeIfAbsent、merge——别自己 check-then-act。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">53.3</span> CopyOnWrite 与 BlockingQueue 家族</h2>
+  <p><strong>CopyOnWriteArrayList：读无锁、写复制</strong></p>
+<pre class="code" data-lang="java"><code>// 写：复制整个数组 → 修改副本 → volatile 替换引用
+// 读：永远读当前数组，不加锁、迭代器不抛异常
+List&lt;Listener&gt; listeners = new CopyOnWriteArrayList&lt;&gt;();   // 典型：监听器列表</code></pre>
+  <ul>
+    <li>适合<strong>读极多写极少</strong>（监听器/配置列表）；写 O(n) 复制，高频写是灾难；</li>
+    <li>弱一致性：写完立刻读可能读到旧数组——发布订阅场景可接受。</li>
+  </ul>
+  <p><strong>BlockingQueue：生产者-消费者专用</strong></p>
+<pre class="code" data-lang="java"><code>BlockingQueue&lt;Order&gt; queue = new ArrayBlockingQueue&lt;&gt;(1000);
+queue.put(order);            // 满了阻塞（背压）
+queue.take();                // 空了阻塞——第 57 章用它搭模式
+
+// 家族选型
+// ArrayBlockingQueue    有界数组，一把锁，稳定
+// LinkedBlockingQueue   可选有界（默认无界！慎用），两把锁读写分离
+// SynchronousQueue      零容量，一手交钱一手交货（CachedThreadPool 用它）
+// PriorityBlockingQueue 优先级出队
+// DelayQueue            延迟出队（定时任务池的底层）</code></pre>
+  <ul>
+    <li>put/take 阻塞版；offer/poll 带超时版；add/remove 立即失败版——按业务选择；</li>
+    <li>LinkedBlockingQueue 当"有界队列"用必须手动传容量，默认 Integer.MAX_VALUE 等于无界。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>HashMap 并发</td><td>丢数据 + JDK 7 环形链死循环；同步包装类防不了复合操作竞态</td></tr>
+      <tr><td>CHM JDK 8</td><td>空桶 CAS、非空桶 synchronized(f)，锁到桶；读全程无锁</td></tr>
+      <tr><td>原子组合</td><td>putIfAbsent/computeIfAbsent/merge，拒绝 check-then-act</td></tr>
+      <tr><td>CopyOnWrite</td><td>读无锁写复制，适合读极多写极少的监听器/配置</td></tr>
+      <tr><td>BlockingQueue</td><td>put/take 阻塞即背压；Linked 默认无界要传容量</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用多线程并发向 HashMap 和 ConcurrentHashMap 各 put 10000 条，统计两个结果集大小并解释差异；再对 CHM 测试 computeIfAbsent 实现"线程安全缓存"。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 CopyOnWriteArrayList 实现"事件总线"：register/unregister 监听器，publish 时遍历触发；测量 1000 次写 + 100 万次读的耗时，和 synchronizedList 对比，写结论。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 ArrayBlockingQueue（容量 10）搭一个双生产者-三消费者模型：生产者 put 比消费快，观察队列打满后生产者阻塞（打印"背压中"）；换成 LinkedBlockingQueue 不传容量，用 -Xmx128m 跑，观察 OOM——写出"有界 vs 无界"的结论。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章看线程私有的存储：ThreadLocal 与内存泄漏。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="052_第52章_线程池参数与拒绝策略.html">← 上一章</a>
+  <a class="doc-nav-btn" href="054_第54章_ThreadLocal与内存泄漏.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 53 章 并发集合：ConcurrentHashMap 等</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var b=document.getElementById('backTop');
+  if(b){var t=function(){b.classList.toggle('show',window.scrollY>480)};window.addEventListener('scroll',t,{passive:true});t();b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})})}
+  try{var ps=document.querySelectorAll('pre.code');for(var i=0;i<ps.length;i++)(function(p){var c=document.createElement('button');c.type='button';c.className='code-copy';c.textContent='复制';p.appendChild(c);c.addEventListener('click',function(){var e=p.querySelector('code'),x=e?e.innerText:p.innerText,d=function(){c.textContent='已复制';setTimeout(function(){c.textContent='复制'},1600)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x).then(d,function(){})}else{var a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);d()}})})(ps[i])}catch(e){}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

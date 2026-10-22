@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 74 章 DAO 模式与代码分层｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第八篇 数据库与 JDBC</p>
+    <h1>第 74 章 DAO 模式与代码分层</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 74 章 / 共 112 章 · 预计 40 分钟 · 上一章：批处理与大数据量写入</span>
+    </div>
+    <p class="hero-desc">SQL 散落在 main 方法里，业务一多就烂成一锅粥。DAO 模式把"数据怎么存"圈进固定的一层，业务层只管"要什么"。本章搭出 Entity/DAO/Service 三层骨架——它是第 77 章起 Spring 分层的原型。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="073_第73章_批处理与大数据量写入.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="075_第75章_SQL注入与PreparedStatement.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">74.1 为什么需要分层</a></li>
+    <li><a href="#sec3">74.2 Entity：数据载体</a></li>
+    <li><a href="#sec4">74.3 DAO：接口 + 实现分离</a></li>
+    <li><a href="#sec5">74.4 Service：业务编排层</a></li>
+    <li><a href="#sec5b">74.5 转换与分层纪律</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清分层带来的两个收益：<strong>可替换性</strong>与<strong>可测试性</strong>；</li>
+    <li>实现 <strong>Entity + DAO 接口/JDBC 实现 + Service</strong> 的完整三层；</li>
+    <li>理解 DAO 接口先行的意义（换 MyBatis 不动 Service）；</li>
+    <li>掌握层与层之间的<strong>转换与依赖纪律</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">74.1</span> 为什么需要分层</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="三层结构">
+      <defs><marker id="arr74" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">经典三层：只允许上层调下层，禁止跨层</text>
+      <rect x="200" y="40" width="400" height="40" rx="8" fill="#eef2ff" stroke="#4f46e5"/><text x="400" y="65" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f46e5">表现层（Controller/CLI）—— 接收输入、返回输出</text>
+      <rect x="200" y="94" width="400" height="40" rx="8" fill="#fefce8" stroke="#d97706"/><text x="400" y="119" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">业务层（Service）—— 编排规则与事务边界</text>
+      <rect x="200" y="148" width="400" height="40" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/><text x="400" y="173" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">数据访问层（DAO）—— 只关心 SQL 与映射</text>
+      <line x1="400" y1="94" x2="400" y2="84" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr74)"/>
+      <line x1="400" y1="148" x2="400" y2="138" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr74)"/>
+    </svg>
+    <p class="diagram-caption">图 74-1 Entity/DAO/Service 三层职责</p>
+  </div>
+  <ul>
+    <li><strong>可替换</strong>：DAO 是接口，今天 JDBC 实现，明天 MyBatis 实现，Service 零改动；</li>
+    <li><strong>可测试</strong>：Service 依赖 DAO 接口，单测时注入"内存假 DAO"即可，不需要数据库（第 99 章）；</li>
+    <li><strong>可读</strong>：想找数据逻辑去 DAO，想找业务规则去 Service——位置即语义。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">74.2</span> Entity：数据载体</h2>
+  <pre class="code" data-lang="java"><code>/** user 表的实体——只装数据，不含业务 */
+public class User {
+    private Long id;
+    private String name;
+    private String email;
+
+    public User() {}                                   // 反射/框架需要无参构造
+
+    public User(String name, String email) {
+        this.name = name; this.email = email;
+    }
+    // getter/setter（略，IDE 生成）——分层世界里"啰嗦"是必要的礼貌
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    @Override public String toString() {
+        return "User{id=%d, name='%s', email='%s'}".formatted(id, name, email);
+    }
+}</code></pre>
+  <p>现代写法用 <code>record</code> 或 Lombok <code>@Data</code> 压缩样板代码；但理解手写版有助于看懂框架生成的等价物。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">74.3</span> DAO：接口 + 实现分离</h2>
+  <pre class="code" data-lang="java"><code>/** 数据访问契约——Service 只认识这个接口 */
+public interface UserDao {
+    long insert(User user);
+    Optional&lt;User&gt; findById(long id);
+    List&lt;User&gt; findByNameLike(String keyword);
+    int updateEmail(long id, String email);
+    int deleteById(long id);
+}
+
+/** JDBC 实现——所有 SQL 与连接细节被圈在这里 */
+public class UserDaoJdbc implements UserDao {
+    private final DataSource ds;
+    public UserDaoJdbc(DataSource ds) { this.ds = ds; }
+
+    @Override
+    public long insert(User u) {
+        String sql = "INSERT INTO user(name, email) VALUES(?, ?)";
+        try (Connection conn = ds.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                 sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, u.getName());
+            ps.setString(2, u.getEmail());
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                keys.next();
+                return keys.getLong(1);
+            }
+        } catch (SQLException e) { throw new DataAccessException("插入失败", e); }
+    }
+
+    @Override
+    public Optional&lt;User&gt; findById(long id) {
+        String sql = "SELECT id, name, email FROM user WHERE id = ?";
+        try (Connection conn = ds.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(mapRow(rs)) : Optional.empty();
+            }
+        } catch (SQLException e) { throw new DataAccessException("查询失败", e); }
+    }
+    private User mapRow(ResultSet rs) throws SQLException {
+        User u = new User(rs.getString("name"), rs.getString("email"));
+        u.setId(rs.getLong("id"));
+        return u;
+    }
+    // findByNameLike / updateEmail / deleteById 同理（略）
+}</code></pre>
+  <div class="key-sentence">DAO 把 SQLException 翻译成自定义的 DataAccessException——上层不必处理受检异常，也阻断了"SQL 细节向上泄漏"。这个思路在 Spring 里被 <code>DataAccessException</code> 体系发扬光大。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">74.4</span> Service：业务编排层</h2>
+  <pre class="code" data-lang="java"><code>public class UserService {
+    private final UserDao userDao;                    // 依赖接口！
+    public UserService(UserDao userDao) { this.userDao = userDao; }
+
+    public long register(String name, String email) {
+        if (name == null || name.isBlank())
+            throw new IllegalArgumentException("姓名不能为空");
+        if (userDao.findByNameLike(name).stream().anyMatch(x -&gt;
+                x.getEmail().equalsIgnoreCase(email)))
+            throw new IllegalStateException("该邮箱已注册");
+        return userDao.insert(new User(name, email));  // 编排：校验+查重+入库
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        UserDao dao = new UserDaoJdbc(PoolSetup.create());  // 组装在入口
+        UserService service = new UserService(dao);
+        System.out.println("新用户 id = " + service.register("王五", "ww@demo.com"));
+        // 换实现只需一行：UserDao dao = new UserDaoMyBatis(...);
+    }
+}</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：组装点在"最外层"（main/Spring 容器），各层内部只依赖接口——这就是<strong>控制反转</strong>的雏形，第 77 章 IoC 会把它自动化。</p>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">74.5</span> 转换与分层纪律</h2>
+  <ol>
+    <li><strong>依赖方向</strong>：Controller → Service → DAO，禁止反向与跨层（Controller 直接拿 DAO）；</li>
+    <li><strong>数据类型</strong>：层间传值推荐各自的模型（DO/DTO/VO），简单项目可共用 Entity 但要守住"不越层"；</li>
+    <li><strong>事务边界</strong>：事务开在 Service 层（第 83 章 Spring 事务即落在此层）；</li>
+    <li><strong>异常翻译</strong>：DAO 抛数据访问异常，Service 抛业务异常，表现层统一转响应（第 91 章）。</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>分层收益</td><td>可替换（DAO 实现可换）、可测试（接口可 mock）、可读（位置即语义）</td></tr>
+      <tr><td>Entity</td><td>纯数据载体；record/@Data 消样板</td></tr>
+      <tr><td>DAO</td><td>接口 + 实现；SQL、连接、异常翻译全部圈内</td></tr>
+      <tr><td>Service</td><td>业务规则与编排；依赖接口；组装放最外层</td></tr>
+      <tr><td>纪律</td><td>单向依赖、事务在 Service、异常逐层翻译</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>补全 UserDaoJdbc 的 findByNameLike 与 deleteById 两个方法。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个内存版 InMemoryUserDao（用 HashMap），验证 Service 代码在两个 DAO 实现下都能跑通。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给 DAO 层加一个通用的 <code>&lt;T&gt; List&lt;T&gt; query(sql, RowMapper&lt;T&gt;, params...)</code> 模板方法，体会 Spring JdbcTemplate 的设计（下篇预告）。</div>
+  <p class="note">下一章：安全必修课——SQL 注入与 PreparedStatement。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="073_第73章_批处理与大数据量写入.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="075_第75章_SQL注入与PreparedStatement.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 74 章 DAO 模式与代码分层</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

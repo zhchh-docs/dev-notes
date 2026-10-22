@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 4 章 组件与 props：数据下行｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 4 章 组件与 props：数据下行</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 4 章 / 共 64 章 · 预计 45 分钟 · 组件化思维起点</span>
+    </div>
+    <p class="hero-desc">React 应用的本质是一个组件树。这一章回答组件应该怎么拆、数据怎么往下传：props 为什么必须只读、单向数据流到底单向在哪、children 与「插槽」怎么写、以及 props 设计的六条实战准则。这是从「写页面」迈向「搭架构」的第一步。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="003_第3章_JSX详解语法与编译产物.html">第 3 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="005_第5章_事件处理与合成事件.html">第 5 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">4.1 为什么要拆组件</a></li>
+    <li><a href="#sec3">4.2 props：只读的一份入参</a></li>
+    <li><a href="#sec4">4.3 默认值与类型约束</a></li>
+    <li><a href="#sec5">4.4 children 与插槽模式</a></li>
+    <li><a href="#sec6">4.5 组合优于继承</a></li>
+    <li><a href="#sec7">4.6 props 设计六准则与常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握组件拆分的判断标准：什么时候该拆、什么时候拆早了；</li>
+    <li>理解 <strong>props 只读</strong>与<strong>单向数据流</strong>，并知道违反它会得到什么后果；</li>
+    <li>会写 props 的<strong>默认值</strong>与<strong>类型检查</strong>（含 TS 写法）；</li>
+    <li>掌握 <code>children</code> 实现的三种组合模式：内容分发、布局容器、render props 雏形；</li>
+    <li>能用六条准则设计出"三个月后自己还看得懂"的组件 API。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">4.1</span> 为什么要拆组件</h2>
+  <p>React 没有告诉你"文件怎么分"，但拆错了会从第一天开始持续付利息。拆组件的收益只有三条，每条都对应一个具体痛点：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>收益</th><th>解决的问题</th><th>判断信号</th></tr></thead>
+    <tbody>
+      <tr><td>复用</td><td>同一段 UI 在多处重复</td><td>发现自己在复制粘贴 JSX</td></tr>
+      <tr><td>单一职责</td><td>一个函数管太多事，改一处牵一片</td><td>组件超过 150 行、混合多种关注点</td></tr>
+      <tr><td>渲染边界</td><td>一处小改动导致整页重渲染</td><td>性能优化时需要把"动的部分"隔离出来</td></tr>
+    </tbody>
+  </table>
+  <p>看一个典型"拆之前 vs 拆之后"：一个订单卡片里混合了商品列表、金额汇总和操作按钮。</p>
+  <pre class="code" data-lang="jsx"><code>// ✗ 拆之前：一个组件里塞了三件事
+function OrderPanel({ order }) {
+  return (
+    &lt;div className="panel"&gt;
+      &lt;h3&gt;订单 {order.no}&lt;/h3&gt;
+      {order.items.map(it =&gt; (
+        &lt;div key={it.id}&gt;
+          &lt;span&gt;{it.name}&lt;/span&gt;&lt;span&gt;x{it.qty}&lt;/span&gt;&lt;span&gt;￥{it.price}&lt;/span&gt;
+        &lt;/div&gt;
+      ))}
+      &lt;div&gt;合计：￥{order.items.reduce((s, i) =&gt; s + i.price * i.qty, 0)}&lt;/div&gt;
+      &lt;button&gt;付款&lt;/button&gt;&lt;button&gt;取消&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+
+// ✓ 拆之后：每个组件一件事，金额计算也有了"家"
+function OrderItem({ item }) {
+  return (
+    &lt;div className="order-item"&gt;
+      &lt;span&gt;{item.name}&lt;/span&gt;
+      &lt;span&gt;x{item.qty}&lt;/span&gt;
+      &lt;span&gt;￥{item.price}&lt;/span&gt;
+    &lt;/div&gt;
+  );
+}
+
+function OrderSummary({ items }) {
+  const total = items.reduce((s, i) =&gt; s + i.price * i.qty, 0);
+  return &lt;div className="summary"&gt;合计：￥{total}&lt;/div&gt;;
+}
+
+function OrderPanel({ order, onPay, onCancel }) {
+  return (
+    &lt;div className="panel"&gt;
+      &lt;h3&gt;订单 {order.no}&lt;/h3&gt;
+      {order.items.map(it =&gt; &lt;OrderItem key={it.id} item={it} /&gt;)}
+      &lt;OrderSummary items={order.items} /&gt;
+      &lt;button onClick={onPay}&gt;付款&lt;/button&gt;
+      &lt;button onClick={onCancel}&gt;取消&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <div class="key-sentence">拆分口诀：凡是"能被起一个业务名字的 UI 片段"，就值得抽成一个组件；凡是"会被复制第二次的 JSX"，必须抽。</div>
+  <div class="note"><strong>文件粒度</strong>：本书约定一个组件一个文件，同目录组件 ≤ 12 个、单层目录 ≤ 6 个子目录；组件 script（模板）超过 150 行就该考虑继续拆。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">4.2</span> props：只读的一份入参</h2>
+  <p>props 就是组件函数的<strong>第一个参数</strong>，用法：</p>
+  <pre class="code" data-lang="jsx"><code>// 写法一：props 对象整体接收
+function Avatar(props) {
+  return &lt;img src={props.url} alt={props.name} width={props.size} /&gt;;
+}
+
+// 写法二：解构（推荐，一眼看全 API）
+function Avatar({ url, name, size = 48 }) {
+  return &lt;img src={url} alt={name} width={size} /&gt;;
+}
+
+// 使用：<Avatar url="" name="张三" />  —— 属性名随意，顺序无关</code></pre>
+  <h4>三条铁律</h4>
+  <ol>
+    <li><strong>props 只读</strong>。组件内部绝不修改 <code>props.xxx</code>。这不是建议，是 React 的强制约定——第 44 章会解释：修改对象型 props（如 <code>props.items.push(x)</code>）会让父组件"看起来没变"从而跳过更新，制造极难排查的 bug。</li>
+    <li><strong>单向数据流</strong>：数据只能从父组件流向子组件（父持有 state → 通过 props 下发）。子组件想改数据，只能<strong>调用父组件传下来的回调函数</strong>，由父组件去 setState。</li>
+    <li><strong>props 变化引发重渲染</strong>：父重渲染时，子组件默认跟着重渲染（不论 props 是否真的变了）——这是第六篇性能优化要解决的核心现象。</li>
+  </ol>
+  <pre class="code" data-lang="jsx"><code>// 子组件上传孔子组件的状态变更：回调上行
+function TodoItem({ todo, onToggle, onRemove }) {
+  return (
+    &lt;li&gt;
+      &lt;input
+        type="checkbox"
+        checked={todo.done}
+        onChange={() =&gt; onToggle(todo.id)}   {/* 只管通知，数据由父组件改 */}
+      /&gt;
+      &lt;span&gt;{todo.title}&lt;/span&gt;
+      &lt;button onClick={() =&gt; onRemove(todo.id)}&gt;删除&lt;/button&gt;
+    &lt;/li&gt;
+  );
+}
+
+function TodoList({ todos, setTodos }) {
+  const toggle = (id) =&gt; setTodos(prev =&gt; prev.map(
+    t =&gt; t.id === id ? { ...t, done: !t.done } : t
+  ));
+  const remove = (id) =&gt; setTodos(prev =&gt; prev.filter(t =&gt; t.id !== id));
+
+  return (
+    &lt;ul&gt;
+      {todos.map(t =&gt; (
+        &lt;TodoItem key={t.id} todo={t} onToggle={toggle} onRemove={remove} /&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">常见坑</span><code>props.xxx = 1</code> 在开发环境直接抛 <em>Cannot assign to read only property</em>；但 <code>props.list.push(1)</code> 不报错——它污染了父组件的数据却不触发更新，属于"静默事故"，务必避免。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4.3</span> 默认值与类型约束</h2>
+  <h4>默认值</h4>
+  <pre class="code" data-lang="jsx"><code>// 推荐：解构时给默认值（ES6 语法，直观且与 TS 兼容）
+function Button({ type = 'primary', size = 'middle', disabled = false, onClick }) {
+  /* ... */
+}
+
+// 老写法（类组件时代的 defaultProps）—— 函数组件中已不推荐
+Button.defaultProps = { type: 'primary' };</code></pre>
+  <h4>类型检查：TypeScript（推荐）</h4>
+  <pre class="code" data-lang="ts"><code>type User = { id: number; name: string; avatar?: string };
+
+type Props = {
+  user: User;                       // 必传
+  size?: 'small' | 'middle' | 'large';  // 可选 + 字面量联合
+  onSelect?: (id: number) =&gt; void;  // 函数签名
+  children?: React.ReactNode;       // 任意可渲染内容
+};
+
+function UserCard({ user, size = 'middle', onSelect, children }: Props) {
+  return &lt;div onClick={() =&gt; onSelect?.(user.id)}&gt;{children}&lt;/div&gt;;
+}</code></pre>
+  <h4>类型检查：propTypes（JS 项目轻量方案）</h4>
+  <pre class="code" data-lang="jsx"><code>import PropTypes from 'prop-types';
+
+UserCard.propTypes = {
+  user: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+  }).isRequired,
+  size: PropTypes.oneOf(['small', 'middle', 'large']),
+  onSelect: PropTypes.func,
+};
+
+// 不匹配时控制台会给出清晰警告（仅开发模式生效）</code></pre>
+  <p class="key-sentence">类型不是枷锁：它替你拦住"少传一个参数""传错字段名"这两类最高频的低级 bug，是团队规模变大后的必需品。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">4.4</span> children 与插槽模式</h2>
+  <p><code>children</code> 是 props 里最特殊的一个：<strong>它表示开标签与闭标签之间的内容</strong>。有了它，组件就能像 HTML 一样"包裹内容"，这就是"插槽"。</p>
+  <pre class="code" data-lang="jsx"><code>function Card({ title, children }) {
+  return (
+    &lt;div className="card"&gt;
+      &lt;div className="card-head"&gt;{title}&lt;/div&gt;
+      &lt;div className="card-body"&gt;{children}&lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+
+&lt;Card title="用户信息"&gt;
+  &lt;p&gt;姓名：张三&lt;/p&gt;
+  &lt;Avatar url="/a.png" /&gt;
+&lt;/Card&gt;</code></pre>
+  <h4>多插槽：用"具名 props 传 JSX"</h4>
+  <pre class="code" data-lang="jsx"><code>// 把 JSX 当作普通值塞进任意 prop —— React 没有真正的"具名插槽"
+&lt;Layout
+  header={&lt;SiteHeader /&gt;}
+  sidebar={&lt;Nav /&gt;}
+  footer={&lt;Copyright /&gt;}
+&gt;
+  &lt;Article /&gt;
+&lt;/Layout&gt;
+
+function Layout({ header, sidebar, footer, children }) {
+  return (
+    &lt;div className="layout"&gt;
+      &lt;header&gt;{header}&lt;/header&gt;
+      &lt;aside&gt;{sidebar}&lt;/aside&gt;
+      &lt;main&gt;{children}&lt;/main&gt;
+      &lt;footer&gt;{footer}&lt;/footer&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <h4>函数式插槽（render props 雏形）</h4>
+  <pre class="code" data-lang="jsx"><code>// 子组件把内部数据"吐"出来给调用方决定怎么渲染
+&lt;DataProvider url="/api/user"&gt;
+  {({ data, loading }) =&gt; loading ? &lt;Spinner /&gt; : &lt;UserCard user={data} /&gt;}
+&lt;/DataProvider&gt;
+
+function DataProvider({ url, children }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() =&gt; {
+    fetch(url).then(r =&gt; r.json()).then(d =&gt; { setData(d); setLoading(false); });
+  }, [url]);
+  return children({ data, loading });   // children 是函数，调用它
+}</code></pre>
+  <p>这个模式在 Hooks 出现前是逻辑复用的主力；今天多数场景被自定义 Hook（第 16 章）取代，但 Ant Design、React Router 等库中仍大量存在，必须认识。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">4.5</span> 组合优于继承</h2>
+  <p>React 官方文档的态度非常明确：<strong>你没有继承组件的必要</strong>。类继承带来的层级耦合在 UI 这种"结构多变"的领域弊大于利，React 提供的组合能力已经覆盖全部场景。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>需求</th><th>继承思路（不推荐）</th><th>组合思路（推荐）</th></tr></thead>
+    <tbody>
+      <tr><td>复用外框</td><td>所有页面继承 BasePage</td><td><code>&lt;Layout&gt;&lt;Page /&gt;&lt;/Layout&gt;</code></td></tr>
+      <tr><td>注入通用能力</td><td>多层 Mixin / 抽象基类</td><td>自定义 Hook（第 16 章）</td></tr>
+      <tr><td>局部差异常</td><td>子类覆写 render 碎片</td><td>props 开关 + <code>children</code> 插槽</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 一个"具备边框和标题的通用容器"，通过 children 容纳任意内容
+function Panel({ title, extra, children }) {
+  return (
+    &lt;section className="panel"&gt;
+      &lt;header&gt;
+        &lt;h3&gt;{title}&lt;/h3&gt;
+        &lt;div className="extra"&gt;{extra}&lt;/div&gt;
+      &lt;/header&gt;
+      {children}
+    &lt;/section&gt;
+  );
+}
+
+&lt;Panel title="待办" extra={&lt;Button&gt;新建&lt;/Button&gt;}&gt;
+  &lt;TodoList todos={todos} /&gt;
+&lt;/Panel&gt;</code></pre>
+  <div class="pit-sentence">判断标准：如果你打算"继承一个组件只为改它的一部分 UI"，那就应该把它拆成"容器 + children"，而不是开继承链。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">4.6</span> props 设计六准则与常见坑</h2>
+  <ol>
+    <li><strong>命名对齐：数据用名词，事件用 on 前缀</strong>：<code>value / items / user</code> 表示数据，<code>onChange / onSubmit / onSelect</code> 表示回调，前者不加前缀，后者必须 <code>on</code> 开头。</li>
+    <li><strong>受控 vs 非受控要统一</strong>：一个组件要么全受控（<code>value + onChange</code>），要么全非受控（<code>defaultValue</code>），不要两套并存——第 8 章详述。</li>
+    <li><strong>扁平优先</strong>：<code>&lt;Avatar user={user} /&gt;</code> 比 <code>&lt;Avatar user={user} size={size} theme={theme} className={c} /&gt;</code> 更好维护吗？不一定——props 超过 7 个就该考虑是否要拆组件；而"整对象传入"会带来无谓重渲染，需权衡。</li>
+    <li><strong>谨慎使用 spread 透传</strong>：<code>&lt;input {...inputProps} /&gt;</code> 很方便，但会把未知属性一起送进 DOM，React 会给出 <em>Unknown prop</em> 警告；可用 ESLint 规则 <code>react/jsx-props-no-spreading</code> 约束。</li>
+    <li><strong>加 key 而不是 index</strong>：列表渲染的 props 里必须有稳定 <code>key</code>（第 6 章）。</li>
+    <li><strong>className / style 要可覆盖</strong>：组件内部接收外部传入的 <code>className</code> 并合并，否则调用方永远改不了样式。</li>
+  </ol>
+  <pre class="code" data-lang="jsx"><code>// 准则 1 + 6 的示范
+function Tag({ text, color = 'green', className = '', style, onClick }) {
+  const cls = ['tag', 'tag-' + color, className].filter(Boolean).join(' ');
+  return &lt;span className={cls} style={style} onClick={onClick}&gt;{text}&lt;/span&gt;;
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑清单</span>
+    <ul>
+      <li><code>props</code> 名字拼错不报错，只是得到 <code>undefined</code>——用 TS 或 propTypes 兜住；</li>
+      <li>回调写成 <code>onClick={remove(id)}</code>（立即执行）而不是 <code>onClick={() =&gt; remove(id)}</code>（传引用），导致渲染时就删除；</li>
+      <li>把对象/数组直接写在 JSX 里作为 props（<code>style={{...}}</code>、<code>&lt;C items={[...]}&gt;</code>），每次渲染都是新引用，会让下游 memo 失效——第 48、49 章解释。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>拆分标准</td><td>可复用、单一职责、隔离渲染；JSX 被复制第二次就抽</td></tr>
+      <tr><td>props 本质</td><td>组件函数的第一个参数，只读</td></tr>
+      <tr><td>单向数据流</td><td>state 在父组件，props 下行，事件回调上行</td></tr>
+      <tr><td>默认值/类型</td><td>解构默认值；TS 优先，propTypes 为 JS 备选</td></tr>
+      <tr><td>children</td><td>内容分发（插槽），多插槽用 props 传 JSX</td></tr>
+      <tr><td>render props</td><td>children 为函数，把内部数据交还调用方</td></tr>
+      <tr><td>组合优于继承</td><td>容器 + children + 自定义 Hook 覆盖全部复用需求</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>把习题 B 里的 OrderPanel 继续拆分：抽出 <code>OrderActions</code>（按钮区），并把"合计金额"的计算抽成独立函数放在组件外的工具模块。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现一个 <code>&lt;Modal title visible onClose footer&gt;&lt;/Modal&gt;</code>：title / footer 用具名 props，body 用 children，visible 为 false 时不渲染任何 DOM。要求 footer 支持外部传入自定义按钮。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 TS 为一个分页器 <code>Pagination</code> 定义 Props（current / pageSize / total / showSizeChanger? / onChange / onShowSizeChange），要求 onChange 与 onShowSizeChange 参数类型准确，并写出使用端代码。</div>
+  <p class="note">参考答案见附录 C。下一章：让组件"活"起来——事件处理与合成事件。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="003_第3章_JSX详解语法与编译产物.html">← 第 3 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="005_第5章_事件处理与合成事件.html">第 5 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 4 章 组件与 props：数据下行</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

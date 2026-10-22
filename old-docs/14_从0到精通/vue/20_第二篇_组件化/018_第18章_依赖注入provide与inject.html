@@ -1,0 +1,327 @@
+<!--CH
+title: 依赖注入 provide / inject
+part: 第二篇 组件化
+desc: provide/inject 是官方提供的跨层通信方案。这一章讲清它的用法、响应式传递、默认值与 Symbol key、应用级 provide，以及"谁来修改注入的数据"这条重要的设计约定。
+toc: 本章目标|18.1 基本用法：provide 与 inject|18.2 传递响应式数据|18.3 默认值与安全注入|18.4 用 Symbol 作为 key|18.5 应用级 provide|18.6 谁负责修改？只读约定|18.7 实战：Form / FormItem 组件族|18.8 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 <code>provide</code> / <code>inject</code> 的基本用法与<strong>响应式传递</strong>；</li>
+    <li>会给 inject 提供<strong>默认值</strong>，会用 <strong>Symbol</strong> 避免 key 冲突；</li>
+    <li>了解<strong>应用级 provide</strong>（<code>app.provide</code>）的用途；</li>
+    <li>理解"<strong>谁提供谁修改</strong>"的只读约定；</li>
+    <li>能用它实现 <strong>Form / FormItem</strong> 组件族（组件库经典案例）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">18.1</span> 基本用法：provide 与 inject</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- 祖先组件 Ancestor.vue --&gt;
+&lt;script setup&gt;
+import { provide, ref } from 'vue'
+
+// ① 提供静态值
+provide('theme', 'dark')
+
+// ② 提供对象（可包含方法）
+provide('config', { size: 'large', onChange: (v) =&gt; console.log(v) })
+&lt;/script&gt;
+
+&lt;!-- 任意后代组件（不管隔多少层） --&gt;
+&lt;script setup&gt;
+import { inject } from 'vue'
+const theme = inject('theme')          // 'dark'
+const config = inject('config')
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div :class="`theme-${theme}`"&gt;内容&lt;/div&gt;
+&lt;/template&gt;</code></pre>
+  <p>关键点：</p>
+  <ul>
+    <li><code>provide</code> 必须在组件的 <strong>setup 阶段同步调用</strong>（不能在 <code>setTimeout</code> 里调）；</li>
+    <li>inject 会沿着<strong>父组件链</strong>向上查找，找到最近的 provide；</li>
+    <li>祖先与后代<strong>不需要</strong>知道彼此的存在，只要 key 一致。</li>
+  </ul>
+  <div class="note"><strong>它不是"全局"</strong>：provide 的作用域是<strong>该组件的子树</strong>。两个平级的父组件各自 provide 同名 key，互不影响——这比全局变量安全得多。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">18.2</span> 传递响应式数据</h2>
+  <p>静态值意义有限。真实场景中要传的是<strong>会变化的数据</strong>——直接把 ref / reactive 对象传下去即可。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 祖先 --&gt;
+&lt;script setup&gt;
+import { provide, ref, reactive, readonly, computed } from 'vue'
+
+const count = ref(0)
+const user = reactive({ name: '小明', level: 1 })
+const double = computed(() =&gt; count.value * 2)
+
+// ✅ 传 ref / reactive 对象本身（保持响应性）
+provide('count', count)
+provide('user', user)
+
+// ✅ 传 readonly 版本：禁止后代直接改（推荐做法！）
+provide('readonly-count', readonly(count))
+
+function inc() { count.value++ }
+provide('inc', inc)     // 提供修改方法
+&lt;/script&gt;
+
+&lt;!-- 后代 --&gt;
+&lt;script setup&gt;
+import { inject } from 'vue'
+const count = inject('count')
+const user = inject('user')
+const inc = inject('inc')
+
+// 模板里直接用：{{ count }}（ref 自动解包）
+// JS 里：count.value
+&lt;/script&gt;</code></pre>
+  <div class="danger-box"><strong>不要传 <code>count.value</code></strong>：<code>provide('count', count.value)</code> 传的是<strong>快照数字</strong>，之后变化不会同步。必须传 ref 对象本身。</div>
+  <p class="key-sentence">响应式传递口诀：<strong>传对象（ref/reactive），不传值。</strong></p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">18.3</span> 默认值与安全注入</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { inject } from 'vue'
+
+// ① 默认值（祖先没提供时使用）
+const theme = inject('theme', 'light')
+
+// ② 默认值是工厂函数（开销大或需要新对象时用）
+const config = inject('config', () =&gt; ({ size: 'small' }), true)
+// 第三个参数 true 表示"把第二个参数当工厂函数调用"
+
+// ③ 安全写法：判空 + 抛出明确错误
+const ctx = inject('form-context', null)
+if (!ctx) {
+  throw new Error('FormItem 必须放在 Form 组件内部使用')
+}
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence">组件库里推荐<strong>第 ③ 种</strong>：与其让使用者拿到 undefined 后在某处莫名其妙报错，不如在组件初始化时抛出一条明确的错误信息。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">18.4</span> 用 Symbol 作为 key</h2>
+  <p>字符串 key 有冲突风险（尤其是大型项目或多组件库混用）。用 Symbol 可彻底避免：</p>
+<pre class="code" data-lang="js"><code>// keys.js —— 集中管理注入 key
+export const THEME_KEY = Symbol('theme')
+export const FORM_CONTEXT = Symbol('form-context')
+export const TABLE_CONTEXT = Symbol('table-context')</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 提供 --&gt;
+&lt;script setup&gt;
+import { provide } from 'vue'
+import { FORM_CONTEXT } from './keys'
+provide(FORM_CONTEXT, { model, rules, validate })
+&lt;/script&gt;
+
+&lt;!-- 注入 --&gt;
+&lt;script setup&gt;
+import { inject } from 'vue'
+import { FORM_CONTEXT } from './keys'
+const ctx = inject(FORM_CONTEXT, null)
+&lt;/script&gt;</code></pre>
+  <p>TypeScript 项目还能配合 <code>InjectionKey&lt;T&gt;</code> 获得完整类型推导：</p>
+<pre class="code" data-lang="ts"><code>// keys.ts
+import type { InjectionKey, Ref } from 'vue'
+export interface FormContext {
+  model: Record&lt;string, any&gt;
+  validate: () =&gt; Promise&lt;boolean&gt;
+}
+export const FORM_CONTEXT: InjectionKey&lt;FormContext&gt; = Symbol('form-context')
+
+// 注入时自动推导出 FormContext 类型
+const ctx = inject(FORM_CONTEXT)   // ctx: FormContext | undefined</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">18.5</span> 应用级 provide</h2>
+  <p>在<strong>应用实例</strong>上 provide，相当于给整个应用提供全局依赖（插件常用）：</p>
+<pre class="code" data-lang="js"><code>// main.js
+import { createApp } from 'vue'
+import App from './App.vue'
+
+const app = createApp(App)
+
+// 全局注入：任意组件都能 inject
+app.provide('appVersion', '1.2.0')
+app.provide('httpClient', axios.create({ baseURL: '/api' }))
+
+app.mount('#app')</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 任意组件 --&gt;
+&lt;script setup&gt;
+import { inject } from 'vue'
+const http = inject('httpClient')
+&lt;/script&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>方式</th><th>作用域</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td><code>app.provide</code></td><td>整个应用</td><td>插件、全局配置（i18n、http client）</td></tr>
+      <tr><td>组件内 <code>provide</code></td><td>该组件子树</td><td>组件族内部上下文</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">18.6</span> 谁负责修改？只读约定</h2>
+  <p class="lead">这是 provide/inject 最重要的<strong>设计约定</strong>：<strong>谁 provide，谁负责修改；后代只读取和调用提供的方法。</strong></p>
+<pre class="code" data-lang="vue"><code>&lt;!-- ✅ 推荐：提供状态 + 修改方法，后代调用方法 --&gt;
+&lt;script setup&gt;
+import { provide, ref, readonly } from 'vue'
+
+const count = ref(0)
+function inc() { count.value++ }
+
+provide('count', readonly(count))   // 只读，后代改不了
+provide('inc', inc)                 // 想改？调我提供的方法
+&lt;/script&gt;
+
+&lt;!-- 后代 --&gt;
+&lt;script setup&gt;
+const count = inject('count')
+const inc = inject('inc')
+// count.value++  → 告警（readonly）
+// inc()          → ✅ 正确
+&lt;/script&gt;</code></pre>
+  <p>为什么这么约定：</p>
+  <ul>
+    <li><strong>可追踪</strong>：所有修改都发生在同一个文件里，调试只需看一处；</li>
+    <li><strong>可维护</strong>：后代组件不依赖"上游内部实现"，只依赖约定好的方法；</li>
+    <li><strong>与 Pinia 的对比</strong>：Pinia 的 action 也是同样思路——状态集中修改。</li>
+  </ul>
+  <p class="key-sentence">一句话：<strong>inject 拿到的是"能力"，不是"可以随便改的数据"。</strong></p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">18.7</span> 实战：Form / FormItem 组件族</h2>
+  <p>这是 provide/inject 最经典的用例：<strong>表单容器提供上下文，表单项注入并使用</strong>。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- MyForm.vue --&gt;
+&lt;template&gt;
+  &lt;form @submit.prevent="onSubmit"&gt;
+    &lt;slot&gt;&lt;/slot&gt;
+  &lt;/form&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { provide, ref } from 'vue'
+import { FORM_CONTEXT } from './keys'
+
+const props = defineProps({ model: { type: Object, required: true } })
+
+// 收集所有 FormItem 的校验函数
+const validators = ref([])
+const errors = ref({})
+
+function register(prop, validateFn) {
+  validators.value.push({ prop, validateFn })
+}
+function unregister(prop) {
+  validators.value = validators.value.filter(v =&gt; v.prop !== prop)
+}
+async function validate() {
+  const results = await Promise.all(validators.value.map(v =&gt; v.validateFn()))
+  return results.every(Boolean)
+}
+
+// 提供上下文：数据 + 注册/校验能力
+provide(FORM_CONTEXT, { model: props.model, errors, register, unregister })
+
+async function onSubmit() {
+  if (!(await validate())) return
+  console.log('提交', props.model)
+}
+defineExpose({ validate })
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- MyFormItem.vue --&gt;
+&lt;template&gt;
+  &lt;div class="form-item"&gt;
+    &lt;label&gt;{{ label }}&lt;/label&gt;
+    &lt;slot&gt;&lt;/slot&gt;
+    &lt;p v-if="error" class="err"&gt;{{ error }}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { inject, ref, computed, onUnmounted } from 'vue'
+import { FORM_CONTEXT } from './keys'
+
+const props = defineProps({
+  label: String,
+  prop: { type: String, required: true },
+  required: Boolean
+})
+
+const ctx = inject(FORM_CONTEXT)
+if (!ctx) throw new Error('MyFormItem 必须在 MyForm 内使用')
+
+const error = ref('')
+
+async function validateFn() {
+  const value = ctx.model[props.prop]
+  if (props.required &amp;&amp; (value === '' || value == null)) {
+    error.value = `${props.label}不能为空`
+    return false
+  }
+  error.value = ''
+  return true
+}
+
+// 向表单注册自己，卸载时注销
+ctx.register(props.prop, validateFn)
+onUnmounted(() =&gt; ctx.unregister(props.prop))
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 使用 --&gt;
+&lt;MyForm :model="form" ref="formRef"&gt;
+  &lt;MyFormItem label="用户名" prop="name" required&gt;
+    &lt;input v-model="form.name"&gt;
+  &lt;/MyFormItem&gt;
+  &lt;MyFormItem label="邮箱" prop="email" required&gt;
+    &lt;input v-model="form.email"&gt;
+  &lt;/MyFormItem&gt;
+  &lt;button type="submit"&gt;提交&lt;/button&gt;
+&lt;/MyForm&gt;</code></pre>
+  <p class="key-sentence">这个模式正是 <strong>Element Plus 的 <code>el-form</code> / <code>el-form-item</code></strong> 的实现原理（第 58 章会完整实现一版）：<strong>容器收集子项的校验器，子项注入容器上下文</strong>。</p>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">18.8</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>传值不传对象</strong>：<code>provide('c', count.value)</code> 失去响应性。传 <code>count</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>解构注入的响应式对象</strong>：<code>const { count } = inject('ctx')</code> 若 count 是 ref 没问题，若已被展开成普通值则失去响应。谨慎解构，用 <code>toRefs</code>。</li>
+    <li><span class="tag-pit">坑 3</span><strong>key 冲突或写错</strong>：用 Symbol + 集中管理 keys 文件。</li>
+    <li><span class="tag-pit">坑 4</span><strong>后代直接修改注入的数据</strong>：破坏可追踪性。用 <code>readonly</code> + 提供方法。</li>
+    <li><span class="tag-pit">坑 5</span><strong>异步 provide</strong>：<code>provide</code> 必须在 setup 同步阶段调用，写在 <code>await</code> 之后不生效。</li>
+    <li><span class="tag-pit">坑 6</span><strong>注册未注销</strong>：FormItem 类组件要在 <code>onUnmounted</code> 中注销，否则表单里残留已销毁项的校验器。</li>
+    <li><span class="tag-pit">坑 7</span><strong>把 provide 当全局状态</strong>：跨业务模块共享请用 Pinia，provide 只用于组件族内部。</li>
+  </ul>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>作用</td><td>跨任意层级向后代注入依赖，避免 props 透传地狱</td></tr>
+      <tr><td>用法</td><td>祖先 <code>provide(key, value)</code>；后代 <code>inject(key, default)</code></td></tr>
+      <tr><td>响应式</td><td>传 ref/reactive 对象本身，不传 <code>.value</code></td></tr>
+      <tr><td>默认值</td><td>第二个参数；工厂函数需第三参 <code>true</code></td></tr>
+      <tr><td>key</td><td>用 Symbol（+ TS 的 InjectionKey）避免冲突与获得类型</td></tr>
+      <tr><td>应用级</td><td><code>app.provide</code> 注入全局依赖（插件、http client）</td></tr>
+      <tr><td>约定</td><td>谁 provide 谁修改：传 readonly + 方法</td></tr>
+      <tr><td>经典用例</td><td>Form / FormItem：子项注册校验器，容器统一校验</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个三层嵌套组件（A → B → C），A 用 provide 传一个 ref 计数，C 注入并显示它；A 里放一个按钮修改计数，验证 C 是否同步更新。再试着"传值不传对象"看会发生什么。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现 18.7 的 Form/FormItem，补充：① 支持自定义校验规则函数；② 校验失败时滚动到第一个错误项；③ 表单重置方法（<code>defineExpose</code> 暴露 reset）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 provide/inject 实现一套极简主题系统：顶层 <code>ThemeProvider</code> 注入 <code>theme</code>（含颜色变量与 <code>toggleTheme</code>），任意深度的后代组件注入并使用。要求：后代不能直接改 theme，只能调 toggleTheme；切换后整棵子树样式同步变化（用 CSS 变量实现，见第 7 章）。</div>
+  <p class="note">参考答案见附录 C。下一章讲动态组件与异步组件。</p>
+</section>

@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 3 章 通用命令与 key 设计规范｜Redis 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+
+/* ===== 全库统一导航 ===== */
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+
+/* ===== 全库统一 Prism 深色主题 ===== */
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#272822}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}
+/* 适配库内代码块：保留 --code-bg 深底与 --mono 字体，去除主题自带背景/阴影 */
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+
+/* ===== 全库统一可读性排版 ===== */
+/* 正文阅读密度：行距加大、留白充足 */
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+/* 一级要点：主题色圆点/序号 */
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+/* 二级细节：细色条 + 缩进 + 次级色 marker */
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+/* 行内强调标签：关键术语 / 要点 / 坑 */
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+/* 强调句：结论/易错点 左侧色条 */
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+/* 概念块「一句话定位」 */
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+/* 长代码/长句折行保护 */
+section.card li strong{color:var(--ink)}
+@media(max-width:760px){
+  body{line-height:1.8}
+  section.card{padding:22px 18px}
+  section.card h2{font-size:21px}
+  section.card h3{font-size:17.5px;margin:28px 0 10px}
+  section.card h4{font-size:15.5px;margin:20px 0 8px}
+  .lead{padding:8px 10px;font-size:14.5px}
+}
+
+
+
+
+
+
+/* ===== 左侧目录树样式（覆盖原来的） ===== */
+@media(min-width:1024px){
+  nav.toc {
+    position: fixed !important;
+    left: 20px;
+    top: 80px;
+    width: 240px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d8e2cc;
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 60;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    color: #22331f;
+    margin: 0 0 12px 0 !important;
+    padding: 0 0 8px 0 !important;
+    border-bottom: 1px solid #d8e2cc !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: normal !important;
+  }
+  nav.toc ol {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    columns: 1 !important;
+    column-count: 1 !important;
+  }
+  nav.toc ol li {
+    margin: 6px 0 !important;
+    break-inside: avoid !important;
+  }
+  nav.toc ol li a {
+    display: block !important;
+    padding: 6px 10px !important;
+    color: #7a8a70 !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-radius: 6px !important;
+    transition: all .15s !important;
+    background: transparent !important;
+    border: none !important;
+    font-weight: normal !important;
+  }
+  nav.toc ol li a:hover {
+    background: #f0f5e6 !important;
+    color: #2d6a3f !important;
+  }
+  .container {
+    margin-left: 280px !important;
+    max-width: calc(100% - 300px) !important;
+  }
+}
+@media(max-width:1023px){
+  nav.toc {
+    position: static !important;
+    width: auto !important;
+  }
+}
+
+
+
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 20px 16px !important;
+  }
+  .hero h1 {
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  .breadcrumb {
+    font-size: 12px !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 12px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 16px 0 !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    margin-bottom: 10px !important;
+  }
+  nav.toc ol li a {
+    font-size: 13px !important;
+    padding: 5px 8px !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 18px 16px !important;
+    margin: 16px 0 !important;
+    border-radius: 10px !important;
+  }
+  section.card h2 {
+    font-size: 19px !important;
+    margin-bottom: 16px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 24px 0 10px !important;
+  }
+  section.card h4 {
+    font-size: 15px !important;
+    margin: 18px 0 8px !important;
+  }
+  section.card p {
+    font-size: 14px !important;
+    line-height: 1.75 !important;
+  }
+  section.card li {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 12px !important;
+    overflow-x: auto !important;
+  }
+  code {
+    font-size: 13px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+    overflow-x: auto !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 12px !important;
+    flex-wrap: wrap;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+  }
+  .glossary-item {
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+    margin: 4px !important;
+  }
+
+
+
+/* ===== 手机端深度优化 ===== */
+@media(max-width:768px){
+  /* 全局 */
+  body {
+    line-height: 1.7 !important;
+    font-size: 15px !important;
+  }
+  
+  /* 顶部导航 */
+  .doc-nav.top {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 16px 14px !important;
+  }
+  .hero h1 {
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 10px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 16px 14px !important;
+    margin: 12px 0 !important;
+    border-radius: 8px !important;
+  }
+  section.card h2 {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+    padding-left: 10px !important;
+  }
+  section.card h2 .num {
+    min-width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    font-size: 13px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 20px 0 8px !important;
+    padding-left: 8px !important;
+  }
+  section.card h4 {
+    font-size: 14.5px !important;
+    margin: 16px 0 6px !important;
+  }
+  section.card p {
+    font-size: 14.5px !important;
+    line-height: 1.75 !important;
+    margin: 10px 0 !important;
+  }
+  section.card ul, section.card ol {
+    padding-left: 20px !important;
+    margin: 10px 0 !important;
+  }
+  section.card li {
+    font-size: 14.5px !important;
+    line-height: 1.7 !important;
+    margin: 6px 0 !important;
+  }
+  
+  /* 行内代码 - 关键优化！ */
+  code {
+    font-size: 13px !important;
+    padding: 2px 5px !important;
+    border-radius: 4px !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    display: inline !important;
+    max-width: 100% !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 10px !important;
+    overflow-x: auto !important;
+    border-radius: 6px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+    overflow-x: auto !important;
+    border-radius: 8px !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 12px 0 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  nav.toc h2 {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+  nav.toc ol li a {
+    font-size: 12.5px !important;
+    padding: 4px 6px !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 10px !important;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+  }
+  .glossary-item {
+    font-size: 12.5px !important;
+    padding: 3px 6px !important;
+    margin: 3px !important;
+  }
+  
+  /* 强调句 */
+  .key-sentence, .pit-sentence {
+    padding: 8px 10px !important;
+    margin: 10px 0 !important;
+    font-size: 14px !important;
+  }
+  
+  /* lead */
+  .lead {
+    padding: 8px 10px !important;
+    font-size: 13.5px !important;
+    margin: 10px 0 !important;
+  }
+}
+
+
+/* ===== 修复手机端页面溢出 ===== */
+html, body {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+* {
+  max-width: 100% !important;
+}
+
+img, svg, video {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* 代码块内部可以滚动，但不撑开页面 */
+pre, .code, .diagram {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* 行内代码不换行但不溢出 */
+code {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+
+/* ===== 强制修复行内代码溢出 ===== */
+code {
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  word-wrap: break-word !important;
+  max-width: 100% !important;
+  display: inline !important;
+  overflow: hidden !important;
+}
+
+p, li, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+
+/* ===== 教科书模块专属样式 ===== */
+.book-toc{columns:2;column-gap:36px;padding-left:24px}
+.book-toc li{break-inside:avoid;font-size:13.5px;color:var(--ink-2);margin:4px 0;line-height:1.6;list-style:disc}
+.book-toc li b{color:var(--accent);margin-right:6px}
+@media(max-width:760px){.book-toc{columns:1}}
+.bstat{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:2px;white-space:nowrap}
+.bstat.plan{background:#eef3e8;color:#4f6348;border:1px solid #d8e2cc}
+.bstat.doing{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.bstat.done{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.book-part h3{margin-top:22px}
+
+/* ===== 教科书章页专属 ===== */
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Redis 从 0 到精通》 · 第一篇 入门与数据结构</p>
+    <h1>第 3 章 通用命令与 key 设计规范</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 3 章 / 共 54 章 · 预计 35 分钟 · 零基础可读</span>
+    </div>
+    <p class="hero-desc">KEYS 为什么是生产禁令？SCAN 怎么用才正确？一套让团队受益三年的 key 命名规范，本章一次讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">3.1 通用命令：这一页能覆盖你 60% 的操作</a></li>
+    <li><a href="#sec3">3.2 TYPE 与 OBJECT ENCODING：看清 key 的真身</a></li>
+    <li><a href="#sec4">3.3 为什么 KEYS 是生产禁令</a></li>
+    <li><a href="#sec5">3.4 SCAN 家族的正确用法</a></li>
+    <li><a href="#sec6">3.5 key 命名规范：一套用三年的约定</a></li>
+    <li><a href="#sec7">3.6 常见坑：命令与命名的雷区</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 <strong>通用命令全家桶</strong>：EXISTS / TYPE / DEL / UNLINK / EXPIRE / TTL / PERSIST / RENAME / TOUCH / MOVE；</li>
+    <li>会用 <code>OBJECT ENCODING</code> 判断底层编码，理解<strong>同一个类型可能有两种存储方式</strong>；</li>
+    <li>能把"为什么不能用 KEYS"讲成一段有说服力的解释（含复杂度与阻塞原理）；</li>
+    <li>写出<strong>不会写挂服务</strong>的分批扫描与删除脚本；</li>
+    <li>为自己的团队制定并落地一套 <strong>key 命名 + TTL + 分层前缀</strong>规范。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 1-2 章，机器上有一个能 ping 通的 Redis。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">3.1</span> 通用命令：这一页能覆盖你 60% 的操作</h2>
+  <p class="lead"><b>通用命令是"对所有类型都生效"的那批命令，它们操作的是 <b>key 本身</b>，而不是 value 内容。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SET user:1001 '{"name":"张三","age":28}' EX 3600
+OK
+
+127.0.0.1:6379&gt; EXISTS user:1001        # 存在几个（可接受多个 key，返回总数）
+(integer) 1
+127.0.0.1:6379&gt; TYPE user:1001          # 类型
+string
+127.0.0.1:6379&gt; TTL user:1001           # 剩余秒数；-1=永不过期 -2=不存在
+(integer) 3592
+127.0.0.1:6379&gt; PTTL user:1001          # 毫秒精度
+(integer) 3591877
+127.0.0.1:6379&gt; EXPIRE user:1001 60     # (重)设 60 秒过期
+(integer) 1
+127.0.0.1:6379&gt; PERSIST user:1001       # 去掉过期，变永久
+(integer) 1
+127.0.0.1:6379&gt; EXPIREAT user:1001 1756800000   # 指定到某个 Unix 秒到期
+(integer) 1
+127.0.0.1:6379&gt; TOUCH user:1001         # 只更新访问时间(LRU/LFU)，不改 TTL
+(integer) 1
+127.0.0.1:6379&gt; DEL user:1001           # 同步删除
+(integer) 1</code></pre>
+  <p>批量与时髦命令：</p>
+  <pre class="code" data-lang="bash"><code># 一次删多个（返回真正删掉的个数）
+127.0.0.1:6379&gt; DEL k1 k2 k3
+(integer) 2
+
+# 异步删除：大 key 一定要用它，避免阻塞主线程（第 17 章）
+127.0.0.1:6379&gt; UNLINK big:list
+(integer) 1
+
+# 原子改名：目标存在则覆盖
+127.0.0.1:6379&gt; RENAME user:1001 user:1002
+OK
+127.0.0.1:6379&gt; RENAMENX user:1002 user:1003     # 目标不存在才改（NX）
+(integer) 1
+
+# 其它
+127.0.0.1:6379&gt; EXISTS a b c            # 多个一起判存在
+127.0.0.1:6379&gt; COPY src dst DB 1       # 6.2+：复制到另一个库
+127.0.0.1:6379&gt; DUMP user:1001          # 序列化导出（配合 RESTORE 迁移）
+127.0.0.1:6379&gt; RANDOMKEY               # 随机返回一个 key（调试/抽样用）
+127.0.0.1:6379&gt; OBJECT IDLETIME user:1001   # 空闲秒数（需 maxmemory-policy 为 LRU）</code></pre>
+  <p>过期相关的三条"条件型"命令（Redis 7 新增，做限时任务很顺手）：</p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; EXPIRE order:9001 600 NX    # NX：仅当 key 没有 TTL 时才设置
+127.0.0.1:6379&gt; EXPIRE order:9001 600 XX    # XX：仅当已有 TTL 才覆盖
+127.0.0.1:6379&gt; EXPIRE order:9001 600 GT    # GT：新 TTL 更长才生效
+127.0.0.1:6379&gt; EXPIRE order:9001 600 LT    # LT：新 TTL 更短才生效</code></pre>
+  <div class="warn-box"><strong>易错</strong>：对一个已经存在的 key 执行 <code>SET</code>（不带 <code>KEEPTTL</code>），<strong>会清掉原有 TTL</strong>，让它变成永不过期！这是一个极其常见的内存泄漏源头。</div>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SET token:abc xyz EX 300
+OK
+127.0.0.1:6379&gt; TTL token:abc
+(integer) 297
+127.0.0.1:6379&gt; SET token:abc newval        # ← TTL 没了！
+OK
+127.0.0.1:6379&gt; TTL token:abc
+(integer) -1
+127.0.0.1:6379&gt; SET token:abc newval2 KEEPTTL   # ← 正确写法：保留剩余 TTL
+OK</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3.2</span> TYPE 与 OBJECT ENCODING：看清 key 的真身</h2>
+  <p><code>TYPE</code> 看的是<strong>对外类型</strong>（string/hash/list/set/zset/stream…），<code>OBJECT ENCODING</code> 看的是<strong>底层实现</strong>。同一个对外类型可能有两种甚至三种底层编码，Redis 会根据大小自动切换——这是 Redis 省内存的秘密。</p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SET s1 12345
+OK
+127.0.0.1:6379&gt; TYPE s1
+string
+127.0.0.1:6379&gt; OBJECT ENCODING s1
+int                      # 能表示为整数时，直接用整数存，省去 SDS 开销
+
+127.0.0.1:6379&gt; SET s2 hello-world-this-is-a-long-normal-string
+OK
+127.0.0.1:6379&gt; OBJECT ENCODING s2
+embstr                   # ≤44 字节用 embstr：一次内存分配，redisObject+SDS 连续
+
+127.0.0.1:6379&gt; SET s3 &lt;60 字节以上的字符串&gt;
+127.0.0.1:6379&gt; OBJECT ENCODING s3
+raw                      # 超过阈值（3.2 起是 44 字节）用 raw：两次分配
+
+127.0.0.1:6379&gt; RPUSH small 1 2 3
+(integer) 3
+127.0.0.1:6379&gt; OBJECT ENCODING small
+listpack                 # 小列表：紧凑连续内存，无需指针
+127.0.0.1:6379&gt; CONFIG SET list-max-listpack-size 2
+OK
+127.0.0.1:6379&gt; RPUSH small 4 5 6 7
+127.0.0.1:6379&gt; OBJECT ENCODING small
+quicklist                # 超阈值后转 quicklist（linked list of listpack）</code></pre>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:30%"><col style="width:26%"><col style="width:28%"></colgroup>
+    <thead><tr><th>对外类型</th><th>紧凑编码（省内存）</th><th>标准编码（快）</th><th>切换阈值配置项</th></tr></thead>
+    <tbody>
+      <tr><td>String</td><td>int / embstr</td><td>raw</td><td>字符串 44 字节</td></tr>
+      <tr><td>Hash</td><td>listpack（原 ziplist）</td><td>hashtable</td><td>hash-max-listpack-entries 128 / -value 64</td></tr>
+      <tr><td>List</td><td>listpack / quicklist</td><td>quicklist + 节点</td><td>list-max-listpack-size -2</td></tr>
+      <tr><td>Set</td><td>intset / listpack</td><td>hashtable</td><td>set-max-intset-entries 512</td></tr>
+      <tr><td>ZSet</td><td>listpack</td><td>skiplist + dict</td><td>zset-max-listpack-entries 128 / -value 64</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">记住这条：【小数据用紧凑编码省内存，大数据换回标准编码保性能】。这也解释了为什么"把大 Hash 拆成多个小 Hash"（第 17 章大 key 治理）在 Redis 里是有效的优化手段。</p>
+  <p>另外两个常用：</p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; OBJECT REFCOUNT s1     # 引用计数（共享整数对象时 &gt; 1）
+(integer) 2147483647
+127.0.0.1:6379&gt; MEMORY USAGE user:1001  # 估算这个 key 占多少字节
+(integer) 128
+127.0.0.1:6379&gt; MEMORY USAGE user:1001 SAMPLES 10   # 采样更准（聚合类型）</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">3.3</span> 为什么 KEYS 是生产禁令</h2>
+  <p class="lead"><b>一句话：<b>KEYS 是 O(N) 且不可中断，Redis 单线程会在它执行期间停止响应一切请求。</b></b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; KEYS *
+1) "user:1001"
+2) "user:1002"
+... （返回全部，假如有 2000 万个，它要遍历完才肯干活）
+127.0.0.1:6379&gt; KEYS user:1*          # 注意：不是服务端过滤后才返回，是全遍历后模式匹配</code></pre>
+  <div class="danger-box">
+    <strong>真实的量级账</strong>：1000 万 key 的实例，<code>KEYS user:*</code> 大约要<b>几百毫秒到数秒</b>。这期间：
+    <ul>
+      <li>所有业务请求超时 → 上游重试 → 流量翻几倍 → 雪崩（第 25 章）；</li>
+      <li>哨兵的心跳收不到 → <strong>误判主库下线，触发一次不必要的故障切换</strong>（第 44 章）；</li>
+      <li>返回结果还会撑爆客户端内存。</li>
+    </ul>
+  </div>
+  <p>那怎么"看看有多少个 user: 开头的 key"？三个安全选项：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:42%"><col style="width:36%"></colgroup>
+    <thead><tr><th>方法</th><th>做法</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>DBSIZE</td><td><code>DBSIZE</code> 直接读计数</td><td>只想知道总量，O(1)，随便跑</td></tr>
+      <tr><td>SCAN</td><td><code>SCAN 0 MATCH user:* COUNT 500</code></td><td>要真的遍历/统计/处理，<strong>标准答案</strong></td></tr>
+      <tr><td>自己维护</td><td>业务侧用 Hash/Set 记录索引</td><td>长期需要按模式查询的设计（推荐）</td></tr>
+    </tbody>
+  </table>
+  <p>还应该在团队层面做防护：</p>
+  <pre class="code" data-lang="ini"><code># redis.conf：把危险命令改名或禁用
+rename-command KEYS ""
+rename-command FLUSHALL ""
+rename-command FLUSHDB ""
+rename-command CONFIG "CONFIG-8f3a2b"    # 改名：自己人可用，脚本小子猜不到</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">3.4</span> SCAN 家族的正确用法</h2>
+  <p><code>SCAN</code> 是<strong>游标式增量迭代</strong>：每次只扫一小片，返回一个新游标，客户端分批推进。它不会阻塞，代价是：</p>
+  <ul>
+    <li><strong>可能返回重复元素</strong>：客户端要去重（用 Set 或业务幂等）；</li>
+    <li><strong>迭代期间有改动时可能漏/可能多</strong>：它是"某时刻快照的一致性弱保证"；</li>
+    <li><strong>COUNT 不是"每次返回 COUNT 个"</strong>，而是"每批扫描的桶数提示值"，默认 10；返回 0 个也很正常。</li>
+  </ul>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SCAN 0 MATCH user:* COUNT 500
+1) "176"                     # ① 下一批的游标
+2) 1) "user:1001"            # ② 本批结果
+   2) "user:1007"
+127.0.0.1:6379&gt; SCAN 176 MATCH user:* COUNT 500
+1) "0"                       # 游标回到 0 = 一轮遍历结束
+2) 1) "user:1012"</code></pre>
+  <p>每种结构都有自己的 SCAN（<strong>不要用 SCAN 去遍历 Hash 的 field，用 HSCAN</strong>）：</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>命令</th><th>遍历对象</th><th>示例</th></tr></thead>
+    <tbody>
+      <tr><td>SCAN</td><td>key 空间</td><td><code>SCAN 0 MATCH order:* COUNT 1000</code></td></tr>
+      <tr><td>HSCAN</td><td>Hash 的 field</td><td><code>HSCAN user:1001 0 MATCH addr* COUNT 100</code></td></tr>
+      <tr><td>SSCAN</td><td>Set 成员</td><td><code>SSCAN tags:global 0 COUNT 100</code></td></tr>
+      <tr><td>ZSCAN</td><td>ZSet 成员+分数</td><td><code>ZSCAN rank:daily 0 COUNT 100</code></td></tr>
+    </tbody>
+  </table>
+  <p>安全删除"某前缀的全部 key"的标准写法（<strong>用 UNLINK 且分批</strong>，千万不要 <code>redis-cli KEYS x | xargs DEL</code>）：</p>
+  <pre class="code" data-lang="bash"><code># 方式一：一行搞定（redis-cli 内置 --scan，走的就是游标）
+redis-cli --scan --pattern "cache:product:*" --count 1000 | xargs -L 200 redis-cli UNLINK
+
+# 方式二：Lua 分批删除（几百个一组，避免单次命令过大）
+# 注意：Cluster 下要逐节点执行，且 Lua 里的 key 必须在同一 slot（第 47 章）
+redis-cli EVAL "local ks=redis.call('SCAN',ARGV[1],'MATCH',ARGV[2],'COUNT',1000)
+if ks[2] and #ks[2]&gt;0 then redis.call('UNLINK',unpack(ks[2])) end
+return {ks[1], #ks[2]}" 0 0 "cache:product:*"</code></pre>
+  <div class="warn-box"><strong>坑</strong>：在生产的一次性脚本里用 Lua 做全库 SCAN+DEL，如果 key 上千万，脚本执行时间依然很长；<strong>Redis 的 Lua 脚本是原子执行的，同样会阻塞</strong>。务必在外层按游标分批、每批 1000-5000 个、批间 sleep 几十毫秒。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">3.5</span> key 命名规范：一套用三年的约定</h2>
+  <p class="lead"><b>命名规范的三个目标：<b>可读（人能猜出是什么）、可管（能批量操作与统计）、可控（长度合适、有 TTL）</b>。</b></p>
+
+  <h4>① 结构：<code>业务:子对象:标识[:子标识]</code></h4>
+  <pre class="code" data-lang="bash"><code>user:profile:1001            用户 1001 的资料（Hash）
+user:token:abc123            登录 token（String，TTL）
+order:detail:20240915:7788   订单详情（含业务日期，便于按天管理）
+product:stock:1001           商品库存（String）
+rank:weekly:2026W42          周榜（ZSet）
+lock:order:pay:7788          分布式锁（String，短 TTL）
+cache:api:/v1/home?city=bj   接口级缓存（Hash key + field=参数 hash）</code></pre>
+
+  <h4>② 四条硬规则</h4>
+  <ol>
+    <li><strong>统一小写 + 冒号分隔</strong>：Redis 的 key 是二进制安全的，但团队约定统一最省心；冒号是事实标准（Spring Cache / 各种可视化工具都按冒号分层显示）。</li>
+    <li><strong>长度控制在 40 字符内</strong>：1000 万个 key，每个多 10 字节就多 ~100MB 内存（还要算 SDS 与 dict 开销）。用缩写：product → prd，detail → dtl。</li>
+    <li><strong>必带业务前缀</strong>：没有前缀 = 无法统计、无法批量删除、无法拆分。强烈反感 <code>SET 1001 xxx</code> 这种写法。</li>
+    <li><strong>每个 key 都要有 TTL</strong>：除非它是必须从硬盘恢复的基础数据（即便如此也建议用永不过期 + 主动管理的白名单）。</li>
+  </ol>
+
+  <h4>③ 用<strong>命名空间表</strong>固化下来</h4>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:24%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>前缀</th><th>类型</th><th>TTL 策略</th><th>归属服务</th></tr></thead>
+    <tbody>
+      <tr><td><code>cache:*</code></td><td>Hash/String</td><td>10-30 分钟 + 随机抖动</td><td>all（可随时删）</td></tr>
+      <tr><td><code>session:*</code></td><td>Hash</td><td>30 分钟滑动续期</td><td>auth-service</td></tr>
+      <tr><td><code>lock:*</code></td><td>String</td><td>10-30 秒</td><td>各服务（禁止误删）</td></tr>
+      <tr><td><code>rank:*</code></td><td>ZSet</td><td>按周期 + 定期归档</td><td>activity-service</td></tr>
+      <tr><td><code>mq:*</code></td><td>List/Stream</td><td>视消费情况</td><td>job-service</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">把这张表放进 README / Confluence，并在 Code Review 清单里加一条："新加的 Redis key 有没有前缀？有没有 TTL？"（第 29 章会给出完整模板）。</p>
+
+  <h4>④ 命名里不要做的事</h4>
+  <ul>
+    <li>不要在 key 里放<strong>可能变化的业务值</strong>（如用户名），否则改名时缓存追踪不到；用稳定的 id。</li>
+    <li>不要在 key 里塞<strong>完整 URL 或未转义的参数</strong>：太长且可能含特殊字符。用 md5/crc32 摘要（<code>cache:api:a1b2c3d4</code>）。</li>
+    <li>不要依赖 <code>SELECT</code> 分库做业务隔离（见第 2 章），Cluster 模式下会直接失效。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">3.6</span> 常见坑：命令与命名的雷区</h2>
+  <div class="warn-box"><strong>坑 1</strong>：<code>EXISTS</code> 传多个 key 返回的是<strong>存在的总数</strong>而不是逐个结果，别当成 <code>[0,1,1]</code> 用。</div>
+  <div class="warn-box"><strong>坑 2</strong>：<code>TTL</code> 返回 <code>-1</code>（永久）和 <code>-2</code>（不存在）是两个完全不同的含义；很多 bug 来自"if ttl &lt; 0 then 续期"，结果对不存在的 key 做了无效操作。</div>
+  <div class="warn-box"><strong>坑 3</strong>：<code>EXPIRE</code> 之后又 <code>SET</code> 同 key，<strong>TTL 被清</strong>。修复用 <code>SET ... KEEPTTL</code> 或先读 TTL 再设。</div>
+  <div class="warn-box"><strong>坑 4</strong>：以为 <code>DEL</code> 很快就用它删几十万元素的集合。<strong>释放内存本身有成本</strong>，一律 <code>UNLINK</code> 或配置 <code>lazyfree-lazy-user-del yes</code>。</div>
+  <div class="warn-box"><strong>坑 5</strong>：删除主键忘了删索引/辅助 key，产生"孤儿缓存"。把所有相关 key 放进同一个 Lua 脚本或一个事务删。</div>
+  <div class="warn-box"><strong>坑 6</strong>：key 里用中文/emoji。技术上支持（二进制安全），但排查、可视化、迁移工具都容易出问题。</div>
+  <div class="warn-box"><strong>坑 7</strong>：不同环境（dev/test/prod）共用同一个 Redis 实例且 key 前缀相同 → 数据互相污染。至少加 <code>{env}:</code> 前缀，或直接分开实例。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>通用命令</td><td>EXISTS / TYPE / DEL / UNLINK / EXPIRE / PERSIST / RENAME / TOUCH / OBJECT</td></tr>
+      <tr><td>SET 会清 TTL</td><td>覆盖写必须加 KEEPTTL，否则 key 变成永不过期</td></tr>
+      <tr><td>两层类型</td><td>TYPE 看对外类型，OBJECT ENCODING 看底层实现；小数据用紧凑编码</td></tr>
+      <tr><td>禁止 KEYS</td><td>O(N) 阻塞单线程，可能引发雪崩甚至误判主库下线 → 用 SCAN</td></tr>
+      <tr><td>SCAN 特性</td><td>游标分批、可能重复、COUNT 只是提示值、Type 要用 HSCAN/SSCAN/ZSCAN</td></tr>
+      <tr><td>命名规范</td><td>业务:子对象:标识，小写冒号、≤40 字符、必带前缀、必有 TTL</td></tr>
+      <tr><td>批量删除</td><td><code>redis-cli --scan | xargs -L 200 UNLINK</code>，或分批 Lua</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写入 5 个 <code>demo:user:N</code> 的 String（N=1..5），用 SCAN 从游标 0 开始完整遍历一遍，记录每批返回的游标与元素数量，体会"返回空数组但游标非 0"的情况。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个 Lua 脚本：每批 SCAN 1000 个 <code>cache:tmp:*</code> 并用 UNLINK 删除，返回删除总数；在脚本外层分批调用直到游标为 0。要求：单次脚本执行不超过 2000 个元素。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>你们团队有一个"文章详情缓存"，key 是 <code>article:{id}</code>（无 TTL），另有索引 <code>article:idx:hot</code>（ZSet）。请指出这套设计的三个问题，并给出改进后的 key 规范（含命名、TTL、删除时的原子性）。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章开始逐个拆解五大基本结构，第一个是 String。</p>
+</section>
+
+</main>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<footer>从 0 到精通 · 《Redis 从 0 到精通》 · 第 {num} 章 {title}</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+{scripts}</body>
+</html>

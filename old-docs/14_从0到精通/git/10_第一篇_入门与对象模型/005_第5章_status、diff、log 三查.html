@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 5 章 status/diff/log 三查｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第一篇 入门与对象模型</p>
+    <h1>第 5 章 status/diff/log 三查</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 5 章 / 共 40 章 · 预计 45 分钟 · 高频实用章</span>
+    </div>
+    <p class="hero-desc">这三个命令占日常 Git 使用量的七成以上：status 看"现在在哪"，diff 看"改了什么"，log 看"从哪来"。本章把它们的高频参数、组合用法与输出解读一次讲透，并给出可直接抄进 ~/.gitconfig 的别名。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="004_第4章_三区模型：工作区、暂存区、仓库.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="006_第6章_撤销修改：checkout 与 restore.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">5.1 git status：我在哪</a></li>
+    <li><a href="#sec3">5.2 git diff：改了什么</a></li>
+    <li><a href="#sec4">5.3 git log：从哪来</a></li>
+    <li><a href="#sec5">5.4 场景演练：调查一次"不明改动"</a></li>
+    <li><a href="#sec6">5.5 检索历史：按内容、按作者、按时间</a></li>
+    <li><a href="#sec7">5.6 值得抄走的别名组合</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能熟练使用 <code>status</code> 的短格式与 <code>-uall / --ignored</code> 变体；</li>
+    <li>分清 <code>diff</code>、<code>diff --staged</code>、<code>diff HEAD</code> 三种对比基准，会限定文件与生成补丁；</li>
+    <li>掌握 <code>log</code> 的 <code>--oneline --graph --decorate</code> 三件套与 <code>-p/-S/--author</code> 检索；</li>
+    <li>能独立调查"这段代码是谁、什么时候、为什么改的"。</li>
+  </ul>
+  <div class="note"><strong>演练数据</strong>：为便于练习，先造一个 5 次提交的小仓库（脚本见 5.3）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">5.1</span> git status：我在哪</h2>
+  <pre class="code" data-lang="bash"><code>git status                 # 完整输出（含提示语，适合新手）
+git status -s              # 短格式（老手默认）
+git status -sb             # 短格式 + 当前分支名与追踪信息
+git status -uall           # 展开未跟踪目录里的具体文件（默认只显示目录）
+git status --ignored       # 同时列出被 .gitignore 忽略的文件
+
+# 只看某目录/文件
+git status -- src/</code></pre>
+  <p><code>-sb</code> 的输出第一行形如 <code>## main...origin/main [ahead 2]</code>——一眼看出：当前分支 main、追踪 origin/main、本地领先 2 个提交。<strong>这是判断"该不该 push"最快的信号</strong>。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>-s 状态码</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>??</code></td><td>未跟踪（新文件）</td></tr>
+      <tr><td><code>A </code></td><td>新增并已暂存</td></tr>
+      <tr><td><code> M</code>（右列）</td><td>工作区已改，未暂存</td></tr>
+      <tr><td><code>M </code>（左列）</td><td>已暂存待提交</td></tr>
+      <tr><td><code>MM</code></td><td>暂存后工作区又改了</td></tr>
+      <tr><td><code>D</code> / <code>R</code></td><td>删除 / 重命名（Git 靠内容相似度识别重命名）</td></tr>
+      <tr><td><code>UU</code></td><td>冲突未解决（第二篇详解）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">5.2</span> git diff：改了什么</h2>
+  <p>diff 的本质是"两个版本之间的补丁"。基准不同，结果完全不同：</p>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>命令</th><th>对比基准</th></tr></thead>
+    <tbody>
+      <tr><td><code>git diff</code></td><td>工作区 vs 暂存区（默认）</td></tr>
+      <tr><td><code>git diff --staged</code>（同 <code>--cached</code>）</td><td>暂存区 vs HEAD</td></tr>
+      <tr><td><code>git diff HEAD</code></td><td>工作区 vs HEAD（前两者之和）</td></tr>
+      <tr><td><code>git diff &lt;c1&gt; &lt;c2&gt;</code></td><td>两次提交之间</td></tr>
+      <tr><td><code>git diff branchA..branchB</code></td><td>两分支尖端之间（<code>...</code> 三点语法为共同祖先起）</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 限定文件/目录
+git diff -- src/app.py
+git diff HEAD~1 -- src/
+
+# 只看改动统计（适合大改动先总览）
+git diff --stat
+git diff HEAD~3 --stat
+
+# 忽略纯空白改动（CRLF/缩进大战时救命）
+git diff -w
+
+# 词级高亮：看清一行内改了哪几个词
+git diff --word-diff
+
+# 生成补丁文件（可邮件发给同事 / 存档）
+git diff HEAD~1 &gt; fix.patch
+git apply fix.patch        # 在别处应用
+
+# 重命名识别与相似度阈值
+git diff -M --find-renames=40%</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">坑</span>：<code>git diff</code> 什么都不显示，不代表没改动——很可能改动已经 <code>add</code> 进暂存区了。此时要看 <code>git diff --staged</code>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">5.3</span> git log：从哪来</h2>
+  <pre class="code" data-lang="bash"><code># 造练习数据（可跳过）
+mkdir -p ~/git-lab/ch05 && cd ~/git-lab/ch05 && git init
+for i in 1 2 3; do echo "v$i" &gt;&gt; app.txt; git add .; git commit -m "feat: 第 $i 次改动"; done
+git checkout -b feature-login
+echo "login" &gt;&gt; app.txt; git add .; git commit -m "feat: 登录功能"
+git checkout main
+echo "hotfix" &gt;&gt; app.txt; git add .; git commit -m "fix: 紧急修复"
+git merge feature-login -m "merge: 合并登录功能"</code></pre>
+  <p>基础三件套：<code>--oneline</code>（一行一条）+ <code>--graph</code>（画分支线）+ <code>--decorate</code>（显示分支/标签指向）：</p>
+  <pre class="code" data-lang="bash"><code>git log --oneline --graph --decorate --all
+# *   7a3f1c2 (HEAD -&gt; main) merge: 合并登录功能
+# |\
+# | * 5b2e9d1 (feature-login) feat: 登录功能
+# * | 3c1a8f0 fix: 紧急修复
+# |/
+# * 9d8e7c6 feat: 第 3 次改动
+# * 4a5b6c7 feat: 第 2 次改动
+# * 1f2e3d4 feat: 第 1 次改动</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>常用参数</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>-n</code> / <code>-3</code></td><td>只看最近 n 条</td></tr>
+      <tr><td><code>-p</code></td><td>展开每次提交的完整补丁</td></tr>
+      <tr><td><code>--stat</code> / <code>--shortstat</code></td><td>改动统计</td></tr>
+      <tr><td><code>--name-only</code> / <code>--name-status</code></td><td>只列文件名（含 A/M/D 状态）</td></tr>
+      <tr><td><code>--author="Zhang"</code></td><td>按作者过滤</td></tr>
+      <tr><td><code>--since="2 weeks ago"</code></td><td>按时间过滤（支持 <code>--until</code>）</td></tr>
+      <tr><td><code>--grep="登录"</code></td><td>按提交信息关键字过滤</td></tr>
+      <tr><td><code>-S"函数名"</code></td><td>按<strong>内容</strong>变化检索（pickaxe，见 5.5）</td></tr>
+      <tr><td><code>--follow 文件</code></td><td>跟踪文件改名前的历史</td></tr>
+      <tr><td><code>--first-parent</code></td><td>只看主线（跳过合并进来的分支细节）</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 查看某次提交本身（等价于 git show）
+git show 5b2e9d1
+git show HEAD --stat          # 最近一次提交改了哪些文件
+git show HEAD:src/app.py      # 查看某提交里某文件的内容（不检出！）</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5.4</span> 场景演练：调查一次"不明改动"</h2>
+  <p>需求：线上发现 <code>app.txt</code> 里多了一行怪内容，要查<strong>谁、哪次提交、为什么</strong>。</p>
+  <pre class="code" data-lang="bash"><code># 1. 先总览该文件最近改动
+git log --oneline -5 -- app.txt
+# 5b2e9d1 feat: 登录功能
+# 9d8e7c6 feat: 第 3 次改动
+
+# 2. 看具体改了什么
+git log -p -1 5b2e9d1 -- app.txt
+# +login
+
+# 3. 逐行溯源：每一行最后是谁改的
+git blame app.txt
+# 5b2e9d1 (Zhang San 2026-06-10 14:22:03 +0800 4) login
+#   ^提交号  ^作者      ^时间                    ^行号 ^内容
+
+# 4. 只要某几行
+git blame -L 4,6 app.txt</code></pre>
+  <p><code>git blame</code> 常被误解为"甩锅工具"，实际用途是：<strong>找到改动对应的提交号，再用 <code>git show</code> 看当时的完整上下文与提交信息</strong>——那里通常写着"为什么这么改"。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">5.5</span> 检索历史：按内容、按作者、按时间</h2>
+  <pre class="code" data-lang="bash"><code># pickaxe：找出"某字符串被加入或删除"的提交
+git log -S"maxRetry" --oneline
+git log -S"maxRetry" --oneline -- src/      # 限定目录
+git log -G"regex.*pattern" --oneline         # -G 支持正则
+
+# 组合查询：张三在最近两周里改过登录相关代码
+git log --author="Zhang" --since="2 weeks ago" --grep="登录" --oneline
+
+# 只看某个作者的代码量统计（团队周报常用）
+git shortlog -sn --since="1 month ago"
+#    42  Zhang San
+#    17  Li Si
+
+# 查"某提交之后到现在"的范围
+git log feature..main --oneline      # 在 main 但不在 feature 的提交
+git log main..feature --oneline      # 在 feature 但不在 main 的（即将合并的）</code></pre>
+  <p class="key-sentence"><code>A..B</code> 读作"<strong>在 B 里且不在 A 里</strong>"，是分支对比、发布前检查的万能语法（第 18、33 章反复用到）。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">5.6</span> 值得抄走的别名组合</h2>
+  <pre class="code" data-lang="bash"><code>git config --global alias.st "status -sb"
+git config --global alias.df "diff"
+git config --global alias.dfs "diff --staged"
+git config --global alias.dfst "diff --stat"
+git config --global alias.lg "log --oneline --graph --decorate --all"
+git config --global alias.last "log -1 --stat"
+git config --global alias.who "shortlog -sn --since=1 month ago"
+
+# 自定义格式：一行里放 短哈希 | 相对时间 | 作者 | 标题
+git config --global alias.lp "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)&lt;%an&gt;%Creset' --abbrev-commit"</code></pre>
+  <div class="note"><strong>pretty format 占位符速记</strong>：<code>%h</code> 短哈希、<code>%H</code> 全哈希、<code>%an</code> 作者名、<code>%ar/%ad</code> 相对/绝对时间、<code>%s</code> 标题、<code>%d</code> 引用装饰（分支/标签）。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：<code>git diff</code> 空输出 → 改动已进暂存区，改用 <code>git diff --staged</code>；</li>
+    <li><span class="tag-pit">坑 2</span>：<code>git log</code> 看不到刚提交的分支 → 加 <code>--all</code>，或检查是否在其他分支；</li>
+    <li><span class="tag-pit">坑 3</span>：<code>git log 文件</code> 只显示"到 HEAD 为止"的历史，改名前的记录要用 <code>--follow</code>；</li>
+    <li><span class="tag-pit">坑 4</span>：合并提交挤爆 log → 用 <code>--first-parent</code> 看主线，或 <code>--no-merges</code> 过滤掉合并节点；</li>
+    <li><span class="tag-pit">坑 5</span>：<code>blame</code> 看到的全是"格式化整个文件"的人 → 先 <code>git log -w</code>（忽略空白）或用 <code>-C</code> 检测跨文件搬运。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>status</td><td><code>-sb</code> 看分支与 ahead/behind；<code>-uall</code> 展开未跟踪</td></tr>
+      <tr><td>diff 三基准</td><td>默认工作区vs暂存区；<code>--staged</code> 暂存区vsHEAD；<code>diff HEAD</code> 全量</td></tr>
+      <tr><td>log 三件套</td><td><code>--oneline --graph --decorate</code>（建议别名 lg）</td></tr>
+      <tr><td>溯源三板斧</td><td><code>log -p -- 文件</code> 看改动 → <code>blame</code> 定位行 → <code>show</code> 看上下文</td></tr>
+      <tr><td>范围语法</td><td><code>A..B</code> = 在 B 不在 A；发布前必查</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>配置 <code>git lg</code> 别名，在练习仓库里观察分支分叉与合并的图形输出，指出哪条线是 feature 分支。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在任意仓库用 <code>git log -S"某个函数名" --oneline</code> 找出该函数被引入和被删除的两次提交，并说明改动背景。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 <code>git log main..origin/main</code> 与 <code>git log origin/main..main</code> 分别判断"我落后多少 / 领先多少"，并说明为什么两者都要看。</div>
+  <p class="note">下一章：撤销修改——checkout 与 restore 的分工，以及各类"反悔"的安全等级。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="004_第4章_三区模型：工作区、暂存区、仓库.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="006_第6章_撤销修改：checkout 与 restore.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 5 章 status/diff/log 三查</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

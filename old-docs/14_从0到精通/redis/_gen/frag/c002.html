@@ -1,0 +1,255 @@
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">2.1 版本与四种安装方式怎么选</a></li>
+    <li><a href="#sec3">2.2 Docker 起手式（推荐）</a></li>
+    <li><a href="#sec4">2.3 Linux 直接安装与 systemd 托管</a></li>
+    <li><a href="#sec5">2.4 redis-cli：不止是一条命令终端</a></li>
+    <li><a href="#sec6">2.5 redis.conf 与 CONFIG 命令</a></li>
+    <li><a href="#sec7">2.6 常见坑：环境问题排查清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能在 <strong>Docker / Linux / Windows</strong> 任一环境跑起一个 Redis 7.x 实例；</li>
+    <li>会用 <code>redis-cli</code> 做连接、切库、测延迟、批量导入、在线改写配置等日常操作；</li>
+    <li>能读懂一份 <code>redis.conf</code> 的<strong>关键 12 项</strong>，知道哪些必须改、哪些默认就够；</li>
+    <li>掌握 <code>CONFIG GET/SET/REWRITE</code> 与 <code>INFO</code> 这一对"体检+调参数"的组合拳；</li>
+    <li>踩坑时能按<strong>标准排查清单</strong>定位：连不上、密码错、保护模式、端口占用、数据消失。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 1 章。需要一台能跑命令行的机器（Windows 建议装 WSL2 或直接用 Docker）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">2.1</span> 版本与四种安装方式怎么选</h2>
+  <p class="lead"><b>版本选择一句话：<b>学习用最新版，生产只用稳定版（7.0/7.2/7.4）</b>，绝不碰 Windows 老旧二进制。</b></p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:26%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>方式</th><th>适合场景</th><th>优点</th><th>缺点</th></tr></thead>
+    <tbody>
+      <tr><td>Docker</td><td><strong>本机学习、Mac/Windows</strong></td><td>一条命令搞定，秒起秒删，多实例方便</td><td>数据要挂卷持久化，网络概念多一层</td></tr>
+      <tr><td>Linux 包管理</td><td>虚拟机、开发机</td><td>有 systemd 托管，接近生产形态</td><td>仓库版本可能偏旧（需换官方源）</td></tr>
+      <tr><td>源码编译</td><td>生产、云主机</td><td>版本可控、可定制（如指定 jemalloc）</td><td>要装 gcc/make，耗时几分钟</td></tr>
+      <tr><td>Windows 原生</td><td><strong>不推荐</strong></td><td>不用装虚拟机</td><td>微软维护的分支停在 3.x/5.x 很久，特性缺失；用 WSL2/Docker 更好</td></tr>
+    </tbody>
+  </table>
+  <p>本书所有命令以 <strong>Redis 7.x</strong> 为准；若你是 6.x，绝大多数命令完全一致，差异处会标注。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">2.2</span> Docker 起手式（推荐）</h2>
+  <pre class="code" data-lang="bash"><code># ① 最简：临时跑一个，容器删除即失效（仅练手）
+docker run --name redis7 -p 6379:6379 -d redis:7.2 redis-server --appendonly yes
+
+# ② 正式一点：数据挂到宿主机，避免容器删了数据也没了
+mkdir -p ~/redis-lab/{conf,data}
+docker run --name redis7 \
+  -p 6379:6379 \
+  -v ~/redis-lab/data:/data \
+  -v ~/redis-lab/conf/redis.conf:/usr/local/etc/redis/redis.conf \
+  -d redis:7.2 redis-server /usr/local/etc/redis/redis.conf
+
+# ③ 进容器执行 cli（最常用）
+docker exec -it redis7 redis-cli
+127.0.0.1:6379&gt; PING
+PONG
+127.0.0.1:6379&gt; SET hello world EX 60
+OK
+127.0.0.1:6379&gt; GET hello
+"world"
+127.0.0.1:6379&gt; TTL hello
+(integer) 57</code></pre>
+  <p>想同时起三个实例做主从实验（第 43 章），直接用 compose：</p>
+  <pre class="code" data-lang="yaml"><code># docker-compose.yml
+services:
+  redis-master:
+    image: redis:7.2
+    ports: ["6379:6379"]
+    command: redis-server --appendonly yes
+  redis-replica:
+    image: redis:7.2
+    ports: ["6380:6379"]
+    command: redis-server --appendonly yes --replicaof redis-master 6379</code></pre>
+  <pre class="code" data-lang="bash"><code>docker compose up -d
+docker compose logs -f redis-replica   # 看同步日志</code></pre>
+  <div class="note"><strong>提示</strong>：Docker 部署务必理解两件事——<strong>数据必须在卷里</strong>（<code>/data</code> 挂载），<strong>端口映射不能漏</strong>（<code>-p 6379:6379</code>），否则"连不上"和"重启后数据没了"这两个问题必然会依次找上你。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">2.3</span> Linux 直接安装与 systemd 托管</h2>
+  <pre class="code" data-lang="bash"><code># Ubuntu / Debian（官方源，版本较新）
+curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/redis.list
+sudo apt update &amp;&amp; sudo apt install -y redis-server
+
+# CentOS / Rocky
+sudo yum install -y epel-release &amp;&amp; sudo yum install -y redis
+
+# 源码编译（想要指定版本时）
+wget https://download.redis.io/releases/redis-7.2.4.tar.gz
+tar xzf redis-7.2.4.tar.gz &amp;&amp; cd redis-7.2.4
+make MALLOC=jemalloc -j$(nproc) &amp;&amp; sudo make install</code></pre>
+  <p>托管与日常运维：</p>
+  <pre class="code" data-lang="bash"><code>sudo systemctl enable --now redis-server     # 开机自启
+sudo systemctl status  redis-server
+sudo systemctl restart redis-server
+redis-cli SHUTDOWN NOSAVE                    # 优雅关机（NOSAVE 表示不触发 RDB）
+redis-server /etc/redis/redis.conf &amp;         # 前台/后台指定配置启动
+
+# 多实例（同一台机跑两个 Redis，后续主从实验用）
+redis-server --port 6380 --dir /var/lib/redis-6380 --daemonize yes
+redis-cli -p 6380 PING</code></pre>
+  <p class="key-sentence">记住 <b>--port / --dir / --daemonize / 配置文件路径</b> 这四个启动参数：书上后面所有"同机起多个实例"的实验都靠它们。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">2.4</span> redis-cli：不止是一条命令终端</h2>
+  <p>大多数人只会 <code>redis-cli</code> 进去敲命令，但它更像一把瑞士军刀：</p>
+  <pre class="code" data-lang="bash"><code># 连接相关
+redis-cli -h 127.0.0.1 -p 6379 -a password      # 带密码（-a 会被 ps 看到，建议用环境变量）
+redis-cli -n 1                                  # 直接进 1 号库（逻辑分库，共 16 个）
+redis-cli --raw                                 # 中文不转义（ "\xe4\xb8\xad" -> 中 ）
+redis-cli -u redis://:pwd@host:6379/0           # URL 形式
+redis-cli --tls --cacert ./ca.crt               # TLS 连接
+
+# 非交互：直接拿结果，写脚本非常好用
+redis-cli SET counter 0
+redis-cli INCR counter                          # -&gt; 1
+redis-cli GET counter | xargs echo "counter is"
+
+# 探测与诊断（运维高频）
+redis-cli PING                    # PONG = 活着
+redis-cli INFO server | head -20  # 版本、运行天數、进程号
+redis-cli INFO stats | grep -E "keyspace_(hits|misses)"   # 命中率数据源（第 31 章）
+redis-cli DBSIZE                  # 当前库 key 数量（O(1)，可随便用）
+redis-cli --latency               # 实时延迟采样，找网络/阻塞问题
+redis-cli --latency-history       # 每 15 秒一段的延迟历史
+redis-cli --bigkeys               # 扫描大 key（第 17 章）
+redis-cli --hotkeys               # 热 key（需 LFU 淘汰策略，第 18 章）
+redis-cli --scan --pattern "user:*" --count 1000   # CLI 层分批扫描
+redis-cli --stat                  # 每秒刷新一行的实时监控
+redis-cli MONITOR                 # 打印所有命令（警告：生产勿用，吞吐会掉一半以上）
+
+# 批量写入与清理
+redis-cli SET big "$(cat huge.json)"         # 用 shell 变量塞进去
+cat orders.txt | redis-cli --pipe            # 百万级写入用 pipeline 协议
+redis-cli FLUSHDB                            # 清空当前库
+redis-cli FLUSHALL ASYNC                     # 全库清（ASYNC 避免阻塞，7.x 默认异步选项）</code></pre>
+  <h4>交互模式下的小技巧</h4>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; TAB 补全            # 敲 SE + TAB 自动补全 SET
+127.0.0.1:6379&gt; HELP @string        # 查看 String 组全部命令
+127.0.0.1:6379&gt; SELECT 2            # 切库 0-15
+127.0.0.1:6379&gt; CLIENT LIST         # 看连接
+127.0.0.1:6379&gt; COMMAND COUNT       # 命令总数
+127.0.0.1:6379&gt; COMMAND INFO GET SET DEL    # 单命令的复杂度/标志
+127.0.0.1:6379&gt; CONFIG GET maxmemory
+1) "maxmemory"
+2) "0"</code></pre>
+  <div class="warn-box"><strong>注意</strong>：Redis 的 <strong>16 个逻辑库</strong>（db0-db15）跟 MySQL 的 database 不是一回事。它只是个 key 前缀隔离，<strong>不支持权限隔离、不支持集群模式（Cluster 只有 db0）</strong>。正规做法是<strong>多个业务共享一个库、靠 key 前缀区分</strong>，见到用 SELECT 切换不同业务的架构要警惕。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">2.5</span> redis.conf 与 CONFIG 命令</h2>
+  <p>一份精简但能上手的 <code>redis.conf</code>，标注了每项的作用：</p>
+  <pre class="code" data-lang="ini"><code># ===== 网络 =====
+bind 127.0.0.1 -::1        # 只监听本机；要外部访问改成 0.0.0.0 并务必配防火墙+密码
+port 6379
+protected-mode yes         # 无 bind、无密码时禁止外部连接，默认别关
+tcp-keepalive 300
+timeout 0                  # 0=不断开空闲连接（推荐长连接）
+
+# ===== 安全 =====
+requirepass Str0ng!Pass    # Redis 6+ 更推荐 ACL：ACL SETUSER appuser on &gt;pwd ~cache:* +get +set
+rename-command FLUSHALL "" # 把危险命令改名/禁用（第 53 章）
+
+# ===== 内存 =====
+maxmemory 4gb              # 必配！默认 0 表示不限制
+maxmemory-policy allkeys-lru
+
+# ===== 持久化 =====
+appendonly yes             # 开启 AOF
+appendfilename "appendonly.aof"
+appendfsync everysec       # 折衷档
+save 3600 1 300 100 60 10000
+dir /var/lib/redis         # RDB/AOF 文件落盘目录，务必指定且可写
+dbfilename dump.rdb
+
+# ===== 日志 =====
+logfile /var/log/redis/redis-server.log
+loglevel notice</code></pre>
+  <p>运行时改配置不用重启：</p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; CONFIG GET maxmemory*
+1) "maxmemory"
+2) "4294967296"
+3) "maxmemory-policy"
+4) "allkeys-lru"
+127.0.0.1:6379&gt; CONFIG SET maxmemory-policy volatile-lru
+OK
+127.0.0.1:6379&gt; CONFIG REWRITE            # 把当前 SET 的值写回 redis.conf（注意权限）
+127.0.0.1:6379&gt; CONFIG SET appendonly yes # 在线开 AOF（触发一次全量刷盘）</code></pre>
+  <div class="danger-box"><strong>警告</strong>：<code>CONFIG SET</code> 只在<strong>运行时生效</strong>，重启会丢。要么同步执行 <code>CONFIG REWRITE</code>，要么把改动同步到配置中心/Ansible/K8s ConfigMap——否则某天重启后你会发现"配置怎么退回去了"，这是运维最常见的背锅场景。</div>
+  <p>最后，<code>INFO</code> 是最全面的体检报告，常用小节：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:42%"><col style="width:36%"></colgroup>
+    <thead><tr><th>小节</th><th>能看到什么</th><th>关键字段</th></tr></thead>
+    <tbody>
+      <tr><td>server</td><td>版本、模式、运行时长</td><td>redis_version、uptime_in_days</td></tr>
+      <tr><td>clients</td><td>连接数</td><td>connected_clients、blocked_clients</td></tr>
+      <tr><td>memory</td><td>内存与碎片</td><td>used_memory_human、mem_fragmentation_ratio</td></tr>
+      <tr><td>persistence</td><td>RDB/AOF 状态</td><td>rdb_last_bgsave_status、aof_last_bgrewrite_status</td></tr>
+      <tr><td>stats</td><td>命中/未命中/淘汰</td><td>keyspace_hits、keyspace_misses、evicted_keys</td></tr>
+      <tr><td>replication</td><td>主从角色与偏移</td><td>role、master_repl_offset、connected_slaves</td></tr>
+      <tr><td>commandstats</td><td>命令调用次数与耗时</td><td>cmdstat_get、cmdstat_hgetall</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">2.6</span> 常见坑：环境问题排查清单</h2>
+  <ol>
+    <li><strong>连不上（Connection refused）</strong>：先确认服务在运行（<code>ps aux | grep redis</code> 或 <code>docker ps</code>），再确认端口映射/防火墙/bind 地址。</li>
+    <li><strong>远程连得上但 EXEC/读写被拒（DENIED Redis is running in protected mode）</strong>：因为你没配 bind 也没密码。三选一：绑定内网 IP、设 requirepass、或明确关闭 protected-mode（<strong>且必须配合防火墙</strong>）。</li>
+    <li><strong>NOAUTH Authentication required</strong>：设置了密码但客户端没带。<code>-a pwd</code> 或 <code>AUTH pwd</code>（注意 <code>-a</code> 会在 <code>ps</code> 里暴露，脚本里建议用环境变量）。</li>
+    <li><strong>重启后数据没了</strong>：① 没开 AOF 且没触发过 RDB；② Docker 容器重建但没挂 volume；③ <code>dir</code> 目录不可写导致持久化失败（看 logfile）。</li>
+    <li><strong>MISCONF Redis is configured to save RDB snapshots but is currently not able to persist to disk</strong>：磁盘满、目录没权限或 bak 落地失败。此时<strong>写命令会被拒绝</strong>，属于自我保护，先清磁盘/修权限。</li>
+    <li><strong>数据写入极慢</strong>：常见原因是每条命令一次 <code>docker exec</code>（RTT 叠加），或 AOF 设为 <code>always</code>，或客户端没用连接池。</li>
+    <li><strong>本机 telnet 6379 能通但应用报超时</strong>：检查是否连错库（不存在的 db index 在某些客户端会报错）、是否用了集群协议连单机。</li>
+    <li><strong>中文乱码</strong>：加 <code>redis-cli --raw</code>；程序里注意字符集统一 UTF-8。</li>
+  </ol>
+  <div class="key-sentence">排查口诀：<b>先看存活（PING），再看网络（端口/防火墙），再看凭据（密码/ACL），最后看磁盘与配置（dir/logfile/maxmemory）。</b></div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>安装方式</td><td>学习用 Docker；生产用官方源或源码编译；不用 Windows 原生版</td></tr>
+      <tr><td>Docker 三要素</td><td>端口映射、数据卷挂载、配置文件挂载</td></tr>
+      <tr><td>redis-cli 高频</td><td>-n/--raw/-a/--pipe/--scan/--bigkeys/--hotkeys/--latency/--stat</td></tr>
+      <tr><td>16 个逻辑库</td><td>只是 key 前缀隔离，Cluster 下只有 db0，别用来隔离业务权限</td></tr>
+      <tr><td>必配项</td><td>bind/requirepass/maxmemory/maxmemory-policy/appendonly/dir/logfile</td></tr>
+      <tr><td>CONFIG SET</td><td>运行时生效，记得 REWRITE 或同步到配置管理</td></tr>
+      <tr><td>排查口诀</td><td>存活 → 网络 → 凭据 → 磁盘与配置</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 Docker 起一个 Redis 7.2 实例并挂载数据卷；写入 3 个带 TTL 的 key，删除容器后用 <code>--raw</code> 确认数据仍在。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 <code>redis-cli --stat</code> 观察 10 秒；然后用 <code>INFO stats</code> 取出 keyspace_hits 与 keyspace_misses，手工算出当前命中率（公式见第 31 章），并说出它为什么此刻不可信。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>不改配置文件的前提下，把当前实例的 <code>maxmemory</code> 设为 1GB、<code>maxmemory-policy</code> 设为 <code>volatile-lru</code>，并用 <code>CONFIG REWRITE</code> 落盘；随后查看 redis.conf，确认改动是否真的写进去了（如果没成功，说明原因）。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章进入通用命令与 key 设计规范。</p>
+</section>
+
+</main>

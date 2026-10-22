@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 4 章 三区模型：工作区、暂存区、仓库｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第一篇 入门与对象模型</p>
+    <h1>第 4 章 三区模型：工作区、暂存区、仓库</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 4 章 / 共 40 章 · 预计 40 分钟 · 核心概念章</span>
+    </div>
+    <p class="hero-desc">"为什么 Git 要多一个暂存区？"——这是初学者最难理解、也最关键的设计。本章用一张流转图讲透工作区、暂存区、仓库三者的关系，并给出每个"区际移动"的准确命令，从此不再靠背命令猜结果。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="003_第3章_初始化与第一次提交.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="005_第5章_status、diff、log 三查.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">4.1 三个区域各是什么</a></li>
+    <li><a href="#sec3">4.2 文件的四种状态</a></li>
+    <li><a href="#sec4">4.3 场景演练：三区流转实操</a></li>
+    <li><a href="#sec5">4.4 为什么要有暂存区</a></li>
+    <li><a href="#sec6">4.5 区际移动命令速查</a></li>
+    <li><a href="#sec7">4.6 部分暂存：git add -p</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能画出三区流转图，并说出每个箭头对应的命令；</li>
+    <li>看到一个文件，能判断它处于<strong>未跟踪/已修改/已暂存/已提交</strong>四种状态中的哪一种；</li>
+    <li>理解<strong>暂存区的存在价值</strong>：精确挑选要提交的内容；</li>
+    <li>会用 <code>git add -p</code> 做"一次改动拆成两个提交"。</li>
+  </ul>
+  <div class="note"><strong>核心心智</strong>：Git 的每一次"移动"都是在区域间搬内容，命令名不重要，<strong>方向</strong>才重要。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">4.1</span> 三个区域各是什么</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="三区流转图">
+      <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Git 三区模型与区际命令</text>
+      <rect x="40" y="60" width="200" height="140" rx="10" fill="#f0f5e6" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="140" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">工作区</text>
+      <text x="140" y="116" text-anchor="middle" font-size="11.5" fill="#4f6348">Working Directory</text>
+      <text x="140" y="140" text-anchor="middle" font-size="11.5" fill="#4f6348">你实际编辑的文件</text>
+      <text x="140" y="164" text-anchor="middle" font-size="11.5" fill="#4f6348">改坏了随时可丢</text>
+      <rect x="300" y="60" width="200" height="140" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="400" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#b45309">暂存区</text>
+      <text x="400" y="116" text-anchor="middle" font-size="11.5" fill="#4f6348">Index / Staging Area</text>
+      <text x="400" y="140" text-anchor="middle" font-size="11.5" fill="#4f6348">下次提交的"草稿"</text>
+      <text x="400" y="164" text-anchor="middle" font-size="11.5" fill="#4f6348">位于 .git/index</text>
+      <rect x="560" y="60" width="200" height="140" rx="10" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
+      <text x="660" y="92" text-anchor="middle" font-size="14" font-weight="700" fill="#047857">仓库</text>
+      <text x="660" y="116" text-anchor="middle" font-size="11.5" fill="#4f6348">Repository (.git)</text>
+      <text x="660" y="140" text-anchor="middle" font-size="11.5" fill="#4f6348">已成型的历史快照</text>
+      <text x="660" y="164" text-anchor="middle" font-size="11.5" fill="#4f6348">几乎不可变</text>
+      <line x1="244" y1="120" x2="292" y2="120" stroke="#7a8a70" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="504" y1="120" x2="552" y2="120" stroke="#7a8a70" stroke-width="2" marker-end="url(#a4)"/>
+      <text x="268" y="108" text-anchor="middle" font-size="11" fill="#2d6a3f">add</text>
+      <text x="528" y="108" text-anchor="middle" font-size="11" fill="#2d6a3f">commit</text>
+      <line x1="552" y1="170" x2="504" y2="170" stroke="#7a8a70" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="292" y1="170" x2="244" y2="170" stroke="#7a8a70" stroke-width="2" marker-end="url(#a4)"/>
+      <text x="528" y="192" text-anchor="middle" font-size="11" fill="#b45309">reset/restore</text>
+      <text x="268" y="192" text-anchor="middle" font-size="11" fill="#b45309">checkout/restore</text>
+      <text x="400" y="232" text-anchor="middle" font-size="12" fill="#7a8a70">向右 = 前进（纳入历史）；向左 = 回退（撤销改动）</text>
+    </svg>
+    <p class="diagram-caption">图 4-1 三区模型：所有日常命令都是这四个箭头之一</p>
+  </div>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:30%"><col style="width:52%"></colgroup>
+    <thead><tr><th>区域</th><th>物理位置</th><th>特点</th></tr></thead>
+    <tbody>
+      <tr><td>工作区</td><td>项目目录（除 .git 外）</td><td>你看到、编辑的文件；改动尚未被 Git 记录</td></tr>
+      <tr><td>暂存区</td><td><code>.git/index</code>（二进制索引）</td><td>记录"下一次提交包含哪些内容"的清单</td></tr>
+      <tr><td>仓库</td><td><code>.git/objects</code> + <code>refs</code></td><td>提交后的历史对象，内容寻址、基本不可变</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">4.2</span> 文件的四种状态</h2>
+  <p>Git 视角下，一个文件永远处于四态之一（<code>git status</code> 就是在报这个）：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:30%"><col style="width:48%"></colgroup>
+    <thead><tr><th>状态</th><th>status 中的分组</th><th>含义与下一步</th></tr></thead>
+    <tbody>
+      <tr><td>未跟踪 Untracked</td><td>Untracked files</td><td>新文件，Git 从未记录；<code>git add</code> 后进入暂存</td></tr>
+      <tr><td>已修改 Modified</td><td>Changes not staged</td><td>已跟踪文件被改动，但没 add；可 add 或 restore 丢弃</td></tr>
+      <tr><td>已暂存 Staged</td><td>Changes to be committed</td><td>已在 index 中；<code>git commit</code> 即入库</td></tr>
+      <tr><td>已提交 Committed</td><td>（不显示）</td><td>与仓库中最新版本一致，工作区"干净"</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 短格式查看（左列 = 暂存区状态，右列 = 工作区状态）
+git status -s
+#  M README.md     # 右列 M：工作区改了，未 add
+# M  README.md     # 左列 M：已 add 到暂存区
+# MM README.md     # 两列都 M：暂存后又改了一次
+# ?? NEW.md        # 未跟踪
+# A  added.md      # 新文件已暂存
+# D  deleted.md    # 删除已暂存</code></pre>
+  <p class="key-sentence">记住 <code>-s</code> 的两列口诀：<strong>左列是"暂存区 vs 仓库"，右列是"工作区 vs 暂存区"</strong>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4.3</span> 场景演练：三区流转实操</h2>
+  <p>同一个文件连续改两次，观察它如何"分裂"到暂存区与工作区：</p>
+  <pre class="code" data-lang="bash"><code>echo "第一行" > demo.txt
+git add demo.txt && git commit -m "feat: 新增 demo.txt"   # C1 入库：内容=第一行
+
+echo "第二行" >> demo.txt
+git add demo.txt          # 暂存：index 里现在是"第一行+第二行"
+
+echo "第三行" >> demo.txt  # 工作区又改了，但没 add
+
+git status -s
+# MM demo.txt             # 暂存区比仓库多一行，工作区比暂存区又多一行
+
+# 三种对比，一次看懂
+git diff              # 工作区 vs 暂存区   → 显示"第三行"
+git diff --staged     # 暂存区 vs 仓库(HEAD) → 显示"第二行"
+git diff HEAD         # 工作区 vs 仓库(HEAD) → 显示"第二行+第三行"
+
+git commit -m "feat: 追加两行"
+git status -s
+#  M demo.txt            # 注意：第三行没进提交！它还在工作区</code></pre>
+  <div class="danger-box"><strong>这是新手最常踩的坑</strong>：以为 <code>add</code> 过一次，后面所有改动都会自动进提交。事实上<strong>提交的内容是"执行 commit 那一刻的暂存区"</strong>，之后的工作区改动不参与本次提交。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">4.4</span> 为什么要有暂存区</h2>
+  <p>直接 <code>commit -a</code> 一步到位不是更省事吗？暂存区换来的是三样东西：</p>
+  <ol>
+    <li><strong>精确挑选</strong>：一个文件里改了三处——两处是功能、一处是调试日志，可以只把功能改动的 hunks 放进提交（4.6 的 <code>add -p</code>）；</li>
+    <li><strong>分批提交</strong>：半天改了五个文件属于两个需求，用暂存区分两次提交，历史就变成两条清晰的记录而不是一坨"今天改了很多"；</li>
+    <li><strong>提交前预览</strong>：<code>git diff --staged</code> 让你在写入历史<strong>之前</strong>最后检查一遍要提交什么，避免把密码、临时文件、调试代码写进历史。</li>
+  </ol>
+  <p class="key-sentence">暂存区不是"多余的一步"，它是<strong>把"我改了什么"翻译成"我要提交什么"的编辑器</strong>——历史质量由此而来。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">4.5</span> 区际移动命令速查</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:44%"><col style="width:36%"></colgroup>
+    <thead><tr><th>方向</th><th>命令</th><th>效果</th></tr></thead>
+    <tbody>
+      <tr><td>工作区 → 暂存区</td><td><code>git add &lt;file&gt;</code> / <code>git add -A</code></td><td>把改动（含新文件）写入 index</td></tr>
+      <tr><td>暂存区 → 仓库</td><td><code>git commit [-m "msg"]</code></td><td>把 index 快照写入历史</td></tr>
+      <tr><td>暂存区 → 工作区</td><td><code>git restore --staged &lt;file&gt;</code></td><td>取消暂存（文件改动仍在）</td></tr>
+      <tr><td>仓库 → 工作区/暂存区</td><td><code>git restore --source=HEAD --staged --worktree &lt;file&gt;</code></td><td>用某提交的内容覆盖（丢弃改动）</td></tr>
+      <tr><td>仓库 → 暂存区</td><td><code>git reset &lt;commit&gt; -- &lt;file&gt;</code></td><td>把 index 中该文件回退到指定版本</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 取消暂存（最常用，安全的"反悔"）
+git restore --staged README.md
+
+# 丢弃工作区改动（危险：不可恢复）
+git restore README.md
+
+# 一步回到 HEAD 状态：暂存区与工作区都重置
+git restore --source=HEAD --staged --worktree README.md</code></pre>
+  <div class="warn-box"><strong>命名史</strong>：老教程里的 <code>git checkout -- &lt;file&gt;</code> 与 <code>git reset HEAD &lt;file&gt;</code> 已被 Git 2.23+ 的 <code>restore</code> 取代，语义更清晰。第 6 章完整对比。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">4.6</span> 部分暂存：git add -p</h2>
+  <pre class="code" data-lang="bash"><code># 交互式挑选"代码块（hunk）"进入暂存区
+git add -p src/app.py
+# Git 展示每个改动块并等待指令：
+# y  暂存这一块
+# n  不暂存这一块
+# s  把这一块再切小
+# e  手工编辑要暂存的行
+# q  退出
+# a  暂存本文件剩余所有块
+
+# 挑选完成后分别提交
+git commit -m "feat: 实现登录校验"        # 只含功能改动
+git add src/app.py && git commit -m "chore: 补充调试日志"  # 剩下的</code></pre>
+  <p>结果是两条语义清晰的提交，而不是一条混杂的"改了登录相关的一堆东西"。评审者、未来的你、以及 <code>git bisect</code> 都会感谢你。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：add 后又改，commit 少了最新改动 → 提交前 <code>git status -s</code> 确认没有 <code>MM</code>；</li>
+    <li><span class="tag-pit">坑 2</span>：<code>git restore &lt;file&gt;</code> 丢了半天工作量 → 它<strong>不可撤销</strong>；拿不准就先 <code>git stash</code>（第 25 章）或提交一个临时 commit；</li>
+    <li><span class="tag-pit">坑 3</span>：<code>git add .</code> 把不想提交的文件也加进去了 → 用 <code>.gitignore</code>（第 8 章）+ <code>git restore --staged</code> 撤回；</li>
+    <li><span class="tag-pit">坑 4</span>：以为删除文件要单独命令 → 直接 <code>rm</code> 后 <code>git add -A</code> 也能记录删除，或用 <code>git rm</code>（第 7 章）；</li>
+    <li><span class="tag-pit">坑 5</span>：暂存区内容忘了提交就切分支 → index 是仓库级的，切换分支可能冲突；先提交或 stash。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>三区</td><td>工作区（编辑）→ 暂存区（草稿）→ 仓库（历史）</td></tr>
+      <tr><td>四态</td><td>未跟踪 / 已修改 / 已暂存 / 已提交</td></tr>
+      <tr><td>三种 diff</td><td><code>diff</code>=工作区vs暂存区；<code>--staged</code>=暂存区vs仓库；<code>diff HEAD</code>=工作区vs仓库</td></tr>
+      <tr><td>暂存区的价值</td><td>精确挑选、分批提交、提交前预览</td></tr>
+      <tr><td>部分暂存</td><td><code>git add -p</code> 按 hunk 挑选，历史更干净</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>新建文件并提交后，改动两次（中间 add 一次），用 <code>git status -s</code> 与三种 diff 分别观察输出差异。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在一个文件里同时做"功能改动"和"加调试打印"，用 <code>git add -p</code> 拆成两次提交，提交后用 <code>git show</code> 验证两条提交各自内容。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>解释：为什么 <code>git commit -a</code> 在团队规范里常被限制使用？它绕过了暂存区的哪一层价值？</div>
+  <p class="note">下一章：status / diff / log 三查——把"看清楚当前状态与历史"练成肌肉记忆。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="003_第3章_初始化与第一次提交.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="005_第5章_status、diff、log 三查.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 4 章 三区模型：工作区、暂存区、仓库</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

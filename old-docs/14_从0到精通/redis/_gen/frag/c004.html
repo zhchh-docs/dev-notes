@@ -1,0 +1,235 @@
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">4.1 SET 的完整参数表</a></li>
+    <li><a href="#sec3">4.2 INCR 家族：Redis 最香的原子自增</a></li>
+    <li><a href="#sec4">4.3 MSET/MGET 与 Pipeline 的区别</a></li>
+    <li><a href="#sec5">4.4 SETNX → SET NX PX：锁的雏形</a></li>
+    <li><a href="#sec6">4.5 四位语义开关：NX/XX/EX/PX/KEEPTTL/GET</a></li>
+    <li><a href="#sec7">4.6 常见坑与大 value 红线</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>背下 <code>SET</code> 的完整签名并理解每个开关的语义（这是面试+实操双高频）；</li>
+    <li>理解 <code>INCR</code> 为什么<strong>天然线程安全</strong>，能用它做出"不需要加锁的计数器"；</li>
+    <li>区分 <code>MSET</code> 与 pipeline，知道什么时候该用哪一个；</li>
+    <li>亲手写出一个 <strong>SETNX 版 + SET NX EX 版</strong>的互斥锁，并指出前者为什么有 bug；</li>
+    <li>建立 <strong>String 的 value 大小红线</strong>（10KB 警惕 / 100KB 禁止）。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 3 章（key 规范与 TTL 语义）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">4.1</span> SET 的完整参数表</h2>
+  <p class="lead"><b>官方签名：<b><code>SET key value [NX|XX] [GET] [EX seconds|PX milliseconds|EXAT ts|PXAT ms|KEEPTTL]</code></b></b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SET user:1001 '{"name":"张三"}' EX 3600 NX
+OK                          # NX：key 不存在才设置（分布式锁的基础）
+127.0.0.1:6379&gt; SET user:1001 'new' EX 3600 NX
+(nil)                       # 已存在 → 什么都不做，返回 nil
+
+127.0.0.1:6379&gt; SET user:1001 'new' XX
+OK                          # XX：只在 key 存在时更新（适合"必须已加载过"的场景）
+
+127.0.0.1:6379&gt; SET user:1001 'new' KEEPTTL
+OK                          # 更新值但保留原来的剩余 TTL（第 3 章强调过）
+
+127.0.0.1:6379&gt; SET user:1001 'new' GET
+"{\"name\":\"张三\"}"       # 返回被覆盖的旧值（原子地"读旧写新"）
+
+127.0.0.1:6379&gt; SETNX user:1001 'other'
+(integer) 0                 # 老 setnx 命令仍在，但没有原子设过期的能力 → 不要用</code></pre>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:32%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>开关</th><th>含义</th><th>典型用途</th><th>不存在/不满足时</th></tr></thead>
+    <tbody>
+      <tr><td>NX</td><td>Not eXists 才写</td><td>加锁、幂等占位、防重复</td><td>返回 nil</td></tr>
+      <tr><td>XX</td><td>eXists 才写</td><td>只更新不新建（如只续已有会话）</td><td>返回 nil</td></tr>
+      <tr><td>EX / PX</td><td>秒 / 毫秒级过期</td><td>缓存、锁超时</td><td>—</td></tr>
+      <tr><td>EXAT / PXAT</td><td>指定绝对过期时刻</td><td>活动到某个整点结束</td><td>—</td></tr>
+      <tr><td>KEEPTTL</td><td>保留原 TTL</td><td>更新值但不延长生命周期</td><td>—</td></tr>
+      <tr><td>GET</td><td>返回旧值</td><td>读改写（CAS 的读半边）</td><td>返回 nil</td></tr>
+    </tbody>
+  </table>
+  <p>配套的读取/追加/截取：</p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; APPEND log:today "line-1\n"      # 追加，返回新长度
+(integer) 7
+127.0.0.1:6379&gt; STRLEN log:today
+(integer) 7
+127.0.0.1:6379&gt; GETRANGE user:1001 0 3           # 子串 [start,end]，负索引支持
+"{\"na"
+127.0.0.1:6379&gt; SETRANGE user:1001 5 "XX"        # 从偏移量覆写
+(integer) 11
+127.0.0.1:6379&gt; SET http:hit 1
+OK
+127.0.0.1:6379&gt; GETDEL http:hit                  # 取走并删除（一次性 ticket）
+"1"
+127.0.0.1:6379&gt; GETEX http:hit EX 60             # 取值并设置/更新 TTL
+(nil)</code></pre>
+  <div class="note"><strong>注意</strong>：<code>SETRANGE</code> 对不存在的 key 会用 "\x00" 填充到 offset，容易产生<strong>巨大而稀疏的 value</strong>，别误用。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">4.2</span> INCR 家族：Redis 最香的原子自增</h2>
+  <p class="lead"><b>因为命令执行是单线程，<b>一条命令天然是原子的</b>——所以 <code>INCR</code> 不需要任何锁就线程安全。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SET pv:home 0
+OK
+127.0.0.1:6379&gt; INCR pv:home          # +1，返回新值
+(integer) 1
+127.0.0.1:6379&gt; INCRBY pv:home 100    # +N
+(integer) 101
+127.0.0.1:6379&gt; DECR pv:home          # -1
+(integer) 100
+127.0.0.1:6379&gt; DECRBY pv:home 10
+(integer) 90
+127.0.0.1:6379&gt; INCRBYFLOAT pv:home 0.5   # 浮点（注意精度！）
+"90.5"
+127.0.0.1:6379&gt; SET notanumber abc
+127.0.0.1:6379&gt; INCR notanumber
+(error) ERR value is not an integer or out of range      # 非数字直接报错</code></pre>
+  <h4>典型计数器场景</h4>
+  <ol>
+    <li><strong>全局计数</strong>：文章阅读数、视频播放次数、点赞数。10 万 QPS 的 INCR 完全没问题。</li>
+    <li><strong>限流</strong>：<code>INCR</code> + <code>EXPIRE</code> 做固定窗口（第 38 章会做成完整 Lua）。</li>
+    <li><strong>发号器</strong>：<code>INCRBY seq:order 1000</code>，应用拿走 1000 个号在内存里本地分发，<strong>大幅减少 Redis 压力</strong>（批量号段思想）。</li>
+    <li><strong>库存扣减</strong>：<code>DECRBY stock:sku 1</code> 结果为负则回滚 <code>INCRBY</code>（配合 Lua 更稳妥，第 42 章秒杀）。</li>
+  </ol>
+  <pre class="code" data-lang="bash"><code># 固定窗口限流（朴素版，第 38 章会指出它的边界缺陷并给出 Lua 版）
+-- 每分钟每个用户最多 100 次
+key = "rate:uid:" .. uid .. ":" .. os.date("%Y%m%d%H%M")
+local n = redis.call("INCR", key)
+if n == 1 then redis.call("EXPIRE", key, 65) end   # 多给 5 秒容忍跨窗口误差
+return n &lt;= 100</code></pre>
+  <div class="warn-box"><strong>坑</strong>：<code>INCR</code> 一个<strong>没有 TTL</strong> 的计数器（如每个凌晨重置的日活）会无限增长最终溢出（<strong>Redis 整数上限是 2^63-1</strong>，超过会报 "increment or decrement would overflow"）。要么设合理 TTL，要么用分段 key（<code>pv:20261019</code>）让旧数据自然过期。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4.3</span> MSET/MGET 与 Pipeline 的区别</h2>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; MSET k1 v1 k2 v2 k3 v3
+OK
+127.0.0.1:6379&gt; MGET k1 k2 k3
+1) "v1"
+2) "v2"
+3) "v3"
+127.0.0.1:6379&gt; MSETNX k1 x k4 v4        # 只要有一个 key 存在，整批全部不执行
+(integer) 0</code></pre>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:36%"><col style="width:22%"><col style="width:22%"></colgroup>
+    <thead><tr><th>对比</th><th>MSET/MGET</th><th>Pipeline</th><th>普通多次 GET</th></tr></thead>
+    <tbody>
+      <tr><td>网络往返</td><td>一次</td><td>一次</td><td>N 次</td></tr>
+      <tr><td>命令原子性</td><td>单条命令，<strong>天然原子</strong></td><td>批量，<strong>不保证事务原子</strong></td><td>不保证</td></tr>
+      <tr><td>跨 slot</td><td>Cluster 下必须同 slot</td><td>Cluster 下可路由到多节点（客户端拆分）</td><td>随意</td></tr>
+      <tr><td>可混合命令</td><td>只能同类</td><td><strong>任意命令</strong></td><td>任意</td></tr>
+    </tbody>
+  </table>
+  <p>一次网络往返能省多少？假设 RTT=0.3ms，一次 GET 0.05ms：</p>
+  <pre class="code" data-lang="bash"><code>1000 次独立 GET   ≈ 1000 × 0.35ms = 350ms
+一次 MGET 1000 个 ≈ 0.3ms + 1000 × 0.05ms ≈ 50ms     （快 7 倍）
+一次 Pipeline 1000 条 GET ≈ 同上量级
+# 用 redis-benchmark 实测对比（第 51 章）
+redis-benchmark -t get,set -n 100000 -q
+redis-benchmark -t get,set -n 100000 -P 16 -q      # 加管道后通常提升 5-10 倍</code></pre>
+  <div class="warn-box"><strong>坑</strong>：<code>MGET</code> 别一次传<strong>几万个 key</strong>——它是单条命令，仍然<strong>会阻塞后续请求</strong>。建议每批 100-500 个，超大批量用 pipeline 分批。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">4.4</span> SETNX → SET NX PX：锁的雏形</h2>
+  <p class="lead"><b>分布式锁的最小可实现：<b>抢到一个带 TTL 的标记位，用完删掉。</b>这里有四个必须遵守的约束，违反任何一个都会出事故。</b></p>
+
+  <h4>第一版：错误示范（用 SETNX + EXPIRE 两条命令）</h4>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SETNX lock:pay:7788 "client-A"
+(integer) 1
+127.0.0.1:6379&gt; EXPIRE lock:pay:7788 30        # ← 如果这一步之前进程崩了会怎样？
+(integer) 1</code></pre>
+  <div class="danger-box"><strong>致命缺陷</strong>：<code>SETNX</code> 成功之后、<code>EXPIRE</code> 之前，进程崩溃或网络断开 → 锁<strong>永不释放</strong>，其它节点永久等待（死锁）。<b>两条命令不是原子的。</b></div>
+
+  <h4>第二版：正确的最小实现（一条命令搞定）</h4>
+  <pre class="code" data-lang="bash"><code># 加锁：值与过期一起设，原子完成
+127.0.0.1:6379&gt; SET lock:pay:7788 "client-A-uuid-7f3e" NX PX 30000
+OK                       # 抢到锁
+127.0.0.1:6379&gt; SET lock:pay:7788 "client-B-uuid-9a2c" NX PX 30000
+(nil)                    # 已被占 → 业务应 sleep+重试或快速失败
+
+# 释放：必须"先比对 owner，再删"，且必须原子（第 34 章讲）
+127.0.0.1:6379&gt; EVAL "if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1]) else return 0 end" 1 lock:pay:7788 client-A-uuid-7f3e
+(integer) 1</code></pre>
+
+  <h3>四个约束（缺一不可）</h3>
+  <ol>
+    <li><strong>加锁与设过期必须原子</strong>：<code>SET key val NX PX ms</code>，一条命令。</li>
+    <li><strong>value 必须唯一</strong>（UUID / 线程标识）：防止 <strong>A 的锁超时后被 B 抢到，A 醒来把 B 的锁删了</strong>这个经典事故。</li>
+    <li><strong>释放必须校验 owner</strong>：GET 比对 → DEL，两步要放进 Lua（上面的 EVAL 就是这个作用）。</li>
+    <li><strong>TTL 要大于业务最大耗时</strong>：不够就要续期（第 35 章看门狗）。</li>
+  </ol>
+  <div class="key-sentence">这一节只给你"锁的雏形"。真正的生产级锁还要解决：重入、续期、集群 failover 期间的失效（RedLock 争议在第 36 章）。<b>不要在生产自己手撸第二版——用 Redisson。</b></div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">4.5</span> 四位语义开关的组合拳</h2>
+  <p>把 NX/XX/GET/EX 组合起来，能替代很多"先读再写"的非原子操作：</p>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>需求</th><th>一次命令写法</th><th>替代的（有竞态的）老写法</th></tr></thead>
+    <tbody>
+      <tr><td>不存在才建</td><td><code>SET k v NX EX 60</code></td><td>EXISTS + SET（两步有竞态）</td></tr>
+      <tr><td>存在才更新</td><td><code>SET k v XX EX 60</code></td><td>EXISTS + SET</td></tr>
+      <tr><td>取,更,新值</td><td><code>SET k v GET</code></td><td>GET + SET</td></tr>
+      <tr><td>更新值保 TTL</td><td><code>SET k v KEEPTTL</code></td><td>TTL + SET + EXPIRE</td></tr>
+      <tr><td>原子 CAS（单值）</td><td>Lua: GET 比对后 SET</td><td>GET 判断后再 SET（必有竞态）</td></tr>
+    </tbody>
+  </table>
+  <p>一个真实的 CAS 例子（乐观并发更新余额）：</p>
+  <pre class="code" data-lang="bash"><code>-- KEYS[1]=余额键 ARGV[1]=期望旧值 ARGV[2]=新值
+local cur = redis.call('GET', KEYS[1])
+if cur == ARGV[1] then
+  redis.call('SET', KEYS[1], ARGV[2])
+  return 1
+else
+  return 0            -- 调用方看到 0 → 说明被别人改过 → 重读重试
+end</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">4.6</span> 常见坑与大 value 红线</h2>
+  <div class="warn-box"><strong>坑 1：大 value。</strong>经验红线：<strong>10KB 必须警惕，100KB 禁止，1MB 是灾难</strong>。它放大序列化耗时、网络耗时、碎片、fork 时的 COW 开销。拆分或用 Hash 分 field。</div>
+  <div class="warn-box"><strong>坑 2：把整个对象 JSON 塞进 String。</strong>只改一个字段也要全量读写+反序列化，且无法单独设置某字段。字段频繁变动的对象应该用 <strong>Hash</strong>（第 5 章）。</div>
+  <div class="warn-box"><strong>坑 3：用 String 做自增却不设上限。</strong>溢出会直接报错失败，业务要有降级。</div>
+  <div class="warn-box"><strong>坑 4：<code>INCRBYFLOAT</code> 有精度问题。</strong>它基于 long double，且多次累加会误差累积。金额场景<strong>存最小单位整数（分）</strong>用 INCRBY。</div>
+  <div class="warn-box"><strong>坑 5：SET NX 抢锁后设了 30 秒过期，业务跑了 40 秒。</strong>锁提前失效，第二个线程进来。<strong>必须续期</strong>（第 35 章）。</div>
+  <div class="warn-box"><strong>坑 6：用 <code>TTL</code> 判断锁是否还活着做业务决策。</strong>TTL 会变（-1/-2/剩余秒），别把它当"续期与否"的依据，owner 标志才是。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>SET 签名</td><td>NX/XX + GET + EX/PX/EXAT/PXAT/KEEPTTL，六个开关一次原子完成</td></tr>
+      <tr><td>原子自增</td><td>单线程让 INCR 天然线程安全；数值上限 2^63-1</td></tr>
+      <tr><td>MSET vs Pipeline</td><td>MSET 单命令原子但只能同类；Pipeline 混命令但非原子</td></tr>
+      <tr><td>锁雏形</td><td>SET key uuid NX PX ms + Lua 校验 owner 再 DEL</td></tr>
+      <tr><td>禁止写法</td><td>SETNX + EXPIRE 两条命令（非原子，可能死锁）</td></tr>
+      <tr><td>value 红线</td><td>10KB 警惕 / 100KB 禁止 / 频繁改字段用 Hash</td></tr>
+      <tr><td>金额</td><td>存最小单位整数，别用 INCRBYFLOAT</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用一条命令实现："如果 <code>conf:feature:x</code> 不存在则创建值为 <code>on</code> 且 10 分钟过期，存在则什么都不做"，并说明返回什么值代表成功。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 <code>INCRBY</code> 实现一个"号段发号器"：每次向 Redis 申请 1000 个号，自己在内存里分发到 999 后才再申请。写出伪代码，并说明 Redis 挂掉重启后会发生什么（如何避免重复发号）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写一个 Lua 脚本实现"扣库存"：<code>stock:sku:1001</code> 初始 100，每次扣 n，<strong>不允许扣成负数</strong>，扣成功返回剩余库存，失败返回 -1。用它并发压 200 次并验证最终结果精确为 0 而不是负数。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章学习 Hash——解决"整个对象塞 String"的所有缺点。</p>
+</section>
+
+</main>

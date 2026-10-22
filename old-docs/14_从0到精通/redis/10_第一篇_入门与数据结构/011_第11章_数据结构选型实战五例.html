@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 11 章 数据结构选型实战五例｜Redis 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+
+/* ===== 全库统一导航 ===== */
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+
+/* ===== 全库统一 Prism 深色主题 ===== */
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#272822}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}
+/* 适配库内代码块：保留 --code-bg 深底与 --mono 字体，去除主题自带背景/阴影 */
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+
+/* ===== 全库统一可读性排版 ===== */
+/* 正文阅读密度：行距加大、留白充足 */
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+/* 一级要点：主题色圆点/序号 */
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+/* 二级细节：细色条 + 缩进 + 次级色 marker */
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+/* 行内强调标签：关键术语 / 要点 / 坑 */
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+/* 强调句：结论/易错点 左侧色条 */
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+/* 概念块「一句话定位」 */
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+/* 长代码/长句折行保护 */
+section.card li strong{color:var(--ink)}
+@media(max-width:760px){
+  body{line-height:1.8}
+  section.card{padding:22px 18px}
+  section.card h2{font-size:21px}
+  section.card h3{font-size:17.5px;margin:28px 0 10px}
+  section.card h4{font-size:15.5px;margin:20px 0 8px}
+  .lead{padding:8px 10px;font-size:14.5px}
+}
+
+
+
+
+
+
+/* ===== 左侧目录树样式（覆盖原来的） ===== */
+@media(min-width:1024px){
+  nav.toc {
+    position: fixed !important;
+    left: 20px;
+    top: 80px;
+    width: 240px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d8e2cc;
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 60;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    color: #22331f;
+    margin: 0 0 12px 0 !important;
+    padding: 0 0 8px 0 !important;
+    border-bottom: 1px solid #d8e2cc !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: normal !important;
+  }
+  nav.toc ol {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    columns: 1 !important;
+    column-count: 1 !important;
+  }
+  nav.toc ol li {
+    margin: 6px 0 !important;
+    break-inside: avoid !important;
+  }
+  nav.toc ol li a {
+    display: block !important;
+    padding: 6px 10px !important;
+    color: #7a8a70 !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-radius: 6px !important;
+    transition: all .15s !important;
+    background: transparent !important;
+    border: none !important;
+    font-weight: normal !important;
+  }
+  nav.toc ol li a:hover {
+    background: #f0f5e6 !important;
+    color: #2d6a3f !important;
+  }
+  .container {
+    margin-left: 280px !important;
+    max-width: calc(100% - 300px) !important;
+  }
+}
+@media(max-width:1023px){
+  nav.toc {
+    position: static !important;
+    width: auto !important;
+  }
+}
+
+
+
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 20px 16px !important;
+  }
+  .hero h1 {
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  .breadcrumb {
+    font-size: 12px !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 12px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 16px 0 !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    margin-bottom: 10px !important;
+  }
+  nav.toc ol li a {
+    font-size: 13px !important;
+    padding: 5px 8px !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 18px 16px !important;
+    margin: 16px 0 !important;
+    border-radius: 10px !important;
+  }
+  section.card h2 {
+    font-size: 19px !important;
+    margin-bottom: 16px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 24px 0 10px !important;
+  }
+  section.card h4 {
+    font-size: 15px !important;
+    margin: 18px 0 8px !important;
+  }
+  section.card p {
+    font-size: 14px !important;
+    line-height: 1.75 !important;
+  }
+  section.card li {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 12px !important;
+    overflow-x: auto !important;
+  }
+  code {
+    font-size: 13px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+    overflow-x: auto !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 12px !important;
+    flex-wrap: wrap;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+  }
+  .glossary-item {
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+    margin: 4px !important;
+  }
+
+
+
+/* ===== 手机端深度优化 ===== */
+@media(max-width:768px){
+  /* 全局 */
+  body {
+    line-height: 1.7 !important;
+    font-size: 15px !important;
+  }
+  
+  /* 顶部导航 */
+  .doc-nav.top {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 16px 14px !important;
+  }
+  .hero h1 {
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 10px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 16px 14px !important;
+    margin: 12px 0 !important;
+    border-radius: 8px !important;
+  }
+  section.card h2 {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+    padding-left: 10px !important;
+  }
+  section.card h2 .num {
+    min-width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    font-size: 13px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 20px 0 8px !important;
+    padding-left: 8px !important;
+  }
+  section.card h4 {
+    font-size: 14.5px !important;
+    margin: 16px 0 6px !important;
+  }
+  section.card p {
+    font-size: 14.5px !important;
+    line-height: 1.75 !important;
+    margin: 10px 0 !important;
+  }
+  section.card ul, section.card ol {
+    padding-left: 20px !important;
+    margin: 10px 0 !important;
+  }
+  section.card li {
+    font-size: 14.5px !important;
+    line-height: 1.7 !important;
+    margin: 6px 0 !important;
+  }
+  
+  /* 行内代码 - 关键优化！ */
+  code {
+    font-size: 13px !important;
+    padding: 2px 5px !important;
+    border-radius: 4px !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    display: inline !important;
+    max-width: 100% !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 10px !important;
+    overflow-x: auto !important;
+    border-radius: 6px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+    overflow-x: auto !important;
+    border-radius: 8px !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 12px 0 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  nav.toc h2 {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+  nav.toc ol li a {
+    font-size: 12.5px !important;
+    padding: 4px 6px !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 10px !important;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+  }
+  .glossary-item {
+    font-size: 12.5px !important;
+    padding: 3px 6px !important;
+    margin: 3px !important;
+  }
+  
+  /* 强调句 */
+  .key-sentence, .pit-sentence {
+    padding: 8px 10px !important;
+    margin: 10px 0 !important;
+    font-size: 14px !important;
+  }
+  
+  /* lead */
+  .lead {
+    padding: 8px 10px !important;
+    font-size: 13.5px !important;
+    margin: 10px 0 !important;
+  }
+}
+
+
+/* ===== 修复手机端页面溢出 ===== */
+html, body {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+* {
+  max-width: 100% !important;
+}
+
+img, svg, video {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* 代码块内部可以滚动，但不撑开页面 */
+pre, .code, .diagram {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* 行内代码不换行但不溢出 */
+code {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+
+/* ===== 强制修复行内代码溢出 ===== */
+code {
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  word-wrap: break-word !important;
+  max-width: 100% !important;
+  display: inline !important;
+  overflow: hidden !important;
+}
+
+p, li, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+
+/* ===== 教科书模块专属样式 ===== */
+.book-toc{columns:2;column-gap:36px;padding-left:24px}
+.book-toc li{break-inside:avoid;font-size:13.5px;color:var(--ink-2);margin:4px 0;line-height:1.6;list-style:disc}
+.book-toc li b{color:var(--accent);margin-right:6px}
+@media(max-width:760px){.book-toc{columns:1}}
+.bstat{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:2px;white-space:nowrap}
+.bstat.plan{background:#eef3e8;color:#4f6348;border:1px solid #d8e2cc}
+.bstat.doing{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.bstat.done{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.book-part h3{margin-top:22px}
+
+/* ===== 教科书章页专属 ===== */
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Redis 从 0 到精通》 · 第一篇 入门与数据结构</p>
+    <h1>第 11 章 数据结构选型实战五例</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 11 章 / 共 54 章 · 预计 35 分钟 · 需第一篇基础</span>
+    </div>
+    <p class="hero-desc">把前十章串起来：五个真实业务（购物车、签到、Feed 流、点赞、搜索联想）各选什么结构、为什么、怎么避坑。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标与选型方法论</a></li>
+    <li><a href="#sec2">例一：购物车（Hash + String 的取舍）</a></li>
+    <li><a href="#sec3">例二：用户签到与活跃标记（Bitmap）</a></li>
+    <li><a href="#sec4">例三：Feed 信息流（List vs ZSet）</a></li>
+    <li><a href="#sec5">例四：点赞 / 收藏 / 关注（Set + ZSet）</a></li>
+    <li><a href="#sec6">例五：搜索联想与热门榜单（ZSet + String）</a></li>
+    <li><a href="#sec7">11.6 通用选型速查表与常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标与选型方法论</h2>
+  <ul>
+    <li>把前九章的结构知识<strong>落到五个真实业务</strong>里，每个都给出<strong>命令 + 理由 + 坑</strong>；</li>
+    <li>掌握一套可复用的<strong>选型四问</strong>：查什么？写什么？多大？要不要有序/去重？</li>
+    <li>体会<strong>"一个需求多个结构配合"</strong>的工程现实（而不是非要找一个"最合适"的结构）；</li>
+    <li>收官第一篇，建立"看到需求就能反应出结构"的条件反射。</li>
+  </ul>
+
+  <h3>选型四问（先问再选）</h3>
+  <ol>
+    <li><strong>怎么查？</strong>——按 key 精确查（所有结构都行）、按 member 查（Set/ZSet/Hash）、按范围/排序查（ZSet/List）、根本不支持（嵌套查询）。</li>
+    <li><strong>怎么改？</strong>——整块覆盖（String JSON）、局部字段（Hash）、加减数值（INCR/HINCRBY/ZINCRBY）。</li>
+    <li><strong>量多大？</strong>——百万/亿级要用特殊结构（Bitmap/HLL），且必须考虑<strong>分片</strong>避免大 key。</li>
+    <li><strong>要什么性质？</strong>——去重（Set/ZSet）、有序（ZSet/List）、抢占式唯一（String NX）、时间衰减（TTL）。</li>
+  </ol>
+  <div class="note"><strong>前置要求</strong>：第 4-10 章。本书后面所有篇章都假定你已经看过这一章。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">11.1</span> 例一：购物车（Hash + String 的取舍）</h2>
+  <p><strong>需求</strong>：每个用户一个购物车；加入商品、改数量、删商品、查全部商品与数量、显示总价。</p>
+  <pre class="code" data-lang="bash"><code># ✅ 主结构：Hash —— field = skuId, value = 数量
+127.0.0.1:6379&gt; HSET cart:u1001 sku:88 2 sku:99 1
+(integer) 2
+127.0.0.1:6379&gt; HINCRBY cart:u1001 sku:88 1        # 加一件，原子
+(integer) 3
+127.0.0.1:6379&gt; HINCRBY cart:u1001 sku:88 -1       # 减一件
+(integer) 2
+127.0.0.1:6379&gt; HDEL cart:u1001 sku:99             # 删除某个商品
+(integer) 1
+127.0.0.1:6379&gt; HGETALL cart:u1001                 # 展示全部（购物车商品通常 &lt; 100，安全）
+127.0.0.1:6379&gt; HLEN cart:u1001                    # 商品种类数（小红点角标）
+(integer) 1</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>问题</th><th>方案</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>选中/未选中状态</td><td>额外一个 Set：<code>cart:chk:u1001</code></td><td>Set 存选中的 skuId</td></tr>
+      <tr><td>价格总额</td><td>读 HGETALL 后在应用层算，或维护一个 Hash field <code>_total</code></td><td>价动态变，别在 Redis 里做本该 DB 做的事</td></tr>
+      <tr><td>数量上限校验</td><td>HINCRBY 后判断返回值是否 &gt; 库存/上限</td><td>超限再 HINCRBY 减回来</td></tr>
+      <tr><td>TTL</td><td>登录用户可不过期；<strong>游客购物车必须设 30 天</strong></td><td><code>EXPIRE cart:guest:xxx 2592000</code></td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>为什么不用 String 存 JSON？</strong>因为购物车<strong>频繁修改单个商品的数量</strong>，用 JSON 要"读全部→反序列化→改→序列化→写回"，既慢又有并发覆盖风险（A 改数量时 B 的改动被覆盖）。<b>频繁改单个字段 = Hash 的典型特征。</b></div>
+  <div class="warn-box"><strong>坑</strong>：把整个商品对象（图片、标题、价格）也塞进 Hash 的 value → 一是违反"value 只放最小必要信息"，二是价格更新后购物车里就是脏数据。<strong>购物车只存「skuId + 数量」，展示时再去查商品服务/缓存。</strong></div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">11.2</span> 例二：用户签到与活跃标记（Bitmap）</h2>
+  <p><strong>需求</strong>：记录某用户当月哪几天签到了；支持补签、连续签到天数、显示整月日历。</p>
+  <pre class="code" data-lang="bash"><code># key：sign:{userId}:{yyyyMM}   offset = 日期 - 1
+127.0.0.1:6379&gt; SETBIT sign:1001:202610 0 1       # 1 号签到
+(integer) 0
+127.0.0.1:6379&gt; SETBIT sign:1001:202610 18 1      # 19 号补签
+(integer) 0
+127.0.0.1:6379&gt; BITCOUNT sign:1001:202610         # 本月签到次数
+(integer) 2
+127.0.0.1:6379&gt; GETBIT sign:1001:202610 18        # 19 号签到了吗
+(integer) 1</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>需求</th><th>方案</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>日历展示</td><td>一次 <code>GET</code> 整个 bitmap，客户端按 bit 解析</td><td>一个月仅 4 字节</td></tr>
+      <tr><td>连续签到天数</td><td><strong>另存 Hash</strong>：<code>HSET sign:meta:1001 streak 5 last 20261019</code></td><td>Bitmap 不擅长连击计算</td></tr>
+      <tr><td>今天全站签到人数</td><td><strong>另存当天 Set</strong> 或按天一个 bitmap + BITCOUNT</td><td>反查需要倒排</td></tr>
+      <tr><td>跨月</td><td>按月分 key，天然便于归档清理</td><td>旧月份自动失去访问</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>坑</strong>：把 userId 直接当 offset。userId 若是不连续的大数值（如雪花 ID = 18 位），<code>SETBIT key 123456789012345 1</code> 会<strong>直接分配 15TB 内存</strong>。<b>Bitmap 的 offset 必须是小而连续的编号</b>。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">11.3</span> 例三：Feed 信息流（List vs ZSet）</h2>
+  <p><strong>需求</strong>：用户首页展示关注的人发的最新动态；支持下拉刷新（拉最新）、上翻加载更多。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>方案</th><th>做法</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>推模式（List）</td><td>每个用户一个 List，作者发文时推给所有粉丝</td><td>粉丝量小、读多写少（朋友圈）</td></tr>
+      <tr><td>拉模式（ZSet）</td><td>每个作者一个 ZSet（score=时间戳），读时合并</td><td>大 V、百万粉丝（推模式会炸）</td></tr>
+      <tr><td>推拉结合</td><td>普通用户推，大 V 单独拉（业界主流）</td><td>真实互联网规模</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 推模式：粉丝 feed list 里只放动态 id，详情另存 String/Hash
+127.0.0.1:6379&gt; LPUSH feed:u1001 post:9901 post:9902
+(integer) 2
+127.0.0.1:6379&gt; LTRIM feed:u1001 0 999            # 只保留最新 1000 条（必须！）
+OK
+127.0.0.1:6379&gt; LRANGE feed:u1001 0 9             # 前 10 条
+127.0.0.1:6379&gt; MGET post:9901 post:9902          # 批量取详情
+
+# 拉模式：作者自己一栏 ZSet（score = 发布时间戳）
+127.0.0.1:6379&gt; ZADD author:feed:u777 1761235260000 post:9901
+127.0.0.1:6379&gt; ZREVRANGEBYSCORE author:feed:u777 +inf 1761200000000 LIMIT 0 20</code></pre>
+  <div class="warn-box"><strong>坑 1</strong>：只 LPUSH 不 LTRIM → 活跃用户 feed list 变成几十万元素的大 key（第 17 章）。<strong>把 LPUSH + LTRIM 放进一个 Lua 保证原子。</strong></div>
+  <div class="warn-box"><strong>坑 2</strong>：List 深分页。用户翻到第 500 页时 <code>LRANGE key 5000 5009</code> 依然要走到那个偏移；<strong>ZSet 按时间戳做游标分页（ZREVRANGEBYSCORE + 上一页最小 score）才是正解。</strong></div>
+  <div class="warn-box"><strong>坑 3</strong>：把动态正文塞进 List。同一条动态被推给 1000 个粉丝就是 1000 份拷贝。<strong>List 里只放 id。</strong></div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">11.4</span> 例四：点赞 / 收藏 / 关注（Set + ZSet）</h2>
+  <p><strong>需求</strong>：判断某用户是否点过赞；统计点赞总数；展示点赞用户列表（前 20 个）；热点要防刷。</p>
+  <pre class="code" data-lang="bash"><code># 每个动态一个 Set：member = userId
+127.0.0.1:6379&gt; SADD like:post:9901 u1001 u1002
+(integer) 2
+127.0.0.1:6379&gt; SISMEMBER like:post:9901 u1001      # 我点过吗 → 1
+(integer) 1
+127.0.0.1:6379&gt; SCARD like:post:9901                # 点赞总数
+(integer) 2
+127.0.0.1:6379&gt; SREM like:post:9901 u1001           # 取消点赞
+(integer) 1
+127.0.0.1:6379&gt; SRANDMEMBER like:post:9901 20       # 随机展示 20 个头像
+
+# 需要"按时间排序展示最新点赞" → 换 ZSet（score = 时间戳）
+127.0.0.1:6379&gt; ZADD like:postsorted:9901 1761235260000 u1001
+127.0.0.1:6379&gt; ZREVRANGE like:postsorted:9901 0 19 WITHSCORES</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>升维需求</th><th>做法</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>点赞总数要快</td><td>额外 <code>INCR like:count:9901</code> 计数</td><td>SCARD 其实 O(1)，但跨 key 聚合时计数更省</td></tr>
+      <tr><td>共同关注</td><td>SINTER follow:u1 follow:u2</td><td>见第 7 章</td></tr>
+      <tr><td>关注上限/防刷</td><td>Set 自然去重 + SCARD 判上限</td><td>幂等免费</td></tr>
+      <tr><td>亿级点赞数</td><td>用 String counter + 异步落库</td><td>Set 存 member 会爆炸</td></tr>
+    </tbody>
+  </table>
+  <div class="danger-box"><strong>危机场景</strong>：一条爆款动态有 <strong>500 万点赞</strong>，<code>SCARD</code> 依然是 O(1) 没问题，但 <code>SMEMBERS</code> / <code>SUNION</code> / 迁移备份时会产生大 key 问题。<br/>对策：① 热门内容拆分为多个 Set（<code>like:post:9901:{slot}</code>）；② 总数用独立 counter；③ 老数据定期归档到 DB。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">11.5</span> 例五：搜索联想与热门榜单（ZSet + String）</h2>
+  <p><strong>需求</strong>：输入框联想（输入"red" → redis redisson…）；搜索热榜 Top10。</p>
+  <pre class="code" data-lang="bash"><code># ① 热<｜hy_place▁holder▁no▁813｜>：每个词一个分数，实时累加（ZINCRBY）
+127.0.0.1:6379&gt; ZINCRBY search:hot 1 redis
+"1024"
+127.0.0.1:6379&gt; ZREVRANGE search:hot 0 9 WITHSCORES       # Top10 热搜
+1) "redis"      2) "1024"
+3) "redisson"   4) "886"
+127.0.0.1:6379&gt; ZREMRANGEBYRANK search:hot 0 -101         # 只留 Top100，定期瘦身
+
+# ② 联想词：按词前缀分组（这里是 ZSet + 成员自身字典序的组合用法）
+127.0.0.1:6379&gt; ZADD suggest 0 redis 0 redisson 0 redis-cli 0 spring
+(integer) 4
+# 用 ZRANGEBYLEX 做前缀匹配（分数都为 0 时，按成员字典序）
+127.0.0.1:6379&gt; ZRANGEBYLEX suggest "[red" "[red\xff" LIMIT 0 10
+1) "redis"
+2) "redis-cli"
+3) "redisson"
+
+# ③ 更好的做法：给每个联想词一个热度分，并用 ZRANGEBYLEX + 客户端排序，
+#    或者干脆按前缀建立独立 key（suggest:red / suggest:redis）避免全量扫描</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:38%"><col style="width:36%"></colgroup>
+    <thead><tr><th>需求</th><th>结构</th><th>命令</th></tr></thead>
+    <tbody>
+      <tr><td>实时热榜</td><td>ZSet</td><td>ZINCRBY + ZREVRANGE</td></tr>
+      <tr><td>历史热榜(昨日/上周)</td><td>ZSet + 定时归档</td><td>ZUNIONSTORE 或 RENAME 换 key</td></tr>
+      <tr><td>前缀联想</td><td>ZSet + ZRANGEBYLEX</td><td>注意成员必须是<b>同前缀、分数相同</b></td></tr>
+      <tr><td>专业搜索</td><td><strong>别用 Redis</strong></td><td>ES / Lucene / 倒排索引</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>坑</strong>：<code>ZRANGEBYLEX</code> 要求所有成员分数相同才能按字典序排；一旦你给联想词加了热度分，就必须用"<strong>前缀专用 key</strong>"（<code>suggest:red</code>）或者改用 <code>ZRANGEBYSCORE</code>。<b>Redis 没有真正的"前缀 + 排序"复合索引。</b></div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">11.6</span> 通用选型速查表与常见坑</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>如果你需要…</th><th>首选</th><th>次选</th><th>千万别</th></tr></thead>
+    <tbody>
+      <tr><td>整块对象缓存</td><td>String(JSON)</td><td>Hash</td><td>把对象拆成几十个独立 key</td></tr>
+      <tr><td>频繁改对象的某字段</td><td>Hash</td><td>—</td><td>String 全量读写</td></tr>
+      <tr><td>计数器</td><td>String INCR</td><td>Hash HINCRBY</td><td>MySQL count(*)</td></tr>
+      <tr><td>去重 + 判是否存在</td><td>Set</td><td>Bitmap（整数 id）</td><td>HLL（不支持判存在）</td></tr>
+      <tr><td>只要去重后的<b>总数</b>（亿级）</td><td>HyperLogLog</td><td>—</td><td>Set（内存爆炸）</td></tr>
+      <tr><td>排行榜 / 按权重排序</td><td>ZSet</td><td>List（仅按插入序）</td><td>Set（无序）</td></tr>
+      <tr><td>最新 N 条</td><td>List + LTRIM</td><td>ZSet（需要 score 排序时）</td><td>只用 List 不 LTRIM</td></tr>
+      <tr><td>轻量队列</td><td>List(BRPOP)</td><td><strong>Stream</strong>（需要 ACK）</td><td>把 List 当可靠 MQ</td></tr>
+      <tr><td>二值标记（签到）</td><td>Bitmap</td><td>Set</td><td>Bitmap + 大 offset</td></tr>
+      <tr><td>地理位置</td><td>GEO</td><td>—</td><td>自己在应用层算球面距离</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">最后一句：<b>真实业务往往是 2-3 个结构协作</b>——Hash 存主体、ZSet 做索引/排行、Set 做标记、String 做计数。硬要用单一结构实现所有需求，是把 Redis 用歪的开始。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:72%"></colgroup>
+    <thead><tr><th>案例</th><th>结构组合与要点</th></tr></thead>
+    <tbody>
+      <tr><td>购物车</td><td>Hash（skuId→数量）+ Set（选中项）；<strong>只存最小信息</strong>，价格详情去别处查</td></tr>
+      <tr><td>签到</td><td>Bitmap（按月 key）+ Hash（存连续天数）；<strong>offset 必须小而连续</strong></td></tr>
+      <tr><td>Feed</td><td>List 推模式 / ZSet 拉模式 / 推拉结合；<strong>LPUSH 必配 LTRIM</strong></td></tr>
+      <tr><td>点赞</td><td>Set（判存在+去重）+ counter（计数）；大爆款要拆分</td></tr>
+      <tr><td>搜索联想</td><td>ZSet(ZINCRBY 热榜) + ZRANGEBYLEX(前缀)；专业搜索用 ES</td></tr>
+      <tr><td>选型四问</td><td>怎么查 / 怎么改 / 量多大 / 要什么性质</td></tr>
+      <tr><td>组合使用</td><td>真实业务 2-3 个结构协作是常态</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为"用户收货地址列表"设计 Redis 结构（支持增删改查单个地址、设默认地址），写出命令与理由，并说明它为什么不适合全部用 String 存 JSON。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>"直播间在线人数"功能：需要实时显示当前人数 + 判断是否已在此房间 + 房间关闭后自动清理。给出你的结构组合、key 设计与清理策略。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一个"微博式"系统的数据结构层：包含发动态、关注/取关、查看关注人的动态流（推拉结合）、点赞、话题标签筛选、热搜榜。要求给出完整的 key 设计清单（不少于 10 个 key 模式），并标注每个 key 的 TTL 策略与可能的大 key 风险点。</div>
+  <p class="note">参考答案见附录 C（撰写中）。第一篇到此结束，下一篇进入第二篇：持久化与内存。</p>
+</section>
+
+</main>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<footer>从 0 到精通 · 《Redis 从 0 到精通》 · 第 {num} 章 {title}</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+{scripts}</body>
+</html>

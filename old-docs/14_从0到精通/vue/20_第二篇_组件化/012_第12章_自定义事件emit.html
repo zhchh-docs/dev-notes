@@ -1,0 +1,288 @@
+<!--CH
+title: 自定义事件 emit
+part: 第二篇 组件化
+desc: 子组件如何把消息传回父组件？这一章讲 emit 的声明与调用、事件参数与校验、emits 声明带来的三个好处、Vue3 移除 .native 后的透传规则，并用分页组件做完整实战。
+toc: 本章目标|12.1 defineEmits：声明并触发|12.2 传参与多事件|12.3 事件校验|12.4 声明 emits 的三个好处|12.5 原生事件与自定义事件的边界|12.6 事件命名约定|12.7 实战：分页组件|12.8 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>会用 <code>defineEmits</code> 声明并触发自定义事件；</li>
+    <li>能传递<strong>任意数量与类型</strong>的事件参数；</li>
+    <li>会为事件写<strong>参数校验</strong>（开发期保障）；</li>
+    <li>理解<strong>声明 emits 带来的三个实际好处</strong>（不只是"规范"）；</li>
+    <li>分清 <strong>原生 DOM 事件与自定义事件</strong>的边界（Vue3 取消了 <code>.native</code>）；</li>
+    <li>独立完成一个<strong>分页组件</strong>的父子通信。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">12.1</span> defineEmits：声明并触发</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件 Child.vue --&gt;
+&lt;script setup&gt;
+// 声明：数组形式
+const emit = defineEmits(['save', 'cancel'])
+
+// 触发
+function onSave() {
+  emit('save')            // 无参数
+}
+function onCancel(reason) {
+  emit('cancel', reason)  // 带参数
+}
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;button @click="onSave"&gt;保存&lt;/button&gt;
+  &lt;button @click="onCancel('用户放弃')"&gt;取消&lt;/button&gt;
+&lt;/template&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 父组件 --&gt;
+&lt;template&gt;
+  &lt;Child @save="handleSave" @cancel="handleCancel" /&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+function handleSave() { console.log('保存') }
+function handleCancel(reason) { console.log('取消：', reason) }
+&lt;/script&gt;</code></pre>
+  <p>在模板里也可以直接内联触发（用 <code>$emit</code>）：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 不使用 script setup 时用 $emit；setup 里推荐用 emit 变量更清晰 --&gt;
+  &lt;button @click="$emit('save', formData)"&gt;保存&lt;/button&gt;
+&lt;/template&gt;</code></pre>
+  <div class="note"><strong>defineEmits 是编译宏</strong>：无需 import，只能在 <code>&lt;script setup&gt;</code> 顶层调用，返回值就是触发函数。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">12.2</span> 传参与多事件</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- 子组件 --&gt;
+&lt;script setup&gt;
+const props = defineProps({ row: Object, index: Number })
+const emit = defineEmits(['edit', 'delete', 'change'])
+
+function onEdit() {
+  emit('edit', props.row)                      // 一个参数
+}
+function onDelete() {
+  emit('delete', props.row.id, props.index)    // 多个参数
+}
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;button @click="onEdit"&gt;编辑&lt;/button&gt;
+  &lt;button @click="onDelete"&gt;删除&lt;/button&gt;
+  &lt;!-- 模板内联：直接 emit 并传参 --&gt;
+  &lt;button @click="emit('change', { id: row.id, v: $event })"&gt;改&lt;/button&gt;
+&lt;/template&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 父组件：按顺序接收多个参数 --&gt;
+&lt;Row
+  :row="item"
+  :index="i"
+  @edit="onEdit"
+  @delete="(id, index) =&gt; remove(id, index)"
+/&gt;</code></pre>
+  <p class="key-sentence">emit 的参数是<strong>位置参数</strong>（没有名字）。参数超过两个时，建议改为<strong>传一个对象</strong>：<code>emit('delete', { id, index, row })</code>——可读性更好，也不会因顺序变动出错。</p>
+  <h3>TS 类型写法</h3>
+<pre class="code" data-lang="vue"><code>&lt;script setup lang="ts"&gt;
+const emit = defineEmits&lt;{
+  // 具名元组语法（Vue 3.3+）
+  change: [value: string]
+  delete: [id: number, index: number]
+  // 旧写法
+  // (e: 'change', value: string): void
+}&gt;()
+
+emit('change', 'abc')      // ✅
+emit('delete', 1, 2)       // ✅
+// emit('delete', '1')     // ❌ 类型报错
+&lt;/script&gt;</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">12.3</span> 事件校验</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+const emit = defineEmits({
+  // 无校验：给 null
+  click: null,
+
+  // 有校验：函数返回 true 表示通过
+  submit: (payload) =&gt; {
+    if (!payload || typeof payload.email !== 'string') {
+      console.warn('submit 事件缺少 email 字段')
+      return false
+    }
+    return true
+  },
+
+  // 校验参数个数与类型
+  delete: (id, index) =&gt; typeof id === 'number' &amp;&amp; typeof index === 'number'
+})
+&lt;/script&gt;</code></pre>
+  <p>校验失败只会在<strong>开发模式</strong>下打印警告，不会阻止事件继续传播。它适合作为"组件库对外契约的自检"。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">12.4</span> 声明 emits 的三个好处</h2>
+  <ol>
+    <li><strong>避免"事件被当成普通属性透传"</strong>：未声明的 <code>@click</code> 会作为 <code>onClick</code> 落到子组件根元素上变成原生监听；声明后 Vue 知道这是自定义事件，<strong>不会重复触发</strong>（否则你点一次可能触发两次）。</li>
+    <li><strong>更好的 IDE 与类型支持</strong>：TS 项目里父组件写错事件名/参数类型会直接报错。</li>
+    <li><strong>自文档化</strong>：看一眼 <code>defineEmits([...])</code> 就知道这个组件会对外发什么消息（组件库必备）。</li>
+  </ol>
+<pre class="code" data-lang="vue"><code>&lt;!-- 反面案例：子组件没声明 click --&gt;
+&lt;!-- Child.vue --&gt;
+&lt;template&gt;&lt;div class="box" @click="$emit('click')"&gt;&lt;/div&gt;&lt;/template&gt;
+&lt;script setup&gt;
+// 没写 defineEmits(['click'])
+&lt;/script&gt;
+
+&lt;!-- 父组件 --&gt;
+&lt;Child @click="handler" /&gt;
+&lt;!-- 结果：点击时 handler 执行两次 —— 一次是自定义事件，一次是透传到根元素的原生 click --&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑</span>这个"触发两次"的问题非常常见。<strong>只要组件会 emit 某个事件名，就一定要在 defineEmits 里声明它。</strong></div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">12.5</span> 原生事件与自定义事件的边界</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>场景</th><th>Vue 2</th><th>Vue 3</th></tr></thead>
+    <tbody>
+      <tr><td>组件上监听原生 click</td><td><code>@click.native</code></td><td><strong>无 .native</strong>；未声明的监听器自动透传到根元素</td></tr>
+      <tr><td>组件上监听自定义事件</td><td><code>@my-event</code></td><td>同；但建议用 <code>defineEmits</code> 声明</td></tr>
+      <tr><td>多根组件</td><td>—</td><td>透传失效（不知挂哪个根），需显式 <code>v-bind="$attrs"</code></td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="vue"><code>&lt;!-- MyButton.vue（单根，未声明 emits） --&gt;
+&lt;template&gt;&lt;button class="btn"&gt;&lt;slot /&gt;&lt;/button&gt;&lt;/template&gt;
+
+&lt;!-- 父组件：@click 经 $attrs 透传到根 <button>，等价于监听原生 click --&gt;
+&lt;MyButton @click="onClick" /&gt;
+
+&lt;!-- 若 MyButton 声明了 defineEmits(['click']) 且内部 emit('click')，
+     则父组件的 @click 只接收自定义事件，不再自动透传为原生监听 --&gt;</code></pre>
+  <p>判断口诀：<strong>声明了 → 自定义事件；没声明 → 透传到根元素当原生事件用。</strong></p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">12.6</span> 事件命名约定</h2>
+  <ul>
+    <li><strong>kebab-case 优先</strong>：模板里 <code>@update-name</code>；camelCase（<code>@updateName</code>）也能用，但 HTML 属性不区分大小写，易踩坑；</li>
+    <li><strong>v-model 专用命名</strong>：<code>update:modelValue</code>、<code>update:title</code>（第 13 章）；</li>
+    <li><strong>语义化动词</strong>：<code>submit</code>、<code>cancel</code>、<code>change</code>、<code>delete</code>、<code>select</code>；避免用 <code>click</code> 这类已被原生占用的名字（除非你确实想声明它）；</li>
+    <li><strong>组件库规范</strong>：统一前缀（如 Element Plus 全用 <code>@change</code>/<code>@update:modelValue</code>）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">12.7</span> 实战：分页组件</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- Pagination.vue --&gt;
+&lt;template&gt;
+  &lt;div class="pager"&gt;
+    &lt;button :disabled="page &lt;= 1" @click="go(page - 1)"&gt;上一页&lt;/button&gt;
+    &lt;button
+      v-for="p in pages"
+      :key="p"
+      :class="{ active: p === page }"
+      @click="go(p)"
+    &gt;{{ p }}&lt;/button&gt;
+    &lt;button :disabled="page &gt;= totalPage" @click="go(page + 1)"&gt;下一页&lt;/button&gt;
+    &lt;span&gt;共 {{ total }} 条 / {{ totalPage }} 页&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { computed } from 'vue'
+
+const props = defineProps({
+  page: { type: Number, required: true },      // 当前页（受控）
+  total: { type: Number, required: true },     // 总条数
+  pageSize: { type: Number, default: 10 }
+})
+
+const emit = defineEmits({
+  'update:page': (p) =&gt; Number.isInteger(p) &amp;&amp; p &gt;= 1,
+  change: (p) =&gt; Number.isInteger(p)
+})
+
+const totalPage = computed(() =&gt; Math.ceil(props.total / props.pageSize) || 1)
+
+const pages = computed(() =&gt; {
+  // 最多显示 7 个页码按钮（简化版：从头开始展示）
+  const n = Math.min(7, totalPage.value)
+  return Array.from({ length: n }, (_, i) =&gt; i + 1)
+})
+
+function go(p) {
+  if (p &lt; 1 || p &gt; totalPage.value || p === props.page) return
+  emit('update:page', p)
+  emit('change', p)
+}
+&lt;/script&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 父组件使用 --&gt;
+&lt;template&gt;
+  &lt;ul&gt;
+    &lt;li v-for="i in list" :key="i.id"&gt;{{ i.name }}&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;!-- 用 v-model:page 双向绑定（第 13 章）；这里先展示完整写法 --&gt;
+  &lt;Pagination
+    :page="page"
+    :total="total"
+    @update:page="page = $event"
+    @change="fetchList"
+  /&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, watch } from 'vue'
+import Pagination from './Pagination.vue'
+
+const page = ref(1)
+const total = ref(0)
+const list = ref([])
+
+async function fetchList() {
+  const res = await fetch(`/api/list?page=${page.value}`).then(r =&gt; r.json())
+  list.value = res.items
+  total.value = res.total
+}
+fetchList()
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence">这个分页组件体现了组件化的核心：<strong>数据由父组件持有（受控），子组件只负责"展示 + 报告用户意图"</strong>。它自己不知道数据从哪来，因此可以在任何页面复用。</p>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">12.8</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>没声明 emits 导致事件触发两次</strong>（自定义 + 原生透传）。</li>
+    <li><span class="tag-pit">坑 2</span><strong>事件名大小写</strong>：DOM 模板里 <code>@updateName</code> 会被小写化为 <code>@updatename</code> 而匹配不上。统一用 kebab-case。</li>
+    <li><span class="tag-pit">坑 3</span><strong>在 emit 后立刻读 props 期望已更新</strong>：父组件状态更新与 DOM 更新都是异步的，紧接着读 <code>props.page</code> 仍是旧值（用 <code>nextTick</code> 或 <code>watch</code>）。</li>
+    <li><span class="tag-pit">坑 4</span><strong>emit 与 props 同名冲突</strong>：不要 emit 一个与 props 同名的事件，会引起理解混乱。</li>
+    <li><span class="tag-pit">坑 5</span><strong>多根组件监听器丢失</strong>：需 <code>v-bind="$attrs"</code>。</li>
+    <li><span class="tag-pit">坑 6</span><strong>在子组件里监听自己的 emit</strong>：emit 是"向上广播"，不会触发自己。</li>
+  </ul>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>声明</td><td><code>defineEmits([...])</code>；TS 可用具名元组</td></tr>
+      <tr><td>触发</td><td><code>emit('name', ...args)</code>；参数为位置参数，多参数建议传对象</td></tr>
+      <tr><td>校验</td><td>对象形式，函数返回布尔；仅开发期告警</td></tr>
+      <tr><td>三大好处</td><td>避免双触发、类型提示、自文档化</td></tr>
+      <tr><td>Vue3 变化</td><td>移除 <code>.native</code>；未声明监听器透传到根元素</td></tr>
+      <tr><td>命名</td><td>kebab-case；v-model 用 <code>update:xxx</code></td></tr>
+      <tr><td>组件范式</td><td>受控组件：父持数据，子只展示与报告</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个 <code>Counter</code> 组件：内部有 +1/-1 按钮，每次变化 emit <code>change</code> 事件并把新值传出，父组件显示"当前值 N"。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把 12.5 的"触发两次"问题复现出来，再用 <code>defineEmits</code> 修复它，并在 <code>$attrs</code> 中观察声明前后 <code>onClick</code> 是否存在。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>完善分页组件：① 支持 <code>v-model:page</code>；② 页码过多时显示省略号（如 1 … 5 6 7 … 20）；③ 支持 <code>pageSize</code> 切换（第二个 v-model）。思考：两个 v-model 时事件应如何命名？</div>
+  <p class="note">参考答案见附录 C。下一章揭晓 v-model 在组件上的真正本质。</p>
+</section>

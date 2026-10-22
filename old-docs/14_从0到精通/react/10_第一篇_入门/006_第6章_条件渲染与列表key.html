@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 6 章 条件渲染与列表 key｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 6 章 条件渲染与列表 key</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 6 章 / 共 64 章 · 预计 40 分钟 · 承第 3 章</span>
+    </div>
+    <p class="hero-desc">界面上「变」的部分无非两件事：这一段要不要显示、这一堆数据怎么逐个渲染。前者是条件渲染，后者是列表渲染与 key。本章把四种条件写法排优劣，把 key 的工作原理讲到能解释「为什么用 index 会出鬼」。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="005_第5章_事件处理与合成事件.html">第 5 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="007_第7章_useState状态与函数式更新.html">第 7 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">6.1 条件渲染的四种写法</a></li>
+    <li><a href="#sec3">6.2 复杂分支：先分状态，再谈写法</a></li>
+    <li><a href="#sec4">6.3 列表渲染：map 与链式处理</a></li>
+    <li><a href="#sec5">6.4 key 的作用：给节点一个身份证</a></li>
+    <li><a href="#sec6">6.5 为什么不能用 index 做 key</a></li>
+    <li><a href="#sec7">6.6 key 的正确来源与常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>根据复杂度选择合适的条件渲染写法，并敢于重构嵌套三元；</li>
+    <li>掌握异步界面的"三态虚线"写法（loading / error / data）；</li>
+    <li>解释 <strong>key 在协调（reconcile）阶段的真实作用</strong>——复用 DOM 还是销毁重建；</li>
+    <li>能举例说明<strong>用 index 做 key 会出什么 bug</strong>，以及 key 的正确来源；</li>
+    <li>记住 key 的作用范围是"兄弟节点之间"，跨层级、跨列表无需唯一。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">6.1</span> 条件渲染的四种写法</h2>
+  <pre class="code" data-lang="jsx"><code>// ① 早返回（if）—— 分支逻辑复杂时可读性最好
+function Panel({ user }) {
+  if (!user) return &lt;Empty /&gt;;
+  if (user.banned) return &lt;Banned /&gt;;
+  return &lt;Profile user={user} /&gt;;
+}
+
+// ② 三元 —— 二选一
+&lt;div&gt;{isEdit ? &lt;EditForm /&gt; : &lt;ReadonlyView /&gt;}&lt;/div&gt;
+
+// ③ &amp;&amp; —— 有没有（注意第 3 章讲过的 0 陷阱）
+&lt;div&gt;{notifications.length &gt; 0 &amp;&amp; &lt;Bell list={notifications} /&gt;}&lt;/div&gt;
+
+// ④ 查表（映射对象）—— 多分支的优雅解，避免嵌套三元堆砌
+const STATUS_VIEW = {
+  loading: &lt;Skeleton /&gt;,
+  empty: &lt;Empty text="暂无数据" /&gt;,
+  error: &lt;ErrorBox /&gt;,
+  done: &lt;Content /&gt;,
+};
+&lt;div&gt;{STATUS_VIEW[status] ?? null}&lt;/div&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>写法</th><th>适用场景</th><th>警告</th></tr></thead>
+    <tbody>
+      <tr><td>早返回</td><td>分支体量大、逻辑各异</td><td>组件 return 分散，别写太长</td></tr>
+      <tr><td>三元</td><td>简单的二选一</td><td>嵌套两层以上立刻重构</td></tr>
+      <tr><td>&amp;&amp;</td><td>可选的附加元素</td><td>左侧可能是 0 / NaN</td></tr>
+      <tr><td>查表</td><td>状态机式多分支</td><td>分支各自需要独立组件</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">可读性红线</span>嵌套三元："<code>{a ? &lt;A/&gt; : b ? &lt;B/&gt; : c ? &lt;C/&gt; : null}</code>"。改造手法二选一：① 抽成 <code>renderByStatus()</code> 函数返回 JSX；② 拆成多个小组件各自负责一个分支。</div>
+  <pre class="code" data-lang="jsx"><code>// 重构示范：把嵌套三元换成"具函数 + switch"
+function renderBody(status, data) {
+  switch (status) {
+    case 'loading': return &lt;Skeleton /&gt;;
+    case 'error':   return &lt;ErrorBox retry={refetch} /&gt;;
+    case 'empty':   return &lt;Empty /&gt;;
+    case 'done':    return &lt;DataView data={data} /&gt;;
+    default:        return null;
+  }
+}
+
+return &lt;section&gt;{renderBody(status, data)}&lt;/section&gt;;</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">6.2</span> 复杂分支：先分状态，再谈写法</h2>
+  <p>新手写异步页面最常见的错误是"用散落的布尔量表达状态"：<code>loading</code>、<code>isEmpty</code>、<code>hasError</code> 三个变量互相组合，会出现"既加载又空又错误"的非法组合。正确做法是用<strong>单一状态字段</strong>表达互斥状态。</p>
+  <pre class="code" data-lang="jsx"><code>// ✗ 三个布尔量：非法组合无穷多
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState(null);
+const [list, setList] = useState([]);
+
+// ✓ 单状态字段：互斥且完整
+const [state, setState] = useState({ status: 'loading', data: [], error: null });
+
+async function load() {
+  setState({ status: 'loading', data: [], error: null });
+  try {
+    const data = await api.list();
+    setState({ status: data.length ? 'done' : 'empty', data, error: null });
+  } catch (error) {
+    setState({ status: 'error', data: [], error });
+  }
+}</code></pre>
+  <div class="key-sentence">界面要先"建模"再"写 JSX"：状态机建模清楚，条件渲染自然变简单。第三篇的 TanStack Query 就是把这个模式产品化了。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">6.3</span> 列表渲染：map 与链式处理</h2>
+  <pre class="code" data-lang="jsx"><code>function TodoList({ todos }) {
+  return (
+    &lt;ul&gt;
+      {todos
+        .filter(t =&gt; !t.done)                       // ①筛选
+        .sort((a, b) =&gt; b.priority - a.priority)     // ②排序（注意要拷副本！）
+        .slice(0, 20)                                 // ③截断
+        .map(t =&gt; (                                   // ④渲染
+          &lt;TodoItem key={t.id} todo={t} /&gt;
+        ))}
+    &lt;/ul&gt;
+  );
+}
+
+// ⚠ sort 会原地修改数组实例！todos 是 props 时禁止直接用
+const sorted = [...todos].sort((a, b) =&gt; b.priority - a.priority);</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑 1</span><code>Array.prototype.sort</code> / <code>reverse</code> / <code>splice</code> 会<strong>原地修改数组</strong>。对 props 或 state 里的数组直接调用，等于在数据来源上动手脚（违反第 4 章 props 只读），务必先 <code>[...arr]</code> 拷贝。</div>
+  <p>另外，JSX 里的链式运算每次渲染都会重新执行一遍；数据量很大时应把"计算"提前到第 49 章讲的 <code>useMemo</code> 中。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">6.4</span> key 的作用：给节点一个身份证</h2>
+  <p>React 更新列表时，要知道"新的这一项和旧的哪一项是同一个东西"。<code>key</code> 就是它的判断依据：</p>
+  <ul>
+    <li><strong>key 相同</strong> → 判定为同一个元素，复用已有的 DOM 节点与组件状态，只更新变化的属性；</li>
+    <li><strong>key 不同或缺失</strong> → 判定为旧节点消失、新节点出现，销毁旧节点并创建新 DOM。</li>
+  </ul>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="key 决定节点复用">
+      <defs><marker id="arrK6" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="150" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">旧列表</text>
+      <text x="650" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">新列表（头部插入 X）</text>
+      <rect x="60" y="45" width="180" height="30" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/><text x="150" y="65" text-anchor="middle" font-size="11.5" fill="#1f2e1f">key=a · 内容 A</text>
+      <rect x="60" y="85" width="180" height="30" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/><text x="150" y="105" text-anchor="middle" font-size="11.5" fill="#1f2e1f">key=b · 内容 B</text>
+      <rect x="60" y="125" width="180" height="30" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/><text x="150" y="145" text-anchor="middle" font-size="11.5" fill="#1f2e1f">key=c · 内容 C</text>
+      <rect x="560" y="45" width="180" height="30" rx="6" fill="#fefce8" stroke="#d97706"/><text x="650" y="65" text-anchor="middle" font-size="11.5" fill="#b45309">key=x · 内容 X（新建）</text>
+      <rect x="560" y="85" width="180" height="30" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/><text x="650" y="105" text-anchor="middle" font-size="11.5" fill="#1f2e1f">key=a · 复用 ✓</text>
+      <rect x="560" y="125" width="180" height="30" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/><text x="650" y="145" text-anchor="middle" font-size="11.5" fill="#1f2e1f">key=b · 复用 ✓</text>
+      <rect x="560" y="165" width="180" height="30" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/><text x="650" y="185" text-anchor="middle" font-size="11.5" fill="#1f2e1f">key=c · 复用 ✓</text>
+      <line x1="244" y1="145" x2="554" y2="185" stroke="#7a8a70" stroke-width="1.2" marker-end="url(#arrK6)"/>
+      <text x="400" y="215" text-anchor="middle" font-size="12" fill="#7a8a70">用稳定 key：只新建 1 个 DOM；用 index：3 个节点内容全错位，全部重渲</text>
+    </svg>
+    <p class="diagram-caption">图 6-1 稳定 key 让 React 精确识别"哪一项是同一项"</p>
+  </div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6.5</span> 为什么不能用 index 做 key</h2>
+  <p>先给一个能复现的真实 bug：</p>
+  <pre class="code" data-lang="jsx"><code>function Demo() {
+  const [list, setList] = useState([{ id: 1, text: 'A' }, { id: 2, text: 'B' }]);
+
+  return (
+    &lt;div&gt;
+      &lt;button onClick={() =&gt; setList([{ id: Date.now(), text: 'New' }, ...list])}&gt;
+        头部插入
+      &lt;/button&gt;
+      {list.map((item, index) =&gt; (
+        // ✗ 用 index 作 key
+        &lt;div key={index}&gt;
+          &lt;input defaultValue={item.text} /&gt;
+          &lt;span&gt;{item.text}&lt;/span&gt;
+        &lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <p>复现步骤：① 在第一个输入框里把 A 改写成 "AAA"；② 点击"头部插入"。你会看到 <strong>"AAA" 还留在第一个位置，而它本该跟着 id=1 的数据跑到第二行</strong>——输入框里的内容错位了。</p>
+  <p>原因：插入后 key 序列仍是 <code>0,1,2</code>。React 认为"下标 0 还是那个节点"，于是只把 0 号节点的显示文本从 A 改成 New，而 <code>&lt;input&gt;</code> 的 DOM 值由浏览器自己维护（非受控），React 不会重置，便留下了旧的用户输入。</p>
+  <div class="danger-box">
+    <span class="tag-pit">结论</span>只有当列表<strong>永不重排、永不增删、永不插入头部</strong>时 index 才是安全的。而真实业务里这条假设几乎必被打破。默认就用<strong>稳定业务 id</strong>。
+  </div>
+  <p>同理，<code>key={Math.random()}</code> 更糟：每次渲染 key 都变，React 会销毁重建全部节点，输入焦点丢失、动画重播、性能崩塌。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">6.6</span> key 的正确来源与常见坑</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>key 来源</th><th>是否可用</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>后端 id / uuid</td><td>最佳</td><td>稳定、与渲染顺序无关</td></tr>
+      <tr><td>业务唯一值（邮箱、SKU）</td><td>可用</td><td>保证不重复即可</td></tr>
+      <tr><td>数组 index</td><td>仅静态列表</td><td>动态列表会产生状态错位</td></tr>
+      <tr><td><code>Math.random()</code></td><td>禁止</td><td>每次渲染都变，等于全量重建</td></tr>
+      <tr><td>复合 key</td><td>可用</td><td>如 <code>{row.col}</code>，用于虚拟表格单元格</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 后端没给 id 时：在"数据落地"处一次性生成，而不是渲染时生成
+import { nanoid } from 'nanoid';
+
+function addDraft() {
+  // ✓ 创建数据时就带上 id，之后永远稳定
+  setRows(prev =&gt; [...prev, { id: nanoid(), title: '', qty: 1 }]);
+}</code></pre>
+  <h4>其余要点</h4>
+  <ul>
+    <li><strong>key 只在兄弟节点间有意义</strong>：父组件不需要 key；不同数组的 key 重名也无所谓。</li>
+    <li><strong>key 会强制组件重建</strong>：想让某组件"彻底重置"（比如切换 tab 后清掉内部状态），改它的 key 是官方推荐手段：<code>&lt;Form key={userId} /&gt;</code>。</li>
+    <li><strong>key 不进入 props</strong>：<code>props.key</code> 取不到，它是 React 内部字段；要用请另起一个 prop 名（如 <code>id</code>）。</li>
+    <li><strong>Fragment 需要 key 时用全标签</strong>：<code>&lt;React.Fragment key={id}&gt;</code>，短语法 <code>&lt;&gt;</code> 无法加属性。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>条件渲染四写法</td><td>早返回 / 三元 / &amp;&amp; / 查表，按分支复杂度选择</td></tr>
+      <tr><td>状态建模</td><td>用单一 status 字段代替多个布尔量，避免非法组合</td></tr>
+      <tr><td>列表处理</td><td>map 渲染，sort/reverse 前先拷贝数组</td></tr>
+      <tr><td>key 的作用</td><td>决定"复用还是重建"，key 同则复用 DOM 与组件状态</td></tr>
+      <tr><td>index 作 key</td><td>动态列表会造成输入态/动画错位，禁用</td></tr>
+      <tr><td>key 来源</td><td>稳定业务 id；没有就在创建数据时生成</td></tr>
+      <tr><td>改 key 重置组件</td><td><code>&lt;Form key={id} /&gt;</code> 是官方推荐的重置手段</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>重写这段代码，去掉嵌套三元：<code>{loading ? &lt;Spin/&gt; : error ? &lt;Err/&gt; : list.length ? &lt;List list={list}/&gt; : &lt;Empty/&gt;}</code></div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>一个可拖拽排序的标签列表用 <code>key={index}</code>，每个标签内有一个可改名的 <code>&lt;input&gt;</code>。请描述拖拽排序后会出现什么现象，解释原因，并给出修法。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现"切换用户时表单自动清空"：用 <code>key={userId}</code> 与 useEffect 清理两种方案各写一遍，对比代码量与可靠性。</div>
+  <p class="note">参考答案见附录 C。下一章：useState——组件的记忆。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="005_第5章_事件处理与合成事件.html">← 第 5 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="007_第7章_useState状态与函数式更新.html">第 7 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 6 章 条件渲染与列表 key</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

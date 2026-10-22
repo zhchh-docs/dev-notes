@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 14 章 rebase：换基的艺术｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第二篇 分支与协作</p>
+    <h1>第 14 章 rebase：换基的艺术</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 14 章 / 共 40 章 · 预计 45 分钟 · 高危高能章</span>
+    </div>
+    <p class="hero-desc">rebase 是 Git 里最强大也最容易用错的工具：它能让历史变成一条直线，也能让同事的工作一夜蒸发。本章讲清 rebase 的机制、与 merge 的取舍、pull --rebase 的坑，以及那条必须刻进肌肉的黄金法则。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="013_第13章_冲突解决全流程.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="015_第15章_交互式 rebase：清理历史.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">14.1 rebase 做了什么</a></li>
+    <li><a href="#sec3">14.2 场景演练：把功能分支搬到新基底</a></li>
+    <li><a href="#sec4">14.3 rebase 中的冲突处理</a></li>
+    <li><a href="#sec5">14.4 merge 还是 rebase：决策表</a></li>
+    <li><a href="#sec6">14.5 黄金法则：不要 rebase 已推送的公共分支</a></li>
+    <li><a href="#sec7">14.6 pull --rebase 与配置</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能用一句话解释 rebase：<strong>把一串提交"重新播放"到新的基底上</strong>；</li>
+    <li>独立完成 <code>git rebase main</code> 并处理其中的冲突；</li>
+    <li>判断何时用 merge、何时用 rebase（团队规范的核心决策之一）；</li>
+    <li>牢记<strong>黄金法则</strong>并理解违反它的后果。</li>
+  </ul>
+  <div class="danger-box"><strong>先记结论</strong>：rebase 会<strong>改写提交哈希</strong>（因为提交的父变了、内容时间戳变了）。任何<strong>已经推送且别人可能基于它工作</strong>的提交，都不要 rebase。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">14.1</span> rebase 做了什么</h2>
+  <p><code>git rebase main</code>（在 feature 分支上执行）的内部步骤：</p>
+  <ol>
+    <li>找到 feature 与 main 的<strong>共同祖先</strong>；</li>
+    <li>把 feature 上"从共同祖先之后"的所有提交<strong>临时存为补丁</strong>；</li>
+    <li>把 feature 指针<strong>重置</strong>到 main 的尖端（相当于 <code>reset --hard main</code>）；</li>
+    <li>把刚才的补丁<strong>逐个重新应用</strong>，生成一批<strong>新的提交</strong>（内容相同、哈希不同）。</li>
+  </ol>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="rebase 前后对比">
+      <defs><marker id="a14" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="220" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">rebase 前：分叉</text>
+      <circle cx="100" cy="80" r="17" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="100" y="85" text-anchor="middle" font-size="10" fill="#2d6a3f">C1</text>
+      <circle cx="200" cy="80" r="17" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="200" y="85" text-anchor="middle" font-size="10" fill="#2d6a3f">C2</text>
+      <circle cx="300" cy="80" r="17" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="300" y="85" text-anchor="middle" font-size="10" fill="#2d6a3f">C4</text>
+      <circle cx="200" cy="150" r="17" fill="#fef3c7" stroke="#b45309"/>
+      <text x="200" y="155" text-anchor="middle" font-size="10" fill="#b45309">C3</text>
+      <circle cx="300" cy="150" r="17" fill="#fef3c7" stroke="#b45309"/>
+      <text x="300" y="155" text-anchor="middle" font-size="10" fill="#b45309">C5</text>
+      <line x1="117" y1="80" x2="181" y2="80" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <line x1="217" y1="80" x2="281" y2="80" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <line x1="117" y1="80" x2="185" y2="140" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <line x1="217" y1="150" x2="281" y2="150" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <text x="300" y="58" text-anchor="middle" font-size="10.5" fill="#047857">main(C2,C4)</text>
+      <text x="300" y="185" text-anchor="middle" font-size="10.5" fill="#b45309">feature(C3,C5)</text>
+      <text x="220" y="215" text-anchor="middle" font-size="11" fill="#7a8a70">共同祖先 = C1</text>
+      <line x1="360" y1="120" x2="440" y2="120" stroke="#2d6a3f" stroke-width="3" marker-end="url(#a14)"/>
+      <text x="400" y="108" text-anchor="middle" font-size="11" fill="#2d6a3f">git rebase main</text>
+      <text x="620" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">rebase 后：一条直线</text>
+      <circle cx="500" cy="150" r="17" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="500" y="155" text-anchor="middle" font-size="10" fill="#2d6a3f">C1</text>
+      <circle cx="600" cy="150" r="17" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="600" y="155" text-anchor="middle" font-size="10" fill="#2d6a3f">C2</text>
+      <circle cx="700" cy="150" r="17" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="700" y="155" text-anchor="middle" font-size="10" fill="#2d6a3f">C4</text>
+      <circle cx="780" cy="150" r="17" fill="#d1fae5" stroke="#047857"/>
+      <text x="780" y="155" text-anchor="middle" font-size="10" fill="#047857">C3'</text>
+      <line x1="517" y1="150" x2="581" y2="150" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <line x1="617" y1="150" x2="681" y2="150" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <line x1="717" y1="150" x2="761" y2="150" stroke="#7a8a70" marker-end="url(#a14)"/>
+      <text x="700" y="128" text-anchor="middle" font-size="10.5" fill="#047857">main</text>
+      <text x="780" y="185" text-anchor="middle" font-size="10.5" fill="#047857">feature</text>
+      <text x="640" y="215" text-anchor="middle" font-size="11" fill="#7a8a70">C3' C5' 内容不变，但哈希全新（父变了）</text>
+    </svg>
+    <p class="diagram-caption">图 14-1 rebase：提交被"复制重放"到新基底，历史变直线，旧提交成为悬空对象</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">14.2</span> 场景演练：把功能分支搬到新基底</h2>
+  <pre class="code" data-lang="bash"><code>cd ~/git-lab &amp;&amp; rm -rf ch14 &amp;&amp; mkdir ch14 &amp;&amp; cd ch14 &amp;&amp; git init
+echo "base" &gt; app.js &amp;&amp; git add . &amp;&amp; git commit -m "feat: 初始化"
+
+# ① 功能分支开发两个提交
+git switch -c feature/pay
+echo "pay-1" &gt;&gt; app.js &amp;&amp; git commit -am "feat(pay): 支付第一步"
+echo "pay-2" &gt;&gt; app.js &amp;&amp; git commit -am "feat(pay): 支付第二步"
+
+# ② 主线被别人推进
+git switch main
+echo "hotfix" &gt;&gt; app.js &amp;&amp; git commit -am "fix: 紧急修复"
+
+# ③ 功能分支 rebase 到最新主线
+git switch feature/pay
+git rebase main
+# Successfully rebased and updated refs/heads/feature/pay.
+
+git log --oneline --graph --all
+# * 8a1b2c3 (HEAD -&gt; feature/pay) feat(pay): 支付第二步
+# * 7f6e5d4 feat(pay): 支付第一步
+# * 3c1a8f0 (main) fix: 紧急修复
+# * 9d8e7c6 feat: 初始化        ← 一条直线！
+
+# ④ 此时合回主线就是 fast-forward（无合并提交）
+git switch main &amp;&amp; git merge feature/pay
+# Fast-forward</code></pre>
+  <p class="key-sentence">rebase 的收益：功能分支的历史像"它就是在最新主线上开发的"，<strong>主线永远一条直线</strong>，<code>git log --first-parent</code> 极其干净，bisect 也不会被合并提交干扰。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">14.3</span> rebase 中的冲突处理</h2>
+  <p>rebase 是<strong>逐个提交重放</strong>，所以<strong>同一个文件可能冲突多次</strong>（每个提交一次）——这是它比 merge 麻烦的地方（merge 只解决一次）。</p>
+  <pre class="code" data-lang="bash"><code>git rebase main
+# CONFLICT (content): Merge conflict in app.js
+# error: could not apply 7f6e5d4... feat(pay): 支付第一步
+
+git status
+# interactive rebase in progress; onto 3c1a8f0
+# Unmerged paths: both modified: app.js
+
+# 1. 解决冲突（编辑文件 → 删除标记 → 写出正确内容）
+# 2. 标记解决
+git add app.js
+# 3. 继续重放下一个提交（不是 commit！）
+git rebase --continue
+
+# 想跳过这个提交（放弃它带来的改动）
+git rebase --skip
+
+# 彻底放弃整个 rebase
+git rebase --abort</code></pre>
+  <div class="warn-box"><strong>关键差别</strong>：rebase 冲突解决后用 <code>git rebase --continue</code>，<strong>不是</strong> <code>git commit</code>。另外 rebase 时 <code>HEAD</code>/ours 指的是<strong>新基底（main）</strong>，theirs 是<strong>你正在重放的提交</strong>——与 merge 相反（第 13 章强调过）。</div>
+  <pre class="code" data-lang="bash"><code># 减少重复劳动：开启 rerere（记住你解决过的冲突，下次自动复用）
+git config --global rerere.enabled true</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">14.4</span> merge 还是 rebase：决策表</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>维度</th><th>merge</th><th>rebase</th></tr></thead>
+    <tbody>
+      <tr><td>历史形状</td><td>保留分叉与合并节点（真实记录发生过什么）</td><td>一条直线（更像"顺序发生"）</td></tr>
+      <tr><td>提交哈希</td><td>不变（安全）</td><td><strong>改变</strong>（危险，若已推送）</td></tr>
+      <tr><td>冲突次数</td><td>一次性解决</td><td>逐提交解决（可能多次）</td></tr>
+      <tr><td>可追溯性</td><td>能看出"这个功能是一批提交"</td><td>丢失分支边界（可用 --no-ff 补回）</td></tr>
+      <tr><td>适用</td><td>公共分支合并、需要审计的场景</td><td>个人/未推送分支整理、同步主线</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">团队常用组合拳：<strong>本地用 rebase 同步主线（保持干净），合入主干时用 merge --no-ff（保留功能边界与合并记录）</strong>。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">14.5</span> 黄金法则：不要 rebase 已推送的公共分支</h2>
+  <div class="danger-box"><strong>黄金法则</strong>：<strong>只对尚未推送、或确认无人基于其工作的本地提交使用 rebase。</strong> 一旦提交已经推送到共享仓库，rebase 后你就必须<strong>强推</strong>，而强推会覆盖远程历史，导致：<ul><li>队友的本地历史与远程分叉，拉取时产生大量"幽灵冲突"；</li><li>队友基于旧提交做的工作可能被静默丢弃；</li><li>CI、发布标签、PR 关联全部错乱。</li></ul></div>
+  <pre class="code" data-lang="bash"><code># 万一必须强推（仅限个人分支，且已通知相关人）
+git push --force-with-lease origin feature/pay
+# --force-with-lease 比 --force 安全：若远程已有你没见过的新提交，它会拒绝推送
+
+# 队友在"你强推之后"如何恢复（假设他本地还是旧的 feature/pay）
+git fetch origin
+git switch feature/pay
+git reset --hard origin/feature/pay    # ⚠ 会丢弃本地未推送改动，确认后执行</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">14.6</span> pull --rebase 与配置</h2>
+  <p><code>git pull</code> 默认是 <code>fetch + merge</code>，会产生一条 "Merge branch 'main'" 的合并提交——每天同步几次，历史里就全是这种噪音。改用 rebase：</p>
+  <pre class="code" data-lang="bash"><code>git pull --rebase            # fetch + rebase（把本地提交接到远程尖端之后）
+
+# 全局默认（推荐个人开发）
+git config --global pull.rebase true
+# 或只对新建分支自动生效（老仓库的分支不动）
+git config --global pull.rebase merges
+
+# 自动 stash 未提交改动后再 rebase（避免"有改动不能 rebase"）
+git pull --rebase --autostash
+git config --global rebase.autoStash true</code></pre>
+  <div class="note"><strong>团队建议</strong>：<code>pull.rebase=true</code> 适合"个人分支 + 频繁同步"的开发者；<strong>共享长期分支（main/release）仍用 merge</strong>，避免改写已发布历史。第 37 章会把这条写进团队规范模板。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：rebase 了已推送的公共分支 → 队友历史错乱；只 rebase 本地/个人分支；</li>
+    <li><span class="tag-pit">坑 2</span>：冲突后用了 <code>git commit</code> 而非 <code>--continue</code> → rebase 卡住；用 <code>git rebase --abort</code> 重来；</li>
+    <li><span class="tag-pit">坑 3</span>：rebase 时 ours/theirs 判断反 → 以文件内容为准，开 diff3；</li>
+    <li><span class="tag-pit">坑 4</span>：rebase 后忘了强推，本地与远程分叉 → 确认分支归属后再 <code>--force-with-lease</code>；</li>
+    <li><span class="tag-pit">坑 5</span>：rebase 丢失了合并提交 → 默认 rebase <strong>会丢弃合并提交</strong>，需要保留用 <code>--rebase-merges</code>。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>rebase 机制</td><td>存补丁 → 重置到新基底 → 逐个重放，生成新哈希</td></tr>
+      <tr><td>冲突处理</td><td>解决 → <code>add</code> → <code>rebase --continue</code>（不是 commit）</td></tr>
+      <tr><td>取舍</td><td>本地整理用 rebase；公共合入用 merge（可 --no-ff）</td></tr>
+      <tr><td>黄金法则</td><td>已推送且他人可能基于其工作的提交，绝不 rebase</td></tr>
+      <tr><td>pull --rebase</td><td>避免无意义的 merge 噪音，配 autoStash 更顺手</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>按 14.2 脚本演练一次 rebase，对比 rebase 前后 <code>git log --graph</code> 的形状，并验证合回主线是 fast-forward。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>制造一个"每个提交都会冲突"的场景（连续两次改同一行），练习多次 <code>--continue</code>，并开启 <code>rerere</code> 体会它复用解决方案的效果。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>模拟"误 rebase 已推送分支"：在两台目录间还原事故，练习用 <code>--force-with-lease</code> 与队友侧 <code>reset --hard origin/xxx</code> 恢复，并写出事故复盘的三个改进项。</div>
+  <p class="note">下一章：交互式 rebase——合并、拆分、重排、改写提交，推送前把历史整理干净。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="013_第13章_冲突解决全流程.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="015_第15章_交互式 rebase：清理历史.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 14 章 rebase：换基的艺术</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

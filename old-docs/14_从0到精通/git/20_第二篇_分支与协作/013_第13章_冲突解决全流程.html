@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 13 章 冲突解决全流程｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第二篇 分支与协作</p>
+    <h1>第 13 章 冲突解决全流程</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 13 章 / 共 40 章 · 预计 45 分钟 · 必会技能章</span>
+    </div>
+    <p class="hero-desc">冲突不是 Git 出错了，而是 Git 在说"这两处改动我无法确定你的意图，请你决定"。本章给出一套标准化解决流程：读懂冲突标记、用三方对比判断取舍、验证结果、收尾提交——照做即可，不必再怕冲突。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="012_第12章_创建、切换与合并.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="014_第14章_rebase：换基的艺术.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">13.1 冲突是怎么产生的</a></li>
+    <li><a href="#sec3">13.2 读懂冲突标记</a></li>
+    <li><a href="#sec4">13.3 标准解决流程（六步法）</a></li>
+    <li><a href="#sec5">13.4 场景演练：制造并解决一次冲突</a></li>
+    <li><a href="#sec6">13.5 工具与策略：ours/theirs/合并工具</a></li>
+    <li><a href="#sec7">13.6 特殊冲突：删除 vs 修改、二进制文件</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出冲突产生的<strong>唯一条件</strong>：两边改了<strong>同一文件的同一区域</strong>；</li>
+    <li>能读懂 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> / <code>=======</code> / <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> 标记，并知道三段分别是什么；</li>
+    <li>掌握六步法解决流程，包括<strong>解决后必须做的验证</strong>（编译/测试）；</li>
+    <li>会用 <code>--ours</code>/<code>--theirs</code>、<code>git checkout --conflict</code>、合并工具（mergetool）提效。</li>
+  </ul>
+  <div class="note"><strong>心态</strong>：冲突是协作的常态。Git 已经自动合并了绝大多数改动，只有它<strong>无法判断意图</strong>时才停下来问你——这恰恰是它在保护你。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">13.1</span> 冲突是怎么产生的</h2>
+  <p>合并时 Git 逐文件、逐块（hunk）比较三方：共同祖先、我们的版本（当前分支 HEAD）、他们的版本（被合并分支）。只有一种情况会冲突：</p>
+  <p class="key-sentence">两边<strong>修改了同一文件的同一段相邻行</strong>——Git 无法自动判断该留谁的，于是停下。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>情况</th><th>结果</th><th>例子</th></tr></thead>
+    <tbody>
+      <tr><td>改了不同文件</td><td>自动合并 ✅</td><td>A 改 a.js，B 改 b.js</td></tr>
+      <tr><td>改了同文件不同位置</td><td>自动合并 ✅</td><td>A 改第 1 行，B 改第 100 行</td></tr>
+      <tr><td>改了同文件相邻行</td><td>冲突 ⚠</td><td>A 与 B 都改第 10 行附近</td></tr>
+      <tr><td>一边删、一边改</td><td>冲突 ⚠</td><td>A 删除文件，B 修改它（见 13.6）</td></tr>
+      <tr><td>二进制文件两边都改</td><td>冲突 ⚠</td><td>图片、Excel（Git 无法逐行合并）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">13.2</span> 读懂冲突标记</h2>
+  <pre class="code" data-lang="text"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD                    ← ① 我们的版本（当前分支，merge 时是目标分支）
+const timeout = 3000;
+=======                            ← ② 分隔线
+const timeout = 5000;              ← ③ 他们的版本（被合并进来的分支）
+&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/optimize</code></pre>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:38%"><col style="width:34%"></colgroup>
+    <thead><tr><th>标记块</th><th>merge 时</th><th>rebase 时（注意会互换！）</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code>（ours）</td><td>当前分支（如 main）</td><td>上游分支（被 rebase 到的基底，如 main）</td></tr>
+      <tr><td><code>&gt;&gt;&gt;&gt;&gt;&gt;&gt; xxx</code>（theirs）</td><td>被合并分支（如 feature）</td><td>你正在重放的提交（你的改动）</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>rebase 时 ours/theirs 会互换</strong>——这是最容易搞反的地方。原因：rebase 是"先把 HEAD 切到新基底，再逐个重放你的提交"，所以 <code>HEAD</code>（ours）指的是<strong>新基底</strong>，而 theirs 是<strong>你的改动</strong>。始终以<strong>文件内容</strong>判断，不要只依赖 ours/theirs 字样。</div>
+  <pre class="code" data-lang="bash"><code># 想看更完整的三方内容（含共同祖先版本）
+git checkout --conflict=diff3 -- src/app.js
+# &lt;&lt;&lt;&lt;&lt;&lt;&lt; ours
+# ||||||| base        ← 共同祖先原本的内容
+# =======
+# &gt;&gt;&gt;&gt;&gt;&gt;&gt; theirs
+# 有了 base，判断"谁改了什么"就容易多了
+
+# 配置默认使用 diff3（推荐）
+git config --global merge.conflictStyle diff3</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">13.3</span> 标准解决流程（六步法）</h2>
+  <ol>
+    <li><strong>看全局</strong>：<code>git status</code> —— 列出所有冲突文件（标为 <code>UU</code>）；</li>
+    <li><strong>看冲突点</strong>：打开每个冲突文件，读 <code>diff3</code> 三段内容，判断业务上应该保留什么；</li>
+    <li><strong>改写文件</strong>：删除冲突标记，写出<strong>正确的最终代码</strong>（注意：往往是"两者结合"，不是二选一）；</li>
+    <li><strong>验证</strong>：编译 / 跑测试 / 手工验证——<strong>这一步最常被跳过，也最容易埋雷</strong>；</li>
+    <li><strong>标记解决</strong>：<code>git add 文件</code>（add 即表示"这个文件我处理好了"）；</li>
+    <li><strong>完成合并</strong>：<code>git commit</code>（merge 会自动带默认信息）或 <code>git rebase --continue</code>。</li>
+  </ol>
+  <pre class="code" data-lang="bash"><code>git status
+# Unmerged paths:
+#   both modified:   src/app.js        ← UU 状态
+
+# ...编辑 src/app.js 解决冲突...
+
+git add src/app.js
+git status
+# All conflicts fixed but you are still merging.
+#   (use "git commit" to conclude merge)
+
+git commit                    # 用默认合并信息
+# 或
+git commit -m "merge: 合并 feature/optimize，超时统一为 5000"</code></pre>
+  <p class="key-sentence">解决冲突的本质不是"选一边"，而是<strong>写出两边意图融合后的正确代码</strong>。冲突标记只是 Git 给你的原材料。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">13.4</span> 场景演练：制造并解决一次冲突</h2>
+  <pre class="code" data-lang="bash"><code>cd ~/git-lab &amp;&amp; rm -rf ch13 &amp;&amp; mkdir ch13 &amp;&amp; cd ch13 &amp;&amp; git init
+printf 'line1\nline2\nline3\n' &gt; f.txt
+git add . &amp;&amp; git commit -m "feat: 初始文件"
+
+# ① 分支 A 改第 2 行
+git switch -c feature-a
+printf 'line1\nA-feature\nline3\n' &gt; f.txt
+git commit -am "feat: A 改第 2 行"
+
+# ② 主线也改第 2 行
+git switch main
+printf 'line1\nmain-hotfix\nline3\n' &gt; f.txt
+git commit -am "fix: 主线改第 2 行"
+
+# ③ 合并 → 冲突
+git merge feature-a
+# Auto-merging f.txt
+# CONFLICT (content): Merge conflict in f.txt
+# Automatic merge failed; fix conflicts and then commit the result.
+
+cat f.txt
+# line1
+# &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+# main-hotfix
+# ||||||| 4a5b6c7
+# line2
+# =======
+# A-feature
+# &gt;&gt;&gt;&gt;&gt;&gt;&gt; feature-a
+# line3
+
+# ④ 解决：业务上两边都要 → 手工合并为最终内容
+printf 'line1\nmain-hotfix + A-feature\nline3\n' &gt; f.txt
+
+# ⑤ 标记 + 完成
+git add f.txt &amp;&amp; git commit -m "merge: 合并 feature-a，第 2 行融合两边改动"
+
+# ⑥ 复盘
+git log --oneline --graph --all
+git show HEAD          # 确认最终内容正确</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">13.5</span> 工具与策略：ours / theirs / mergetool</h2>
+  <pre class="code" data-lang="bash"><code># 直接采用某一边的完整文件（慎用：会丢失另一边）
+git checkout --ours   f.txt     # 用当前分支版本
+git checkout --theirs f.txt     # 用被合并分支版本
+git add f.txt
+
+# 合并策略：冲突时自动选一边（批量，慎用）
+git merge -Xours   feature      # 冲突处一律用我们的
+git merge -Xtheirs feature      # 冲突处一律用他们的
+
+# 图形化合并工具（VS Code / Beyond Compare / Meld 等）
+git mergetool                   # 逐个文件打开工具
+# 配置（以 VS Code 为例）
+git config --global merge.tool vscode
+git config --global mergetool.vscode.cmd 'code --wait --merge $REMOTE $LOCAL $BASE $MERGED'
+git config --global mergetool.keepBackup false
+
+# VS Code 原生：打开冲突文件即有 "Accept Current / Incoming / Both" 按钮
+code f.txt</code></pre>
+  <div class="warn-box"><strong>-Xours / -Xtheirs 是"投降键"</strong>：它会静默丢弃另一边的冲突改动（非冲突改动仍会保留）。只在<strong>明确知道该丢弃哪边</strong>时使用（例如"配置文件一律以主线为准"），并在提交信息里说明。</div>
+  <pre class="code" data-lang="bash"><code># 中止：不解决了，回到合并前
+git merge --abort
+# rebase 中：
+git rebase --abort</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">13.6</span> 特殊冲突：删除 vs 修改、二进制文件</h2>
+  <h4>删除 / 修改冲突</h4>
+  <pre class="code" data-lang="bash"><code>git status
+# Unmerged paths:
+#   deleted by us:     old-module.js      # 我们删了，对方改了
+#   added by them:     new-module.js
+
+# 决定保留删除（对方改动也一起丢）
+git rm old-module.js
+# 决定保留文件（撤销我们的删除）
+git add old-module.js</code></pre>
+  <h4>二进制文件冲突</h4>
+  <pre class="code" data-lang="bash"><code># Git 无法合并图片/Office 文档，报：
+# CONFLICT (binary): Merge conflict in logo.png
+# 只能二选一：
+git checkout --ours logo.png    &amp;&amp; git add logo.png
+# 或
+git checkout --theirs logo.png  &amp;&amp; git add logo.png
+
+# 预防：用 .gitattributes 标记二进制，避免 Git 尝试文本合并
+echo "*.png binary" &gt;&gt; .gitattributes</code></pre>
+  <p><span class="tag-point">团队协作建议</span>：二进制资源（图片、设计稿、Excel）尽量<strong>由单一负责人修改</strong>，或用 LFS（大文件存储）管理；多人同时改同一张图必然冲突且难解决。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：解决冲突后忘了 <code>git add</code> 就 commit → Git 会提示仍有未解决路径；用 <code>git status</code> 确认无 <code>UU</code>；</li>
+    <li><span class="tag-pit">坑 2</span>：把冲突标记 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 留在代码里提交了 → 代码直接语法错误；解决后全局搜索 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 确认清零；</li>
+    <li><span class="tag-pit">坑 3</span>：rebase 时把 ours/theirs 理解反了 → 以文件内容为准，多用 <code>--conflict=diff3</code>；</li>
+    <li><span class="tag-pit">坑 4</span>：解决完不跑测试直接提交 → 语义冲突（两边都合法但组合起来是 bug）最致命；</li>
+    <li><span class="tag-pit">坑 5</span>：一次合并几十个冲突文件就慌 → 分批解决、逐个 add，中途可用 <code>git status</code> 看剩余；必要时 <code>--abort</code> 重新来。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>冲突条件</td><td>两边改了同一文件的同一区域</td></tr>
+      <tr><td>三段标记</td><td>ours（HEAD）/ base（共同祖先）/ theirs（对方）</td></tr>
+      <tr><td>六步法</td><td>看 → 读 → 改 → 验证 → add → commit</td></tr>
+      <tr><td>diff3 样式</td><td><code>merge.conflictStyle diff3</code> 显示共同祖先，判断更容易</td></tr>
+      <tr><td>ours/theirs 互换</td><td>merge 与 rebase 下含义相反，以内容为准</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>按 13.4 脚本完整制造并解决一次冲突，提交后用 <code>git show</code> 验证最终文件内容是你期望的融合结果。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>开启 <code>merge.conflictStyle diff3</code>，重做一次冲突，体会 base 段对判断"谁改了什么"的帮助；再练习一次 <code>git mergetool</code>。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一次"删除 vs 修改"的冲突场景并解决；随后说明：为什么语义冲突（代码能编译但逻辑错）比文本冲突更危险，团队该用什么手段防范（提示：评审 + 测试 + 小步合并）。</div>
+  <p class="note">下一章：rebase 换基——把你的改动"搬家"到新基底上，以及它与 merge 的取舍。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="012_第12章_创建、切换与合并.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="014_第14章_rebase：换基的艺术.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 13 章 冲突解决全流程</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

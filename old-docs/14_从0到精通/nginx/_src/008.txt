@@ -1,0 +1,138 @@
+title: 第 8 章 try_files 与 SPA 路由兜底
+part: 第一篇 入门与配置体系
+outdir: 10_第一篇_入门与配置体系
+file: 008_第8章_try_files与SPA路由兜底.html
+prev: 007_第7章_root与alias的差异.html
+next: 009_第9章_rewrite重写规则.html
+meta: 第 8 章 / 共 32 章 · 预计 30 分钟 · 核心必学
+desc: Vue/React 的 history 路由刷新就 404？答案就是一行 try_files。本章讲透它的逐项尝试语义、命名 location 兜底与安全边界，给出可直接抄的标准配置。
+toc: sec1|本章目标;sec2|8.1 逐项尝试语义;sec3|8.2 SPA 路由兜底标准写法;sec4|8.3 命名 location 与内部重定向;sec5|8.4 与 error_page 的配合;sec6|8.5 安全边界：$uri 与路径穿越;sec7|8.6 常见坑;sec8|小结与习题
+---
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <code>try_files</code> 的<strong>逐项尝试、先到先得</strong>语义；</li>
+    <li>写出适用于 Vue/React history 路由的<strong>标准兜底配置</strong>；</li>
+    <li>会用命名 location（<code>@fallback</code>）承接兜底逻辑；</li>
+    <li>理解 <code>$uri</code> 与路径穿越的安全边界。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">8.1</span> 逐项尝试语义</h2>
+  <pre class="code" data-lang="nginx"><code>location / {
+    try_files $uri $uri/ /index.html;
+    #            |     |      |
+    #            |     |      +-- 都失败：内部重定向到 /index.html（再走一遍匹配）
+    #            |     +-- 当目录试：存在则走 index 指令
+    #            +-- 当文件试：root + $uri 能打开就直接返回
+}</code></pre>
+  <ol>
+    <li>按顺序检查每个参数：<code>$uri</code> 作为文件、<code>$uri/</code> 作为目录；</li>
+    <li>第一个"存在"的立即返回，<strong>后面不再看</strong>；</li>
+    <li>最后一个参数是"<strong>兜底 URI</strong>"，必须存在且通常以 <code>/</code> 开头——它触发一次内部重定向（重新匹配 location，浏览器地址栏不变）；</li>
+    <li>所有检查都在 root/alias 拼接后的磁盘空间里进行。</li>
+  </ol>
+  <p class="key-sentence">try_files 与 rewrite 的本质区别：它是<strong>存在性检查</strong>（文件系统说了算），rewrite 是<strong>无条件改写</strong>（规则说了算）。"文件优先、不存在才兜底"的需求永远选 try_files。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">8.2</span> SPA 路由兜底标准写法</h2>
+  <p>Vue Router / React Router 的 history 模式把路由写在 URL 里（如 <code>/users/42</code>），磁盘上并没有这个文件——直接访问或刷新就 404。标准解法：</p>
+  <pre class="code" data-lang="nginx"><code>server {
+    listen 80;
+    server_name spa.example.com;
+    root /var/www/spa-dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ^~ /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";   # 入口页永不长缓存！
+    }
+}</code></pre>
+  <ul>
+    <li>请求 <code>/users/42</code>：$uri 不存在 → $uri/ 不存在 → 内部重定向到 <code>/index.html</code> → 返回应用入口，前端路由接管渲染；</li>
+    <li><code>/assets/</code> 加 ^~ 且长缓存：带 hash 的构建产物改名了，缓存多久都安全；</li>
+    <li><code>index.html</code> 必须 no-cache，否则发新版后老用户加载旧入口——这是 SPA 上线最经典的"明明发了版用户看不到"事故。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">8.3</span> 命名 location 与内部重定向</h2>
+  <p>兜底动作不止"回 index.html"，可指向命名 location（<code>@</code> 开头，外部无法直接访问）：</p>
+  <pre class="code" data-lang="nginx"><code>location / {
+    try_files $uri $uri/ @backend;
+}
+
+location @backend {
+    # 文件不存在才走这里：交给后端渲染 / 返回 404 JSON
+    proxy_pass http://backend;
+    proxy_set_header X-Original-URI $request_uri;   # 原始 URI 带给后端
+}</code></pre>
+  <ul>
+    <li>适合<strong>静态文件优先、动态兜底</strong>的混合应用（SSR、CMS）；</li>
+    <li>命名 location 只能被 try_files / error_page / rewrite 等内部机制进入；</li>
+    <li>注意 <code>$request_uri</code>（原始完整 URI，带参数、未被改写）与 <code>$uri</code>（当前内部处理中的路径）的区别。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">8.4</span> 与 error_page 的配合</h2>
+  <pre class="code" data-lang="nginx"><code>root /var/www/app;
+
+# 404 时也回 SPA（等价效果，但语义是"错误处理"而非"文件查找"）
+error_page 404 = /index.html;
+
+# 更专业的分工：404 交给前端路由，故障交给维护页
+error_page 502 503 504 = /maintenance.html;</code></pre>
+  <ul>
+    <li>try_files 兜底发生在<strong>请求处理之前</strong>（正常流程），error_page 发生在<strong>出错之后</strong>（异常流程）；</li>
+    <li>两者可共存：文件查找用 try_files，故障降级用 error_page——第 25 章展开。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">8.5</span> 安全边界：$uri 与路径穿越</h2>
+  <ul>
+    <li>try_files 里的 <code>$uri</code> 是<strong>已归一化</strong>的路径（Nginx 解析 <code>../</code>、合并双斜杠），直接用是安全的；</li>
+    <li>若用 <code>$request_uri</code>（未解码原文）参与磁盘路径拼接，可能被 <code>%2e%2e%2f</code> 编码绕过——<strong>磁盘路径永远只用 $uri</strong>；</li>
+    <li>把用户输入拼进动态路径时，先过白名单正则（7.3 的捕获组要防 <code>..</code>）。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">8.6</span> 常见坑</h2>
+  <ol>
+    <li><strong>兜底 URI 写成文件路径</strong>：末项是 URI（以 / 开头），写成无斜杠形式会被当作磁盘相对路径检查，行为诡异；</li>
+    <li><strong>alias 场景兜底拼错</strong>：见 7.5，兜底要写完整 URL 前缀；</li>
+    <li><strong>index.html 被长缓存</strong>：发版后用户停留在旧版本；</li>
+    <li><strong>API 路径被 SPA 兜底吞掉</strong>：不存在的 <code>/api/xxx</code> 返回 index.html——API location 必须单独声明；</li>
+    <li><strong>兜底循环</strong>：兜底 URI 又被兜底到自己，Nginx 有 10 次内部重定向上限，超限 500。</li>
+  </ol>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>语义</td><td>逐项存在性检查，先到先得；末项是内部兜底 URI</td></tr>
+      <tr><td>SPA 标配</td><td>try_files $uri $uri/ /index.html + 入口页 no-cache + assets 长缓存</td></tr>
+      <tr><td>动态兜底</td><td>@named location 承接"文件不存在"的流量</td></tr>
+      <tr><td>安全</td><td>磁盘路径只用 $uri（已归一化），勿用 $request_uri</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>部署任意 Vue/React 构建产物，配出 8.2 三段配置，验证刷新深链路由不再 404。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 curl -I 对比 index.html 与 assets 的缓存头，确认入口页 no-cache。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现 8.3 的 @backend 兜底：用 <code>python3 -m http.server</code> 当假后端，验证"文件存在走文件、不存在走后端"。</div>
+  <p class="note">下一章：rewrite 重写规则——无条件改写 URL 的另一把刀。</p>
+</section>

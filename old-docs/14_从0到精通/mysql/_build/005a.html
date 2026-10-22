@@ -1,0 +1,144 @@
+TITLE: 第 5 章 增删改：INSERT/UPDATE/DELETE 与软删｜MySQL 从 0 到精通
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 5 章 增删改：INSERT/UPDATE/DELETE 与软删</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 5 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">写数据的三个动词各有一批"保命细节"：INSERT 怎么拿回自增 ID、怎么和唯一键和平共处；UPDATE 为什么必须带 WHERE；为什么互联网公司几乎不做物理删除。本章逐一讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="004_第4章_建库建表_DDL与约束.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="006_第6章_基础查询_WHERE与运算符.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">5.1 INSERT 的四种姿势</a></li>
+    <li><a href="#sec3">5.2 UPDATE 与安全更新</a></li>
+    <li><a href="#sec4">5.3 DELETE 与软删除</a></li>
+    <li><a href="#sec5">5.4 冲突处理三兄弟对比</a></li>
+    <li><a href="#sec6">5.5 常见坑清单</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>熟练使用单条、多值、批量 <code>INSERT</code>，会用 <code>LAST_INSERT_ID()</code> 拿回自增主键；</li>
+    <li>掌握 <code>UPDATE</code> 的表达式写法与安全开关 <code>sql_safe_updates</code>；</li>
+    <li>理解软删除的设计与查询配合；</li>
+    <li>分清 <code>INSERT IGNORE</code>、<code>REPLACE INTO</code>、<code>ON DUPLICATE KEY UPDATE</code> 的行为差异；</li>
+    <li>避开增删改最伤人的几个坑。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">5.1</span> INSERT 的四种姿势</h2>
+  <pre class="code" data-lang="sql"><code>-- 姿势一：指明列名再插值（推荐：列顺序变了也不出错）
+INSERT INTO customer (name, phone) VALUES ('张三', '13800000001');
+
+-- 姿势二：一次插多行（批量写入比循环单条快得多）
+INSERT INTO customer (name, phone) VALUES
+  ('李四', '13800000002'),
+  ('王五', '13800000003'),
+  ('赵六', '13800000004');
+
+-- 姿势三：只插部分列，其余走默认值
+INSERT INTO product (name, price) VALUES ('机械键盘', 399.00);
+
+-- 姿势四：INSERT ... SELECT，从别的表筛出来直接灌进来
+INSERT INTO customer_archive (id, name, phone)
+SELECT id, name, phone FROM customer WHERE id &lt;= 3;</code></pre>
+  <h4>拿到刚生成的自增 ID</h4>
+  <pre class="code" data-lang="sql"><code>INSERT INTO customer (name, phone) VALUES ('孙七', '13800000005');
+SELECT LAST_INSERT_ID();   -- 返回本次连接最近一次插入的自增值</code></pre>
+  <p>应用代码里这条更重要：各语言的驱动都提供了等价物，如 JDBC 的 <code>Statement.RETURN_GENERATED_KEYS</code>、MyBatis 的 <code>useGeneratedKeys</code>——先插客户、再用它的 ID 建订单，就是靠这个串起来的。</p>
+  <div class="note"><strong>列名清单是自我保护</strong>：不写列名（INSERT INTO t VALUES (...)）要求值与表列一一对应，表加一列整个语句就废了。永远显式写出列名。</div>
+</section>
+<section id="sec3" class="card">
+  <h2><span class="num">5.2</span> UPDATE 与安全更新</h2>
+  <pre class="code" data-lang="sql"><code>-- 单行更新：主键定位
+UPDATE product SET price = 349.00 WHERE id = 1;
+
+-- 表达式更新：在原值基础上算（想加 10 元就写表达式，别先查后写）
+UPDATE product SET price = price + 10 WHERE status = 1;
+
+-- 多列一起改，还可以引用别的列
+UPDATE product
+SET price    = price * 0.9,
+    stock    = stock - 1,
+    updated_note = '双十一直降'
+WHERE id = 2;
+
+-- 跨表更新（EXISTS 写法，安全且直观）
+UPDATE orders o
+SET o.amount = o.amount * 0.95
+WHERE EXISTS (SELECT 1 FROM customer c
+              WHERE c.id = o.customer_id AND c.level = 'VIP');</code></pre>
+  <p>UPDATE 是本书目前<strong>最危险</strong>的语句，两个保命习惯：</p>
+  <ol>
+    <li><strong>先 SELECT 后 UPDATE</strong>：把 WHERE 子句原封不动拿到 SELECT 里跑一遍，确认影响范围正确，再换成 UPDATE 执行；</li>
+    <li><strong>开启安全更新模式</strong>：<code>SET sql_safe_updates = 1;</code> 之后不带 WHERE（或不带键列条件）的 UPDATE/DELETE 会被直接拒绝——命令行手滑的最后一道保险。</li>
+  </ol>
+  <div class="warn-box">MySQL 8.0.31 之前的 UPDATE/DELETE 不支持 LIMIT 子句的某些场景且行为有版本差异；批量更新大表应按主键分批（每次几千行），一口气 UPDATE 千万行会造成长事务（第 35 章展开）。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">5.3</span> DELETE 与软删除</h2>
+  <pre class="code" data-lang="sql"><code>DELETE FROM product WHERE id = 5;              -- 物理删除单行
+DELETE FROM customer_archive WHERE created_at &lt; '2020-01-01';  -- 按条件删</code></pre>
+  <p>物理删除的问题：数据没了就真没了——误删、审计、恢复全都是灾难。所以业务表的标配是<strong>软删除</strong>：</p>
+  <ul>
+    <li>表上加 <code>is_deleted TINYINT NOT NULL DEFAULT 0</code>（或 <code>deleted_at DATETIME NULL</code>）；</li>
+    <li>"删除"变成 <code>UPDATE t SET is_deleted = 1 WHERE id = ?;</code></li>
+    <li>所有业务查询都补上 <code>WHERE is_deleted = 0</code>——这就是为什么第 4 章模板里要有这一列。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>-- 软删
+UPDATE customer SET is_deleted = 1 WHERE id = 4;
+
+-- 业务查询统一过滤
+SELECT id, name FROM customer WHERE is_deleted = 0;
+
+-- 真想清数据时，由归档程序把 is_deleted = 1 且超过保留期的行搬走（第 61 章）</code></pre>
+  <div class="pit-sentence">软删的隐藏成本：所有查询都要记得过滤标记，漏一处就"诈尸"；唯一索引也会把已删记录算进去（手机号唯一列上，删过的老用户挡住新注册）——常用解法是把唯一索引改成 (phone, is_deleted) 组合或在唯一列拼接 deleted_at。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5.4</span> 冲突处理三兄弟对比</h2>
+  <p>插入时撞上唯一键怎么办？三种策略，行为差异很大：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>写法</th><th>撞唯一键时的行为</th><th>副作用</th></tr></thead>
+    <tbody>
+      <tr><td>INSERT IGNORE</td><td>静默忽略报错，旧行保留</td><td>把"数据非法"等其他错误也一并吞掉，难排查</td></tr>
+      <tr><td>REPLACE INTO</td><td>删掉旧行、插入新行</td><td>自增 ID 变了；触发 DELETE 语义；关联数据成孤儿</td></tr>
+      <tr><td>ON DUPLICATE KEY UPDATE</td><td>把指定列更新为给定值</td><td>语义最明确，批量导入首选</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 例：每日统计表，当天已有记录就累加
+INSERT INTO daily_stats (stat_date, pv, uv)
+VALUES ('2026-10-19', 1, 1)
+ON DUPLICATE KEY UPDATE pv = pv + 1, uv = uv + 1;</code></pre>
+  <div class="key-sentence">记住一句话：IGNORE 慎用（吞错误），REPLACE 少用（删了重来），UPSERT（ON DUPLICATE KEY UPDATE）最常用。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">5.5</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>UPDATE 漏 WHERE</strong>：全表被改。安全模式 + 先 SELECT 是双保险；</li>
+    <li><span class="tag-pit">坑</span><strong>字符串没加引号</strong>：<code>WHERE name = 张三</code> 会把"张三"当列名报 Unknown column；</li>
+    <li><span class="tag-pit">坑</span><strong>隐式类型转换</strong>：<code>WHERE phone = 13800000001</code>（数字没引号）在字符列上会导致索引失效（第 23 章）；</li>
+    <li><span class="tag-pit">坑</span><strong>UPDATE 影响 0 行不算错</strong>：matched 0 / changed 0 时要分清"没找到"还是"值没变"，应用层判断别只看是否抛异常。</li>
+  </ul>
+</section>
+<!--CONT2-->

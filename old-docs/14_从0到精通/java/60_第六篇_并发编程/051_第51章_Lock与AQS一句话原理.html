@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 51 章 Lock 与 AQS 一句话原理｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45;color:var(--accent-2)}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card li strong{color:var(--ink)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+p,li,h1,h2,h3,h4{overflow-wrap:break-word}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(min-width:1024px){
+nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.toc h2{font-size:14px;color:#22331f;margin:0 0 12px;padding:0 0 8px;border-bottom:1px solid #d8e2cc;font-weight:600}
+nav.toc ol{list-style:none;padding:0;margin:0;display:block}
+nav.toc ol li{margin:6px 0}
+nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;text-decoration:none;font-size:13px;line-height:1.4;border-radius:6px;transition:all .15s;background:transparent;border:none}
+nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f}
+.container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+.container{padding:0 14px;margin:0;max-width:100%}
+.hero{padding:20px 16px}
+.hero h1{font-size:22px}
+.hero-desc{font-size:14px}
+.toc ol{grid-template-columns:1fr}
+section.card{padding:20px 18px;margin:16px 0}
+section.card h2{font-size:19px;margin-bottom:16px}
+section.card h3{font-size:16px;margin:24px 0 10px}
+section.card h4{font-size:15px;margin:18px 0 8px}
+pre.code{font-size:12px;padding:12px}
+code{font-size:13px}
+#backTop{right:16px;bottom:20px}
+.doc-nav{gap:6px;padding-left:14px;padding-right:14px}
+.doc-nav-btn{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第六篇 并发编程</p>
+    <h1>第 51 章 Lock 与 AQS 一句话原理</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 51 章 / 共 112 章 · 预计 40 分钟 · 边读边练</span>
+    </div>
+    <p class="hero-desc">比 synchronized 更灵活的锁：可中断、可超时、公平锁、Condition。AQS 一句话原理：state 加 CLH 队列，JUC 半壁江山的地基。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="050_第50章_volatile与内存可见性.html">← 上一章</a>
+  <a class="doc-nav-btn" href="052_第52章_线程池参数与拒绝策略.html">下一章 →</a>
+</nav>
+<div class="container">
+<main>
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">51.1 Lock 比 synchronized 多什么</a></li>
+    <li><a href="#sec3">51.2 Condition 条件等待</a></li>
+    <li><a href="#sec4">51.3 AQS 一句话原理</a></li>
+    <li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 ReentrantLock 的四个加分项：可中断、可超时、公平锁、多条件；</li>
+    <li>养成标准使用范式：lock/finally unlock；</li>
+    <li>会用 Condition 实现生产者-消费者的精准唤醒；</li>
+    <li>用一句话说清 AQS：state + CLH 队列。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">51.1</span> Lock 比 synchronized 多什么</h2>
+<pre class="code" data-lang="java"><code>private final ReentrantLock lock = new ReentrantLock();
+
+public void transfer(Account to, long amount) {
+    lock.lock();                       // 手动加锁
+    try {
+        // 临界区
+    } finally {
+        lock.unlock();                 // 必须在 finally 里解锁！
+    }
+}</code></pre>
+  <p>synchronized 是"语言内置、自动释放"；Lock 是"API 显式、手动管理"，换来四个能力：</p>
+  <ul>
+    <li><strong>可中断</strong>：<code>lockInterruptibly()</code>——等锁时能响应 interrupt，synchronized 等锁是 BLOCKED，喊不醒（死锁只能重启）；</li>
+    <li><strong>可超时</strong>：<code>tryLock(3, TimeUnit.SECONDS)</code>——3 秒拿不到就放弃，避免无限等待；<code>tryLock()</code> 立即返回；</li>
+    <li><strong>公平锁</strong>：<code>new ReentrantLock(true)</code>——按排队顺序给锁（吞吐下降），synchronized 只有非公平；</li>
+    <li><strong>读写锁</strong>：ReentrantReadWriteLock/StampedLock——读多写少场景读读并行，性能远超一把大锁。</li>
+  </ul>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>unlock 不在 finally 里——临界区抛异常锁永远不释放，系统卡死；lock 与 unlock 之间 return/continue 跳出也要 unlock；lock.lock() 写在 try 里第一行不算错，但标准写法是 lock 在 try 外。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">51.2</span> Condition：精准的等待/唤醒</h2>
+  <p>synchronized 配 wait/notifyAll 只有一个等待队列；一把锁可以挂多个 Condition，<strong>定向唤醒</strong>：</p>
+<pre class="code" data-lang="java"><code>ReentrantLock lock = new ReentrantLock();
+Condition notFull  = lock.newCondition();   // 队列没满
+Condition notEmpty = lock.newCondition();   // 队列非空
+
+public void put(E e) throws InterruptedException {
+    lock.lock();
+    try {
+        while (isFull())
+            notFull.await();                // 满了就等"不满"条件
+        enqueue(e);
+        notEmpty.signal();                   // 只唤醒"等非空"的消费者
+    } finally { lock.unlock(); }
+}
+
+public E take() throws InterruptedException {
+    lock.lock();
+    try {
+        while (isEmpty())
+            notEmpty.await();
+        E e = dequeue();
+        notFull.signal();                    // 只唤醒"等不满"的生产者
+        return e;
+    } finally { lock.unlock(); }
+}
+// 对比 Object.notifyAll：一次唤醒所有等待者再重新竞争——ArrayBlockingQueue 就是这么写的</code></pre>
+  <ul>
+    <li>await 前必须持有锁；await 会<strong>释放锁</strong>并进入等待队列，被唤醒后重新抢锁；</li>
+    <li>虚假唤醒存在，条件判断必须用 <code>while</code> 不能用 if——和 wait 的规则一致。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">51.3</span> AQS 一句话原理</h2>
+  <p>JUC 半壁江山的地基是 AbstractQueuedSynchronizer（AQS）——ReentrantLock、Semaphore、CountDownLatch、ThreadPoolExecutor 的 Worker 都是它。</p>
+<pre class="code" data-lang="java"><code>// 一句话：一个 volatile int state + 一个 CLH 双向等待队列 + 模板方法
+//
+//  state：同步状态，含义由子类定义
+//    - ReentrantLock：0=无锁，1=重入一次，2=重入两次…
+//    - Semaphore：剩余许可数
+//    - CountDownLatch：还剩几个闸门
+//
+//  CLH 队列：抢不到锁的线程包装成 Node 入队（CAS 保证并发安全）
+//            队首节点释放锁后，唤醒下一个节点重试 CAS
+//
+//  模板方法：子类只实现 tryAcquire/tryRelease（独占）或
+//            tryAcquireShared/tryReleaseShared（共享），排队/唤醒/AQS 全包</code></pre>
+  <ul>
+    <li>加锁主流程：CAS 尝试改 state → 成功则持有；失败则入 CLH 队列挂起（LockSupport.park）；</li>
+    <li>解锁主流程：改 state → 队列非空则 unpark 后继节点，它醒来重新 CAS；</li>
+    <li>公平/非公平的区别就一句话：非公平新来者直接 CAS 插队，公平者先看队列有没有人排队；</li>
+    <li>面试画图：state 变化 + 队列进出，两条线讲清任意一个同步器的行为。</li>
+  </ul>
+  <div class="key-sentence">AQS = state（状态）+ CLH 队列（排队）+ 模板方法（子类定义 state 语义）。读懂它，Semaphore/CountDownLatch/ReentrantLock 是同一道题的三种解。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>四能力</td><td>lockInterruptibly 可中断、tryLock 可超时、公平可选、多 Condition</td></tr>
+      <tr><td>使用范式</td><td>lock 在 try 外，unlock 必在 finally</td></tr>
+      <tr><td>Condition</td><td>一把锁多个等待队列，signal 定向唤醒；判断条件用 while</td></tr>
+      <tr><td>AQS</td><td>volatile state + CLH 队列 + 模板方法，JUC 同步器的共同骨架</td></tr>
+      <tr><td>选型</td><td>默认 synchronized；需要超时/中断/公平/读写分离才上 Lock</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 ReentrantLock 实现 synchronized 版的计数器（add/get），要求 lock/unlock 范式正确；再制造一个"unlock 忘写 finally"的版本，观察临界区抛异常后第二个线程会发生什么。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用两个线程分别 tryLock 对方的锁构造死锁，然后对比：synchronized 版只能重启；ReentrantLock 版用 tryLock(1, SECONDS) 拿不到就释放已有锁重试——验证死锁被打破。再试试 lockInterruptibly + interrupt。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>基于 AQS 自己实现一个简版 Semaphore（继承 AbstractQueuedSynchronizer，state 表示许可，实现 tryAcquireShared/tryReleaseShared），并用 10 线程并发验证最多 3 个同时进入临界区。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章看生产并发第一课：线程池的参数与拒绝策略。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="050_第50章_volatile与内存可见性.html">← 上一章</a>
+  <a class="doc-nav-btn" href="052_第52章_线程池参数与拒绝策略.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 51 章 Lock 与 AQS 一句话原理</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var b=document.getElementById('backTop');
+  if(b){var t=function(){b.classList.toggle('show',window.scrollY>480)};window.addEventListener('scroll',t,{passive:true});t();b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})})}
+  try{var ps=document.querySelectorAll('pre.code');for(var i=0;i<ps.length;i++)(function(p){var c=document.createElement('button');c.type='button';c.className='code-copy';c.textContent='复制';p.appendChild(c);c.addEventListener('click',function(){var e=p.querySelector('code'),x=e?e.innerText:p.innerText,d=function(){c.textContent='已复制';setTimeout(function(){c.textContent='复制'},1600)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x).then(d,function(){})}else{var a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);d()}})})(ps[i])}catch(e){}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

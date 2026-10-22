@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 55 章 原子类与 CAS｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45;color:var(--accent-2)}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card li strong{color:var(--ink)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+p,li,h1,h2,h3,h4{overflow-wrap:break-word}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(min-width:1024px){
+nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.toc h2{font-size:14px;color:#22331f;margin:0 0 12px;padding:0 0 8px;border-bottom:1px solid #d8e2cc;font-weight:600}
+nav.toc ol{list-style:none;padding:0;margin:0;display:block}
+nav.toc ol li{margin:6px 0}
+nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;text-decoration:none;font-size:13px;line-height:1.4;border-radius:6px;transition:all .15s;background:transparent;border:none}
+nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f}
+.container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+.container{padding:0 14px;margin:0;max-width:100%}
+.hero{padding:20px 16px}
+.hero h1{font-size:22px}
+.hero-desc{font-size:14px}
+.toc ol{grid-template-columns:1fr}
+section.card{padding:20px 18px;margin:16px 0}
+section.card h2{font-size:19px;margin-bottom:16px}
+section.card h3{font-size:16px;margin:24px 0 10px}
+section.card h4{font-size:15px;margin:18px 0 8px}
+pre.code{font-size:12px;padding:12px}
+code{font-size:13px}
+#backTop{right:16px;bottom:20px}
+.doc-nav{gap:6px;padding-left:14px;padding-right:14px}
+.doc-nav-btn{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第六篇 并发编程</p>
+    <h1>第 55 章 原子类与 CAS</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 55 章 / 共 112 章 · 预计 40 分钟 · 边读边练</span>
+    </div>
+    <p class="hero-desc">无锁并发的核心：CAS 三要素与 ABA 问题、AtomicInteger 原理、LongAdder 高并发分段思路。乐观锁思想的落地样板。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="054_第54章_ThreadLocal与内存泄漏.html">← 上一章</a>
+  <a class="doc-nav-btn" href="056_第56章_CompletableFuture异步编排.html">下一章 →</a>
+</nav>
+<div class="container">
+<main>
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">55.1 CAS 三要素</a></li>
+    <li><a href="#sec3">55.2 ABA 问题</a></li>
+    <li><a href="#sec4">55.3 原子类家族与 LongAdder</a></li>
+    <li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 CAS：比较并交换，无锁并发的心脏；</li>
+    <li>能讲清 ABA 问题及 AtomicStampedReference 的版本号解法；</li>
+    <li>掌握原子类家族的选型（原子引用、字段更新器、累加器）；</li>
+    <li>知道 LongAdder 为什么在高并发下碾压 AtomicLong。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">55.1</span> CAS 三要素</h2>
+  <p>CAS（Compare And Swap）是一条 CPU 原子指令（x86 的 cmpxchg）：给定<strong>内存位置 V、期望值 E、新值 N</strong>——仅当 V 的当前值等于 E 时，才把 V 改成 N；否则失败。整个过程是硬件级原子的，<strong>不需要加锁</strong>。</p>
+<pre class="code" data-lang="java"><code>AtomicInteger count = new AtomicInteger(0);
+
+// 自增就是"乐观重试"：猜旧值 → CAS → 失败就重读再猜
+public void incr() {
+    int old;
+    do {
+        old = count.get();              // ① 读当前值
+    } while (!count.compareAndSet(old, old + 1));   // ② 尝试改，失败重试
+}</code></pre>
+  <ul>
+    <li>底层：Unsafe.compareAndSwapInt → CPU 指令；JDK 9+ 用 VarHandle，语义相同；</li>
+    <li>AtomicInteger.incrementAndGet 就是 JDK 帮你写好的"自旋 CAS"；</li>
+    <li><strong>乐观锁思想</strong>：假设没有冲突，失败了再试——synchronized 是悲观锁（先锁再动），CAS 是乐观锁（先动，冲突再重来）；</li>
+    <li>CAS 三个代价：① 自旋空转耗 CPU（竞争激烈时反复失败）；② 只能保证单个变量的原子性；③ ABA 问题。</li>
+  </ul>
+  <div class="key-sentence">synchronized 是"排队进门"，CAS 是"抢座位，抢不到再试"——低冲突场景 CAS 快得多，高冲突场景自旋反而空耗 CPU。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">55.2</span> ABA 问题</h2>
+  <p>CAS 只比较"值相等"，不关心中间发生了什么：</p>
+<pre class="code" data-lang="java"><code>// 时间线
+线程1 读到 A（准备改成 C）
+线程2 把 A 改成 B，又改回 A
+线程1 CAS(A → C) 成功！       // 值确实等于 A，但"此 A 非彼 A"
+// 对栈/链表这类结构，A 被移走又放回，节点指向可能已乱——逻辑出错</code></pre>
+  <p>解法：加版本号，改一次号涨一次：</p>
+<pre class="code" data-lang="java"><code>AtomicStampedReference&lt;String&gt; ref =
+        new AtomicStampedReference&lt;&gt;("A", 0);   // 初始值 + 初始版本
+
+int[] stamp = new int[1];
+String cur = ref.get(stamp);                       // 同时拿到值和版本
+ref.compareAndSet(cur, "C", stamp[0], stamp[0] + 1);   // 版本不匹配就失败
+// 值一样但版本不一样 → CAS 失败，ABA 现形</code></pre>
+  <ul>
+    <li>数值型场景 ABA 一般无害（1→2→1 数学上等价），引用型（节点复用）才有事——别过度防御；</li>
+    <li>AtomicMarkableReference 是简化版：版本号换成 boolean 标记。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">55.3</span> 原子类家族与 LongAdder</h2>
+<pre class="code" data-lang="java"><code>// ① 基本类型：AtomicInteger / AtomicLong / AtomicBoolean
+counter.incrementAndGet();     // ++i
+counter.getAndAdd(5);          // i += 5，返回旧值
+counter.updateAndGet(x -&gt; x * 2);   // 函数式更新（JDK 8）
+
+// ② 引用类型：AtomicReference —— 让整个对象引用的替换变原子
+AtomicReference&lt;Config&gt; configRef = new AtomicReference&lt;&gt;(oldConfig);
+configRef.compareAndSet(oldConfig, newConfig);   // 配置热更新
+
+// ③ 数组：每个元素独立 CAS
+AtomicIntegerArray arr = new AtomicIntegerArray(10);
+arr.incrementAndGet(3);
+
+// ④ 字段更新器：不侵入类定义，反射 + CAS 更新普通对象的 volatile 字段
+AtomicIntegerFieldUpdater&lt;User&gt; upd =
+        AtomicIntegerFieldUpdater.newUpdater(User.class, "score");
+upd.incrementAndGet(user);     // score 字段必须 volatile
+
+// ⑤ 高并发累加器：LongAdder（JDK 8）
+LongAdder adder = new LongAdder();
+adder.increment();             // 分段累加，读时求和
+long total = adder.sum();</code></pre>
+  <p><strong>LongAdder 为什么快？</strong>AtomicLong 所有线程 CAS 同一个变量，高并发下自旋冲突爆炸。LongAdder 把计数拆成 <strong>base + Cell[] 数组</strong>：线程哈希到不同 Cell 各加各的（空间换时间），sum() 时汇总。牺牲"实时精确读"换写吞吐——统计场景的标配，JDK 8 的 ConcurrentHashMap.size() 用的就是这思路。</p>
+  <ul>
+    <li>选型：计数且高并发写 → LongAdder；要 CAS 做条件更新 → AtomicLong；对象引用原子替换 → AtomicReference。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>CAS</td><td>V、E、N：值等于期望才更新；CPU 原子指令，无锁</td></tr>
+      <tr><td>乐观锁</td><td>失败自旋重试；低冲突快、高冲突空转耗 CPU</td></tr>
+      <tr><td>ABA</td><td>值回原样但历史已变；版本号 AtomicStampedReference 解</td></tr>
+      <tr><td>家族</td><td>基本/引用/数组/字段更新器，按场景选</td></tr>
+      <tr><td>LongAdder</td><td>base+Cell 分段累加，写吞吐高、sum 弱一致</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 CAS 自旋手写 AtomicInteger 的 addAndGet（get + compareAndSet 循环），8 线程各加 10000 次，验证结果恒为 80000；对比第 49 章 synchronized 版的耗时。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 AtomicStampedReference 复现 ABA：线程 2 把值 A→B→A，线程 1 用带版本号的 CAS 失败；换无版本的 AtomicReference 则成功。写 3 行注释说明"什么时候 ABA 才真的危险"。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>压测对比：8 线程各 increment 100 万次，分别用 AtomicLong 和 LongAdder，记录耗时与 sum() 精确性；然后把线程数改成 2 再跑，观察 LongAdder 优势是否消失——写出"分段累加何时值得"的结论。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章看异步编排利器：CompletableFuture。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="054_第54章_ThreadLocal与内存泄漏.html">← 上一章</a>
+  <a class="doc-nav-btn" href="056_第56章_CompletableFuture异步编排.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 55 章 原子类与 CAS</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var b=document.getElementById('backTop');
+  if(b){var t=function(){b.classList.toggle('show',window.scrollY>480)};window.addEventListener('scroll',t,{passive:true});t();b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})})}
+  try{var ps=document.querySelectorAll('pre.code');for(var i=0;i<ps.length;i++)(function(p){var c=document.createElement('button');c.type='button';c.className='code-copy';c.textContent='复制';p.appendChild(c);c.addEventListener('click',function(){var e=p.querySelector('code'),x=e?e.innerText:p.innerText,d=function(){c.textContent='已复制';setTimeout(function(){c.textContent='复制'},1600)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x).then(d,function(){})}else{var a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);d()}})})(ps[i])}catch(e){}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

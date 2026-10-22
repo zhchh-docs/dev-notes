@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 7 章 删除与移动文件｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第一篇 入门与对象模型</p>
+    <h1>第 7 章 删除与移动文件</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 7 章 / 共 40 章 · 预计 35 分钟 · 动手章</span>
+    </div>
+    <p class="hero-desc">删文件要单独学吗？要——因为 Git 里的"删除"有两种完全不同的含义：从工作区删、从仓库里停止跟踪。而"重命名"在 Git 里根本不是一个动作，而是靠内容相似度推断出来的。本章理清 git rm、git mv、--cached 与重命名识别。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="006_第6章_撤销修改：checkout 与 restore.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="008_第8章_.gitignore 的正确写法.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">7.1 删除的两条路：rm 与 git rm</a></li>
+    <li><a href="#sec3">7.2 --cached：把文件踢出仓库但留在硬盘</a></li>
+    <li><a href="#sec4">7.3 场景演练：误提交文件后的补救</a></li>
+    <li><a href="#sec5">7.4 移动与重命名：git mv 的真相</a></li>
+    <li><a href="#sec6">7.5 重命名识别与 -M 参数</a></li>
+    <li><a href="#sec7">7.6 找回被删的文件</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>区分<strong>工作区删除</strong>与<strong>停止跟踪</strong>，知道何时用 <code>git rm --cached</code>；</li>
+    <li>能处理"误把日志/密钥提交进仓库"的补救流程（不含历史改写，第三篇再深入）；</li>
+    <li>理解 Git <strong>没有真正的重命名记录</strong>，重命名是事后推断的；</li>
+    <li>会用 <code>git log --follow</code> 跟踪改名前的历史，能找回误删文件。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">7.1</span> 删除的两条路：rm 与 git rm</h2>
+  <p>两条路最终效果一样（都记录一次删除），区别只在"要不要再敲一次 add"：</p>
+  <pre class="code" data-lang="bash"><code># 路线 A：系统命令删除 → 再 add 记录删除
+rm old.txt
+git status -s
+#  D old.txt           # 右列 D：工作区删了，暂存区还没记录
+git add -A old.txt     # （或 git add -u）把"删除"这个动作暂存
+git status -s
+#D  old.txt            # 左列 D：删除已暂存
+git commit -m "chore: 移除废弃文件 old.txt"
+
+# 路线 B：git rm 一步到位（删文件 + 暂存删除）
+git rm old.txt
+git commit -m "chore: 移除废弃文件 old.txt"</code></pre>
+  <p>强制删除场景（文件被改动过，Git 怕你误删）：</p>
+  <pre class="code" data-lang="bash"><code>git rm -f 有改动的文件.txt     # -f = force
+git rm -r docs/                # -r 递归删目录
+git rm -r --cached build/      # 见 7.2：只停跟踪，不动硬盘</code></pre>
+  <div class="note"><strong>git rm 的价值</strong>：省一次 add，且在删除量大、路径复杂时（<code>git rm -r</code>）更不容易漏。日常删一两个文件，<code>rm</code> + <code>git add -A</code> 完全够用。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">7.2</span> --cached：把文件踢出仓库但留在硬盘</h2>
+  <p>这是最容易被误解的参数。它做的是：<strong>从暂存区/仓库中移除该文件的跟踪记录，但保留硬盘上的实体文件</strong>。</p>
+  <pre class="code" data-lang="bash"><code># 典型场景：不小心把本地配置文件提交了，想"以后别再跟踪它"
+git rm --cached config.local.json
+git status -s
+#D  config.local.json   # 仓库中将删除
+#?? config.local.json   # 但文件还在硬盘 → 变成未跟踪
+
+# 立刻补上忽略规则，避免下次又被 add 回来
+echo "config.local.json" &gt;&gt; .gitignore
+git add .gitignore &amp;&amp; git commit -m "chore: 停止跟踪本地配置文件"</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:34%"><col style="width:34%"></colgroup>
+    <thead><tr><th>命令</th><th>硬盘文件</th><th>仓库跟踪</th></tr></thead>
+    <tbody>
+      <tr><td><code>rm f</code></td><td>删除</td><td>仍跟踪（需再 add 才记录删除）</td></tr>
+      <tr><td><code>git rm f</code></td><td>删除</td><td>删除（已暂存）</td></tr>
+      <tr><td><code>git rm --cached f</code></td><td><strong>保留</strong></td><td>删除（已暂存）</td></tr>
+      <tr><td><code>git rm -r --cached dir/</code></td><td>保留</td><td>整目录停止跟踪</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence"><span class="tag-pit">坑</span>：<code>git rm --cached</code> <strong>不会</strong>让历史里已有的内容消失——别人 clone 后仍能从前几个提交里翻出这个文件。要真正抹掉历史里的敏感内容，需要 <code>git filter-repo</code>（第 27 章），并<strong>立即轮换密钥</strong>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">7.3</span> 场景演练：误提交文件后的补救</h2>
+  <p>场景：把 <code>.env</code>（含数据库密码）提交进了仓库，还没 push。</p>
+  <pre class="code" data-lang="bash"><code># 1. 先确认影响范围
+git log --oneline -- .env
+git show HEAD --stat
+
+# 2A. 如果 .env 只是"上一次提交"里加进去的、且没推送 → 用 reset 撤回提交
+git reset --soft HEAD~1        # 提交撤销，改动回到暂存区
+git restore --staged .env      # 把 .env 挪出暂存区
+echo ".env" &gt;&gt; .gitignore
+git add .gitignore
+git commit -m "feat: 原本那次提交的内容（已剔除 .env）"
+
+# 2B. 如果 .env 已经在好几个提交里、且已推送 → 停止跟踪 + 轮换密钥
+echo ".env" &gt;&gt; .gitignore
+git rm --cached .env
+git commit -m "chore: 停止跟踪 .env 并加入忽略"
+# ⚠ 历史中的密钥仍可被检出 → 立即去改数据库密码 / 吊销 token</code></pre>
+  <div class="danger-box"><strong>铁律</strong>：<strong>密钥一旦进过仓库，就当作已经泄露</strong>——停止跟踪只是止损，真正的安全动作是<strong>轮换（rotate）凭据</strong>。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">7.4</span> 移动与重命名：git mv 的真相</h2>
+  <pre class="code" data-lang="bash"><code>git mv old-name.js new-name.js
+git status -s
+#R  old-name.js -&gt; new-name.js    # R = renamed
+
+git commit -m "refactor: 重命名 old-name.js"</code></pre>
+  <p>但 Git 里<strong>并没有存储"重命名"这个动作</strong>。<code>git mv</code> 只是三个动作的糖：</p>
+  <pre class="code" data-lang="bash"><code># 上面那条 git mv 完全等价于：
+mv old-name.js new-name.js     # 1. 文件系统改名
+git rm old-name.js             # 2. 记录删除旧路径
+git add new-name.js            # 3. 记录新增新路径
+
+# 所以你也可以先手工改名，再 add：
+mv a.js b.js &amp;&amp; git add -A
+git status -s
+#R  a.js -&gt; b.js                # Git 自动识别为重命名</code></pre>
+  <p><span class="tag-key">为什么敢这么做</span>：因为 Git 按<strong>内容</strong>寻址。改名不改内容 → blob 哈希不变 → Git 一看"删了一个 blob，加了一个一模一样的 blob"，就推断出这是重命名。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">7.5</span> 重命名识别与 -M 参数</h2>
+  <p>推断需要相似度阈值：改名同时又改了内容，Git 就不一定认得出来了。</p>
+  <pre class="code" data-lang="bash"><code># 提高/降低相似度阈值（默认 50%）
+git diff -M40%          # 相似度 ≥40% 就算重命名
+git log --follow -M30% -- new-name.js   # 跟踪改名前的历史
+
+# 关闭重命名检测（把它当成"删+增"）
+git diff --no-renames
+
+# 查看某文件跨重命名的完整历史
+git log --follow --oneline -- new-name.js
+# 3c1a8f0 refactor: 重命名 old-name.js
+# 9d8e7c6 feat: 实现核心逻辑     ← 改名前的历史也能看到</code></pre>
+  <div class="warn-box"><strong>团队协作提示</strong>：如果你把"重命名"和"大量内容修改"放在同一个提交里，Git 与评审者都难以识别。规范做法：<strong>一次提交只改名，内容改动放下一个提交</strong>。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">7.6</span> 找回被删的文件</h2>
+  <p>只要删除<strong>曾经提交过</strong>，文件就还在对象库里，随时能捞回来：</p>
+  <pre class="code" data-lang="bash"><code># 情况一：删了但还没提交 → 从仓库恢复
+git restore 被删文件.txt
+
+# 情况二：删除已提交 → 从"删除前那次提交"取回
+git log --oneline --diff-filter=D -- 被删文件.txt   # 找到删除它的提交 X
+git restore --source=X~1 -- 被删文件.txt            # X~1 = 删除前的版本
+
+# 情况三：只记得文件名片段
+git log --all --oneline --name-status | grep -i "关键字"
+
+# 情况四：整个目录被删，批量恢复
+git checkout 删除前提交 -- 目录/      # 老写法仍好用</code></pre>
+  <p class="key-sentence">Git 几乎不真正删除对象——"删除"只是"新提交里不再包含它"。因此<strong>已提交的删除几乎总能恢复</strong>，这也是"频繁提交"最重要的保险价值。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：<code>git rm --cached</code> 后文件变未跟踪，下次 <code>git add .</code> 又被加回来 → 必须同步写 .gitignore；</li>
+    <li><span class="tag-pit">坑 2</span>：以为删除能让历史里的密钥消失 → 不能，只能停止跟踪；敏感信息立即轮换；</li>
+    <li><span class="tag-pit">坑 3</span>：改名 + 大改内容在同一提交 → 历史断裂、评审困难；拆成两次提交；</li>
+    <li><span class="tag-pit">坑 4</span>：<code>git mv</code> 到已存在的目标路径会覆盖 → 用 <code>git mv -f</code> 前先确认目标内容不再需要；</li>
+    <li><span class="tag-pit">坑 5</span>：<code>git rm -r .</code>（手滑）→ 立刻 <code>git reset</code> 取消全部暂存，再 <code>git restore .</code> 恢复文件。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>删除两条路</td><td><code>rm</code>+<code>add</code> 与 <code>git rm</code> 等价，后者省一步</td></tr>
+      <tr><td>--cached</td><td>停止跟踪但保留硬盘文件；须配 .gitignore</td></tr>
+      <tr><td>重命名真相</td><td>Git 不记录重命名，靠内容相似度事后推断</td></tr>
+      <tr><td>跟踪改名历史</td><td><code>git log --follow -- 文件</code></td></tr>
+      <tr><td>删除可恢复</td><td>已提交的删除都在对象库里，用 <code>restore --source</code> 取回</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>创建文件并提交，用 <code>git rm</code> 删除、用 <code>git rm --cached</code> 停止跟踪，分别用 <code>git status -s</code> 记录状态差异。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把某文件重命名并提交，再用 <code>git log --follow</code> 查看它改名前的历史；尝试改名同时改内容，观察 <code>git status</code> 是否仍识别为 R。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>模拟"误提交 .env"：完成停止跟踪 + 忽略 + 提交补救，并说明为什么"轮换密钥"是不可省略的一步。</div>
+  <p class="note">下一章：.gitignore 的正确写法——规则语法、优先级、全局忽略与"已经被跟踪的文件怎么忽略"。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="006_第6章_撤销修改：checkout 与 restore.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="008_第8章_.gitignore 的正确写法.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 7 章 删除与移动文件</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

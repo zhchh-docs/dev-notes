@@ -1,0 +1,251 @@
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">6.1 List 命令与方向约定</a></li>
+    <li><a href="#sec3">6.2 四种典型用法</a></li>
+    <li><a href="#sec4">6.3 BLPOP/BRPOP：真正的阻塞队列</a></li>
+    <li><a href="#sec5">6.4 可靠队列：LMOVE + 备份队列</a></li>
+    <li><a href="#sec6">6.5 quicklist 底层与内存调优</a></li>
+    <li><a href="#sec7">6.6 常见坑与 List vs Stream</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>弄清 <code>LPUSH/RPUSH/LPOP/RPOP</code> 的<strong>方向约定</strong>（不再"猜"数据从哪头出）；</li>
+    <li>能用 List 实现 <strong>最新列表、简单队列、栈、有限长记录</strong>四种模型；</li>
+    <li>掌握 <code>BLPOP/BRPOP</code> 阻塞消费，理解 timeout=0 的行为与连接占用代价；</li>
+    <li>理解 List 队列"<strong>消息丢了怎么办</strong>"，并实现 <code>LMOVE</code> 可靠队列；</li>
+    <li>知道 <strong>List 适合做什么、什么时候必须换成 Stream</strong>。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 3-5 章。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">6.1</span> List 命令与方向约定</h2>
+  <p class="lead"><b>List = <b>有序、可重复</b>的字符串序列，两端 <b>O(1)</b> 增删，中间下标访问 <b>O(N)</b>。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; RPUSH feed:user:1 a b c      # 右端插入 a,b,c → [a b c]
+(integer) 3
+127.0.0.1:6379&gt; LPUSH feed:user:1 z          # 左端插入 z → [z a b c]
+(integer) 4
+127.0.0.1:6379&gt; LRANGE feed:user:1 0 -1      # 0 到末尾：全部
+1) "z"
+2) "a"
+3) "b"
+4) "c"
+127.0.0.1:6379&gt; LPOP feed:user:1             # 左弹出
+"z"
+127.0.0.1:6379&gt; RPOP feed:user:1             # 右弹出
+"c"
+127.0.0.1:6379&gt; LLEN feed:user:1
+(integer) 2
+127.0.0.1:6379&gt; LINDEX feed:user:1 0         # 按索引读，O(N)，别用来遍历
+"a"
+127.0.0.1:6379&gt; LPOS feed:user:1 a           # 查值位置（6.0+，还有 RANK/COUNT 选项）
+(integer) 0
+127.0.0.1:6379&gt; LINSERT feed:user:1 BEFORE b x   # 在 b 前插入 x
+(integer) 3
+127.0.0.1:6379&gt; LREM feed:user:1 1 x         # 删除 1 个值为 x 的元素（负=从尾，0=全部）
+(integer) 1
+127.0.0.1:6379&gt; LSET feed:user:1 0 A         # 按下标改值
+OK
+127.0.0.1:6379&gt; LTRIM feed:user:1 0 99       # 只保留前 100 个 —— 限长列表神器
+OK</code></pre>
+  <div class="key-sentence">记方向：<b>LPOP+RPUSH（或 LPUSH+RPOP）= 队列 FIFO；LPUSH+LPOP = 栈 LIFO。</b>画图记：把 List 想成一条横向队列，L 是 Left(左端/头部)，R 是 Right(右端/尾部)。</div>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>组合</th><th>语义</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>LPUSH + RPOP</td><td>队列 FIFO</td><td>任务队列（生产在左，消费在右）</td></tr>
+      <tr><td>RPUSH + LPOP</td><td>队列 FIFO</td><td>同上，更常见的写法</td></tr>
+      <tr><td>LPUSH + LPOP</td><td>栈 LIFO</td><td>撤销栈、最新优先</td></tr>
+      <tr><td>LPUSH + LTRIM</td><td>固定长度最新列表</td><td>最新动态、最近浏览</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">6.2</span> 四种典型用法</h2>
+
+  <h3>① 最新动态（Feed 最新-N 条）</h3>
+  <pre class="code" data-lang="bash"><code># 用户发新动态：插到最左 + 只保留最近 100 条（原子地做这两件事用 Lua 或 pipeline）
+127.0.0.1:6379&gt; LPUSH feed:latest:u1 "post:9021"
+(integer) 101
+127.0.0.1:6379&gt; LTRIM feed:latest:u1 0 99      # 砍掉超出的
+OK
+127.0.0.1:6379&gt; LRANGE feed:latest:u1 0 9       # 取最新 10 条
+# 完整对象另存：每条动态详情存 String/Hash post:9021，List 里只放 id（避免大 value 重复）</code></pre>
+
+  <h3>② 简单任务队列</h3>
+  <pre class="code" data-lang="bash"><code># 生产者
+127.0.0.1:6379&gt; LPUSH queue:email '{"to":"a@b.com","tpl":"welcome"}'
+(integer) 1
+# 消费者（多个实例同时跑，RPOP 是原子的，不会重复拿到同一条）
+127.0.0.1:6379&gt; RPOP queue:email
+"{\"to\":\"a@b.com\",\"tpl\":\"welcome\"}"
+# 改进：用 BRPOP 避免空转轮询（下一节）</code></pre>
+
+  <h3>③ 栈（撤销历史）</h3>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; LPUSH undo:doc:7 "type:hello" "del:3" "paste:xx"
+(integer) 3
+127.0.0.1:6379&gt; LPOP undo:doc:7        # 撤销一步：同端进出
+"paste:xx"</code></pre>
+
+  <h3>④ 分页（谨慎使用）</h3>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; LRANGE comments:post:1 0 19     # 第 1 页
+127.0.0.1:6379&gt; LRANGE comments:post:1 20 39    # 第 2 页
+# 坑：LRANGE 是 O(N)，N 是返回的偏移量范围。
+#    取第 1000 页意味着扫描到那里 —— 深分页请用 ZSet(按时间/分数排序)</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">6.3</span> BLPOP/BRPOP：真正的阻塞队列</h2>
+  <p class="lead"><b>轮询 <code>RPOP</code> 会浪费 CPU 和连接；<code>BRPOP</code> 让 Redis 在队列为空时<b>挂起连接</b>，有元素再唤醒。</b></p>
+  <pre class="code" data-lang="bash"><code># 语法：BRPOP key [key ...] timeout（秒，Redis 6+ 支持小数；0 = 永久阻塞）
+127.0.0.1:6379&gt; BRPOP queue:email 5
+(nil)                       # 5 秒内没数据则返回 nil
+(5.03s)
+
+127.0.0.1:6379&gt; BRPOP queue:email 30
+1) "queue:email"            # 返回 [key, value]，因为可以一次监听多个队列
+2) "{\"to\":\"x@y.com\"}"
+(2.41s)
+
+# 多队列优先级示例：高并发队列优先
+127.0.0.1:6379&gt; BLPOP queue:high queue:low 0     # 0 = 无限等待
+1) "queue:high"             # high 非空时优先返回它 → 天然优先级</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>注意点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>连接占用</td><td>阻塞期间这条连接不能复用；<strong>每个阻塞消费者至少占一条连接</strong>，连接池要算够</td></tr>
+      <tr><td>timeout=0</td><td>永久阻塞；若连接闲置过久会被中间网络设备断开，需客户端心跳或设较大 timeout（如 30s）</td></tr>
+      <tr><td>公平性</td><td>多个消费者阻塞时，<strong>谁先阻塞谁先获得</strong>（FIFO），可用于简单负载均衡</td></tr>
+      <tr><td>主从切换</td><td>阻塞期间主库挂掉，客户端会收到错误连接，需要重连重试逻辑</td></tr>
+    </tbody>
+  </table>
+  <p>一个健壮的消费循环伪代码：</p>
+  <pre class="code" data-lang="bash"><code>while True:
+    try:
+        item = redis.brpop("queue:email", timeout=30)
+        if item is None:
+            continue                 # 超时重试（顺便给连接保活）
+        _, payload = item
+        handle(payload)              # 业务处理（失败要自己补偿，见下节）
+    except RedisError as e:
+        sleep(1)                     # 网络/切换异常：退避重连
+        reconnect()</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">6.4</span> 可靠队列：LMOVE + 备份队列</h2>
+  <p class="lead"><b>普通 List 队列的致命问题：<b>RPOP 之后消费者崩了，消息就永久丢失了。</b>没有 ACK 机制。</b></p>
+  <p><code>LMOVE</code>（Redis 6.2 起，替代老的 <code>RPOPLPUSH</code>）可以<strong>原子地把元素从一个 List 移到另一个 List</strong>，于是有了标准的"处理中备份"模式：</p>
+  <pre class="code" data-lang="bash"><code># ① 消费者：原子地把任务从主队列移到 processing（处理中）队列
+127.0.0.1:6379&gt; LMOVE queue:email queue:email:processing:worker-1 RIGHT LEFT
+"{\"to\":\"a@b.com\"}"
+
+# ② 业务处理成功后：从 processing 里删除（相当于 ACK）
+127.0.0.1:6379&gt; LREM queue:email:processing:worker-1 1 "{\"to\":\"a@b.com\"}"
+(integer) 1
+
+# ③ 监视器扫描：worker 挂掉后，把超时未完成的 processing 任务移回主队列
+#    LPOS / LRANGE 找出超过 60 秒的 → LMOVE 回 queue:email
+127.0.0.1:6379&gt; LRANGE queue:email:processing:worker-1 0 -1</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="LMOVE 可靠队列示意图">
+      <rect x="40" y="70" width="190" height="70" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="135" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">queue:email</text>
+      <text x="135" y="115" text-anchor="middle" font-size="11.5" fill="#4f6348">主队列（待处理）</text>
+      <rect x="310" y="70" width="200" height="70" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="410" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">processing:w1</text>
+      <text x="410" y="115" text-anchor="middle" font-size="11.5" fill="#4f6348">处理中（每 worker 一个）</text>
+      <rect x="590" y="70" width="170" height="70" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="675" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">失败/超时</text>
+      <text x="675" y="115" text-anchor="middle" font-size="11.5" fill="#4f6348">监控移回主队列</text>
+      <line x1="230" y1="105" x2="310" y2="105" stroke="#2d6a3f" stroke-width="1.8"/>
+      <text x="270" y="98" text-anchor="middle" font-size="11" fill="#2d6a3f">LMOVE</text>
+      <line x1="510" y1="105" x2="590" y2="105" stroke="#b91c1c" stroke-width="1.8" stroke-dasharray="4 3"/>
+      <text x="547" y="98" text-anchor="middle" font-size="11" fill="#b91c1c">崩溃/超时</text>
+      <path d="M590 140 C 520 190 250 190 150 145" fill="none" stroke="#7a8a70" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <text x="400" y="205" text-anchor="middle" font-size="11.5" fill="#7a8a70">图 6-1　可靠队列：元素在任何时刻都至少在一个 List 里</text>
+    </svg>
+    <p class="diagram-caption">图 6-1 LMOVE 可靠队列模型</p>
+  </div>
+  <p class="pit-sentence">即便如此，List 依然<b>没有</b>：消息重试计数、死信队列、多消费者组、消息广播、持久化回放。这些都做一遍，你就重新发明了一个残缺版的 RabbitMQ —— <b>所以用 Redis Stream（5.0+）或 Redisson DelayQueue，而不是硬造。</b></p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6.5</span> quicklist 底层与内存调优</h2>
+  <p>Redis 的 List 底层是 <strong>quicklist</strong>：它是一个<strong>双向链表</strong>，但每个节点内部是<strong>一个 listpack（紧凑数组）</strong>。这样兼顾了两头的 O(1) 和内存紧凑。</p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; CONFIG GET list-max-listpack-size
+1) "list-max-listpack-size"
+2) "-2"      # 正数=每个 listpack 节点最多几个 entry（如 512）
+             # -1=每个节点≤4KB  -2=每个节点≤8KB  -3=每个节点≤16KB … 默认是 -2
+127.0.0.1:6379&gt; CONFIG GET list-compress-depth
+1) "list-compress-depth"
+2) "0"       # 0=不压缩；1=头尾各1个节点不压缩其余压缩；2=头尾各2个… </code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>参数</th><th>调小的效果</th><th>调大的效果</th></tr></thead>
+    <tbody>
+      <tr><td>list-max-listpack-size</td><td>节点更小更碎，内存略增但随机写更快</td><td>更省内存，但插入要搬运更多数据</td></tr>
+      <tr><td>list-compress-depth</td><td>几乎不压缩（推荐 0，除非你是纯追加型大列表）</td><td>中间节点 LZF 压缩，节省内存但访问要解压</td></tr>
+    </tbody>
+  </table>
+  <p class="note">绝大多数场景<strong>保持默认</strong>。只有当你的 List 主要作为"追加日志 + 极少读中间元素"时，<code>list-compress-depth 1~2</code> 才有明显内存收益。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">6.6</span> 常见坑与 List vs Stream</h2>
+  <div class="warn-box"><strong>坑 1</strong>：<code>LRANGE key 0 -1</code> 拉一个大列表 ⟶ 等同于 KEYS * 事故。分批或用 LRANGE 限定范围。</div>
+  <div class="warn-box"><strong>坑 2</strong>：<code>LINDEX</code>/<code>LREM</code>/<code>LINSERT</code> 都是 <strong>O(N)</strong>，别在循环里对每个元素调用。</div>
+  <div class="warn-box"><strong>坑 3</strong>：del 一个百万元素的 List 会阻塞主线程 → 用 <code>UNLINK</code> 或惰性删除配置。</div>
+  <div class="warn-box"><strong>坑 4</strong>：忘了 <code>LTRIM</code>， feed 列表无限增长 —— 每次 LPUSH 都要同步 LTRIM（可以放进 Lua 保证原子）。</div>
+  <div class="warn-box"><strong>坑 5</strong>：List 没有<strong>去重</strong>能力，同一条消息可能被多次 LPUSH（幂等要靠 Set/String 额外判重）。</div>
+  <div class="warn-box"><strong>坑 6</strong>：把 List 当成"可以随机读第 N 个元素"的数组。它不是，用后立即转向 ZSet 或真正的存储。</div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>List</th><th>Stream（5.0+）</th></tr></thead>
+    <tbody>
+      <tr><td>消费组</td><td>无（所有消费者抢同一队列）</td><td><strong>有</strong>（同组负载均衡，不同组广播）</td></tr>
+      <tr><td>ACK 机制</td><td>需自己造（LMOVE）</td><td><strong>原生 XACK + PEL 重试</strong></td></tr>
+      <tr><td>消息持久化/回放</td><td>消费即消失</td><td><strong>保留在流里，可按 ID 回放</strong></td></tr>
+      <tr><td>自动 ID</td><td>无</td><td>服务器生成时间戳序号 ID</td></tr>
+      <tr><td>适用</td><td>轻量队列、最新列表、栈</td><td>真正的事件流、可靠 MQ</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>结构</td><td>有序可重复序列，两端 O(1)，中间 O(N)</td></tr>
+      <tr><td>方向</td><td>RPUSH+LPOP=队列；LPUSH+LPOP=栈；LPUSH+LTRIM=最新 N 条</td></tr>
+      <tr><td>阻塞消费</td><td>BRPOP/BLPOP，timeout=0 永久阻塞；每消费者占一条连接</td></tr>
+      <tr><td>可靠队列</td><td>LMOVE 到 processing 队列，成功后 LREM；监控超时移回</td></tr>
+      <tr><td>底层</td><td>quicklist = 双向链表 of listpack；一般保持默认配置</td></tr>
+      <tr><td>何时换 Stream</td><td>需要 ACK、消费组、历史回放时</td></tr>
+      <tr><td>Lua 组合</td><td>LPUSH+LTRIM 应放进 Lua 保证原子，否则可能写到一半崩溃</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 List 实现一个"最新 5 条访问记录"：每来一次访问插入并截断；写出保证 LPUSH 与 LTRIM 原子的 Lua 脚本。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>启动两个 shell 同时对同一 List 执行 <code>BLPOP ... 0</code>（阻塞），然后用第三个 shell 连续 LPUSH 三条数据，观察两个消费者的分配规律，并解释 Redis 的分配顺序。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 LMOVE 实现一个可靠队列，并模拟"消费者处理到一半被 kill -9"的情况：写脚本验证处理中的消息会被监控任务移回主队列且不会被重复丢弃。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章学习 Set——去重与集合运算。</p>
+</section>
+
+</main>

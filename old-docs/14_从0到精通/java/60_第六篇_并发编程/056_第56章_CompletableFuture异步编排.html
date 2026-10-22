@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 56 章 CompletableFuture 异步编排｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45;color:var(--accent-2)}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card li strong{color:var(--ink)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+p,li,h1,h2,h3,h4{overflow-wrap:break-word}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(min-width:1024px){
+nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.toc h2{font-size:14px;color:#22331f;margin:0 0 12px;padding:0 0 8px;border-bottom:1px solid #d8e2cc;font-weight:600}
+nav.toc ol{list-style:none;padding:0;margin:0;display:block}
+nav.toc ol li{margin:6px 0}
+nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;text-decoration:none;font-size:13px;line-height:1.4;border-radius:6px;transition:all .15s;background:transparent;border:none}
+nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f}
+.container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+.container{padding:0 14px;margin:0;max-width:100%}
+.hero{padding:20px 16px}
+.hero h1{font-size:22px}
+.hero-desc{font-size:14px}
+.toc ol{grid-template-columns:1fr}
+section.card{padding:20px 18px;margin:16px 0}
+section.card h2{font-size:19px;margin-bottom:16px}
+section.card h3{font-size:16px;margin:24px 0 10px}
+section.card h4{font-size:15px;margin:18px 0 8px}
+pre.code{font-size:12px;padding:12px}
+code{font-size:13px}
+#backTop{right:16px;bottom:20px}
+.doc-nav{gap:6px;padding-left:14px;padding-right:14px}
+.doc-nav-btn{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第六篇 并发编程</p>
+    <h1>第 56 章 CompletableFuture 异步编排</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 56 章 / 共 112 章 · 预计 40 分钟 · 边读边练</span>
+    </div>
+    <p class="hero-desc">异步任务编排利器：supplyAsync、thenApply/thenCompose/thenCombine、异常传播与超时控制，告别 Future.get 阻塞式等待。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="055_第55章_原子类与CAS.html">← 上一章</a>
+  <a class="doc-nav-btn" href="057_第57章_并发设计模式生产者消费者等.html">下一章 →</a>
+</nav>
+<div class="container">
+<main>
+<nav class="toc" aria-label="本章地图">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">56.1 Future 的局限</a></li>
+    <li><a href="#sec3">56.2 链式编排 API</a></li>
+    <li><a href="#sec4">56.3 组合、异常与超时</a></li>
+    <li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 Future 的局限：阻塞 get、无法链式、无法组合；</li>
+    <li>掌握 supplyAsync/thenApply/thenAccept 的链式写法；</li>
+    <li>会用 thenCompose/thenCombine/anyOf/allOf 编排多个异步任务；</li>
+    <li>处理异常传播与超时，写出生产可用的异步代码。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">56.1</span> Future 的局限</h2>
+<pre class="code" data-lang="java"><code>// Future 时代的痛点
+Future&lt;String&gt; f = executor.submit(() -&gt; queryUser(id));
+String user = f.get();          // ① 阻塞！主线程干等
+// ② 拿到结果后想再异步查订单？再 submit 一次，手工传递
+// ③ 两个并行查询要合并？自己 CountDownLatch 拼装
+// ④ 异常藏在 ExecutionException 里，一层 unwrap
+// ⑤ 没有回调：结果好了也没人通知你</code></pre>
+  <p>CompletableFuture（JDK 8）把"异步任务"变成<strong>可编排的值</strong>：链式声明依赖、组合多个 Future、异常沿链传播——Java 版的 Promise。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">56.2</span> 链式编排 API</h2>
+<pre class="code" data-lang="java"><code>// 创建：supplyAsync 有返回值 / runAsync 无返回值
+CompletableFuture&lt;String&gt; name = CompletableFuture.supplyAsync(
+        () -&gt; userService.getName(id));
+
+// 转换：thenApply（有入参有返回）→ 相当于 map
+CompletableFuture&lt;Integer&gt; len = name.thenApply(String::length);
+
+// 消费：thenAccept（有入参无返回）/ thenRun（无入参无返回）
+name.thenAccept(n -&gt; log.info("got {}", n));
+
+// 注意 thenApply vs thenApplyAsync：
+// thenApply     由"完成当前阶段的线程"或主线程执行（快，可能挤占）
+// thenApplyAsync 显式丢回线程池（可控，推荐传自定义 executor）
+name.thenApplyAsync(String::length, businessPool);</code></pre>
+  <ul>
+    <li>命名规律：then/when 开头是"完成后"，Async 后缀表示切线程池；</li>
+    <li><strong>不传 executor 时默认用 ForkJoinPool.commonPool()</strong>——全局共享、并行度 = 核数-1；IO 任务会饿死 CPU 任务，生产必须传业务线程池；</li>
+    <li>同步阻塞的 get/join 依旧存在，但好代码里它只出现在链条尽头。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">56.3</span> 组合、异常与超时</h2>
+<pre class="code" data-lang="java"><code>// ① 串行依赖：thenCompose（上一个结果触发下一个异步任务）→ 相当于 flatMap
+CompletableFuture&lt;Order&gt; order =
+        CompletableFuture.supplyAsync(() -&gt; queryUser(id))
+                .thenCompose(user -&gt; asyncQueryOrder(user.getDefaultOrderId()));
+
+// ② 并行合并：thenCombine（两个都完成后合并）
+CompletableFuture&lt;Price&gt; p1 = asyncQueryPrice(sku);
+CompletableFuture&lt;Coupon&gt; p2 = asyncQueryCoupon(user);
+CompletableFuture&lt;BigDecimal&gt; final = p1.thenCombine(p2,
+        (price, coupon) -&gt; price.minus(coupon));
+
+// ③ 聚合：allOf 等全部 / anyOf 任一完成
+CompletableFuture.allOf(f1, f2, f3).join();     // 常配合后续统一取值
+CompletableFuture.anyOf(主源, 备源, 缓存源);      // 竞速，谁快用谁
+
+// ④ 异常传播与恢复
+CompletableFuture.supplyAsync(() -&gt; risky())
+        .exceptionally(ex -&gt; fallback())         // 出错给兜底值
+        .handle((result, ex) -&gt; ex == null ? result : deal(ex));  // 无论成败都执行
+
+// ⑤ 超时（JDK 9+）
+asyncQuery()
+        .orTimeout(500, TimeUnit.MILLISECONDS)          // 超时抛 TimeoutException
+        .completeOnTimeout(DEFAULT, 500, MILLISECONDS); // 超时给默认值</code></pre>
+  <ul>
+    <li>异常规则：链条任一环抛异常，后续正常步骤全被跳过，直到 exceptionally/handle 接住——try/catch 的异步版；</li>
+    <li>thenCompose vs thenCombine：串行接龙用 Compose（flatMap 语义），并行合流用 Combine；</li>
+    <li>allOf 返回 CompletableFuture&lt;Void&gt;，要拿各结果得在 join 后逐个 get——封装个工具方法更顺手。</li>
+  </ul>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>① 链中间thenApply里调阻塞IO——挤占 commonPool；② 忘了 exceptionally 也没 handle，异常静默消失；③ 在链条里改共享可变状态又搞出竞态——异步代码同样要遵守不可变/ confinement 原则。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>Future 痛点</td><td>get 阻塞、不能链式、不能组合、无回调</td></tr>
+      <tr><td>链式</td><td>supplyAsync 起、thenApply 转、thenAccept 收</td></tr>
+      <tr><td>编排</td><td>thenCompose 串行、thenCombine 并行合流、allOf/anyOf 聚合竞速</td></tr>
+      <tr><td>异常</td><td>沿链传播，exceptionally 兜底、handle 统一处理</td></tr>
+      <tr><td>工程要点</td><td>传自定义线程池、设超时、别在链中做阻塞 IO</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 supplyAsync + thenApply + thenAccept 组成一条链：异步取用户名 → 转大写 → 打印；分别用默认池和自定义池跑，用打印线程名观察差异。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现"聚合查询"：并行查用户/订单/优惠券三个服务（各 sleep 模拟耗时），allOf 等待后合并成一份展示对象；把其中一个改成必定抛异常，用 exceptionally 给出兜底数据——对比去掉兜底后的行为。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现"多源竞速缓存"：缓存源（快但可能 miss）、主库源（稳但慢）两个 CompletableFuture，anyOf 竞速取先完成者，若缓存 miss 则再走主库并异步回填缓存；全部用 CompletableFuture 组合实现，禁止阻塞 get 出现在中间环节。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章把并发工具组织成方案：并发设计模式。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="055_第55章_原子类与CAS.html">← 上一章</a>
+  <a class="doc-nav-btn" href="057_第57章_并发设计模式生产者消费者等.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 56 章 CompletableFuture 异步编排</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var b=document.getElementById('backTop');
+  if(b){var t=function(){b.classList.toggle('show',window.scrollY>480)};window.addEventListener('scroll',t,{passive:true});t();b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})})}
+  try{var ps=document.querySelectorAll('pre.code');for(var i=0;i<ps.length;i++)(function(p){var c=document.createElement('button');c.type='button';c.className='code-copy';c.textContent='复制';p.appendChild(c);c.addEventListener('click',function(){var e=p.querySelector('code'),x=e?e.innerText:p.innerText,d=function(){c.textContent='已复制';setTimeout(function(){c.textContent='复制'},1600)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x).then(d,function(){})}else{var a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);d()}})})(ps[i])}catch(e){}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

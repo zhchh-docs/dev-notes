@@ -1,0 +1,61 @@
+<section id="sec6" class="card">
+  <h2><span class="num">6.5</span> 实战：标准站点路由骨架</h2>
+  <pre class="code" data-lang="nginx"><code>server {
+    listen 80;
+    server_name app.example.com;
+    root /var/www/app;
+
+    # 健康检查：精确匹配，成本最低
+    location = /healthz { access_log off; return 200 "ok\n"; }
+
+    # 静态资源：^~ 防正则劫持 + 长缓存
+    location ^~ /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # API：前缀转发
+    location /api/ {
+        proxy_pass http://backend;
+        include snippets/proxy-common.conf;
+    }
+
+    # 图片：不区分大小写正则
+    location ~* \.(png|jpg|jpeg|gif|webp|svg|ico)$ { expires 7d; }
+
+    # SPA 兜底：其余全部回 index.html（第 8 章细讲）
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}</code></pre>
+  <p>自问三题：为什么 healthz 用 =？为什么 assets 加 ^~？图片正则放在 /api/ 之前为什么会误伤 /api/xxx.png？（答案都藏在 6.2 的四步里。）</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">6.6</span> 常见坑</h2>
+  <ol>
+    <li><strong>正则顺序想当然</strong>：宽泛的正则写在前面会截胡窄的——正则先写具体的；</li>
+    <li><strong>以为 location / 永远兜底</strong>：只有所有正则都未命中时才轮到最长前缀；</li>
+    <li><strong>大小写</strong>：扩展名匹配用 <code>~*</code>，写 <code>~</code> 时 .JPG 会漏；</li>
+    <li><code>location /api</code>（无尾斜杠）会命中 <code>/api-docs</code>——要么写 <code>/api/</code>，要么明确接受；</li>
+    <li>location 里换 root 时忘记 alias 语义差异——下一章专门对比。</li>
+  </ol>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>优先级口诀</td><td>= &gt; ^~ &gt; ~ / ~*（按顺序）&gt; 最长前缀</td></tr>
+      <tr><td>^~ 的价值</td><td>保护前缀目录不被正则截胡</td></tr>
+      <tr><td>正则规则</td><td>只看书写顺序；扩展名匹配用 ~*</td></tr>
+      <tr><td>生产骨架</td><td>= 健康检查、^~ 静态、前缀 API、正则图片、/ 兜底</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复现 6.3 的 curl 实验，逐一解释返回值。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把 /static/ 改成 ^~ 后再请求 /static/a.png，观察变化并说明原因。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>交换骨架中图片正则与 /api/ 的顺序，构造一个会被误伤的 URL 并验证，再给出修复方案。</div>
+  <p class="note">下一章：root 与 alias 的差异——静态路径配置的第二大坑。</p>
+</section>

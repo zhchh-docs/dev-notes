@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 10 章 useEffect：同步器心智｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第二篇 Hooks 核心</p>
+    <h1>第 10 章 useEffect：同步器心智</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 10 章 / 共 64 章 · 预计 55 分钟 · 全书分水岭</span>
+    </div>
+    <p class="hero-desc">useEffect 是 React 里最容易用错的 API，错因几乎都源于心智模型的偏差：把它当成「生命周期钩子」，而不是「与外部系统保持同步」。本章重构这套心智——effect 何时执行、什么时候根本不需要写 effect、以及四类典型用例的规范写法。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../10_第一篇_入门/009_第9章_样式方案CSSModules与原子类.html">第 9 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="011_第11章_依赖数组与cleanup三时机.html">第 11 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">10.1 effect 不是生命周期钩子</a></li>
+    <li><a href="#sec3">10.2 从生命周期到同步：对照表</a></li>
+    <li><a href="#sec4">10.3 执行时机与 pitfall 顺序图</a></li>
+    <li><a href="#sec5">10.4 什么时候不该写 effect</a></li>
+    <li><a href="#sec6">10.5 四类典型用例的规范写法</a></li>
+    <li><a href="#sec7">10.6 常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>建立正确心智：<strong>useEffect 是"让组件与 React 之外的系统保持同步"的通道</strong>，不是 mounted/updated hook；</li>
+    <li>能对 effect 与现实副作用（订阅、计时器、DOM 操作、请求）逐一写出规范代码；</li>
+    <li>记住"三个时机"与"提交后才异步执行"这两条时序规则；</li>
+    <li>能识别<strong>根本不需要 effect</strong>的场景（派生值、在事件里做事）并用正确写法替代；</li>
+    <li>知道 effect 里常见的三类错误：陈旧闭包、无限循环、重复请求。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">10.1</span> effect 不是生命周期钩子</h2>
+  <p>Vue 的 <code>onMounted</code>、老版本 React 的 <code>componentDidMount</code> 让很多人带着"在挂载那一刻做点事"的思维写 effect。这个模型在 React 里<strong>会持续出错</strong>，因为 effect 真正关心的是：</p>
+  <div class="lead">React 官方定义：<code>useEffect</code> 让你<strong>把组件与外部系统同步起来</strong>。所谓"外部系统"是指 React 渲染管不到的东西：浏览器 API、第三方 Widget、WebSocket、定时器、后台服务的 Actor 等等。</div>
+  <p>之所以叫"Effect（副作用）"，是因为这些操作在渲染期间禁止执行（渲染必须是纯的，见第 41 章）。effect 的作用就是：<strong>把渲染之外的事情推迟到提交之后再做。</strong></p>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  // 建立连接（同步开始）
+  const conn = createConnection(serverUrl, roomId);
+  conn.connect();
+  // 断开连接（同步结束）—— cleanup
+  return () =&gt; conn.disconnect();
+}, [serverUrl, roomId]);   // 依赖：这两个值变了就重新同步</code></pre>
+  <p>这段代码的语义是"只要 serverUrl 或 roomId 变化，就重新建立一次连接"，与"挂载"毫无关系。你用"挂载时连接、卸载时断开"去理解它，就会在 roomId 变化时漏掉重建逻辑——这就是大量"聊天室串线""数据显示滞后" bug 的源头。</p>
+  <div class="key-sentence">Effect 的心智模型：<strong>建立 → 清理 → 再建立</strong>的循环，而不是"一次性的挂载钩子"。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">10.2</span> 从生命周期到同步：对照表</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>场景</th><th>生命周期思维（易错）</th><th>同步思维（正确）</th></tr></thead>
+    <tbody>
+      <tr><td>房间切换</td><td>挂载时连 / 卸载时断，切换时忘了重连</td><td>依赖 [roomId]，变化时先断旧的再连新的</td></tr>
+      <tr><td>搜索请求</td><td>输入时发请求，结果乱序返回的竞态</td><td>依赖 [keyword] + cleanup 忽略过期响应</td></tr>
+      <tr><td>监听事件</td><td>重复 addEventListener 不移除</td><td>cleanup 里 removeEventListener</td></tr>
+      <tr><td>定时器</td><td>多次 setInterval 叠加</td><td>cleanup 里 clearInterval</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 典型 bug：以生命周期思维写的聊天室
+function ChatRoom({ roomId }) {
+  const [messages, setMessages] = useState([]);
+  useEffect(() =&gt; {
+    const conn = createConnection(roomId);
+    conn.on('message', m =&gt; setMessages(prev =&gt; [...prev, m]));
+    conn.connect();
+    return () =&gt; conn.disconnect();
+  }, [roomId]);   // ← 依赖写对就自动支持"切换房间"，无需任何额外代码
+}</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">10.3</span> 执行时机与时序图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="useEffect 执行时机">
+      <rect x="30" y="30" width="160" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="110" y="52" text-anchor="middle" font-size="12" fill="#1f2e1f">① 渲染（计算 JSX）</text>
+      <rect x="210" y="30" width="160" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="290" y="52" text-anchor="middle" font-size="12" fill="#1f2e1f">② 提交到 DOM</text>
+      <rect x="390" y="30" width="160" height="34" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="470" y="52" text-anchor="middle" font-size="12" fill="#b45309">③ 浏览器绘制</text>
+      <rect x="570" y="30" width="180" height="34" rx="6" fill="#eef3e8" stroke="#047857"/>
+      <text x="660" y="52" text-anchor="middle" font-size="12" fill="#047857">④ useEffect 执行（异步）</text>
+      <line x1="192" y1="47" x2="206" y2="47" stroke="#7a8a70" stroke-width="1.4"/>
+      <line x1="372" y1="47" x2="386" y2="47" stroke="#7a8a70" stroke-width="1.4"/>
+      <line x1="552" y1="47" x2="566" y2="47" stroke="#7a8a70" stroke-width="1.4" stroke-dasharray="4 3"/>
+      <text x="400" y="98" text-anchor="middle" font-size="12" fill="#4f6348">useEffect 在绘制之后才跑，因此不会阻塞首屏</text>
+      <text x="400" y="118" text-anchor="middle" font-size="12" fill="#4f6348">若必须在绘制前同步修改 DOM（如测量后立刻调整），用 useLayoutEffect（第 12 章）</text>
+      <rect x="30" y="140" width="720" height="80" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="46" y="164" font-size="12" fill="#1f2e1f">依赖变化时：</text>
+      <text x="46" y="186" font-size="12" fill="#2d6a3f">先执行上一个 effect 的 cleanup（清理旧的同步）→ 再执行新的 effect（建立新的同步）</text>
+      <text x="46" y="206" font-size="12" fill="#2d6a3f">组件卸载时：只执行 cleanup（不再建立新同步）</text>
+    </svg>
+    <p class="diagram-caption">图 10-1 useEffect 的执行时机：渲染 → 提交 → 绘制 → 异步执行</p>
+  </div>
+  <p>三条必须记住的时序规则：</p>
+  <ol>
+    <li><strong>effect 在每次渲染后都可能执行</strong>，是否执行取决于依赖数组是否变化；</li>
+    <li><strong>effect 是异步执行的</strong>（晚于浏览器绘制），因此不能在里面指望"用户看不到中间状态"；</li>
+    <li><strong>cleanup 先于新 effect 执行</strong>，且<strong>组件卸载时必定执行</strong>——这是所有资源释放的地方。</li>
+  </ol>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">10.4</span> 什么时候不该写 effect</h2>
+  <p>官方给出的三条"你不需要 Effect"的场景，能删掉半数以上新手代码：</p>
+  <h4>① 根据 props/state 计算显示值 → 别放进 state，直接算</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ 多余：effect 里 set 另一个 state，等于渲染两遍
+const [fullName, setFullName] = useState('');
+useEffect(() =&gt; setFullName(first + ' ' + last), [first, last]);
+
+// ✓ 派生即可
+const fullName = first + ' ' + last;</code></pre>
+  <h4>② 事件里要做的事 → 放进事件处理函数</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ 把"提交后弹提示"写成 effect + flag
+const [submitted, setSubmitted] = useState(false);
+useEffect(() =&gt; { if (submitted) toast('提交成功'); }, [submitted]);
+
+// ✓ 直接在提交的地方做
+async function submit() {
+  await api.save(data);
+  toast('提交成功');
+}</code></pre>
+  <h4>③ 重置子组件状态 → 用 key</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ effect 里手动清空子组件状态
+useEffect(() =&gt; { setComment(''); }, [userId]);
+
+// ✓ 换 key 让 React 重建它
+&lt;CommentBox key={userId} /&gt;</code></pre>
+  <p class="key-sentence">每次准备写 <code>useEffect(() =&gt; setState(...), [deps])</code> 时，先停三秒：这其实是"把一个值同步到另一个值"吗？如果是，几乎总能通过直接计算省掉它。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">10.5</span> 四类典型用例的规范写法</h2>
+  <h4>① 浏览器 API 事件监听</h4>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  const handler = (e) =&gt; { if (!ref.current.contains(e.target)) onClose(); };
+  document.addEventListener('pointerdown', handler);
+  return () =&gt; document.removeEventListener('pointerdown', handler);
+}, [onClose]);</code></pre>
+  <h4>② 定时器</h4>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  const id = setInterval(() =&gt; setTick(t =&gt; t + 1), 1000);
+  return () =&gt; clearInterval(id);      // 不清会导致切换后多个定时器并存
+}, []);</code></pre>
+  <h4>③ 网络请求（含竞态处理）</h4>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  let ignore = false;                  // 本次请求是否已过期
+  setLoading(true);
+  fetch(`/api/users?q=${keyword}`)
+    .then(r =&gt; r.json())
+    .then(data =&gt; { if (!ignore) setUsers(data); })   // 过期响应直接丢弃
+    .finally(() =&gt; { if (!ignore) setLoading(false); });
+
+  return () =&gt; { ignore = true; };
+}, [keyword]);</code></pre>
+  <h4>④ 操作 DOM（第三方库）</h4>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  const chart = echarts.init(elRef.current);
+  chart.setOption(option);
+  return () =&gt; chart.dispose();        // 防止内存泄漏与重复初始化
+}, [option]);</code></pre>
+  <div class="note"><strong>关于请求</strong>：以上写法用于理解原理；生产请用第 25 章的 TanStack Query，它自带缓存、去重、竞态与重试。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">10.6</span> 常见坑清单</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>现象</th><th>原因 / 解法</th></tr></thead>
+    <tbody>
+      <tr><td>页面卡死 / 疯狂请求</td><td>effect 里 setState 而依赖包含这个 state → 无限循环；检查是否真的需要写 effect（见 10.4）</td></tr>
+      <tr><td>拿到的是旧数据</td><td>陈旧闭包：依赖数组漏写变量；把用到的响应式值全写进依赖</td></tr>
+      <tr><td>请求结果覆盖顺序错乱</td><td>竞态；用 ignore 标记或 AbortController（第 11 章）</td></tr>
+      <tr><td>监听器越加越多</td><td>没写 cleanup；严格模式下会立刻暴露（双倍报警）</td></tr>
+      <tr><td>开发环境请求发两次</td><td>StrictMode 故意双调用，生产不会发生（第 19 章）</td></tr>
+      <tr><td>effect 里读到旧 DOM 尺寸</td><td>绘制后才执行是设计如此；需同步测量请用 useLayoutEffect（第 12 章）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>心智模型</td><td>effect = 与外部系统同步，而非生命周期钩子</td></tr>
+      <tr><td>执行时机</td><td>渲染 → 提交 → 绘制 → 异步执行 effect</td></tr>
+      <tr><td>cleanup</td><td>依赖变化前与卸载时执行，负责断开同步</td></tr>
+      <tr><td>依赖的意义</td><td>决定"什么时候需要重新同步"</td></tr>
+      <tr><td>三种不需要 effect</td><td>派生值 / 事件逻辑 / 重置状态用 key</td></tr>
+      <tr><td>典型用例</td><td>监听、定时器、请求（带 ignore）、第三方实例 dispose</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用同步思维重写这段需求：聊天组件根据 <code>roomId</code> 切换房间，要求在房间切换时先离开旧房间、再进入新房间，卸载时彻底断开。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>下面代码有什么问题？修好后说明原因：<code>const [list, setList] = useState([]); useEffect(() =&gt; { fetch('/api').then(r =&gt; r.json()).then(setList); }, []);</code> 当 keyword props 变化时它并不重新请求。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把"依赖数组省略"（即第二个参数不传）的行为写出来：它何时执行？为什么通常应该避免？请结合 StrictMode 描述开发体验上的差异。</div>
+  <p class="note">参考答案见附录 C。下一章：依赖数组的正确写法与 cleanup 的三个时机。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../10_第一篇_入门/009_第9章_样式方案CSSModules与原子类.html">← 第 9 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="011_第11章_依赖数组与cleanup三时机.html">第 11 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 10 章 useEffect：同步器心智</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

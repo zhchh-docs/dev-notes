@@ -1,0 +1,103 @@
+title: 第 6 章 location 匹配优先级详解
+part: 第一篇 入门与配置体系
+outdir: 10_第一篇_入门与配置体系
+file: 006_第6章_location匹配优先级详解.html
+prev: 005_第5章_日志：access_error与切分.html
+next: 007_第7章_root与alias的差异.html
+meta: 第 6 章 / 共 32 章 · 预计 35 分钟 · 核心必学
+desc: location 是 Nginx 的路由表，也是配置错误的重灾区。本章用决策图、对照实验与标准模板，把"精确、^~、正则、前缀"四类匹配的优先级一次讲透。
+toc: sec1|本章目标;sec2|6.1 location 的五种写法;sec3|6.2 优先级决策图;sec4|6.3 对照实验：亲眼看优先级;sec5|6.4 嵌套 location;sec6|6.5 实战：标准路由骨架;sec7|6.6 常见坑;sec8|小结与习题
+---
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出 location 的五种语法形态及各自含义；</li>
+    <li><strong>不看资料也能排出优先级</strong>：精确 → ^~ → 正则（按顺序）→ 普通前缀最长匹配；</li>
+    <li>用 curl 实验验证任意 location 组合的真实命中；</li>
+    <li>掌握一套生产可用的"静态 + API"路由骨架。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">6.1</span> location 的五种写法</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>写法</th><th>含义</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>location = /path</code></td><td>精确匹配，URI 完全相等</td><td>首页、健康检查，最高优先级</td></tr>
+      <tr><td><code>location ^~ /static/</code></td><td>前缀匹配，命中后<strong>跳过正则检查</strong></td><td>静态资源目录，防正则劫持</td></tr>
+      <tr><td><code>location ~ \.php$</code></td><td>区分大小写的正则</td><td>按扩展名分发</td></tr>
+      <tr><td><code>location ~* \.(png|jpg)$</code></td><td>不区分大小写的正则</td><td>图片扩展名的事实标准写法</td></tr>
+      <tr><td><code>location /path</code></td><td>普通前缀匹配</td><td>目录级分发，如 <code>/api/</code></td></tr>
+    </tbody>
+  </table>
+  <p>易混点：<code>/path</code> 也命中 <code>/pathology</code>，<code>/path/</code> 只命中以其为前缀的路径；正则用 PCRE，支持捕获组 <code>$1 $2</code>。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">6.2</span> 优先级决策图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 820 300" role="img" aria-label="location 匹配决策流程">
+      <defs><marker id="arrC" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <rect x="290" y="14" width="240" height="40" rx="8" fill="#eef3e8" stroke="#2d6a3f"/>
+      <text x="410" y="39" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">收到 URI，遍历所有 location</text>
+      <rect x="250" y="80" width="320" height="40" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="410" y="105" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">① 精确匹配（=）命中？→ 立即用之，结束</text>
+      <rect x="250" y="140" width="320" height="40" rx="8" fill="#fefce8" stroke="#b45309"/>
+      <text x="410" y="165" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">② 记录最长前缀；若是 ^~ → 直接用，跳过正则</text>
+      <rect x="250" y="200" width="320" height="40" rx="8" fill="#f0f6ff" stroke="#0f4c81"/>
+      <text x="410" y="225" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f4c81">③ 按书写顺序试正则：第一个命中的赢</text>
+      <rect x="250" y="256" width="320" height="36" rx="8" fill="#f8faf0" stroke="#7a8a70"/>
+      <text x="410" y="279" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f6348">④ 无正则命中 → 用 ② 记录的最长前缀</text>
+      <line x1="410" y1="54" x2="410" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrC)"/>
+      <line x1="410" y1="120" x2="410" y2="138" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrC)"/>
+      <line x1="410" y1="180" x2="410" y2="198" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrC)"/>
+      <line x1="410" y1="240" x2="410" y2="254" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrC)"/>
+      <text x="640" y="170" font-size="12" fill="#4f6348">正则：顺序敏感！</text>
+      <text x="640" y="190" font-size="12" fill="#4f6348">先写具体，后写宽泛</text>
+    </svg>
+    <p class="diagram-caption">图 6-1 location 匹配的四步决策</p>
+  </div>
+  <p class="key-sentence">背诵版：<strong>精确 &gt; ^~ &gt; 正则（先到先得）&gt; 最长前缀</strong>。正则之间不看长短，只看书写顺序。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">6.3</span> 对照实验：亲眼看优先级</h2>
+  <pre class="code" data-lang="nginx"><code>server {
+    listen 80;
+    server_name loc.example.com;
+
+    location = /       { return 200 "exact /\n"; }          # ① 精确
+    location /static/  { return 200 "prefix /static/\n"; }  # ④ 普通前缀
+    location ^~ /img/  { return 200 "caret /img/\n"; }      # ② ^~ 前缀
+    location ~ \.png$  { return 200 "regex png\n"; }        # ③ 正则
+    location ~* \.(jpg|jpeg)$ { return 200 "regex jpg\n"; } # ③ 正则
+}</code></pre>
+  <pre class="code" data-lang="bash"><code>curl http://127.0.0.1/              # exact /
+curl http://127.0.0.1/img/a.png     # caret /img/   ——^~ 拦下了正则
+curl http://127.0.0.1/logo.PNG      # 404：~ 区分大小写，.PNG 不匹配 \.png$</code></pre>
+  <p>再看关键请求 <code>/static/a.png</code>：它同时命中普通前缀 <code>/static/</code> 和正则 <code>\.png$</code>——前缀没加 <code>^~</code>，正则优先，返回 <code>regex png</code>。想让静态目录说了算，必须写 <code>^~</code>。</p>
+  <p class="pit-sentence"><code>^~</code> 的意义就在这里：<strong>把某个前缀目录从正则手中"抢"回来</strong>。纯静态目录建议一律 ^~。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">6.4</span> 嵌套 location</h2>
+  <pre class="code" data-lang="nginx"><code>location /api/ {
+    proxy_set_header Host $host;          # 外层公共配置
+
+    location /api/public/ {
+        proxy_pass http://public_svc;     # 内层继承外层的 proxy_set_header
+    }
+
+    location /api/admin/ {
+        allow 10.0.0.0/8;                 # 内层叠加访问控制
+        deny  all;
+        proxy_pass http://admin_svc;
+    }
+}</code></pre>
+  <ul>
+    <li>嵌套只允许"前缀套前缀"，<strong>正则 location 内不能再嵌</strong>；</li>
+    <li>普通指令可继承；数组型指令（add_header 等）嵌套即整体替换（3.6 节的坑同样适用）；</li>
+    <li>嵌套两层封顶，再深可读性骤降。</li>
+  </ul>
+</section>

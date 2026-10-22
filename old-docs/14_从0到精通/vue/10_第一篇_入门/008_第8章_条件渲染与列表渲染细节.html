@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 8 章 条件渲染与列表渲染细节｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 8 章 条件渲染与列表渲染细节</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 8 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">v-if 与 v-for 看起来简单，真正容易出问题的是细节：多元素分组、key 的复用逻辑、数组变更方法是否能触发更新、过滤排序该放哪里。这一章把这些"用久了才会踩"的坑一次讲清。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="009_第9章_事件处理与修饰符.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">8.1 v-if 的分组与复用控制</a></li>
+    <li><a href="#sec3">8.2 v-show 的真实代价</a></li>
+    <li><a href="#sec4">8.3 v-for 的完整形态</a></li>
+    <li><a href="#sec5">8.4 key：节点的身份证</a></li>
+    <li><a href="#sec6">8.5 数组更新检测：哪些写法会触发渲染</a></li>
+    <li><a href="#sec7">8.6 过滤与排序：别在模板里做</a></li>
+    <li><a href="#sec8">8.7 性能相关：v-for 与 v-if 的组合</a></li>
+    <li><a href="#sec9">8.8 本章常见坑</a></li>
+    <li><a href="#sec10">本章小结</a></li>
+    <li><a href="#sec11">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>会用 <code>&lt;template&gt;</code> 对<strong>一组元素</strong>做条件/循环渲染；</li>
+    <li>能用 <code>key</code> <strong>强制重建</strong>组件（重置表单、重播动画）；</li>
+    <li>说清 <code>v-show</code> 的真实代价，正确选择 <code>v-if</code> / <code>v-show</code>；</li>
+    <li>掌握 <code>v-for</code> 遍历数组/对象/数字/<code>template</code> 的全部写法；</li>
+    <li>知道哪些<strong>数组操作能触发更新</strong>、哪些不能（以及 Vue3 的改进）；</li>
+    <li>把<strong>过滤与排序</strong>放到计算属性里，而不是模板或 v-if。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">8.1</span> v-if 的分组与复用控制</h2>
+  <h3>用 template 包一组元素</h3>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- ❌ 每个元素都写一遍 v-if，难维护且容易漏 --&gt;
+  &lt;h3 v-if="isLogin"&gt;{{ user.name }}&lt;/h3&gt;
+  &lt;p v-if="isLogin"&gt;余额 {{ user.balance }}&lt;/p&gt;
+  &lt;button v-if="isLogin"&gt;退出&lt;/button&gt;
+
+  &lt;!-- ✅ 用 template 包起来，它本身不渲染成 DOM --&gt;
+  &lt;template v-if="isLogin"&gt;
+    &lt;h3&gt;{{ user.name }}&lt;/h3&gt;
+    &lt;p&gt;余额 {{ user.balance }}&lt;/p&gt;
+    &lt;button @click="logout"&gt;退出&lt;/button&gt;
+  &lt;/template&gt;
+  &lt;template v-else&gt;
+    &lt;button @click="login"&gt;登录&lt;/button&gt;
+  &lt;/template&gt;
+&lt;/template&gt;</code></pre>
+  <div class="note"><code>&lt;template&gt;</code> 是一个<strong>不可见的包裹容器</strong>，最终不会出现在 DOM 里；<code>v-else</code> 必须紧跟在 <code>v-if</code>/<code>v-else-if</code> 之后，中间插别的元素会失效。</div>
+
+  <h3>用 key 强制重建元素</h3>
+  <p>Vue 会尽可能<strong>复用</strong>相同类型的元素以提升性能。但有时你恰恰不想复用：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 切换登录方式时，希望输入框被清空（而不是复用同一个 input） --&gt;
+  &lt;template v-if="loginType === 'phone'"&gt;
+    &lt;input key="phone" placeholder="手机号"&gt;
+  &lt;/template&gt;
+  &lt;template v-else&gt;
+    &lt;input key="email" placeholder="邮箱"&gt;
+  &lt;/template&gt;
+
+  &lt;!-- 重置一个子组件的完整内部状态 --&gt;
+  &lt;UserForm :key="formKey" /&gt;
+  &lt;button @click="formKey++"&gt;重置表单&lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref } from 'vue'
+const loginType = ref('phone')
+const formKey = ref(0)
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence"><code>:key</code> 是 Vue 给的"强制重建开关"：<strong>key 变了 → 旧节点销毁、新节点创建</strong>，内部状态（输入内容、子组件 data）全部重置。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">8.2</span> v-show 的真实代价</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>v-if</th><th>v-show</th></tr></thead>
+    <tbody>
+      <tr><td>DOM</td><td>假时<strong>不存在</strong></td><td>始终存在，<code>display:none</code></td></tr>
+      <tr><td>组件</td><td>假时<strong>卸载</strong>（触发 unmount 生命周期）</td><td>始终挂载（生命周期只走一次）</td></tr>
+      <tr><td>首次渲染</td><td>假时几乎零成本</td><td>无论真假都完整渲染</td></tr>
+      <tr><td>切换</td><td>重建子树，成本较高</td><td>只改 CSS，极快</td></tr>
+      <tr><td>可用元素</td><td>任意（含 <code>template</code>）</td><td>只能是单个元素（<code>template</code> 上无效）</td></tr>
+    </tbody>
+  </table>
+  <p>判断标准：</p>
+  <ul>
+    <li>切换频率<strong>高</strong>（Tab、hover 菜单、折叠面板）→ <strong>v-show</strong>；</li>
+    <li>条件<strong>很少变化</strong>，或假时子树很重（含大表格、地图、图表）→ <strong>v-if</strong>；</li>
+    <li>子树里<strong>有副作用</strong>（定时器、订阅）：v-if 卸载时记得清理，v-show 不会卸载所以不会自动清理。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 频繁切换的 Tab：用 v-show，三个面板都渲染，切换只是改样式 --&gt;
+  &lt;div v-show="tab === 'a'"&gt;面板 A（含表单输入，切换后内容保留）&lt;/div&gt;
+  &lt;div v-show="tab === 'b'"&gt;面板 B&lt;/div&gt;
+
+  &lt;!-- 很少出现、但一出现就很重的弹窗：用 v-if --&gt;
+  &lt;HeavyChart v-if="showChart" :data="chartData" /&gt;
+&lt;/template&gt;</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">8.3</span> v-for 的完整形态</h2>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- ① 数组：(item, index) --&gt;
+  &lt;li v-for="(item, index) in items" :key="item.id"&gt;{{ index }} - {{ item.name }}&lt;/li&gt;
+
+  &lt;!-- ② 数组解构（直接用字段） --&gt;
+  &lt;li v-for="({ id, name }, i) in items" :key="id"&gt;{{ i }} - {{ name }}&lt;/li&gt;
+
+  &lt;!-- ③ 对象：(value, key, index) —— 顺序固定 --&gt;
+  &lt;li v-for="(value, key, index) in user" :key="key"&gt;{{ index }}. {{ key }} = {{ value }}&lt;/li&gt;
+
+  &lt;!-- ④ 数字范围：1 到 n --&gt;
+  &lt;option v-for="n in 10" :key="n" :value="n"&gt;第 {{ n }} 页&lt;/option&gt;
+
+  &lt;!-- ⑤ of 代替 in（更接近 JS 的 for...of） --&gt;
+  &lt;li v-for="item of items" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
+
+  &lt;!-- ⑥ template 上循环：一次渲染多个元素 --&gt;
+  &lt;template v-for="item in items" :key="item.id"&gt;
+    &lt;dt&gt;{{ item.name }}&lt;/dt&gt;
+    &lt;dd&gt;{{ item.desc }}&lt;/dd&gt;
+  &lt;/template&gt;
+&lt;/template&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>在 <code>&lt;template v-for&gt;</code> 上，<strong>key 要写在 template 上</strong>（不能写到子元素上）；用 <code>v-if</code> 过滤时也要写成 <code>&lt;template v-for&gt;&lt;div v-if&gt;</code> 的嵌套结构。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">8.4</span> key：节点的身份证</h2>
+  <p class="lead">key 的作用是告诉 Vue：<strong>新旧两次渲染中，哪个节点是"同一个"。</strong>Vue 据此决定是"就地复用更新"还是"销毁重建"。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="key 复用逻辑示意">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">删除中间一项后：用 id 当 key vs 用 index 当 key</text>
+      <text x="200" y="52" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">key = item.id（正确）</text>
+      <text x="600" y="52" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">key = index（错误）</text>
+      <rect x="60" y="70" width="280" height="30" rx="6" fill="#d1fae5" stroke="#047857"/>
+      <text x="200" y="90" text-anchor="middle" font-size="11.5" fill="#047857">A(id=1) B(id=2) C(id=3)</text>
+      <rect x="60" y="110" width="280" height="30" rx="6" fill="#f0fdf4" stroke="#047857"/>
+      <text x="200" y="130" text-anchor="middle" font-size="11.5" fill="#047857">删除 B → A(1) 保留、C(3) 保留，只移除 B</text>
+      <rect x="460" y="70" width="280" height="30" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="600" y="90" text-anchor="middle" font-size="11.5" fill="#b91c1c">A(0) B(1) C(2)</text>
+      <rect x="460" y="110" width="280" height="30" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="600" y="130" text-anchor="middle" font-size="11.5" fill="#b91c1c">删除 B → C 拿到 key=1，被当成“原来的 B”复用</text>
+      <text x="400" y="170" text-anchor="middle" font-size="12" fill="#4f6348">index 作为 key 时：位置即身份，删除中间项会导致后续节点全部“错位复用”</text>
+      <text x="400" y="192" text-anchor="middle" font-size="12" fill="#4f6348">表现：输入框内容串位、动画错乱、组件状态跟错行</text>
+    </svg>
+    <p class="diagram-caption">图 8-1 key 用 id 与用 index 的差别</p>
+  </div>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>key 取值</th><th>结果</th><th>评价</th></tr></thead>
+    <tbody>
+      <tr><td>后端 id / 唯一字段</td><td>身份稳定，节点正确复用</td><td>✅ 推荐</td></tr>
+      <tr><td>index</td><td>位置即身份，增删时错位</td><td>❌ 除非列表只追加、不删改</td></tr>
+      <tr><td><code>Math.random()</code></td><td>每次都是新身份，全部重建</td><td>❌ 性能差、状态全丢</td></tr>
+      <tr><td>不写 key</td><td>Vue3 会告警并按"就地复用"处理</td><td>❌ 不推荐</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">第 70 章会从 diff 源码层面解释 key 的复用算法（双端对比 + 最长递增子序列），本章只需记住：<strong>key = 稳定且唯一的业务 id</strong>。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">8.5</span> 数组更新检测：哪些写法会触发渲染</h2>
+  <p>Vue3 用 <code>Proxy</code> 实现响应式，理论上能拦截所有操作。但仍要分清两类写法：</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>分类</th><th>方法</th><th>是否触发更新</th></tr></thead>
+    <tbody>
+      <tr><td>变更方法（原地改数组）</td><td><code>push/pop/shift/unshift/splice/sort/reverse</code></td><td>✅ 触发</td></tr>
+      <tr><td>替换方法（返回新数组）</td><td><code>filter/concat/slice/map</code></td><td>✅ 需<strong>重新赋值</strong>：<code>list.value = list.value.filter(...)</code></td></tr>
+      <tr><td>按下标赋值</td><td><code>arr[0] = x</code></td><td>Vue3 ✅ 触发（Vue2 ❌ 不触发）</td></tr>
+      <tr><td>改 length</td><td><code>arr.length = 0</code></td><td>Vue3 ✅ 触发</td></tr>
+      <tr><td>新增对象属性</td><td><code>obj.newKey = 1</code></td><td>Vue3 ✅ 触发（Vue2 需 <code>$set</code>）</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="js"><code>const list = ref([1, 2, 3])
+
+// ✅ 变更方法
+list.value.push(4)
+
+// ✅ 替换方法要重新赋值（忘了赋值是最常见错误）
+list.value = list.value.filter(n =&gt; n &gt; 1)
+
+// ✅ Vue3 支持下标赋值，但语义上更推荐用 splice
+list.value[0] = 99
+
+// ❌ 这样写常量数组被丢掉了 —— 没有赋回给 list
+list.value.filter(n =&gt; n &gt; 1)</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑</span><code>filter</code>/<code>map</code> <strong>不改原数组</strong>，它们返回新数组。写了却没赋值，页面纹丝不动——这是新手排名第一的"为什么不更新"。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">8.6</span> 过滤与排序：别在模板里做</h2>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- ❌ 反例：v-for 与 v-if 同元素（Vue3 中 v-if 优先级更高，取不到 item） --&gt;
+  &lt;li v-for="item in list" v-if="item.done" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
+
+  &lt;!-- ⚠️ 可行但不推荐：每次渲染都要跑一遍 filter，且逻辑藏在模板里 --&gt;
+  &lt;li v-for="item in list.filter(i =&gt; i.done)" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
+
+  &lt;!-- ✅ 推荐：计算属性过滤，有缓存、可复用、可测试 --&gt;
+  &lt;li v-for="item in doneList" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, computed } from 'vue'
+const list = ref([
+  { id: 1, name: '写文档', done: true },
+  { id: 2, name: '改 bug', done: false }
+])
+const doneList = computed(() =&gt; list.value.filter(i =&gt; i.done))
+&lt;/script&gt;</code></pre>
+  <p>要在循环<strong>内部</strong>做条件判断时，把两者分层：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 外层循环、内层判断 --&gt;
+  &lt;template v-for="item in list" :key="item.id"&gt;
+    &lt;li v-if="item.visible"&gt;{{ item.name }}&lt;/li&gt;
+  &lt;/template&gt;
+
+  &lt;!-- 或者：整个列表都不显示时用外层的 v-if（短路，性能更好） --&gt;
+  &lt;ul v-if="list.length"&gt;
+    &lt;li v-for="item in list" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;p v-else&gt;暂无数据&lt;/p&gt;
+&lt;/template&gt;</code></pre>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">8.7</span> 性能相关：v-for 与 v-if 的组合</h2>
+  <ul>
+    <li><strong>先过滤再循环</strong>：用计算属性把列表缩短，比在循环里判断更快（少渲染节点）；</li>
+    <li><strong>循环体外判断</strong>：<code>v-if="list.length"</code> 放在 <code>v-for</code> 外层，空列表时直接不进循环；</li>
+    <li><strong>大数据量</strong>：几千条以上考虑分页或虚拟列表（第 72 章），别指望 v-for + key 能扛住；</li>
+    <li><strong>避免循环里创建复杂对象</strong>：<code>:item="{ ...item, extra: computed() }"</code> 每次渲染都产生新对象，让子组件无谓重渲染（第 71 章性能排查会再提）。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- ❌ 每次渲染都生成新对象，子组件必然重渲染 --&gt;
+  &lt;Item v-for="i in list" :key="i.id" :data="{ id: i.id, name: i.name.toUpperCase() }" /&gt;
+
+  &lt;!-- ✅ 传原对象，格式化逻辑放子组件内部或用计算属性 --&gt;
+  &lt;Item v-for="i in list" :key="i.id" :data="i" /&gt;
+&lt;/template&gt;</code></pre>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">8.8</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>v-if 与 v-for 同元素</strong>：Vue3 中 v-if 先执行，取不到循环变量。改成嵌套或用计算属性。</li>
+    <li><span class="tag-pit">坑 2</span><strong>用 index 当 key</strong>：删除中间项后状态错位。</li>
+    <li><span class="tag-pit">坑 3</span><strong>filter/map 不赋值</strong>：写了 <code>list.filter()</code> 却没赋回 <code>list.value</code>。</li>
+    <li><span class="tag-pit">坑 4</span><strong>v-else 前面插了别的元素</strong>：v-else 必须紧跟 v-if，否则报错。</li>
+    <li><span class="tag-pit">坑 5</span><strong>v-show 用在 template 上</strong>：无效，v-show 只能作用于单个元素。</li>
+    <li><span class="tag-pit">坑 6</span><strong>期望"切换时清空输入"却没加 key</strong>：Vue 默认复用同类型元素，需要 key 强制重建。</li>
+  </ul>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>分组渲染</td><td><code>&lt;template v-if&gt;</code> / <code>&lt;template v-for&gt;</code> 不产生 DOM</td></tr>
+      <tr><td>强制重建</td><td>给元素或组件加 <code>:key</code>，key 变则销毁重建</td></tr>
+      <tr><td>v-if vs v-show</td><td>切换频繁用 v-show，子树重或很少显示用 v-if</td></tr>
+      <tr><td>key 原则</td><td>稳定唯一业务 id；不用 index，不用随机数</td></tr>
+      <tr><td>数组更新</td><td>变更方法直接改；filter/map 必须重新赋值</td></tr>
+      <tr><td>过滤排序</td><td>放计算属性：有缓存、可复用、模板干净</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说出 <code>v-if</code> 与 <code>v-show</code> 在"首次渲染""切换""组件生命周期"三个维度上的差异，并各举一个适用场景。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>做一个"可编辑列表"：每行含一个输入框，支持删除任意行、在中间插入行。分别用 <code>item.id</code> 与 <code>index</code> 作为 key，输入内容后删除首行，记录并解释两者差异。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给一个 1000 条的列表加"关键字搜索 + 状态筛选 + 排序"，全部逻辑用计算属性完成；然后尝试把过滤逻辑移到模板里（<code>v-for="i in list.filter(...)"</code>），用 <code>console.count</code> 对比两种方式在数据变化时的执行次数。</div>
+  <p class="note">参考答案见附录 C。下一篇进入组件化之前，先补完事件处理与修饰符。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="007_第7章_class与style绑定.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="009_第9章_事件处理与修饰符.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 8 章 条件渲染与列表渲染细节</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

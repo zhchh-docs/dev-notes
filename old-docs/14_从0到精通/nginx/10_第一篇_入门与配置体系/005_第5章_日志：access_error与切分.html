@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 5 章 日志：access/error 与切分｜Nginx 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  #backTop{right:16px;bottom:20px}
+}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+@media(min-width:1024px){
+  nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}
+  nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;columns:1!important;column-count:1!important}
+  nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}
+  nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}
+  nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}
+  .container{margin-left:280px!important;max-width:calc(100% - 300px)!important}
+}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Nginx 从 0 到精通》 · 第一篇 入门与配置体系</p>
+    <h1>第 5 章 日志：access/error 与切分</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 5 章 / 共 32 章 · 预计 30 分钟 · 动手章节</span>
+    </div>
+    <p class="hero-desc">日志是 Nginx 的行车记录仪：access.log 记录每一次请求的事实，error.log 记录每一次失败的原因。本章教你定义字段、读懂报错、按天切分，并给出分析日志的常用命令。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="004_第4章_部署第一个静态站点.html">← 上一章</a>
+  <a class="doc-nav-btn" href="006_第6章_location匹配优先级详解.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">5.1 access.log 逐字段拆解</a></li>
+    <li><a href="#sec3">5.2 自定义 log_format 与分站点日志</a></li>
+    <li><a href="#sec4">5.3 error_log：级别体系与读法</a></li>
+    <li><a href="#sec5">5.4 按天切分：logrotate 实战</a></li>
+    <li><a href="#sec6">5.5 日志分析常用命令</a></li>
+    <li><a href="#sec7">5.6 常见坑</a></li>
+    <li><a href="#sec8">小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>逐字段读懂默认 <code>log_format main</code> 的每一列；</li>
+    <li>会定义自定义 <code>log_format</code>，为不同 server/location 分别落日志；</li>
+    <li>掌握 error_log 的八个级别，遇到故障知道先开哪一级；</li>
+    <li>用 logrotate 实现<strong>按天切分 + 自动清理</strong>，避免日志写满磁盘。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">5.1</span> access.log 逐字段拆解</h2>
+  <pre class="code" data-lang="nginx"><code>log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+access_log  /var/log/nginx/access.log  main;</code></pre>
+  <p>一行真实日志：</p>
+  <pre class="code" data-lang="text"><code>203.0.113.7 - - [19/Oct/2026:10:21:33 +0800] "GET /api/user?id=1 HTTP/1.1" 200 1024 "https://example.com/home" "Mozilla/5.0" "-"</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>字段</th><th>含义</th><th>排障价值</th></tr></thead>
+    <tbody>
+      <tr><td><code>$remote_addr</code></td><td>直接客户端 IP（未解析代理头）</td><td>有 CDN/代理时不是真实用户 IP，见第 13 章</td></tr>
+      <tr><td><code>$remote_user</code></td><td>Basic 认证用户名，通常为 -</td><td>基本不用</td></tr>
+      <tr><td><code>$time_local</code></td><td>请求完成时间（本地时区）</td><td>对齐监控时间线</td></tr>
+      <tr><td><code>$request</code></td><td>完整请求行：方法 + URI + 协议</td><td>看具体请求了什么</td></tr>
+      <tr><td><code>$status</code></td><td>响应状态码</td><td>统计 4xx/5xx 比例的第一来源</td></tr>
+      <tr><td><code>$body_bytes_sent</code></td><td>发给客户端的字节数</td><td>带宽估算用 <code>$bytes_sent</code> 更准（含头部）</td></tr>
+      <tr><td><code>$http_referer</code></td><td>来源页</td><td>盗链分析</td></tr>
+      <tr><td><code>$http_user_agent</code></td><td>客户端 UA</td><td>爬虫/异常流量识别</td></tr>
+      <tr><td><code>$http_x_forwarded_for</code></td><td>上游传来的 XFF 头</td><td>多层代理时追溯链路</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">排障时最想看却默认没有的两样东西：<strong>请求耗时</strong>与<strong>上游耗时</strong>——<code>$request_time</code> 与 <code>$upstream_response_time</code>，第 24 章的"两个时间指标"就靠它们。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">5.2</span> 自定义 log_format 与分站点日志</h2>
+  <pre class="code" data-lang="nginx"><code>http {
+    # 自定义格式：加入耗时与上游信息（生产推荐）
+    log_format timed '$remote_addr [$time_local] "$request" $status '
+                     '$body_bytes_sent rt=$request_time '
+                     'urt=$upstream_response_time "$http_user_agent"';
+
+    server {
+        listen 80;
+        server_name app.example.com;
+
+        access_log /var/log/nginx/app.access.log timed;
+
+        location /healthz {
+            access_log off;          # 健康检查刷屏，直接关掉
+            return 200 "ok\n";
+        }
+
+        location /api/ {
+            proxy_pass http://backend;
+            access_log /var/log/nginx/api.access.log timed;
+        }
+    }
+}</code></pre>
+  <ul>
+    <li><code>log_format</code> 只能放 http 层；<code>access_log</code> 可逐层覆盖，包括 <code>off</code>；</li>
+    <li>高流量场景加缓冲减少磁盘 I/O：<code>access_log path main buffer=64k flush=5s;</code></li>
+    <li><code>error_log</code> 没有 off，最低只能到 <code>emerg</code>。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">5.3</span> error_log：级别体系与读法</h2>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>级别</th><th>典型内容</th><th>使用场景</th></tr></thead>
+    <tbody>
+      <tr><td>debug</td><td>每一步处理细节，海量</td><td>只配合 error_log 调试极难复现的问题</td></tr>
+      <tr><td>info / notice</td><td>连接建立、upstream 选择等</td><td>排查负载不均时可短暂开 info</td></tr>
+      <tr><td><strong>warn / error</strong></td><td>配置告警、上游超时、权限失败</td><td><strong>生产默认档位</strong></td></tr>
+      <tr><td>crit / alert / emerg</td><td>无法绑定端口、磁盘耗尽</td><td>故障已发生</td></tr>
+    </tbody>
+  </table>
+  <p>读法三步：</p>
+  <ol>
+    <li><strong>看最后一屏</strong>：<code>tail -n 50 /var/log/nginx/error.log</code>，故障时间点就在最后；</li>
+    <li><strong>认时间戳与进程号</strong>：<code>2026/10/19 10:21:33 [error] 1234#1234: ...</code> 中 1234#1234 是 pid#tid，可关联 access.log 时刻；</li>
+    <li><strong>抓关键字</strong>：<code>Permission denied</code>（权限）、<code>connect() failed (111)</code>（上游拒绝）、<code>timed out</code>（上游超时）、<code>SSL_do_handshake() failed</code>（证书链问题）。</li>
+  </ol>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5.4</span> 按天切分：logrotate 实战</h2>
+  <pre class="code" data-lang="ini"><code># /etc/logrotate.d/nginx
+/var/log/nginx/*.log {
+    daily                 # 每天切一次
+    rotate 14             # 保留 14 份，自动删除更早的
+    missingok
+    notifempty
+    compress              # 旧日志 gzip
+    dateext               # 文件名带日期：access.log-20261019
+    sharedscripts
+    postrotate
+        # 通知 nginx 重新打开日志文件（等效 kill -USR1）
+        [ -f /run/nginx.pid ] &amp;&amp; kill -USR1 $(cat /run/nginx.pid)
+    endscript
+}</code></pre>
+  <p><strong>为什么要 USR1 信号</strong>：mv 改名后，Nginx 仍持有原文件描述符，继续写进改名后的文件。USR1 让所有 worker 重新打开日志路径，新日志才落进新文件。</p>
+  <pre class="code" data-lang="bash"><code># 手动测试切分（强制走一遍）
+sudo logrotate -f /etc/logrotate.d/nginx
+ls -lh /var/log/nginx/</code></pre>
+  <p>源码编译安装通常没有这份配置文件，<strong>必须自己创建</strong>——日志写满磁盘会让 Nginx 无法写日志甚至影响服务。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">5.5</span> 日志分析常用命令</h2>
+  <pre class="code" data-lang="bash"><code># 请求量 Top 10 来源 IP
+awk '{print $1}' access.log | sort | uniq -c | sort -rn | head
+
+# 状态码分布
+awk '{print $9}' access.log | sort | uniq -c | sort -rn
+
+# 5 分钟内最慢的 10 个请求（timed 格式：rt= 字段）
+grep -o 'rt=[0-9.]+' access.log | sort -t= -k2 -rn | head
+
+# 找出所有 500 错误的请求行
+awk '$9 == 500' access.log | tail -20
+
+# 某个接口的 QPS（按秒统计）
+grep '/api/order' access.log | awk '{print $4}' | cut -d: -f1-4 | uniq -c</code></pre>
+  <div class="note">规模大了以后把日志投给 ELK/Loki/Grafana 更合适，但 awk 是"服务器上只有 shell"时的救命技能，也是看懂监控指标背后逻辑的基础。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">5.6</span> 常见坑</h2>
+  <ol>
+    <li><strong>日志磁盘写满</strong>：不配 logrotate 是慢性自杀；监控 <code>df -h /var/log</code>；</li>
+    <li><strong>切分后日志继续写进旧文件</strong>：postrotate 忘了发 USR1（5.4）；</li>
+    <li><strong>buffer 丢日志</strong>：开 buffer 后进程崩溃时缓冲区里未 flush 的日志会丢——审计场景别用 buffer；</li>
+    <li><strong>时间差 8 小时</strong>：$time_local 是服务器本地时区，容器里默认 UTC；统一用 <code>$time_iso8601</code> 或对齐容器时区；</li>
+    <li><strong>健康检查刷爆日志</strong>：负载均衡探测每秒数次，务必 <code>access_log off</code>。</li>
+  </ol>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>两本账</td><td>access.log 记事实，error.log 记原因，排障先看后者</td></tr>
+      <tr><td>自定义格式</td><td>把 $request_time / $upstream_response_time 写进日志，是性能分析的前提</td></tr>
+      <tr><td>切分机制</td><td>logrotate 改名 + USR1 信号让进程重开文件描述符</td></tr>
+      <tr><td>卫生习惯</td><td>healthz 关 access_log，日志级别生产用 warn</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为本章 5.2 的 timed 格式落地到你的练习站点，发起几个请求并逐字段解读日志。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>手动执行一次 logrotate，验证切分后新请求写进新文件（对照 inode：<code>ls -i</code>）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 awk 统计你日志里请求量 Top 5 的 URI 与平均 $request_time，找出"最忙又最慢"的接口。</div>
+  <p class="note">下一章：location 匹配优先级——Nginx 配置里最容易错的知识点。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="004_第4章_部署第一个静态站点.html">← 上一章</a>
+  <a class="doc-nav-btn" href="006_第6章_location匹配优先级详解.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Nginx 从 0 到精通》 · 第 5 章 日志：access/error 与切分</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){var b=document.getElementById('backTop');if(!b)return;
+var t=function(){b.classList.toggle('show',window.scrollY>480)};
+window.addEventListener('scroll',t,{passive:true});t();
+b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

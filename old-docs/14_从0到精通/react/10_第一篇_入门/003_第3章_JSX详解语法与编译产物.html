@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 3 章 JSX 详解：语法与编译产物｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 3 章 JSX 详解：语法与编译产物</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 3 章 / 共 64 章 · 预计 45 分钟 · 承第 1 章 · 起以后所有章</span>
+    </div>
+    <p class="hero-desc">JSX 是 React 最容易被误解的东西：它长得像 HTML，骨子里却是 JavaScript。这一章把 JSX 拆到见底——它编译成什么、三种插值写法各自用在哪、className/style/Fragment 为什么那样写、以及那些让人一头雾水的报错为什么会发生。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="002_第2章_环境搭建Vite与项目结构.html">第 2 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="004_第4章_组件与props数据下行.html">第 4 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">3.1 JSX 不是模板，是语法糖</a></li>
+    <li><a href="#sec3">3.2 看编译产物：jsx() 调用</a></li>
+    <li><a href="#sec4">3.3 三种插值写法</a></li>
+    <li><a href="#sec5">3.4 属性命名规则</a></li>
+    <li><a href="#sec6">3.5 子节点、Fragment 与渲染规则</a></li>
+    <li><a href="#sec7">3.6 报错清单与常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>明确回答"JSX 到底是什么"——它不是模板引擎、不是字符串，而是<strong>编译成函数调用的语法糖</strong>；</li>
+    <li>能手写 JSX 对应的 <code>jsx()</code> 调用产物，看得懂 <code>type</code>/<code>props</code>/<code>children</code> 三层结构；</li>
+    <li>熟练使用<strong>插值表达式</strong>的三种形态，并知道 JSX 里只能写"表达式"不能写"语句"；</li>
+    <li>掌握属性命名差异（<code>className</code>、<code>htmlFor</code>、<code>style</code> 双花括号、布尔属性）及其原因；</li>
+    <li>记住渲染真值表：<code>false / null / undefined</code> 会被忽略，<code>0</code> 和空字符串会显示。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">3.1</span> JSX 不是模板，是语法糖</h2>
+  <p>先摆三条容易混淆的事实：</p>
+  <ol>
+    <li><strong>JSX 不是 HTML 字符串</strong>。<code>&lt;h1&gt;Hi&lt;/h1&gt;</code> 编译后不是 <code>"&lt;h1&gt;Hi&lt;/h1&gt;"</code>，而是一个描述界面的 JS 对象（React 元素）。</li>
+    <li><strong>JSX 没有被浏览器直接支持</strong>。浏览器只认识 JS 编译器插件（Babel / SWC / esbuild）在运行前把它转成普通 JS。这就是为什么"不配插件就无法使用 JSX"。</li>
+    <li><strong>它不是必需品，但很难不用</strong>。你可以完全不用 JSX 写 React（第 2 点的函数调用形式），只是可读性极差。</li>
+  </ol>
+  <p>JSX 的设计初衷是：<strong>把"描述 UI 结构"这件事的语法成本降到接近 HTML</strong>，同时保留 JS 的全部能力（变量、循环、条件、函数）。</p>
+  <div class="lead"><strong>一句话</strong>：JSX = 用 XML 风格写 JS 函数调用。看清这一层，后面的写法与报错都不再神秘。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">3.2</span> 看编译产物：jsx() 调用</h2>
+  <p>这段 JSX：</p>
+  <pre class="code" data-lang="jsx"><code>const el = &lt;h1 className="title"&gt;Hello, {name}&lt;/h1&gt;;</code></pre>
+  <p>在 React 17 之后（<strong>automatic runtime</strong>，也是 Vite 模板默认）被编译为：</p>
+  <pre class="code" data-lang="js"><code>import { jsx as _jsx } from 'react/jsx-runtime';
+
+const el = _jsx('h1', { className: 'title', children: ['Hello, ', name] });</code></pre>
+  <p>而更早的 <strong>classic runtime</strong>（React 16 及以前、部分老教程）会编译为：</p>
+  <pre class="code" data-lang="js"><code>const el = React.createElement('h1', { className: 'title' }, 'Hello, ', name);</code></pre>
+  <p>两者差别：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>模式</th><th>automatic（17+ 默认）</th><th>classic（老版）</th></tr></thead>
+    <tbody>
+      <tr><td>需要手写 import React</td><td>不需要</td><td>必须 <code>import React from 'react'</code></td></tr>
+      <tr><td>编译函数</td><td><code>react/jsx-runtime</code> 的 <code>jsx()</code></td><td><code>React.createElement()</code></td></tr>
+      <tr><td>性能</td><td>略优（减少一层属性处理）</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">坑 1</span>网上老教程里"必须写 <code>import React from 'react'</code> 否则报 <code>React is not defined</code>"的说法，在现代 + Vite 项目中<strong>已不成立</strong>。反过来，如果你在 Vite 项目里删掉这行却报错，说明配的是 classic runtime（检查构建配置或老版 babel 配置）。</div>
+  <h4>深入理解 Element 对象</h4>
+  <pre class="code" data-lang="js"><code>const el = &lt;button disabled&gt;确定&lt;/button&gt;;
+
+console.log(el);
+// {
+//   type: 'button',                 // 标签名 / 组件函数
+//   key: null,
+//   ref: null,
+//   props: { disabled: true, children: '确定' },
+//   $$typeof: Symbol(react.element) // 防 XSS 的内部标记
+// }</code></pre>
+  <p>记住这个结构：<strong>元素 = type（是什么）+ props（属性与子节点）+ key/ref</strong>。第五篇讲 Fiber（{#sec}第 39 章）时，会发现 Fiber 节点正是基于这些信息生成的。</p>
+  <pre class="code" data-lang="jsx"><code>// 完全不用 JSX 也能写 React —— 证明 JSX 只是糖
+const el2 = { type: 'button', props: { children: '确定', disabled: true } };
+
+// 嵌套结构的写法
+const list = _jsx('ul', { children: [
+  _jsx('li', { children: 'A' }),
+  _jsx('li', { children: 'B' }),
+]});</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">3.3</span> 三种插值写法</h2>
+  <p>JSX 里用 <code>{ }</code> 进入"JS 世界"，且<strong>只能放表达式</strong>（能求值出结果的代码片段），不能放语句（<code>if</code>、<code>for</code>、<code>switch</code> 直接写会报错）。</p>
+  <h4>① 内容插值</h4>
+  <pre class="code" data-lang="jsx"><code>const user = { name: '张三', vip: true, score: 88 };
+
+&lt;p&gt;姓名：{user.name}&lt;/p&gt;
+&lt;p&gt;等级：{user.vip ? 'VIP' : '普通'}&lt;/p&gt;
+&lt;p&gt;学分：{user.score + 2}&lt;/p&gt;
+&lt;p&gt;标签：{formatTag(user)}&lt;/p&gt;   {/* 函数调用也可以，只要是表达式 */}</code></pre>
+  <h4>② 属性插值（引号换成花括号）</h4>
+  <pre class="code" data-lang="jsx"><code>const avatar = 'https://x.com/a.png';
+const id = 'user-1';
+
+&lt;img src={avatar} alt="头像" data-id={id} /&gt;
+&lt;div title={undefined}&gt;title 为 undefined 时不出现在 DOM 上&lt;/div&gt;</code></pre>
+  <p class="pit-sentence">写法区分：<code>src="abc"</code> 传的是字符串字面量；<code>src={avatar}</code> 传的是变量的值。写错就会把变量名当成字面字符串传下去。</p>
+  <h4>③ 样式插值（两个花括号不是语法特殊）</h4>
+  <pre class="code" data-lang="jsx"><code>// 外层 {}：进入 JS；内层 { color: 'red' }：一个普通对象字面量
+&lt;p style={{ color: 'red', fontSize: 18 }}&gt;红色 18px&lt;/p&gt;
+
+// 提取出来更清晰（推荐）
+const dangerStyle = { color: '#b91c1c', fontWeight: 700 };
+&lt;p style={dangerStyle}&gt;危险&lt;/p&gt;</code></pre>
+  <p><code>style</code> 用 camelCase（<code>fontSize</code> 而非 <code>font-size</code>），数字会被自动加上 <code>px</code>（<code>0</code> 不加）。</p>
+  <h4>为什么 for 不能直接写在 JSX 里</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ 错误：for 是语句，JSX 里放不了
+&lt;ul&gt;{ for (let i = 0; i &lt; 3; i++) &lt;li&gt;{i}&lt;/li&gt; }&lt;/ul&gt;
+
+// ✓ 正确：用表达式产出数组 —— map
+&lt;ul&gt;{ [0, 1, 2].map(i =&gt; &lt;li key={i}&gt;{i}&lt;/li&gt;) }&lt;/ul&gt;</code></pre>
+  <p class="key-sentence">判断口诀："能不能被 <code>const x = &lt;这里&gt;</code> 承接？" —— 能就是表达式，可以放进 <code>{}</code>。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">3.4</span> 属性命名规则</h2>
+  <p>JSX 属性名用 <code>camelCase</code>，与 HTML 习惯不同。差异来自"JSX 最终是 JS 对象属性"这一事实——JS 里保留字、连字符都不友好。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>HTML 写法</th><th>JSX 写法</th><th>原因</th></tr></thead>
+    <tbody>
+      <tr><td><code>class="box"</code></td><td><code>className="box"</code></td><td><code>class</code> 是 JS 关键字</td></tr>
+      <tr><td><code>for="name"</code></td><td><code>htmlFor="name"</code></td><td><code>for</code> 是 JS 关键字</td></tr>
+      <tr><td><code>onclick="fn()"</code></td><td><code>onClick={fn}</code></td><td>React 合成事件统一 camelCase，且传函数本身而非调用</td></tr>
+      <tr><td><code>tabindex="1"</code></td><td><code>tabIndex={1}</code></td><td>camelCase 统一</td></tr>
+      <tr><td><code>readonly</code></td><td><code>readOnly</code></td><td>同上</td></tr>
+      <tr><td><code>data-id="1"</code></td><td><code>data-id="1"</code>（不变）</td><td>自定义属性保持原样</td></tr>
+      <tr><td><code>&lt;input disabled&gt;</code></td><td><code>&lt;input disabled /&gt;</code> 或 <code>disabled={true}</code></td><td>布尔属性：给值即为真</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 常见坑：值是 false 时 attribute 不会出现在 DOM 上
+&lt;input disabled={false} /&gt;        // DOM：&lt;input&gt;（无 disabled）
+&lt;input disabled={'false'} /&gt;      // DOM：&lt;input disabled&gt;（字符串 'false' 是真值！）
+
+// spread 批量传属性（写组件封装时高频）
+const inputProps = { type: 'text', placeholder: '请输入', maxLength: 20 };
+&lt;input {...inputProps} value={v} onChange={handle} /&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑 2</span><code>checked</code>/<code>value</code> 这类"受控属性"一旦给了值就必须配 <code>onChange</code>，否则会报 <em>You provided a `value` prop to a form field without an `onChange` handler</em>——第 8 章详解。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">3.5</span> 子节点、Fragment 与渲染规则</h2>
+  <h4>组件必须返回单个根（或用 Fragment）</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ 报错：Adjacent JSX elements must be wrapped in an enclosing tag
+function Bad() {
+  return &lt;h1&gt;标题&lt;/h1&gt;&lt;p&gt;正文&lt;/p&gt;;
+}
+
+// ✓ 方案一： Fragment 全标签
+function Good1() {
+  return (
+    &lt;React.Fragment&gt;
+      &lt;h1&gt;标题&lt;/h1&gt;
+      &lt;p&gt;正文&lt;/p&gt;
+    &lt;/React.Fragment&gt;
+  );
+}
+
+// ✓ 方案二：语法糖（最常用），唯一可用属性是 key
+function Good2() {
+  return (
+    &lt;&gt;
+      &lt;h1&gt;标题&lt;/h1&gt;
+      &lt;p&gt;正文&lt;/p&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+  <p>Fragment 的价值：<strong>不在真实 DOM 里多产生一层 <code>div</code></strong>。写表格、Flex 布局时这一层多余容器会破坏样式和结构。</p>
+  <h4>渲染真值表（务必背下来）</h4>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:34%"><col style="width:38%"></colgroup>
+    <thead><tr><th>插值内容</th><th>渲染结果</th><th>典型踩坑</th></tr></thead>
+    <tbody>
+      <tr><td><code>{false}</code></td><td>什么都不渲染</td><td>本想显示 "false"</td></tr>
+      <tr><td><code>{null}</code> / <code>{undefined}</code></td><td>什么都不渲染</td><td>条件渲染的自然用法</td></tr>
+      <tr><td><code>{0}</code></td><td><strong>渲染出 0</strong></td><td>见下方劝退表</td></tr>
+      <tr><td><code>{''}</code> / <code>{[]}</code></td><td>渲染空内容</td><td>—</td></tr>
+      <tr><td><code>{NaN}</code></td><td>渲染 "NaN"</td><td>计算错误直接上屏</td></tr>
+      <tr><td><code>{{ a: 1 }}</code></td><td>报错</td><td>对象不能作为 React 子节点</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>const items = [];
+
+// ✗ 经典 bug：空列表时屏幕上赫然显示一个 "0"
+&lt;div&gt;{items.length &amp;&amp; &lt;List items={items} /&gt;}&lt;/div&gt;
+
+// ✓ 修法一：布尔化
+&lt;div&gt;{items.length &gt; 0 &amp;&amp; &lt;List items={items} /&gt;}&lt;/div&gt;
+// ✓ 修法二：!! 转 Boolean
+&lt;div&gt;{!!items.length &amp;&amp; &lt;List items={items} /&gt;}&lt;/div&gt;</code></pre>
+  <h4>条件渲染的三种写法</h4>
+  <pre class="code" data-lang="jsx"><code>// 1. 三元：二选一
+{isLogin ? &lt;UserPanel /&gt; : &lt;LoginBtn /&gt;}
+
+// 2. &amp;&amp;：要不要（注意上面说的 0 陷阱）
+{hasMore &amp;&amp; &lt;LoadMore /&gt;}
+
+// 3. 早返回 / 提取变量：分支复杂时使用
+if (loading) return &lt;Skeleton /&gt;;
+if (error) return &lt;ErrorBox msg={error} /&gt;;
+return &lt;Content data={data} /&gt;;</code></pre>
+  <div class="danger-box"><span class="tag-pit">坑 3</span>嵌套三元才是可读性的头号杀手。"<code>{a ? &lt;X/&gt; : b ? &lt;Y/&gt; : c ? &lt;Z/&gt; : null}</code>" 这种写法一旦出现就该拆函数调用或组件。第 6 章给重构手法。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">3.6</span> 报错清单与常见坑</h2>
+  <table>
+    <colgroup><col style="width:44%"><col style="width:56%"></colgroup>
+    <thead><tr><th>报错信息（关键词）</th><th>原因与解法</th></tr></thead>
+    <tbody>
+      <tr><td>Adjacent JSX elements must be wrapped</td><td>返回了多个并列根元素，用 <code>&lt;&gt;&lt;/&gt;</code> 包一层</td></tr>
+      <tr><td>Objects are not valid as a React child</td><td>误把对象/数组元素当内容渲染，检查 <code>{obj}</code> 处</td></tr>
+      <tr><td>Expected corresponding JSX closing tag</td><td>标签没闭合或拼写大小写不一致</td></tr>
+      <tr><td>React is not defined</td><td>用了 classic runtime 却没 import React；检查构建配置</td></tr>
+      <tr><td>Each child in a list should have a unique key</td><td><code>map</code> 渲染忘了加 <code>key</code>（第 6 章详解）</td></tr>
+      <tr><td>Style prop value must be an object</td><td><code>style="color:red"</code> 写成字符串了，应该用对象</td></tr>
+      <tr><td>Invalid DOM property <code>class</code></td><td>HTML 习惯犯了：应为 <code>className</code></td></tr>
+    </tbody>
+  </table>
+  <p>统一对策：<strong>浏览器控制台的 React 报错通常带具体组件名与行号，且多数附有大文档链接</strong>。养成读完整报错的习惯，效率会高于任何搜索。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>JSX 本质</td><td>编译成 <code>jsx(type, props, children)</code> 函数调用的语法糖</td></tr>
+      <tr><td>两代 runtime</td><td>17+ 默认 automatic，不用手写 import React</td></tr>
+      <tr><td>元素结构</td><td><code>type + props + key/ref</code>，是普通的 JS 对象</td></tr>
+      <tr><td>插值规则</td><td><code>{}</code> 内只能是表达式；style 用 camelCase + 对象</td></tr>
+      <tr><td>属性差异</td><td>className / htmlFor / 布尔属性 / spread</td></tr>
+      <tr><td>渲染真值表</td><td>false/null/undefined 不渲染，0 会渲染——条件渲染头号坑</td></tr>
+      <tr><td>Fragment</td><td>不产生多余 DOM 节点的包裹容器</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>手写出这段 JSX 的编译产物：<code>const el = &lt;li id="a"&gt;任务 {1 + 1}&lt;/li&gt;;</code>（写出 <code>_jsx(...)</code> 调用的完整参数）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>下面代码在空列表时屏幕上会出现什么？为什么？如何修？<code>&lt;div&gt;{todos.length &amp;&amp; &lt;TodoList todos={todos} /&gt;}&lt;/div&gt;</code></div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 map + Fragment(<code>&lt;React.Fragment key={id}&gt;</code>) 渲染一张两列的"定义列表"（词 + 释义），要求不产生多余的包裹 div，并说明为什么这里 Fragment 需要 key 而短语法 <code>&lt;&gt;</code> 加不了 key。</div>
+  <p class="note">参考答案见附录 C。下一章：组件拆分与 props —— 数据如何从上往下流。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="002_第2章_环境搭建Vite与项目结构.html">← 第 2 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="004_第4章_组件与props数据下行.html">第 4 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 3 章 JSX 详解：语法与编译产物</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

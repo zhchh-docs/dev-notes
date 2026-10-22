@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 69 章 环境准备与驱动加载｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第八篇 数据库与 JDBC</p>
+    <h1>第 69 章 环境准备与驱动加载</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 69 章 / 共 112 章 · 预计 30 分钟 · 第八篇开篇</span>
+    </div>
+    <p class="hero-desc">程序终究要和数据打交道。JDBC 是 Java 访问数据库的统一契约：一套接口，各数据库厂商提供实现。本章搭好 MySQL 环境、引入驱动、连通第一条连接——并弄懂"驱动是怎么被找到的"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../70_第七篇_JVM/068_第68章_建立性能基线.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="070_第70章_JDBC增删改查全流程.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">69.1 JDBC 是什么：一套契约</a></li>
+    <li><a href="#sec3">69.2 环境准备：MySQL 与测试库</a></li>
+    <li><a href="#sec4">69.3 引入驱动与三种加载方式</a></li>
+    <li><a href="#sec5">69.4 驱动注册背后：SPI 机制</a></li>
+    <li><a href="#sec6">69.5 建立第一条连接与常见报错</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 <strong>JDBC 与数据库驱动</strong>的关系（接口与实现）；</li>
+    <li>完成 <strong>MySQL + 驱动依赖 + 测试数据库</strong>的环境搭建；</li>
+    <li>理解 <code>Class.forName</code>、SPI 自动注册两种加载方式的历史演变；</li>
+    <li>能独立解决<strong>连接失败的高频报错</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">69.1</span> JDBC 是什么：一套契约</h2>
+  <p class="lead"><strong>一句话定位</strong>：JDBC（Java Database Connectivity）是 JDK 提供的一组接口（Connection/Statement/ResultSet…），<strong>真正的实现在各数据库的驱动 jar 里</strong>——这正是第 60 章 SPI 机制的教科书案例。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 780 170" role="img" aria-label="JDBC 分层">
+      <text x="390" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">JDBC 分层：面向接口编程，实现可替换</text>
+      <rect x="60" y="46" width="280" height="70" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/><text x="200" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">你的代码</text><text x="200" y="98" text-anchor="middle" font-size="11.5" fill="#4f6348">只依赖 java.sql.* 接口</text>
+      <rect x="400" y="46" width="150" height="70" rx="8" fill="#fefce8" stroke="#d97706"/><text x="475" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">JDBC 接口</text><text x="475" y="98" text-anchor="middle" font-size="11.5" fill="#4f6348">Driver / Connection</text>
+      <rect x="610" y="30" width="150" height="46" rx="8" fill="#eef2ff" stroke="#4f46e5"/><text x="685" y="58" text-anchor="middle" font-size="11.5" fill="#4f46e5">MySQL 驱动实现</text>
+      <rect x="610" y="88" width="150" height="46" rx="8" fill="#eef2ff" stroke="#4f46e5"/><text x="685" y="116" text-anchor="middle" font-size="11.5" fill="#4f46e5">Oracle / PG 驱动…</text>
+      <line x1="340" y1="81" x2="396" y2="81" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr69a)"/>
+      <line x1="550" y1="81" x2="606" y2="56" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr69a)"/>
+      <line x1="550" y1="81" x2="606" y2="108" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr69a)"/>
+      <text x="390" y="152" text-anchor="middle" font-size="12" fill="#7a8a70">换数据库 = 换驱动 jar + 换 URL，业务代码几乎不动</text>
+    </svg>
+    <p class="diagram-caption">图 69-1 JDBC 契约与驱动实现</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">69.2</span> 环境准备：MySQL 与测试库</h2>
+  <pre class="code" data-lang="sql"><code>-- 建测试库与演示表（全书 JDBC 章节共用）
+CREATE DATABASE jdbc_demo DEFAULT CHARACTER SET utf8mb4;
+USE jdbc_demo;
+
+CREATE TABLE user (
+  id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name       VARCHAR(50)  NOT NULL,
+  email      VARCHAR(100),
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO user (name, email) VALUES
+  ('张三', 'zhangsan@demo.com'),
+  ('李四', 'lisi@demo.com');
+
+-- 建议单独建最小权限账号，不要拿 root 做开发连接
+CREATE USER 'app'@'%' IDENTIFIED BY 'App#123456';
+GRANT SELECT, INSERT, UPDATE, DELETE ON jdbc_demo.* TO 'app'@'%';</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">69.3</span> 引入驱动与三种加载方式</h2>
+  <pre class="code" data-lang="xml"><code>&lt;!-- Maven 引入驱动（JDBC 4.x 对应 mysql-connector-j 8.x） --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;com.mysql&lt;/groupId&gt;
+  &lt;artifactId&gt;mysql-connector-j&lt;/artifactId&gt;
+  &lt;version&gt;8.3.0&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+  <pre class="code" data-lang="java"><code>// 方式一：老式显式加载（JDBC 4.0 之前必须）
+Class.forName("com.mysql.cj.jdbc.Driver");   // 触发驱动类的静态块注册
+
+// 方式二：现代写法——什么都不用写！
+// JDK 6+ 的 SPI 机制会扫描 jar 里 META-INF/services/java.sql.Driver
+// DriverManager 初始化时自动注册所有驱动（第 44 章讲过原理）
+
+// 方式三：系统属性指定（极少用）
+// java -Djdbc.drivers=com.mysql.cj.jdbc.Driver MyApp</code></pre>
+  <div class="key-sentence">结论：现代项目<strong>不需要写 Class.forName</strong>。但面试和排查旧代码仍要懂它——驱动类的静态代码块里执行了 <code>DriverManager.registerDriver(this)</code>，这就是"加载即注册"。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">69.4</span> 驱动注册背后：SPI 机制</h2>
+  <p>MySQL 驱动 jar 里有文件 <code>META-INF/services/java.sql.Driver</code>，内容一行：</p>
+  <pre class="code" data-lang="text"><code>com.mysql.cj.jdbc.Driver</code></pre>
+  <p>DriverManager 的静态初始化会调用 <code>ServiceLoader.load(Driver.class)</code>，扫描 classpath 上所有 jar 的该文件并实例化注册。这里有个精妙细节：<strong>DriverManager 由 Bootstrap 层加载，"够不着"应用 classpath 上的驱动</strong>，所以它借用了<strong>线程上下文类加载器</strong>来加载驱动——这正是第 60 章"打破双亲委派"的第一个实战案例。</p>
+  <pre class="code" data-lang="java"><code>// 自己动手验证 SPI（Java 层视角）
+import java.sql.DriverManager;
+import java.util.Enumeration;
+
+public class CheckDrivers {
+    public static void main(String[] args) {
+        Enumeration&lt;java.sql.Driver&gt; ds = DriverManager.getDrivers();
+        while (ds.hasMoreElements()) {
+            java.sql.Driver d = ds.nextElement();
+            System.out.println(d.getClass().getName()
+                + "  ← 由 " + d.getClass().getClassLoader() + " 加载");
+        }
+    }
+}
+// 输出：com.mysql.cj.jdbc.Driver  ← 由 appClassLoader 加载</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">69.5</span> 建立第一条连接与常见报错</h2>
+  <pre class="code" data-lang="java"><code>import java.sql.Connection;
+import java.sql.DriverManager;
+
+public class FirstConnection {
+    public static void main(String[] args) throws Exception {
+        String url = "jdbc:mysql://localhost:3306/jdbc_demo"
+            + "?useSSL=false&amp;serverTimezone=Asia/Shanghai"
+            + "&amp;characterEncoding=utf8";
+        try (Connection conn = DriverManager.getConnection(url, "app", "App#123456")) {
+            System.out.println("连接成功：" + conn.getMetaData().getDatabaseProductVersion());
+        }   // try-with-resources 自动关闭——连接必须关闭！
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:44%"><col style="width:56%"></colgroup>
+    <thead><tr><th>报错</th><th>原因与解法</th></tr></thead>
+    <tbody>
+      <tr><td>No suitable driver found</td><td>没引驱动 jar，或驱动版本与 URL 前缀不匹配（com.mysql.jdbc.Driver 是老类名）</td></tr>
+      <tr><td>Communications link failure</td><td>数据库没启动 / 端口错 / 防火墙；先 telnet 3306 验证</td></tr>
+      <tr><td>Access denied for user</td><td>账号密码错，或该账号无远程访问权限（'app'@'%' vs 'app'@'localhost'）</td></tr>
+      <tr><td>Unknown database</td><td>URL 里的库名拼错或未建库</td></tr>
+      <tr><td>The server time zone value…</td><td>未设 serverTimezone，老驱动+新 MySQL 的经典坑</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>JDBC 定位</td><td>java.sql 契约 + 厂商驱动实现；换库换 jar 不换代码</td></tr>
+      <tr><td>驱动加载</td><td>现代项目零配置（SPI 自动注册）；Class.forName 是旧识</td></tr>
+      <tr><td>SPI 联动</td><td>DriverManager 用线程上下文类加载器加载驱动（打破委派实例）</td></tr>
+      <tr><td>连接纪律</td><td>URL 带时区与编码；连接必须 try-with-resources 关闭</td></tr>
+      <tr><td>报错排查</td><td>先分类：类没有→依赖；连不上→网络；拒了→权限</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>解释"驱动 jar 里的 class 文件为什么要遵守 java.sql 的接口"——用第 60 章的语言回答。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>打开驱动 jar，找到 META-INF/services/java.sql.Driver 并查看内容；删除它再运行连接程序，观察报错。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用最小权限账号 + 错误密码、错误库名、停掉的 MySQL 各制造一次报错，建立自己的"报错→原因"速查卡。</div>
+  <p class="note">下一章：连上之后真正干活——JDBC 增删改查全流程。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../70_第七篇_JVM/068_第68章_建立性能基线.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="070_第70章_JDBC增删改查全流程.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 69 章 环境准备与驱动加载</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

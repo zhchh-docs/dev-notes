@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 63 章 垃圾回收器：CMS/G1/ZGC｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第七篇 JVM</p>
+    <h1>第 63 章 垃圾回收器：CMS/G1/ZGC</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 63 章 / 共 112 章 · 预计 45 分钟 · 上一章：GC 概念与分代假设</span>
+    </div>
+    <p class="hero-desc">收集器进化的主线只有一条：缩短 STW。从 Serial 的"全停"，到 CMS 的"并发清理"，到 G1 的"可预测停顿"，再到 ZGC 的"停顿与堆大小无关"。本章按这条主线讲三代收集器的算法与选型。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="062_第62章_GC概念与分代假设.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="064_第64章_JVM参数与调优方法论.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">63.1 收集器总览与评估指标</a></li>
+    <li><a href="#sec3">63.2 Parallel：吞吐量优先</a></li>
+    <li><a href="#sec4">63.3 CMS：并发低停顿及其退场</a></li>
+    <li><a href="#sec5">63.4 G1：区域化与停顿预测</a></li>
+    <li><a href="#sec6">63.5 ZGC/Shenandoah：亚毫秒时代</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解评估收集器的两大指标：<strong>吞吐量</strong>与<strong>停顿时间</strong>及其矛盾；</li>
+    <li>掌握 <strong>CMS 四阶段</strong>流程，能说出它被移除的三个原因；</li>
+    <li>理解 <strong>G1 的 Region 化设计、Mixed GC 与停顿预测模型</strong>；</li>
+    <li>了解 ZGC 的着色指针与读屏障，能根据场景选收集器。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">63.1</span> 收集器总览与评估指标</h2>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:22%"><col style="width:30%"><col style="width:30%"></colgroup>
+    <thead><tr><th>收集器</th><th>目标</th><th>算法特点</th><th>现状</th></tr></thead>
+    <tbody>
+      <tr><td>Serial / Serial Old</td><td>单线程简单</td><td>复制 / 标记-整理，全程 STW</td><td>客户端小内存场景</td></tr>
+      <tr><td>ParNew</td><td>并行新生代</td><td>Serial 的多线程版</td><td>随 CMS 一起退场</td></tr>
+      <tr><td>Parallel Scavenge/Old</td><td><strong>吞吐量</strong></td><td>并行复制 + 并行整理</td><td>JDK 8 默认，批处理友好</td></tr>
+      <tr><td>CMS</td><td>低停顿</td><td>并发标记-清除</td><td>JDK 14 移除</td></tr>
+      <tr><td><strong>G1</strong></td><td>可控停顿</td><td>Region 化、标记-整理</td><td>JDK 9+ 默认，首选</td></tr>
+      <tr><td>ZGC / Shenandoah</td><td>亚毫秒停顿</td><td>着色指针 / 读屏障</td><td>超大堆低延迟首选</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">吞吐量 = 运行用户代码时间 / 总时间；停顿 = 单次 STW 时长。两者天然矛盾：并发收集把活儿挪到后台，吞吐让给停顿。先问业务要什么，再选收集器。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">63.2</span> Parallel：吞吐量优先</h2>
+  <p>JDK 8 默认组合（Parallel Scavenge + Parallel Old）：多条 GC 线程并行工作，停顿相对长但总开销最小，适合<strong>后台计算、批处理</strong>这类"不怕顿一下，就怕干得慢"的场景。</p>
+  <pre class="code" data-lang="bash"><code># JDK 8 显式指定
+java -XX:+UseParallelGC -XX:MaxGCPauseMillis=200 -jar batch-job.jar
+# 两个自动调节旋钮
+#   -XX:MaxGCPauseMillis=200   目标最大停顿
+#   -XX:GCTimeRatio=99         吞吐目标：GC 时间不超过 1/99</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">63.3</span> CMS：并发低停顿及其退场</h2>
+  <p class="lead"><strong>一句话定位</strong>：CMS（Concurrent Mark Sweep）把最耗时的标记与清除工作挪到与用户线程并发执行，是第一款"以停顿换吞吐"的老年代收集器。</p>
+  <h3>四阶段流程</h3>
+  <ol>
+    <li><strong>初始标记（STW，短）</strong>：只标记 GC Roots 直接关联的对象；</li>
+    <li><strong>并发标记</strong>：沿引用链走，与用户线程并发，耗时最长但不停顿；</li>
+    <li><strong>重新标记（STW，短）</strong>：修正并发期间引用变化的部分；</li>
+    <li><strong>并发清除</strong>：与用户线程并发回收垃圾。</li>
+  </ol>
+  <h3>三个致命缺陷（为什么被移除）</h3>
+  <ul>
+    <li><strong>CPU 敏感</strong>：并发线程抢走应用 CPU，核少时反而拖慢业务；</li>
+    <li><strong>浮动垃圾</strong>：并发标记期间产生的新垃圾本轮收不掉；并发期内存只减不增，预留不足就<strong>退化成 Serial Old 全停整理</strong>（Concurrent Mode Failure）；</li>
+    <li><strong>内存碎片</strong>：标记-清除不整理，碎片多了大对象放不下，同样触发 Full GC。</li>
+  </ul>
+  <p>这些问题在 G1 上都有了系统性答案，所以 JDK 9 起 CMS 弃用、JDK 14 移除。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">63.4</span> G1：区域化与停顿预测</h2>
+  <p class="lead"><strong>一句话定位</strong>：G1 把堆切成数百到数千个等大 Region（1~32MB），每个 Region 可任意扮演 Eden/Survivor/Old/Humongous——回收从"整代回收"变成"挑性价比最高的 Region 集合回收"。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 780 220" role="img" aria-label="G1 Region 布局">
+      <text x="390" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">G1：堆 = Region 网格（角色可变）</text>
+      <g stroke="#c2cfb4" stroke-width="1">
+        <rect x="60" y="44" width="90" height="60" fill="#d8e8c8"/><rect x="150" y="44" width="90" height="60" fill="#fef3c7"/><rect x="240" y="44" width="90" height="60" fill="#d8e8c8"/><rect x="330" y="44" width="90" height="60" fill="#fee2e2"/><rect x="420" y="44" width="90" height="60" fill="#d8e8c8"/><rect x="510" y="44" width="90" height="60" fill="#f8faf0"/><rect x="600" y="44" width="90" height="60" fill="#fef3c7"/>
+        <rect x="60" y="104" width="90" height="60" fill="#f8faf0"/><rect x="150" y="104" width="90" height="60" fill="#d8e8c8"/><rect x="240" y="104" width="90" height="60" fill="#fef3c7"/><rect x="330" y="104" width="90" height="60" fill="#d8e8c8"/><rect x="420" y="104" width="90" height="60" fill="#fee2e2"/><rect x="510" y="104" width="90" height="60" fill="#d8e8c8"/><rect x="600" y="104" width="90" height="60" fill="#f8faf0"/>
+      </g>
+      <text x="105" y="80" text-anchor="middle" font-size="11" fill="#2d6a3f">Eden</text><text x="195" y="80" text-anchor="middle" font-size="11" fill="#b45309">Old</text><text x="285" y="80" text-anchor="middle" font-size="11" fill="#2d6a3f">Eden</text><text x="375" y="80" text-anchor="middle" font-size="11" fill="#b91c1c">H(umongous)</text><text x="465" y="80" text-anchor="middle" font-size="11" fill="#2d6a3f">Eden</text><text x="555" y="80" text-anchor="middle" font-size="11" fill="#7a8a70">空</text><text x="645" y="80" text-anchor="middle" font-size="11" fill="#b45309">Old</text>
+      <text x="105" y="140" text-anchor="middle" font-size="11" fill="#7a8a70">空</text><text x="195" y="140" text-anchor="middle" font-size="11" fill="#2d6a3f">Eden</text><text x="285" y="140" text-anchor="middle" font-size="11" fill="#b45309">Old</text><text x="375" y="140" text-anchor="middle" font-size="11" fill="#2d6a3f">Survivor</text><text x="465" y="140" text-anchor="middle" font-size="11" fill="#b91c1c">H</text><text x="555" y="140" text-anchor="middle" font-size="11" fill="#2d6a3f">Eden</text><text x="645" y="140" text-anchor="middle" font-size="11" fill="#7a8a70">空</text>
+      <text x="390" y="196" text-anchor="middle" font-size="12" fill="#7a8a70">红色 H：对象 &gt; Region 一半，占用连续多个 Region；Humongous 直接进老年代区</text>
+    </svg>
+    <p class="diagram-caption">图 63-1 G1 的 Region 化堆</p>
+  </div>
+  <ul>
+    <li><strong>停顿预测模型</strong>：G1 追踪每个 Region 的回收价值（能腾出多少空间 / 花多久），在 <code>-XX:MaxGCPauseMillis</code>（默认 200ms）预算内挑收益最高的 Region 集合（CSet）来回收；</li>
+    <li><strong>Young GC</strong>：Eden 满即触发，全程 STW 复制；</li>
+    <li><strong>Mixed GC</strong>：老年代占比超过 <code>-XX:InitiatingHeapOccupancyPercent</code>（默认 45%）后，新生代回收顺带捎上部分老年代 Region——这是"增量整理"，替代了 CMS 的整段 Full GC；</li>
+    <li><strong>Full GC 兜底</strong>：回收速度跟不上分配速度时退化为单线程 Full GC（G1 的最坏情况，日志出现 to-space exhausted / Full GC 时要警惕）。</li>
+  </ul>
+  <pre class="code" data-lang="bash"><code># 典型 4C8G 服务配置
+java -Xms4g -Xmx4g \
+     -XX:+UseG1GC \
+     -XX:MaxGCPauseMillis=100 \
+     -XX:InitiatingHeapOccupancyPercent=40 \
+     -Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=20m \
+     -jar app.jar</code></pre>
+  <div class="warn-box"><strong>G1 调参建议</strong>：不要把 MaxGCPauseMillis 设太小（如 20ms），G1 会把新生代压得过小导致 GC 过于频繁，吞吐崩塌。先看日志，再动参数。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">63.5</span> ZGC/Shenandoah：亚毫秒时代</h2>
+  <p>ZGC（JDK 11 实验性，21 转正）目标：<strong>停顿时间与堆大小无关</strong>——8MB 和 16TB 的停顿都在亚毫秒级。两项核心技术：</p>
+  <ul>
+    <li><strong>着色指针（Colored Pointers）</strong>：把 GC 元信息直接存进 64 位指针的空闲位，标记/转发状态随指针走；</li>
+    <li><strong>读屏障（Load Barrier）</strong>：应用线程读引用时由 JVM 插入一小段逻辑，发现指针"过期"就自愈并更新——标记、搬移全程并发。</li>
+  </ul>
+  <p>代价：吞吐量比 G1 略低（屏障开销），且不压缩指针。选型经验：<strong>常规服务用 G1；单机大堆（几十 GB+）且要求极低延迟的用 ZGC</strong>；Shenandoah 思路类似（Brooks 转发指针），由 Red Hat 主导，国内生产相对少见。</p>
+  <pre class="code" data-lang="bash"><code>java -Xms16g -Xmx16g -XX:+UseZGC -Xlog:gc -jar app.jar
+# JDK 21+ 支持分代 ZGC（推荐）：-XX:+ZGenerational</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>收集器</th><th>一句话定位</th></tr></thead>
+    <tbody>
+      <tr><td>Parallel</td><td>并行全 STW，吞吐最高；批处理默认</td></tr>
+      <tr><td>CMS</td><td>并发清除低停顿，但有浮动垃圾与碎片；已移除，懂原理即可</td></tr>
+      <tr><td>G1</td><td>Region 化 + 停顿预测，Mixed GC 增量整理；JDK 9+ 默认首选</td></tr>
+      <tr><td>ZGC</td><td>着色指针 + 读屏障，停顿亚毫秒且与堆无关；大堆低延迟首选</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">选型三步：默认 G1 → 日志显示停顿/晋升异常再调参 → 堆超过几十 G 或延迟极敏感才考虑 ZGC。没有"最好的收集器"，只有"匹配业务指标的收集器"。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>默写 CMS 四阶段，并指出哪两阶段 STW。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>解释 G1 的 Humongous 对象是什么、为何容易造成碎片，写出观察方法（-Xlog:gc* 中关键字）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>同一个接口分别在 Parallel 与 G1 下压测，记录平均 RT 与 P99，用数据回答"该选谁"。</div>
+  <p class="note">下一章：光选收集器不够——JVM 参数与调优方法论。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="062_第62章_GC概念与分代假设.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="064_第64章_JVM参数与调优方法论.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 63 章 垃圾回收器：CMS/G1/ZGC</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

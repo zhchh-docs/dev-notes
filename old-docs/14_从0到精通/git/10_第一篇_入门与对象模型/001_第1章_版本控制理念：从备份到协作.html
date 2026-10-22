@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 1 章 版本控制理念：从备份到协作｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第一篇 入门与对象模型</p>
+    <h1>第 1 章 版本控制理念：从备份到协作</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 1 章 / 共 40 章 · 预计 30 分钟 · 零基础可读</span>
+    </div>
+    <p class="hero-desc">在敲第一条 git 命令之前，先想清楚一个问题：没有版本控制的开发是什么样子？本章不写代码，只回答"为什么需要 Git、它解决了什么、它和复制粘贴改文件名的做法差在哪"——理念立住了，后面的命令才有意义。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="002_第2章_安装与初始配置.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">1.1 没有版本控制的世界</a></li>
+    <li><a href="#sec3">1.2 版本控制到底管什么</a></li>
+    <li><a href="#sec4">1.3 集中式与分布式</a></li>
+    <li><a href="#sec5">1.4 Git 的四个设计决定</a></li>
+    <li><a href="#sec6">1.5 Git 在团队协作里的位置</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能说出手工管理版本（改文件名、复制文件夹）的<strong>四个致命缺陷</strong>；</li>
+    <li>能一句话讲清<strong>版本控制系统（VCS）</strong>的三大职责：历史、并行、恢复；</li>
+    <li>分清<strong>集中式（SVN）与分布式（Git）</strong>的区别，明白"Git 离线也能提交"意味着什么；</li>
+    <li>记住 Git 的四个设计决定——它们决定了后面所有命令的行为。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：无。本章不写代码，只建立地图。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">1.1</span> 没有 VCS 的世界：你一定干过这些事</h2>
+  <p>回想（或想象）这样的项目文件夹：</p>
+  <pre class="code" data-lang="text"><code>my-project/
+  简历_最终版.doc
+  简历_最终版2.doc
+  简历_真最终版_改.doc
+  简历_打死不改版_张三改过.doc
+  src-备份0417/
+  src-备份0418-能用/
+  src-千万别删/
+  src-最新(其实是旧的)/</code></pre>
+  <p>这套"文件名版本学"有四个致命缺陷：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:44%"><col style="width:34%"></colgroup>
+    <thead><tr><th>缺陷</th><th>表现</th><th>后果</th></tr></thead>
+    <tbody>
+      <tr><td>历史不可信</td><td>不知道每个副本改了什么、谁改的、为什么改</td><td>想回退却不知道回到哪一版</td></tr>
+      <tr><td>并行困难</td><td>两个人不能同时改同一个文件夹</td><td>靠 U 盘 / 网盘来回倒，覆盖别人的改动</td></tr>
+      <tr><td>全量冗余</td><td>每存一版复制整个目录</td><td>磁盘爆炸，大项目每版几个 GB</td></tr>
+      <tr><td>合并靠手</td><td>两人各改一份，只能肉眼逐行比对</td><td>漏掉一处就是线上事故</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">版本控制系统的存在意义，就是把"历史、并行、恢复、合并"这四件事从人的记忆力转移到机器里。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">1.2</span> VCS 管什么：三大职责</h2>
+  <ol>
+    <li><strong>历史（History）</strong>：每次改动形成一个"提交"，记录谁、何时、改了什么、为什么改。历史可以浏览、对比、检索。</li>
+    <li><strong>并行（Branching）</strong>：每人、每个功能、每次实验各开一条独立工作线，互不干扰，完成后合回主线。</li>
+    <li><strong>恢复（Recovery）</strong>：任何时刻都能精确回退到任意历史状态——不是"恢复到昨天凌晨 3 点的备份"，而是"恢复到第 42 次提交"。</li>
+  </ol>
+  <div class="diagram">
+    <svg viewBox="0 0 800 190" role="img" aria-label="提交历史示意">
+      <defs><marker id="arr1" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">版本控制下的开发：一条可回溯的提交链</text>
+      <circle cx="110" cy="100" r="20" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="110" y="105" text-anchor="middle" font-size="11" fill="#2d6a3f">C1</text>
+      <circle cx="250" cy="100" r="20" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="250" y="105" text-anchor="middle" font-size="11" fill="#2d6a3f">C2</text>
+      <circle cx="390" cy="100" r="20" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="390" y="105" text-anchor="middle" font-size="11" fill="#b45309">C3?</text>
+      <circle cx="530" cy="100" r="20" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="530" y="105" text-anchor="middle" font-size="11" fill="#2d6a3f">C4</text>
+      <circle cx="670" cy="100" r="20" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="670" y="105" text-anchor="middle" font-size="11" fill="#2d6a3f">C5</text>
+      <line x1="132" y1="100" x2="226" y2="100" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr1)"/>
+      <line x1="272" y1="100" x2="366" y2="100" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr1)"/>
+      <line x1="412" y1="100" x2="506" y2="100" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr1)"/>
+      <line x1="552" y1="100" x2="646" y2="100" stroke="#7a8a70" stroke-width="2" marker-end="url(#arr1)"/>
+      <text x="390" y="150" text-anchor="middle" font-size="12" fill="#b45309">C3 写坏了？直接丢弃，项目瞬间回到 C2 或继续到 C4</text>
+      <text x="390" y="175" text-anchor="middle" font-size="11" fill="#7a8a70">每一节链环 = 一次提交：完整快照 + 谁改的 + 为什么改</text>
+    </svg>
+    <p class="diagram-caption">图 1-1 提交链：历史中的每一站都完好保存，任何一站都能随时抵达</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">1.3</span> 集中式与分布式：一条线上的两种哲学</h2>
+  <p>版本控制系统有三代：本地式（RCS）、集中式（CVS / SVN）、分布式（Git / Mercurial）。关键差别在"<strong>仓库在哪</strong>"：</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>维度</th><th>集中式（SVN）</th><th>分布式（Git）</th></tr></thead>
+    <tbody>
+      <tr><td>仓库位置</td><td>只有中央服务器一份完整历史</td><td>每个人本地都有<strong>完整历史</strong>，服务器只是"同步 hub"</td></tr>
+      <tr><td>提交方式</td><td>必须联网，直接提交到中央</td><td>先在本地提交，联网后再推送同步</td></tr>
+      <tr><td>断网工作</td><td>只能改文件，不能提交、不能看历史</td><td>提交、看历史、开分支、对比全部可用</td></tr>
+      <tr><td>分支成本</td><td>分支昂贵，团队少用</td><td>分支几乎零成本，"随手开分支"是常态</td></tr>
+      <tr><td>单点风险</td><td>中央服务器坏了 = 历史可能丢失</td><td>任何一台有 clone 的机器都是完整备份</td></tr>
+    </tbody>
+  </table>
+  <p><span class="tag-key">核心区别</span>：Git 里"提交"和"发布"是两件事——本地 <code>commit</code> 只影响你自己的仓库，<code>push</code> 才分享给别人。这个解耦让开发者敢频繁提交，历史因此更细、更有价值。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">1.4</span> Git 的四个设计决定</h2>
+  <p>2005 年，Linux 内核社区与 BitKeeper 授权谈判破裂，Linus Torvalds 花约十天写出 Git。它有四个影响深远的设计决定——现在只需混个脸熟，第一篇后几章会逐一展开：</p>
+  <ol>
+    <li><strong>快照，不是差异</strong>：每次提交记录项目整体的"快照"（借助对象去重，未变文件不重复存储），而不是"第 N 版相对第 N-1 版的补丁"。这让回退、对比、分支合并的模型简单一致。</li>
+    <li><strong>内容寻址</strong>：每个对象用其内容的 SHA-1 哈希命名。内容变了，名字必变——等于给每个版本盖了防伪章，任何篡改都会被发现。</li>
+    <li><strong>绝大多数操作只碰本地</strong>：commit、branch、diff、log 不走网络，所以快得像本地文件操作。这是 Git 手感好的根本原因。</li>
+    <li><strong>三个区域</strong>：工作区、暂存区、仓库。改动不是"一杆子进历史"，而是分步挑选、确认、入库——第 4 章专题。</li>
+  </ol>
+  <div class="warn-box"><strong>常见误解</strong>："Git = GitHub"。Git 是版本控制工具，装在你电脑上、离线可用；GitHub/GitLab/Gitee 是托管 Git 仓库的网站。第 9 章会正式区分。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">1.5</span> Git 在团队协作里的位置</h2>
+  <p>现代软件交付流水线上，Git 处于最上游，几乎所有环节都挂在它的动作上：</p>
+  <ul>
+    <li><strong>提交（commit）</strong>触发代码检查与测试——CI 集成（第 35 章）；</li>
+    <li><strong>分支（branch）</strong>定义并行工作与发布节奏——分支模型（第 31-32 章）；</li>
+    <li><strong>合并（merge / PR）</strong>是代码评审的物理载体（第 19-20 章）；</li>
+    <li><strong>标签（tag）</strong>标记可发布版本，驱动发版流程（第 17、33 章）；</li>
+    <li><strong>历史（log）</strong>自动生成变更日志、支持事故定位（第 34、26 章）。</li>
+  </ul>
+  <p class="key-sentence">学 Git 不是学一条命令集，而是学一套团队协作的通用协议——写代码之外的半个工程师职责都在这里。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>VCS 三大职责</td><td>历史可查、并行可分支、任意时刻可恢复</td></tr>
+      <tr><td>手工管版本的死穴</td><td>历史不可信、无法并行、全量冗余、合并靠肉眼</td></tr>
+      <tr><td>分布式 vs 集中式</td><td>每人一份完整历史；提交在本地，推送才共享</td></tr>
+      <tr><td>四个设计决定</td><td>快照存储 / 内容寻址 / 本地优先 / 三区模型</td></tr>
+      <tr><td>Git ≠ GitHub</td><td>Git 是工具，GitHub 是托管平台</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用不超过三句话，向一个只用"复制文件夹备份"的同学说明：Git 能帮他解决哪三件最头疼的事？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span> SVN 用户常说"我们不用分支，因为太慢"。用本章的表格语言解释：这句话反映的是集中式的哪个结构性缺陷？</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>如果 Git 每次提交都完整复制整个项目（不做对象去重），哪些命令的体验会明显变差？为什么"快照 + 去重"能两全？</div>
+  <p class="note">参考答案见附录 C（规划中）。下一章我们把 Git 真正装进电脑，并完成一次性的身份配置。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="002_第2章_安装与初始配置.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 1 章 版本控制理念：从备份到协作</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

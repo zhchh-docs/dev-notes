@@ -1,0 +1,326 @@
+<!--CH
+title: 生命周期全解
+part: 第二篇 组件化
+desc: 组件从创建到销毁会经过哪些阶段？每个钩子能做什么、不能做什么？父子组件的钩子顺序如何？这一章用一张全景图 + 逐个钩子讲清，并给出"该在哪一步发请求""该在哪一步清理"的明确答案。
+toc: 本章目标|16.1 生命周期全景图|16.2 组合式 API 中的钩子对照|16.3 创建阶段：setup|16.4 挂载阶段：onMounted|16.5 更新阶段：onUpdated|16.6 卸载阶段：onUnmounted|16.7 特殊钩子：KeepAlive 与错误捕获|16.8 父子组件的钩子顺序|16.9 本章常见坑|本章小结|本章习题
+-->
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出组件<strong>从生到死</strong>的完整阶段与对应钩子；</li>
+    <li>掌握组合式 API 的钩子写法（<code>onMounted</code> 等）及其与选项式的对照；</li>
+    <li>知道<strong>发请求、操作 DOM、注册/清理副作用</strong>分别该放在哪一步；</li>
+    <li>理解<strong>父子与兄弟组件的钩子执行顺序</strong>；</li>
+    <li>会用 <code>onActivated</code>（KeepAlive）、<code>onErrorCaptured</code>（错误边界）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">16.1</span> 生命周期全景图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 330" role="img" aria-label="组件生命周期全景">
+      <text x="400" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">组件生命周期：创建 → 挂载 → 更新 → 卸载</text>
+      <rect x="40" y="40" width="170" height="60" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="125" y="62" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">setup（创建）</text>
+      <text x="125" y="82" text-anchor="middle" font-size="11" fill="#4f6348">定义响应式数据</text>
+      <rect x="240" y="40" width="170" height="60" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="325" y="62" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">onMounted</text>
+      <text x="325" y="82" text-anchor="middle" font-size="11" fill="#4f6348">DOM 已就绪</text>
+      <rect x="440" y="40" width="170" height="60" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="525" y="62" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">onUpdated</text>
+      <text x="525" y="82" text-anchor="middle" font-size="11" fill="#4f6348">数据变→DOM 已更新</text>
+      <rect x="640" y="40" width="150" height="60" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="715" y="62" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">onUnmounted</text>
+      <text x="715" y="82" text-anchor="middle" font-size="11" fill="#4f6348">销毁清理</text>
+      <path d="M210,70 L238,70" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a161)"/>
+      <path d="M410,70 L438,70" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a161)"/>
+      <path d="M610,70 L638,70" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a161)"/>
+      <path d="M715,102 L715,130 L325,130 L325,102" stroke="#b45309" stroke-width="2" fill="none" marker-end="url(#a162)"/>
+      <text x="520" y="126" text-anchor="middle" font-size="11" fill="#b45309">响应式数据变化触发重新渲染（循环）</text>
+      <rect x="40" y="160" width="750" height="60" rx="8" fill="#f0f6ff" stroke="#2d6a3f"/>
+      <text x="415" y="182" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">KeepAlive 缓存组件：onActivated / onDeactivated（代替 mount / unmount 反复触发）</text>
+      <text x="415" y="204" text-anchor="middle" font-size="11" fill="#4f6348">&lt;KeepAlive&gt; 内的组件被"隐藏"时不销毁，仅失活；再次显示时触发 onActivated</text>
+      <rect x="40" y="240" width="750" height="60" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="415" y="262" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">错误与调试：onErrorCaptured（捕获子孙错误）/ onRenderTracked / onRenderTriggered（调试依赖）</text>
+      <text x="415" y="284" text-anchor="middle" font-size="11" fill="#4f6348">这几个钩子只在开发调试与错误边界中使用，业务代码很少用</text>
+      <defs>
+        <marker id="a161" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker>
+        <marker id="a162" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b45309"/></marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 16-1 组件生命周期全景</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">16.2</span> 组合式 API 中的钩子对照</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>阶段</th><th>选项式 API</th><th>组合式 API</th></tr></thead>
+    <tbody>
+      <tr><td>创建前</td><td><code>beforeCreate</code></td><td>—（代码直接写在 setup 顶层）</td></tr>
+      <tr><td>创建后</td><td><code>created</code></td><td>—（同上，setup 顶层即 created 时机）</td></tr>
+      <tr><td>挂载前</td><td><code>beforeMount</code></td><td><code>onBeforeMount</code></td></tr>
+      <tr><td>挂载后</td><td><code>mounted</code></td><td><code>onMounted</code></td></tr>
+      <tr><td>更新前</td><td><code>beforeUpdate</code></td><td><code>onBeforeUpdate</code></td></tr>
+      <tr><td>更新后</td><td><code>updated</code></td><td><code>onUpdated</code></td></tr>
+      <tr><td>卸载前</td><td><code>beforeUnmount</code>（Vue2 是 beforeDestroy）</td><td><code>onBeforeUnmount</code></td></tr>
+      <tr><td>卸载后</td><td><code>unmounted</code>（Vue2 是 destroyed）</td><td><code>onUnmounted</code></td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import {
+  onBeforeMount, onMounted,
+  onBeforeUpdate, onUpdated,
+  onBeforeUnmount, onUnmounted
+} from 'vue'
+
+onBeforeMount(() =&gt; console.log('① DOM 还没创建'))
+onMounted(() =&gt; console.log('② DOM 已插入页面'))
+onBeforeUpdate(() =&gt; console.log('③ 数据变了，DOM 还没更新'))
+onUpdated(() =&gt; console.log('④ DOM 已更新'))
+onBeforeUnmount(() =&gt; console.log('⑤ 组件即将卸载，实例仍可用'))
+onUnmounted(() =&gt; console.log('⑥ 已卸载，清理在这里做'))
+&lt;/script&gt;</code></pre>
+  <div class="note"><strong>为什么没有 onCreated</strong>：组合式 API 中，<code>setup</code> 顶层代码的执行时机就在 <code>beforeCreate</code> 与 <code>created</code> 之间，所以"需要 created 做的事"直接写在顶层即可。这也是 <code>&lt;script setup&gt;</code> 里代码看起来"没有生命周期"的原因。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">16.3</span> 创建阶段：setup</h2>
+  <p><code>setup</code>（或 <code>&lt;script setup&gt;</code>）是组件逻辑的入口，此时<strong>组件实例刚创建、DOM 还不存在</strong>。</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { ref } from 'vue'
+
+const list = ref([])
+const loading = ref(false)
+
+// ✅ 可以：定义状态、计算属性、侦听器、发请求（不需要 DOM）
+async function load() {
+  loading.value = true
+  list.value = await fetch('/api/list').then(r =&gt; r.json())
+  loading.value = false
+}
+load()   // 直接在 setup 里调用，等价于 created 时发请求
+
+// ❌ 不可以：此时 DOM 不存在
+// document.querySelector('.box').style.color = 'red'
+&lt;/script&gt;</code></pre>
+  <p class="key-sentence">"发请求放 <code>setup</code> 还是 <code>onMounted</code>？"——<strong>都可以，语义有别</strong>：setup 里发=组件创建即发（不等 DOM）；onMounted 里发=等首屏渲染完再发（适合请求结果依赖 DOM 尺寸，或想让首屏更快出现）。实践中常放 setup（更快）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">16.4</span> 挂载阶段：onMounted</h2>
+  <p>此时组件的 DOM<strong>已插入文档</strong>，可以安全地：</p>
+  <ul>
+    <li>操作 DOM / 获取元素尺寸（<code>offsetHeight</code>、<code>getBoundingClientRect</code>）；</li>
+    <li>初始化需要 DOM 的第三方库（ECharts、地图、富文本编辑器）；</li>
+    <li>注册全局事件监听（window / document）；</li>
+    <li>发起依赖 DOM 的请求。</li>
+  </ul>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;div ref="chartEl" style="height: 300px"&gt;&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, onMounted, onUnmounted } from 'vue'
+import * as echarts from 'echarts'
+
+const chartEl = ref(null)
+let chart = null
+let timer = null
+
+onMounted(() =&gt; {
+  // 初始化图表（必须有真实 DOM）
+  chart = echarts.init(chartEl.value)
+  chart.setOption({ /* ... */ })
+
+  // 注册全局监听
+  window.addEventListener('resize', onResize)
+  timer = setInterval(tick, 1000)
+})
+
+function onResize() { chart &amp;&amp; chart.resize() }
+function tick() { /* 轮询 */ }
+
+onUnmounted(() =&gt; {
+  // 一一对应地清理！
+  window.removeEventListener('resize', onResize)
+  clearInterval(timer)
+  chart &amp;&amp; chart.dispose()
+})
+&lt;/script&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑</span><code>onMounted</code> 里拿到的 DOM 尺寸，可能<strong>还不是最终布局</strong>（图片未加载完、字体未就绪、CSS 动画中）。需要精确尺寸时用 <code>nextTick</code> 或监听 <code>load</code> 事件。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">16.5</span> 更新阶段：onUpdated</h2>
+  <p>响应式数据变化 → 重新渲染 → DOM 更新完成后触发。</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { ref, onUpdated, onBeforeUpdate } from 'vue'
+const count = ref(0)
+
+onBeforeUpdate(() =&gt; {
+  // DOM 还是旧的，可以记录更新前的状态（如滚动位置）
+  console.log('更新前 DOM 内容：', el.textContent)
+})
+
+onUpdated(() =&gt; {
+  // DOM 已是新的；适合做依赖 DOM 的后续处理
+  console.log('更新后')
+})
+&lt;/script&gt;</code></pre>
+  <div class="danger-box"><strong>不要在 <code>onUpdated</code> 里修改响应式状态</strong>：改了又会触发更新 → 再次调用 onUpdated → <strong>无限循环</strong>。确实需要时加终止条件或用 <code>watch</code> 精确监听。</div>
+  <p>更常用的替代方案是 <code>nextTick</code>（在一次更新后立即执行）：</p>
+<pre class="code" data-lang="js"><code>import { nextTick } from 'vue'
+
+async function addItem() {
+  list.value.push(newItem)
+  await nextTick()             // 等 DOM 更新完成
+  container.value.scrollTop = container.value.scrollHeight  // 滚到底部
+}</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">16.6</span> 卸载阶段：onUnmounted</h2>
+  <p class="lead">这是<strong>内存泄漏的头号防线</strong>：组件销毁时，所有"组件之外"的东西都要在这里收回。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>需要清理的东西</th><th>清理方式</th></tr></thead>
+    <tbody>
+      <tr><td><code>setTimeout</code> / <code>setInterval</code></td><td><code>clearTimeout</code> / <code>clearInterval</code></td></tr>
+      <tr><td><code>window</code> / <code>document</code> 事件监听</td><td><code>removeEventListener</code>（必须传同一个函数引用）</td></tr>
+      <tr><td>第三方库实例（图表、编辑器、地图）</td><td>调用其 <code>destroy()</code> / <code>dispose()</code></td></tr>
+      <tr><td>未完成的请求</td><td><code>AbortController.abort()</code> 或标记 cancelled</td></tr>
+      <tr><td>WebSocket / EventSource</td><td><code>close()</code></td></tr>
+      <tr><td>手动创建的侦听器（异步创建的 watch）</td><td>调用 <code>stop()</code></td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { onUnmounted, onMounted } from 'vue'
+
+const controller = new AbortController()
+
+async function load() {
+  const res = await fetch('/api/data', { signal: controller.signal })
+  // ...
+}
+
+onUnmounted(() =&gt; {
+  controller.abort()   // 组件销毁时取消未完成的请求
+})
+&lt;/script&gt;</code></pre>
+  <div class="note"><strong>Vue 自动清理的部分</strong>：模板里的事件监听、在 <code>setup</code> 中<strong>同步创建</strong>的 <code>watch</code> / <code>watchEffect</code>、组件自身的响应式副作用——这些都会随组件卸载自动停止，无需手动处理。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">16.7</span> 特殊钩子：KeepAlive 与错误捕获</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { onActivated, onDeactivated, onErrorCaptured } from 'vue'
+
+// 被 &lt;KeepAlive&gt; 缓存的组件：显示/隐藏时触发
+onActivated(() =&gt; {
+  // 重新显示：适合恢复轮询、刷新数据
+  startPolling()
+})
+onDeactivated(() =&gt; {
+  // 被隐藏（但没销毁）：暂停轮询、保存滚动位置
+  stopPolling()
+})
+
+// 错误边界：捕获子孙组件抛出的错误
+onErrorCaptured((err, instance, info) =&gt; {
+  console.error('捕获到子组件错误：', err, info)
+  reportToSentry(err)
+  return false   // 返回 false 阻止错误继续向上传播
+})
+&lt;/script&gt;</code></pre>
+  <p>调试专用钩子（仅开发模式有意义）：</p>
+<pre class="code" data-lang="js"><code>import { onRenderTracked, onRenderTriggered } from 'vue'
+
+onRenderTracked((e) =&gt; console.log('依赖被追踪：', e))
+onRenderTriggered((e) =&gt; console.log('哪个依赖触发了更新：', e))</code></pre>
+  <p class="key-sentence">排查"为什么这个组件反复重渲染"时，<code>onRenderTriggered</code> 是最直接的工具——它会告诉你是哪个响应式字段引起的（第 71 章性能排查会用到）。</p>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">16.8</span> 父子组件的钩子顺序</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- App.vue 里渲染 &lt;Child /&gt; --&gt;
+&lt;!-- 挂载过程 --&gt;
+父 setup
+父 onBeforeMount
+  子 setup
+  子 onBeforeMount
+  子 onMounted      ← 子的 mounted 先执行
+父 onMounted        ← 父的 mounted 最后执行
+
+&lt;!-- 更新过程（父的数据变化导致子更新） --&gt;
+父 onBeforeUpdate
+  子 onBeforeUpdate
+  子 onUpdated
+父 onUpdated
+
+&lt;!-- 卸载过程 --&gt;
+父 onBeforeUnmount
+  子 onBeforeUnmount
+  子 onUnmounted
+父 onUnmounted</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 170" role="img" aria-label="父子生命周期顺序">
+      <text x="400" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">挂载顺序：父 setup → 父 beforeMount → 子 setup → 子 mounted → 父 mounted</text>
+      <rect x="60" y="45" width="140" height="40" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="130" y="70" text-anchor="middle" font-size="12" fill="#2d6a3f">父 setup</text>
+      <rect x="230" y="45" width="140" height="40" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="300" y="70" text-anchor="middle" font-size="12" fill="#2d6a3f">父 beforeMount</text>
+      <rect x="400" y="45" width="140" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="470" y="70" text-anchor="middle" font-size="12" fill="#b45309">子 setup/mounted</text>
+      <rect x="570" y="45" width="150" height="40" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="645" y="70" text-anchor="middle" font-size="12" fill="#047857">父 mounted</text>
+      <path d="M200,65 L228,65" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a163)"/>
+      <path d="M370,65 L398,65" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a163)"/>
+      <path d="M540,65 L568,65" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a163)"/>
+      <text x="400" y="115" text-anchor="middle" font-size="12" fill="#4f6348">结论：子组件的 mounted 先于父组件 —— 父组件 onMounted 里可以安全访问子组件的 DOM</text>
+      <text x="400" y="140" text-anchor="middle" font-size="12" fill="#4f6348">兄弟组件之间顺序不定（按模板中出现顺序），不要依赖兄弟的执行先后</text>
+      <defs><marker id="a163" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 16-2 父子组件挂载顺序</p>
+  </div>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">16.9</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>在 setup 里操作 DOM</strong>：此时 DOM 还没创建，拿到 null。用 <code>onMounted</code> 或 <code>nextTick</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>在 onUpdated 里改状态</strong>：造成无限更新循环。</li>
+    <li><span class="tag-pit">坑 3</span><strong>忘记清理定时器/监听</strong>：组件销毁后回调仍在执行，访问已销毁的状态 → 报错或内存泄漏。</li>
+    <li><span class="tag-pit">坑 4</span><strong><code>onMounted</code> 里以为子组件一定渲染完</strong>：若子组件是异步组件或 <code>v-if</code> 为假，它此时并不存在（第 19、63 章）。</li>
+    <li><span class="tag-pit">坑 5</span><strong>用 <code>setTimeout(…, 0)</code> 代替 nextTick</strong>：不保证顺序正确。请用 <code>await nextTick()</code>。</li>
+    <li><span class="tag-pit">坑 6</span><strong>KeepAlive 组件里用 onMounted 刷新数据</strong>：缓存后只有第一次触发。应改用 <code>onActivated</code>。</li>
+    <li><span class="tag-pit">坑 7</span><strong>在 <code>onUnmounted</code> 里访问已被销毁的 ref</strong>：<code>el.value</code> 可能已是 null，做空值判断。</li>
+  </ul>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>四阶段</td><td>创建（setup）→ 挂载（onMounted）→ 更新（onUpdated）→ 卸载（onUnmounted）</td></tr>
+      <tr><td>组合式对照</td><td>无 onCreated（写在 setup 顶层）；destroy 改叫 unmount</td></tr>
+      <tr><td>setup</td><td>定义状态、发请求；不能碰 DOM</td></tr>
+      <tr><td>onMounted</td><td>DOM 就绪：操作 DOM、初始化库、注册全局监听</td></tr>
+      <tr><td>onUpdated</td><td>DOM 已更新；禁止在其中改状态</td></tr>
+      <tr><td>onUnmounted</td><td>清理定时器、监听、请求、第三方实例</td></tr>
+      <tr><td>顺序</td><td>子 mounted 先于父 mounted</td></tr>
+      <tr><td>特殊</td><td>KeepAlive 用 onActivated；错误边界用 onErrorCaptured</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec12" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>在父子两个组件里打印全部生命周期钩子，观察挂载、更新、卸载三个阶段的输出顺序，把结果写成一份对照表。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个"实时时钟 + 图表"组件：<code>onMounted</code> 里启动定时器与图表，<code>onUnmounted</code> 里清理。用 Vue DevTools 或日志确认：组件销毁后定时器确实不再执行。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现"列表滚到底部自动加载"：用 <code>onUpdated</code> + <code>nextTick</code> 判断滚动位置；再改造为用 <code>IntersectionObserver</code> 实现（对比两种方案的触发次数与性能）。思考：为什么在 <code>onUpdated</code> 里直接改 <code>loading</code> 会出问题？</div>
+  <p class="note">参考答案见附录 C。下一章把组件通信的所有方式拉成一张全景图。</p>
+</section>

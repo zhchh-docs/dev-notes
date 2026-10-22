@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 66 章 OOM 案例分析三例｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第七篇 JVM</p>
+    <h1>第 66 章 OOM 案例分析三例</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 66 章 / 共 112 章 · 预计 40 分钟 · 上一章：排障四件套</span>
+    </div>
+    <p class="hero-desc">知识只有串成案例才会变成经验。本章用三个真实场景级的 OOM——静态缓存泄漏、一次读全量、无界线程——各走一遍"现象→定位→修复"的完整流程。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="065_第65章_排障四件套.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="067_第67章_JIT与逃逸分析.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">案例一：静态缓存只进不出</a></li>
+    <li><a href="#sec3">案例二：一次 SELECT 全量捞表</a></li>
+    <li><a href="#sec4">案例三：无界线程池堆积请求</a></li>
+    <li><a href="#sec5">OOM 类型速查与预防清单</a></li>
+    <li><a href="#sec6">复盘方法：从 hprof 到结论</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能对三种典型 OOM 场景<strong>复述现象、指出定位工具、说出修复方案</strong>；</li>
+    <li>建立 <strong>OOM 错误信息 → 内存区域</strong>的映射表；</li>
+    <li>掌握从 <strong>hprof 支配树</strong>到"嫌疑代码行"的分析套路；</li>
+    <li>形成一份可落地的 <strong>OOM 预防清单</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">案例一</span> 静态缓存只进不出</h2>
+  <p class="lead"><strong>现象</strong>：服务上线一周后逐渐变慢，GC 频率升高，最终 <code>OutOfMemoryError: Java heap space</code> 重启后暂时恢复。</p>
+  <pre class="code" data-lang="java"><code>public class CacheBuggy {
+    // 坑：只进不出的静态缓存——GC Roots 永远可达
+    private static final Map&lt;String, User&gt; CACHE = new HashMap&lt;&gt;();
+
+    public static User get(String key) {
+        return CACHE.computeIfAbsent(key, k -&gt; loadFromDb(k));
+    }
+    private static User loadFromDb(String id) { /* ... */ return new User(id); }
+}
+// 正确做法：有界 + 过期
+private static final Map&lt;String, User&gt; CACHE =
+    new LinkedHashMap&lt;String, User&gt;(1024, 0.75f, true) {
+        protected boolean removeEldestEntry(Map.Entry&lt;String, User&gt; e) {
+            return size() &gt; 1000;                    // LRU 上限
+        }
+    };
+// 或直接用 Caffeine：Caffeine.newBuilder().maximumSize(1000)
+//     .expireAfterWrite(Duration.ofMinutes(10)).build(...)</code></pre>
+  <p><strong>定位过程</strong>：jstat 看 O 列阶梯上涨 → jmap -dump 取 hprof → MAT 支配树顶端是 HashMap$Node 数组 → Path to GC Roots 显示由 <code>CacheBuggy.CACHE</code>（静态字段）持有 → 定位到代码。</p>
+  <p class="key-sentence">凡是"时间越长内存越高、重启就好"，优先怀疑 GC Roots（静态集合、ThreadLocal、监听器注册）上的滞留对象。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">案例二</span> 一次 SELECT 全量捞表</h2>
+  <p class="lead"><strong>现象</strong>：导出报表接口偶发 OOM，日志显示 <code>Java heap space</code>，错误栈停在 <code>ArrayList.grow</code> 与 MyBatis 结果集处理。</p>
+  <pre class="code" data-lang="java"><code>// 坑：500 万行一次性映进内存
+List&lt;Order&gt; all = orderMapper.selectAll();     // OOM 高危
+
+// 方案 A：分页批量处理（推荐，通用）
+long lastId = 0;
+List&lt;Order&gt; batch;
+while (!(batch = orderMapper.selectBatch(lastId, 1000)).isEmpty()) {
+    for (Order o : batch) { export(o); }
+    lastId = batch.get(batch.size() - 1).getId();
+}
+
+// 方案 B：流式读取（MyBatis Cursor / JDBC fetchSize）
+try (Cursor&lt;Order&gt; cursor = orderMapper.scanAll()) {
+    for (Order o : cursor) { export(o); }      // 逐行消费，内存恒定
+}</code></pre>
+  <p><strong>定位过程</strong>：MAT 支配树顶端是巨型 ArrayList 与 Order 数组 → 查看对象数量级远超预期 → 结合 GC 日志中 OOM 前的分配速率突增 → 对应接口调用时间点。</p>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：MySQL 驱动默认会把整个结果集读进内存，<strong>fetchSize 只有在流式模式（Integer.MIN_VALUE）下才生效</strong>——光设置 fetchSize=1000 是无效的。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">案例三</span> 无界线程池堆积请求</h2>
+  <p class="lead"><strong>现象</strong>：突发流量时 <code>OutOfMemoryError: unable to create new native thread</code> 或堆里塞满排队任务对象。</p>
+  <pre class="code" data-lang="java"><code>// 坑一：Executors.newFixedThreadPool —— 无界 LinkedBlockingQueue
+//      任务消费慢时队列无限堆积 → 堆 OOM
+ExecutorService bad = Executors.newFixedThreadPool(8);
+
+// 坑二：Executors.newCachedThreadPool —— 最大 Integer 线程数
+//      突发流量疯狂建线程 → 本机内存耗尽，无法建线程
+ExecutorService worse = Executors.newCachedThreadPool();
+
+// 正确：手动 new ThreadPoolExecutor，有界队列 + 拒绝策略
+ThreadPoolExecutor pool = new ThreadPoolExecutor(
+    8, 16, 60, TimeUnit.SECONDS,
+    new ArrayBlockingQueue&lt;&gt;(1000),                     // 有界
+    new ThreadPoolExecutor.CallerRunsPolicy());          // 打回去减慢生产</code></pre>
+  <p><strong>定位过程</strong>：jstack 发现上千个自定义线程名 WAITING → jmap 直方图线程对象数量异常 → 修复为有界队列。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">OOM 类型</span> 速查与预防清单</h2>
+  <table>
+    <colgroup><col style="width:44%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>错误信息</th><th>区域</th><th>首要排查</th></tr></thead>
+    <tbody>
+      <tr><td>Java heap space</td><td>堆</td><td>hprof 支配树、缓存/全量查询</td></tr>
+      <tr><td>GC overhead limit exceeded</td><td>堆</td><td>GC 98% 时间回收不到 2% 空间——同 heap space</td></tr>
+      <tr><td>Metaspace</td><td>方法区</td><td>动态类生成（CGLIB/Groovy 脚本）</td></tr>
+      <tr><td>unable to create new native thread</td><td>线程/OS</td><td>线程数、ulimit、cgroup 限制</td></tr>
+      <tr><td>Direct buffer memory</td><td>直接内存</td><td>NIO 缓冲未释放、MaxDirectMemorySize</td></tr>
+      <tr><td>Requested array size exceeds VM limit</td><td>堆</td><td>离谱的数组长度参数</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>预防清单</strong>：① 必配 HeapDumpOnOutOfMemoryError；② 所有缓存有上限；③ 所有线程池有界；④ 大数据量接口强制分页/流式；⑤ CI 加大对象数量级告警（如一次返回 &gt; 1 万行直接打回）；⑥ 定期用 jstat 巡检 O 列。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">复盘方法</span> 从 hprof 到结论</h2>
+  <ol>
+    <li><strong>MAT 打开 hprof</strong>，先看 Leak Suspects 自动报告；</li>
+    <li><strong>Dominator Tree 按 Retained Heap 排序</strong>，找霸占内存的"头部对象"；</li>
+    <li><strong>Path to GC Roots（exclude weak refs）</strong>：谁让它活着——静态字段？ThreadLocal？线程池队列？</li>
+    <li><strong>回到代码</strong>：在持有链对应类里找塞数据的逻辑；</li>
+    <li><strong>修复并回归</strong>：同样的压测脚本复跑，对比 GC 日志确认水位回落。</li>
+  </ol>
+  <p class="key-sentence">结论要能写成一句话闭环："X 接口把 Y 数据缓存进了静态 Map，持有链是 CACHE，修复为有界过期后 O 列稳定在 40%"。写不出闭环，说明分析还没做完。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>案例</th><th>核心教训</th></tr></thead>
+    <tbody>
+      <tr><td>静态缓存泄漏</td><td>GC Roots 上的集合必须有界、会过期</td></tr>
+      <tr><td>全量捞表</td><td>任何"一次性读全量"都是定时炸弹；分页或流式</td></tr>
+      <tr><td>无界线程池</td><td>禁止 Executors 工厂方法；队列必须有界</td></tr>
+      <tr><td>通用流程</td><td>jstat 趋势 → hprof 支配树 → GC Roots 持有链 → 代码闭环</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>把六种 OOM 错误信息与对应区域、首要排查方向默写成表。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>本地复现案例一（-Xmx64m + 静态 Map 循环塞数据），抓 hprof 用 MAT 找到持有链。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为你们团队/自己项目写一份 OOM 应急 SOP（发现→取证→止损→复盘四段，每段 3 条以内）。</div>
+  <p class="note">下一章：代码是怎么越跑越快的？——JIT 与逃逸分析。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="065_第65章_排障四件套.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="067_第67章_JIT与逃逸分析.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 66 章 OOM 案例分析三例</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 38 章 NIO 概览：Channel 与 Buffer｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45;color:var(--accent-2)}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card li strong{color:var(--ink)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+p,li,h1,h2,h3,h4{overflow-wrap:break-word}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(min-width:1024px){
+nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.toc h2{font-size:14px;color:#22331f;margin:0 0 12px;padding:0 0 8px;border-bottom:1px solid #d8e2cc;font-weight:600}
+nav.toc ol{list-style:none;padding:0;margin:0;display:block}
+nav.toc ol li{margin:6px 0}
+nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;text-decoration:none;font-size:13px;line-height:1.4;border-radius:6px;transition:all .15s;background:transparent;border:none}
+nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f}
+.container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+.container{padding:0 14px;margin:0;max-width:100%}
+.hero{padding:20px 16px}
+.hero h1{font-size:22px}
+.hero-desc{font-size:14px}
+.toc ol{grid-template-columns:1fr}
+section.card{padding:20px 18px;margin:16px 0}
+section.card h2{font-size:19px;margin-bottom:16px}
+section.card h3{font-size:16px;margin:24px 0 10px}
+section.card h4{font-size:15px;margin:18px 0 8px}
+pre.code{font-size:12px;padding:12px}
+code{font-size:13px}
+#backTop{right:16px;bottom:20px}
+.doc-nav{gap:6px;padding-left:14px;padding-right:14px}
+.doc-nav-btn{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第四篇 异常与 IO</p>
+    <h1>第 38 章 NIO 概览：Channel 与 Buffer</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 38 章 / 共 112 章 · 预计 40 分钟 · 边读边练</span>
+    </div>
+    <p class="hero-desc">NIO 换了个思路：通道双向、缓冲区进出、选择器一线多连接。本章建立 NIO 概念地图，讲清它与 BIO 的本质差异与应用场景。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_序列化原理与安全.html">← 上一章</a>
+  <a class="doc-nav-btn" href="039_第39章_类加载机制与Class对象.html">下一章 →</a>
+</nav>
+<div class="container">
+<main>
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">38.1 NIO 换了个思路</a></li>
+    <li><a href="#sec3">38.2 Buffer 三板斧</a></li>
+    <li><a href="#sec4">38.3 Channel 与 Selector</a></li>
+    <li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 BIO 与 NIO 的本质差异：阻塞/面向流 vs 非阻塞/面向缓冲；</li>
+    <li>掌握 Buffer 的三个核心变量：position、limit、capacity；</li>
+    <li>会用 FileChannel 完成文件读写，理解 Channel 的双向性；</li>
+    <li>建立"一个线程管理多个连接"的 Selector 心智模型。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">38.1</span> NIO 换了个思路</h2>
+  <p>BIO（Blocking IO）的困境：一个连接一个线程，<code>in.read()</code> 读不到数据就一直阻塞——一万个长连接就要一万个线程，内存和调度都吃不消。</p>
+<pre class="code" data-lang="java"><code>// BIO：线程被 read 卡死，直到对端发来数据
+Socket s = server.accept();          // 阻塞等连接
+InputStream in = s.getInputStream();
+int b = in.read();                   // 阻塞等数据，线程挂起</code></pre>
+  <p>NIO（Java 1.4 引入，注意不是后来的 NIO.2）的三板斧：</p>
+  <ul>
+    <li><strong>Buffer（缓冲区）</strong>：数据不直接读写，先搬进缓冲区再加工——IO 变成"内存到内存"的批处理；</li>
+    <li><strong>Channel（通道）</strong>：双向的，既能读又能写（流是单向的），且可以配合 Buffer 批量搬运；</li>
+    <li><strong>Selector（选择器）</strong>：一个线程轮询多个 Channel 的"就绪事件"（可读/可写/连接到达），谁就绪处理谁——<strong>一线程多连接</strong>的根基，Netty、Redis、Kafka 都站在这块基石上。</li>
+  </ul>
+  <div class="key-sentence">BIO 是"人等数据"，NIO 是"数据等人来取"：把阻塞点从线程挪到缓冲区，线程效率暴涨。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">38.2</span> Buffer 的三个变量</h2>
+  <p>Buffer 是块带位置指针的内存（HeapByteBuffer 或 DirectByteBuffer）：</p>
+<pre class="code" data-lang="java"><code>ByteBuffer buf = ByteBuffer.allocate(1024);   // 堆内缓冲区
+// 三个核心变量
+int capacity = buf.capacity();   // 容量：1024，固定不变
+int position = buf.position();   // 下一个要读写的位置
+int limit = buf.limit();         // 读/写边界
+
+// 写模式：往缓冲区塞数据
+buf.put("hello".getBytes());     // position 前进 5，limit 仍是 capacity
+
+// 翻转：写 → 读
+buf.flip();                      // limit = position(5)，position 归零
+
+// 读模式：从缓冲区取数据
+while (buf.hasRemaining()) {
+    byte b = buf.get();          // position 前进
+}
+
+// 倒带重读 / 清空重写
+buf.rewind();                    // position 归零，limit 不变（再读一遍）
+buf.clear();                      // position 归零，limit = capacity（准备重写）</code></pre>
+  <ul>
+    <li>flip 是灵魂：写完翻转成"可读模式"，经典易错点是忘了 flip 直接 get，读到 limit=capacity 一大片空数据；</li>
+    <li>clear() 只是重置指针，<strong>不清数据</strong>——旧字节还在，靠 position 覆盖；</li>
+    <li>直接缓冲区（allocateDirect）用堆外内存，少一次拷贝，适合大文件长连接，但分配释放成本高。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">38.3</span> Channel 与 Selector 一瞥</h2>
+<pre class="code" data-lang="java"><code>// 文件 Channel：双向，配合 Buffer
+try (FileChannel ch = new RandomAccessFile("data.txt", "rw").getChannel()) {
+    ByteBuffer buf = ByteBuffer.allocate(48);
+    int n = ch.read(buf);            // 文件 → 缓冲区
+    buf.flip();
+    while (buf.hasRemaining()) {
+        ch.write(buf);               // 缓冲区 → 文件（同一 channel 双向！）
+    }
+}</code></pre>
+  <p>网络编程里，SocketChannel 可以切成<strong>非阻塞模式</strong>：</p>
+<pre class="code" data-lang="java"><code>// Selector：单线程管理多个 Channel 的骨架
+Selector sel = Selector.open();
+SocketChannel ch = SocketChannel.open();
+ch.configureBlocking(false);              // 关键：非阻塞
+ch.register(sel, SelectionKey.OP_READ);   // 登记"我可读了通知我"
+
+while (true) {
+    sel.select();                          // 阻塞直到有事件
+    for (SelectionKey key : sel.selectedKeys()) {
+        if (key.isReadable()) {
+            ByteBuffer buf = ByteBuffer.allocate(256);
+            ch.read(buf);                  // 有数据才读，不会干等
+            // ... 处理、写回
+        }
+    }
+    sel.selectedKeys().clear();
+}</code></pre>
+  <ul>
+    <li>这条代码骨架就是 Reactor 模式的雏形：事件到达 → 分发 → 处理；Netty 把它封装成了工业级框架；</li>
+    <li>Java 7 的 NIO.2（<code>java.nio.file</code>：Path/Files/watchService、AIO 的 AsynchronousFileChannel）解决的是"文件 API 难用"，和这里的 NIO 是两代东西，别混淆。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>NIO 三件套</td><td>Buffer 搬数据、Channel 双向通道、Selector 事件分发</td></tr>
+      <tr><td>BIO vs NIO</td><td>一连接一线程阻塞等 vs 一线程多连接事件驱动</td></tr>
+      <tr><td>Buffer 指针</td><td>capacity 定容量；写完 flip；读完 clear；rewind 重读</td></tr>
+      <tr><td>非阻塞前提</td><td>configureBlocking(false) + register 到 Selector</td></tr>
+      <tr><td>应用</td><td>Netty/Redis/Kafka 的地基；NIO.2 是另一代文件 API</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 ByteBuffer 完成一次完整的"写-翻转-读"循环：put 五个字节、flip、逐个 get 打印；然后 rewind 再读一遍；最后 clear 重新写入。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 FileChannel + Buffer 实现文件拷贝（RandomAccessFile 通道），并与第 35 章的 BIO 拷贝对比代码量；思考 Channel 的 read/write 为什么比 InputStream/OutputStream 灵活。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>画出"1 个 Selector 线程管理 1000 个连接"的事件流转图：accept → register(OP_READ) → select 返回 → isReadable → read → write，标注每一步谁阻塞谁不阻塞，并解释为什么这个模型能撑住 C10M。</div>
+  <p class="note">参考答案见附录 C（撰写中）。IO 篇收官——下一篇进入反射的世界，先看类加载机制与 Class 对象。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_序列化原理与安全.html">← 上一章</a>
+  <a class="doc-nav-btn" href="039_第39章_类加载机制与Class对象.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 38 章 NIO 概览：Channel 与 Buffer</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var b=document.getElementById('backTop');
+  if(b){var t=function(){b.classList.toggle('show',window.scrollY>480)};window.addEventListener('scroll',t,{passive:true});t();b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})})}
+  try{var ps=document.querySelectorAll('pre.code');for(var i=0;i<ps.length;i++)(function(p){var c=document.createElement('button');c.type='button';c.className='code-copy';c.textContent='复制';p.appendChild(c);c.addEventListener('click',function(){var e=p.querySelector('code'),x=e?e.innerText:p.innerText,d=function(){c.textContent='已复制';setTimeout(function(){c.textContent='复制'},1600)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x).then(d,function(){})}else{var a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);d()}})})(ps[i])}catch(e){}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 1 章 Nginx 是什么：事件驱动的入口层｜Nginx 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+/* ===== 全库统一导航 ===== */
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+/* ===== 全库统一可读性排版 ===== */
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+/* ===== 左侧目录树样式 ===== */
+@media(min-width:1024px){
+  nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}
+  nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;columns:1!important;column-count:1!important}
+  nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}
+  nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}
+  nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}
+  .container{margin-left:280px!important;max-width:calc(100% - 300px)!important}
+}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+/* ===== 教科书章页专属 ===== */
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Nginx 从 0 到精通》 · 第一篇 入门与配置体系</p>
+    <h1>第 1 章 Nginx 是什么：事件驱动的入口层</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 1 章 / 共 32 章 · 预计 25 分钟 · 零基础可读</span>
+    </div>
+    <p class="hero-desc">在敲下第一条 nginx 命令之前，先建立全景认知：Nginx 站在流量链路的哪个位置？为什么它能用几个进程扛住几万并发？这一章不装软件、不写配置，只回答"它是什么、为什么快、能干什么"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="002_第2章_安装与目录结构.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">1.1 它站在流量链路的入口</a></li>
+    <li><a href="#sec3">1.2 事件驱动：又快又省内存的秘密</a></li>
+    <li><a href="#sec4">1.3 它能扮演的五种角色</a></li>
+    <li><a href="#sec4b">1.4 与 Apache、Node、云网关怎么选</a></li>
+    <li><a href="#sec5">1.5 本书的路线图与学习方法</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能用一句话讲清 <strong>Nginx 是什么</strong>，以及它在"用户 → 服务器"这条链路上扮演的角色；</li>
+    <li>理解 <strong>事件驱动模型</strong> 与"一个连接一个线程"模型的本质区别，明白 Nginx 为什么省内存；</li>
+    <li>能列举 Nginx 的 <strong>至少四种典型用法</strong>（静态站点、反向代理、负载均衡、API 网关）；</li>
+    <li>在"自建 Nginx / 云负载均衡 / K8s Ingress"之间，知道<strong>什么时候该选谁</strong>。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：无。会用浏览器上网即可；懂一点 HTTP 状态码更好，没有也不影响本章阅读。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">1.1</span> 它站在流量链路的入口</h2>
+  <p><strong>一句话定义</strong>：Nginx（读作 "engine-x"）是一款高性能的 <strong>Web 服务器 / 反向代理服务器</strong>，绝大多数情况下，它是用户请求进入你系统后<strong>第一个被打交道的软件</strong>。</p>
+  <p>看一次真实的请求是怎么流动的：</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 250" role="img" aria-label="Nginx 在请求链路中的位置">
+      <defs>
+        <marker id="arrA" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker>
+      </defs>
+      <rect x="30" y="90" width="120" height="60" rx="10" fill="#eef3e8" stroke="#2d6a3f"/>
+      <text x="90" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">用户浏览器</text>
+      <text x="90" y="135" text-anchor="middle" font-size="11" fill="#4f6348">发起 HTTP(S)</text>
+      <rect x="230" y="70" width="170" height="100" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="315" y="100" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">Nginx 入口层</text>
+      <text x="315" y="122" text-anchor="middle" font-size="11" fill="#4f6348">TLS 终结 / 静态文件</text>
+      <text x="315" y="140" text-anchor="middle" font-size="11" fill="#4f6348">缓存 / 限流 / 负载均衡</text>
+      <rect x="480" y="30" width="150" height="55" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="555" y="53" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">前端应用</text>
+      <text x="555" y="71" text-anchor="middle" font-size="10.5" fill="#4f6348">Vue/React 构建产物</text>
+      <rect x="480" y="110" width="150" height="55" rx="8" fill="#fefce8" stroke="#b45309"/>
+      <text x="555" y="133" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">后端服务</text>
+      <text x="555" y="151" text-anchor="middle" font-size="10.5" fill="#4f6348">Spring Boot / Node</text>
+      <rect x="680" y="110" width="120" height="55" rx="8" fill="#f0f6ff" stroke="#0f4c81"/>
+      <text x="740" y="133" text-anchor="middle" font-size="12" font-weight="700" fill="#0f4c81">数据库</text>
+      <text x="740" y="151" text-anchor="middle" font-size="10.5" fill="#4f6348">MySQL / Redis</text>
+      <line x1="150" y1="120" x2="228" y2="120" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrA)"/>
+      <line x1="400" y1="95" x2="478" y2="60" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrA)"/>
+      <line x1="400" y1="140" x2="478" y2="138" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrA)"/>
+      <line x1="630" y1="138" x2="678" y2="138" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrA)"/>
+      <text x="185" y="110" text-anchor="middle" font-size="11" fill="#7a8a70">公网</text>
+      <text x="440" y="70" text-anchor="middle" font-size="11" fill="#7a8a70">静态请求</text>
+      <text x="440" y="165" text-anchor="middle" font-size="11" fill="#7a8a70">动态请求(proxy_pass)</text>
+      <text x="410" y="225" text-anchor="middle" font-size="12" fill="#7a8a70">静态文件 Nginx 直接返回；动态接口由它转发给后端——这就是"入口层"的含义</text>
+    </svg>
+    <p class="diagram-caption">图 1-1 Nginx 作为流量入口：静态自己扛，动态往后转</p>
+  </div>
+  <p>拆开"入口层"三个职责：</p>
+  <ul>
+    <li><strong>接收</strong>：监听 80/443 端口，完成 TCP 握手与 TLS 解密，把用户请求变成 Nginx 内部的结构化请求；</li>
+    <li><strong>分流</strong>：按 URL、域名（server_name）、请求头判断——图片 CSS 直接到磁盘拿，<code>/api/</code> 开头的转发给后端；</li>
+    <li><strong>保护与加速</strong>：限流防刷、缓存热门响应、压缩传输内容、统一做 HTTPS。这些能力后面每篇都会展开。</li>
+  </ul>
+  <p class="key-sentence">记住这张图：全书 32 章，本质上都在回答一个问题——"流量到了 Nginx，怎么接、怎么转、怎么又快又稳地送出去"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">1.2</span> 事件驱动：又快又省内存的秘密</h2>
+  <p>同样是 Web 服务器，传统模型（如 Apache 经典的 prefork/worker 模式）采用"<strong>一个连接一个进程或线程</strong>"：每来一个请求，操作系统分配一条执行线程专职服务它，请求结束线程才释放。</p>
+  <p>这条路线直观、好写，但有两个天花板：</p>
+  <ul>
+    <li><strong>内存随连接数线性增长</strong>：每条线程默认要占几 MB 栈空间，1 万个连接就是几十 GB——服务器还没干活就先被"站票"挤爆；</li>
+    <li><strong>上下文切换开销</strong>：几千条线程来回切换，CPU 大量时间花在"换人"而不是"干活"上。</li>
+  </ul>
+  <p>Nginx 的答案是<strong>事件驱动 + 异步非阻塞 I/O</strong>：worker 进程不傻等任何一个请求，而是像前台接待员一样，谁的事办好了就处理谁。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 210" role="img" aria-label="线程模型对比">
+      <text x="200" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#b45309">线程模型（一连接一线程）</text>
+      <rect x="60" y="50" width="80" height="30" rx="6" fill="#fef3c7" stroke="#b45309"/><text x="100" y="70" text-anchor="middle" font-size="11" fill="#b45309">线程 1</text>
+      <rect x="160" y="50" width="80" height="30" rx="6" fill="#fef3c7" stroke="#b45309"/><text x="200" y="70" text-anchor="middle" font-size="11" fill="#b45309">线程 2</text>
+      <rect x="60" y="95" width="80" height="30" rx="6" fill="#fef3c7" stroke="#b45309"/><text x="100" y="115" text-anchor="middle" font-size="11" fill="#b45309">线程 3</text>
+      <rect x="160" y="95" width="80" height="30" rx="6" fill="#fef3c7" stroke="#b45309"/><text x="200" y="115" text-anchor="middle" font-size="11" fill="#b45309">线程 4</text>
+      <text x="160" y="155" text-anchor="middle" font-size="11" fill="#7a8a70">连接数 = 线程数，上万连接 = 服务器爆炸</text>
+      <text x="610" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">事件驱动（Nginx）</text>
+      <rect x="440" y="50" width="120" height="34" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/><text x="500" y="72" text-anchor="middle" font-size="12" fill="#2d6a3f">1 个 worker</text>
+      <rect x="590" y="46" width="190" height="42" rx="8" fill="#f0f5e6" stroke="#4f8a63"/>
+      <text x="685" y="63" text-anchor="middle" font-size="11" fill="#2d6a3f">事件队列：连接A可读→处理A</text>
+      <text x="685" y="80" text-anchor="middle" font-size="11" fill="#2d6a3f">连接B读完→写回B，循环往复</text>
+      <text x="610" y="125" text-anchor="middle" font-size="11" fill="#7a8a70">连接是"被观察的事件"，不是"占着的线程"</text>
+      <text x="410" y="185" text-anchor="middle" font-size="12" fill="#7a8a70">类比：一位前台接待员（worker）按铃服务多位客人，而不是一位客人配一位专职秘书</text>
+    </svg>
+    <p class="diagram-caption">图 1-2 两种并发模型的本质差异</p>
+  </div>
+  <h4>三句话总结这个模型</h4>
+  <ol>
+    <li><strong>Master-Worker 架构</strong>：master 进程只负责读配置、管理 worker；真正干活的 worker 通常与 CPU 核数相同（第 22 章细讲）；</li>
+    <li><strong>非阻塞</strong>：worker 遇到"后端还没响应"时不死等，先去处理别的连接，事件就绪后再回来——所以慢后端不会拖垮 Nginx；</li>
+    <li><strong>内存占用低</strong>：一个空闲连接在 Nginx 里只占几 KB 状态，单机数万并发连接是常规操作。</li>
+  </ol>
+  <div class="pit-sentence">常见误区："Nginx 快是因为用了多线程"——错。Nginx 的 worker 是<strong>单线程</strong>的，快是因为<strong>不等</strong>：把"等 I/O"的时间省下来处理别的连接。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">1.3</span> 它能扮演的五种角色</h2>
+  <p>同一个 Nginx 二进制，按配置不同可以承担五类工作。这五类也正是全书三篇的骨架：</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:20%"><col style="width:20%"></colgroup>
+    <thead><tr><th>角色</th><th>做什么</th><th>关键指令</th><th>对应章节</th></tr></thead>
+    <tbody>
+      <tr><td>静态站点服务器</td><td>直接把磁盘上的 HTML/CSS/JS 发给浏览器</td><td><code>root</code> / <code>location</code></td><td>第 4-8 章</td></tr>
+      <tr><td>反向代理</td><td>替后端服务接请求、回响应，对用户隐藏内部结构</td><td><code>proxy_pass</code></td><td>第 11-13 章</td></tr>
+      <tr><td>负载均衡器</td><td>把流量按策略分发给多台后端</td><td><code>upstream</code></td><td>第 14 章</td></tr>
+      <tr><td>HTTPS 网关</td><td>统一持有证书、终结 TLS、强制跳转</td><td><code>listen 443 ssl</code></td><td>第 16-18 章</td></tr>
+      <tr><td>API 网关（轻量）</td><td>按路径路由到不同服务，附加限流/鉴权/缓存</td><td><code>location</code> + <code>limit_req</code></td><td>第 21、28 章</td></tr>
+    </tbody>
+  </table>
+  <p>生产环境里，一套 nginx.conf 往往同时干这五件事——比如一个典型站点：443 端口持证书，<code>/</code> 返回前端静态资源，<code>/api/</code> 反代到 Spring Boot 集群，<code>/ws/</code> 升级为 WebSocket，静态资源加 7 天缓存并开启限流。</p>
+  <p class="key-sentence">学这本书的姿势：不要背指令，而是<strong>记住"这个需求对应哪个角色"</strong>——角色清楚了，查哪个章节、用哪组指令就一目了然。</p>
+</section>
+
+<section id="sec4b" class="card">
+  <h2><span class="num">1.4</span> 与 Apache、Node、云网关怎么选</h2>
+  <h4>vs Apache httpd</h4>
+  <ul>
+    <li>Apache 的 <code>.htaccess</code> 目录级配置和丰富模块生态是它的优势，PHP 传统架构（mod_php）里也离不开它；</li>
+    <li>但在<strong>高并发静态内容、反向代理、TLS 终结</strong>场景，Nginx 的事件驱动模型内存与吞吐优势明显；</li>
+    <li>现实中很常见的组合是"<strong>Nginx 在前 + Apache 在后</strong>"：Nginx 处理静态与代理，动态请求转给 Apache。</li>
+  </ul>
+  <h4>vs Node.js / Java 自带服务器</h4>
+  <ul>
+    <li>Spring Boot 内嵌 Tomcat、Node 的 http 模块都能直接监听端口，为什么前面还要架 Nginx？因为<strong>入口层的三件事它们不擅长</strong>：TLS 证书统一管理、静态资源高效服务、多实例负载均衡；</li>
+    <li>让业务进程回归业务，把入口层职责交给 Nginx，是纵深防御与弹性扩容的基础。</li>
+  </ul>
+  <h4>vs 云负载均衡 / K8s Ingress</h4>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>方案</th><th>适合</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td>自建 Nginx</td><td>自主可控、配置精细、成本低的入口层</td><td>自己负责高可用与证书续期</td></tr>
+      <tr><td>云 SLB/ALB</td><td>免运维、天然高可用、与安全组联动</td><td>配置能力受限、按量计费</td></tr>
+      <tr><td>K8s Ingress（Nginx Ingress）</td><td>容器集群统一入口、声明式路由</td><td>需要集群运维能力（第 31 章专题）</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>真相</strong>：云 SLB 的七层转发、Nginx Ingress 的核心，底层都是 Nginx（或其分支）。学会 Nginx，等于同时学会了它们的"方言"。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">1.5</span> 本书的路线图与学习方法</h2>
+  <p>全书三篇 32 章，路线设计遵循"先能跑、再走稳、最后跑快"：</p>
+  <ol>
+    <li><strong>第一篇（第 1-10 章）入门与配置体系</strong>：装起来、跑起第一个静态站、吃透配置层级 / location / rewrite / 内置变量——这是读懂任何 nginx.conf 的地基；</li>
+    <li><strong>第二篇（第 11-21 章）反向代理与 HTTPS</strong>：proxy_pass 与斜杠陷阱、upstream、WebSocket、证书与 HTTP/2、缓存与限流——生产环境 80% 的入口层需求都来自这一篇；</li>
+    <li><strong>第三篇（第 22-32 章）调优与实战</strong>：进程模型与内核参数、排障方法论、安全加固、动静分离 / API 网关 / 灰度三个实战、Docker 与 K8s 配合，最后梳理面试知识体系。</li>
+  </ol>
+  <p><span class="tag-point">学习方法</span>每章的配置示例都<strong>可直接复制到你的 nginx.conf 运行</strong>。强烈建议准备一台 Linux 虚拟机或 Docker 环境（第 2 章搭环境、第 30 章讲 Docker 方案），每章动手验证一遍——Nginx 配置是"改一行看一行"的技能，只读不练等于没学。</p>
+  <p class="pit-sentence">章末"常见坑"是本书的价值密度所在：斜杠差一个就是 404、缓存配错导致用户看到旧页面……这些坑全部来自真实事故。读到坑，先记住现象，再记原因。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>Nginx 是什么</td><td>高性能 Web 服务器 / 反向代理，系统的流量入口层</td></tr>
+      <tr><td>为什么快</td><td>事件驱动 + 异步非阻塞：worker 单线程不空等，连接只占几 KB</td></tr>
+      <tr><td>架构形态</td><td>master 管配置与进程，worker（≈CPU 核数）真正干活</td></tr>
+      <tr><td>五种角色</td><td>静态站点 / 反向代理 / 负载均衡 / HTTPS 网关 / 轻量 API 网关</td></tr>
+      <tr><td>选型原则</td><td>入口层职责交给 Nginx，业务进程专注业务；云上可由 SLB/Ingress 代劳</td></tr>
+      <tr><td>全书路线</td><td>第一篇配置地基 → 第二篇代理与 HTTPS → 第三篇调优实战</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话（三句以内）解释：为什么 Nginx 一个 worker 进程能同时服务上万个连接？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>访问一个你常用的网站，判断它的静态资源（图片/JS）与接口请求是否走了不同的路径或域名，并推测其入口层可能做了哪些事。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>假设公司要把 Spring Boot 集群暴露给公网，列出你会让 Nginx 承担的至少三项职责，并说明为什么不让 Java 进程直接监听 443。——学完第二篇后回头再看，答案会更完整。</div>
+  <p class="note">下一章我们把 Nginx 真正装起来，认识它的目录结构。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="002_第2章_安装与目录结构.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Nginx 从 0 到精通》 · 第 1 章 Nginx 是什么：事件驱动的入口层</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

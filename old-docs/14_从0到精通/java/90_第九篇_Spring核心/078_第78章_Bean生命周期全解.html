@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 78 章 Bean 生命周期全解｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第九篇 Spring 核心</p>
+    <h1>第 78 章 Bean 生命周期全解</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 78 章 / 共 112 章 · 预计 40 分钟 · 上一章：IoC 概念</span>
+    </div>
+    <p class="hero-desc">Bean 不是 new 完就完事：实例化、填充依赖、初始化回调、AOP 代理、销毁回调，每个环节都有扩展口。搞懂生命周期，你就懂了 Spring 的几乎所有"魔法"插在哪。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="077_第77章_IoC概念.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="079_第79章_依赖注入三种方式与选择.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">78.1 生命周期全流程图</a></li>
+    <li><a href="#sec3">78.2 初始化与销毁的回调方式</a></li>
+    <li><a href="#sec4">78.3 BeanPostProcessor：扩展的钥匙</a></li>
+    <li><a href="#sec5">78.4 Aware 系列接口</a></li>
+    <li><a href="#sec5b">78.5 实测：观察一个 Bean 的一生</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>按序复述 Bean 生命周期<strong>七大阶段</strong>；</li>
+    <li>掌握 <strong>@PostConstruct / @PreDestroy</strong> 等三种初始化回调及执行顺序；</li>
+    <li>理解 <strong>BeanPostProcessor</strong> 是 AOP、@Autowired 的落点；</li>
+    <li>能通过实验观察回调顺序。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">78.1</span> 生命周期全流程图</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 820 200" role="img" aria-label="Bean 生命周期">
+      <defs><marker id="arr78" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="410" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">单例 Bean 的一生（从容器启动到关闭）</text>
+      <g font-size="11.5">
+        <rect x="20" y="50" width="120" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/><text x="80" y="74" text-anchor="middle" fill="#2d6a3f" font-weight="700">1 定义注册</text><text x="80" y="92" text-anchor="middle" fill="#4f6348">扫描/BdDefinition</text>
+        <rect x="150" y="50" width="120" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/><text x="210" y="74" text-anchor="middle" fill="#2d6a3f" font-weight="700">2 实例化</text><text x="210" y="92" text-anchor="middle" fill="#4f6348">构造器/工厂</text>
+        <rect x="280" y="50" width="120" height="56" rx="8" fill="#fefce8" stroke="#d97706"/><text x="340" y="74" text-anchor="middle" fill="#b45309" font-weight="700">3 属性填充</text><text x="340" y="92" text-anchor="middle" fill="#4f6348">依赖注入</text>
+        <rect x="410" y="50" width="120" height="56" rx="8" fill="#fefce8" stroke="#d97706"/><text x="470" y="74" text-anchor="middle" fill="#b45309" font-weight="700">4 Aware 回调</text><text x="470" y="92" text-anchor="middle" fill="#4f6348">BeanName/Factory…</text>
+        <rect x="540" y="50" width="120" height="56" rx="8" fill="#eef2ff" stroke="#4f46e5"/><text x="600" y="74" text-anchor="middle" fill="#4f46e5" font-weight="700">5 前置处理</text><text x="600" y="92" text-anchor="middle" fill="#4f6348">postProcessBef…</text>
+        <rect x="670" y="50" width="130" height="56" rx="8" fill="#eef2ff" stroke="#4f46e5"/><text x="735" y="74" text-anchor="middle" fill="#4f46e5" font-weight="700">6 初始化</text><text x="735" y="92" text-anchor="middle" fill="#4f6348">@PostConstruct 等</text>
+        <rect x="300" y="130" width="230" height="46" rx="8" fill="#f0fdf4" stroke="#047857"/><text x="415" y="150" text-anchor="middle" fill="#047857" font-weight="700">7 后置处理 → 代理 → 使用中</text><text x="415" y="168" text-anchor="middle" fill="#4f6348">postProcessAfterInitialization</text>
+        <rect x="570" y="130" width="230" height="46" rx="8" fill="#fee2e2" stroke="#b91c1c"/><text x="685" y="150" text-anchor="middle" fill="#b91c1c" font-weight="700">8 销毁回调</text><text x="685" y="168" text-anchor="middle" fill="#4f6348">@PreDestroy / destroy 方法</text>
+      </g>
+      <line x1="140" y1="78" x2="146" y2="78" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr78)"/>
+      <line x1="270" y1="78" x2="276" y2="78" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr78)"/>
+      <line x1="400" y1="78" x2="406" y2="78" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr78)"/>
+      <line x1="530" y1="78" x2="536" y2="78" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr78)"/>
+      <line x1="660" y1="78" x2="666" y2="78" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr78)"/>
+      <line x1="735" y1="106" x2="600" y2="126" stroke="#7a8a70" stroke-width="1.2" marker-end="url(#arr78)"/>
+      <line x1="530" y1="153" x2="566" y2="153" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr78)"/>
+    </svg>
+    <p class="diagram-caption">图 78-1 Bean 生命周期八阶段</p>
+  </div>
+  <p class="key-sentence">面试速答版：实例化 → 属性填充 → Aware → BeanPostProcessor 前置 → 初始化回调 → BeanPostProcessor 后置（AOP 代理在这生成）→ 使用 → 销毁回调。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">78.2</span> 初始化与销毁的回调方式</h2>
+  <pre class="code" data-lang="java"><code>import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+@Component
+public class CacheWarmer implements InitializingBean, DisposableBean {
+    @PostConstruct                    // ① 推荐：JSR-250，依赖注入完成后
+    public void warm() { System.out.println("1 @PostConstruct：预热缓存"); }
+
+    @Override                          // ② 接口回调
+    public void afterPropertiesSet() { System.out.println("2 afterPropertiesSet"); }
+
+    // ③ XML/@Bean(initMethod="customInit") 指定的方法（略）
+
+    @PreDestroy                        // 容器关闭时
+    public void clean() { System.out.println("4 @PreDestroy：释放资源"); }
+
+    @Override
+    public void destroy() { System.out.println("3 destroy"); }
+}
+// 执行顺序：@PostConstruct → afterPropertiesSet → @Bean(initMethod) → destroy 系同理</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：@PostConstruct 方法<strong>必须无参、非 static</strong>；prototype Bean 的销毁回调<strong>不会执行</strong>（容器不管它的身后事，第 80 章）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">78.3</span> BeanPostProcessor：扩展的钥匙</h2>
+  <pre class="code" data-lang="java"><code>import org.springframework.beans.factory.config.BeanPostProcessor;
+
+/** 对容器里"所有 Bean"统一加工——Spring 各大功能的插入点 */
+@Component
+public class TimingPostProcessor implements BeanPostProcessor {
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String name) {
+        // 初始化前：可包装/替换 bean；@Autowired 之外的定制处理
+        return bean;
+    }
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String name) {
+        // 初始化后：AOP 代理、@Async 代理都在这里把原 Bean 换成代理对象
+        System.out.println("[after] " + name + " → " + bean.getClass().getSimpleName());
+        return bean;
+    }
+}
+// 你熟悉的这些功能都靠它实现：
+// @Autowired 注入（AutowiredAnnotationBeanPostProcessor）
+// AOP 代理（AbstractAutoProxyCreator，第 81 章）
+// @Async / @Transactional 的代理包装</code></pre>
+  <div class="key-sentence">理解了 BeanPostProcessor，"Spring 为什么能给任意 Bean 加代理/注入/校验"就有了统一答案：<strong>所有 Bean 都要过一道后置处理流水线</strong>。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">78.4</span> Aware 系列接口</h2>
+  <p>想让 Bean 知道"容器的存在"（拿名字、拿工厂、拿上下文），实现 Aware 接口即可——属性填充之后、初始化回调之前触发：</p>
+  <pre class="code" data-lang="java"><code>@Component
+public class AwareDemo implements BeanNameAware, ApplicationContextAware {
+    private String beanName;
+    private ApplicationContext ctx;
+
+    @Override public void setBeanName(String name) { this.beanName = name; }
+    @Override public void setApplicationContext(ApplicationContext c) { this.ctx = c; }
+
+    public void info() {
+        System.out.println("我叫 " + beanName
+            + "，容器里有 " + ctx.getBeanDefinitionCount() + " 个 Bean");
+    }
+}
+// 常用：BeanNameAware / BeanFactoryAware / ApplicationContextAware /
+//      EnvironmentAware / ApplicationEventPublisherAware（第 84 章事件用）</code></pre>
+  <p class="warn-box"><strong>使用建议</strong>：Aware 让 Bean 耦合到 Spring API，能不用就不用；业务代码优先构造器注入具体依赖，而不是自己抓容器到处找 Bean（Service Locator 反模式）。</p>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">78.5</span> 实测：观察一个 Bean 的一生</h2>
+  <pre class="code" data-lang="java"><code>import org.springframework.context.annotation.*;
+
+public class LifecycleMain {
+    public static void main(String[] args) {
+        try (var ctx = new AnnotationConfigApplicationContext()) {
+            ctx.register(AppConfig.class);
+            ctx.refresh();                              // 触发全部创建
+            var svc = ctx.getBean(CacheWarmer.class);
+            System.out.println("使用中：" + svc.getClass().getSimpleName());
+            // ctx.close() 由 try-with-resources 触发 → 销毁回调
+        }
+    }
+}
+// 预期输出顺序（穿插所有 Bean）：
+//   实例化（构造器输出）
+//   1 @PostConstruct：预热缓存
+//   2 afterPropertiesSet
+//   [after] cacheWarmer → CacheWarmer
+//   使用中：CacheWarmer
+//   4 @PreDestroy：释放资源
+//   3 destroy</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>八阶段</td><td>定义→实例化→注入→Aware→前置→初始化→后置（代理）→销毁</td></tr>
+      <tr><td>回调顺序</td><td>@PostConstruct → afterPropertiesSet → initMethod</td></tr>
+      <tr><td>PostProcessor</td><td>全容器 Bean 的加工流水线；AOP/@Autowired 的实现落点</td></tr>
+      <tr><td>Aware</td><td>让 Bean 拿到容器设施；能不用就不用</td></tr>
+      <tr><td>坑位</td><td>@PostConstruct 无参非静态；prototype 无销毁回调</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>默写生命周期八阶段，并标注 AOP 代理生成在哪个环节。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>同时实现三种初始化回调，跑通并记录执行顺序。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写一个 BeanPostProcessor：对实现了 Auditable 接口的 Bean 包一层"调用计数代理"，getBean 后调用验证计数。</div>
+  <p class="note">下一章：依赖怎么送进来最优雅——依赖注入：三种方式与选择。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="077_第77章_IoC概念.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="079_第79章_依赖注入三种方式与选择.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 78 章 Bean 生命周期全解</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

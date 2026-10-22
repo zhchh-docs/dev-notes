@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 9 章 rewrite 重写规则｜Nginx 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  #backTop{right:16px;bottom:20px}
+}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+@media(min-width:1024px){
+  nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}
+  nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;columns:1!important;column-count:1!important}
+  nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}
+  nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}
+  nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}
+  .container{margin-left:280px!important;max-width:calc(100% - 300px)!important}
+}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Nginx 从 0 到精通》 · 第一篇 入门与配置体系</p>
+    <h1>第 9 章 rewrite 重写规则</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 9 章 / 共 32 章 · 预计 30 分钟 · 核心必学</span>
+    </div>
+    <p class="hero-desc">rewrite 是"无条件改写 URL"的手术刀：域名统一、协议跳转、旧路径兼容都靠它。本章讲透四个 flag 的差异、执行阶段与循环机制，并明确 return 与 rewrite 的分界线。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="008_第8章_try_files与SPA路由兜底.html">← 上一章</a>
+  <a class="doc-nav-btn" href="010_第10章_内置变量体系.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">9.1 语法与四个 flag</a></li>
+    <li><a href="#sec3">9.2 执行阶段与循环机制</a></li>
+    <li><a href="#sec4">9.3 三个经典场景</a></li>
+    <li><a href="#sec5">9.4 return 与 rewrite 的分界线</a></li>
+    <li><a href="#sec6">9.5 if 的危险性</a></li>
+    <li><a href="#sec7">9.6 常见坑</a></li>
+    <li><a href="#sec8">小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>背出 rewrite 四个 flag（last / break / redirect / permanent）的行为差异；</li>
+    <li>理解 rewrite 在 server 与 location 两个阶段的执行时机与 10 次循环上限；</li>
+    <li>独立完成 http→https、www 统一、旧路径兼容三个高频场景；</li>
+    <li>明确什么时候该用 <code>return</code> 而不是 <code>rewrite</code>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">9.1</span> 语法与四个 flag</h2>
+  <pre class="code" data-lang="nginx"><code>rewrite regex replacement [flag];</code></pre>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:44%"><col style="width:38%"></colgroup>
+    <thead><tr><th>flag</th><th>行为</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>last</code></td><td>停止当前 location 的后续指令，用新 URI <strong>重新走一遍 location 匹配</strong></td><td>改写后要换处理逻辑（最常用）</td></tr>
+      <tr><td><code>break</code></td><td>停止 rewrite 指令集，<strong>留在当前 location</strong> 继续处理</td><td>改写后仍在原地处理（如映射磁盘路径）</td></tr>
+      <tr><td><code>redirect</code></td><td>返回 302 临时重定向</td><td>临时跳转</td></tr>
+      <tr><td><code>permanent</code></td><td>返回 301 永久重定向</td><td>域名迁移、协议统一</td></tr>
+    </tbody>
+  </table>
+  <p>关键区分：<strong>last/break 是内部改写</strong>（用户地址栏不变，服务端换路径处理），<strong>redirect/permanent 是外部跳转</strong>（地址栏真的变，多一次往返）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">9.2</span> 执行阶段与循环机制</h2>
+  <ol>
+    <li><strong>server 阶段</strong>：请求进入 server 后、匹配 location 之前执行 server 层的 rewrite；</li>
+    <li><strong>location 阶段</strong>：命中 location 后执行其中的 rewrite，flag 为 last 时重新走 location 匹配；</li>
+    <li><strong>循环上限</strong>：内部重定向累计 10 次仍未终结 → 返回 500（error.log 关键字 <code>rewrite or internal redirection cycle</code>）。</li>
+  </ol>
+  <pre class="code" data-lang="nginx"><code># 经典循环事故：互相改写踢皮球
+location /old/ { rewrite ^/old/(.*)$ /new/$1 last; }
+location /new/ { rewrite ^/new/(.*)$ /old/$1 last; }   # 10 次后 500</code></pre>
+  <p>排障手段：临时把 rewrite 换成 <code>return 200 "uri=$uri";</code> 观察实际 URI，或把 error_log 开到 notice 看内部重定向轨迹。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">9.3</span> 三个经典场景</h2>
+  <pre class="code" data-lang="nginx"><code># 场景一：HTTP 全部跳 HTTPS（第 18 章会用 308/497 精化）
+server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;
+}
+
+# 场景二：www 统一到裸域
+server {
+    listen 443 ssl;
+    server_name www.example.com;
+    return 301 https://example.com$request_uri;
+}
+
+# 场景三：旧路径兼容（内部改写，不跳转）
+server {
+    location / {
+        rewrite ^/product/(\d+)$ /items?id=$1 last;
+    }
+    location /items {
+        proxy_pass http://backend;
+    }
+}</code></pre>
+  <ul>
+    <li>跳转场景永远把 <code>$request_uri</code>（含查询串的原始 URI）拼回去，丢参数是常见事故；</li>
+    <li>内部改写用 <code>$1</code> 捕获组；replacement 以 <code>?</code> 结尾可丢弃原查询串。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">9.4</span> return 与 rewrite 的分界线</h2>
+  <table>
+    <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+    <thead><tr><th>用 return</th><th>用 rewrite</th></tr></thead>
+    <tbody>
+      <tr><td>整体跳转（301/302/307/308）</td><td>需要正则捕获重组 URI</td></tr>
+      <tr><td>直接给响应（文本/状态码）</td><td>内部路径映射且要重新匹配 location</td></tr>
+      <tr><td>域名统一、协议统一（无重组逻辑）</td><td>旧 URL 结构到新结构的批量转换</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">性能与可读性铁律：<strong>能用 return 就不用 rewrite</strong>。return 一条指令终结请求，rewrite 要走正则引擎并可能触发重新匹配。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">9.5</span> if 的危险性</h2>
+  <p>社区名言 "if is evil" 并非夸张——<code>if</code> 在 location 内与部分指令组合会产生反直觉行为：</p>
+  <pre class="code" data-lang="nginx"><code># 安全用法：if 里只写 return 或 rewrite ... last
+location /download/ {
+    if ($arg_debug) { return 200 "debug\n"; }
+    try_files $uri =404;
+}
+
+# 危险用法（勿模仿）：if 内配 proxy_pass / root
+location / {
+    if ($host = old.example.com) {
+        proxy_pass http://legacy;   # 行为异常的著名温床
+    }
+}</code></pre>
+  <p>纪律：<code>if (...)</code> 里只允许 <code>return</code> 或 <code>rewrite ... last</code>；其它判断需求改用 <code>map</code>（第 10 章）。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">9.6</span> 常见坑</h2>
+  <ol>
+    <li><strong>跳转丢参数</strong>：<code>return 301 https://example.com;</code> 把路径和查询串全丢了——要拼 <code>$request_uri</code>；</li>
+    <li><strong>replacement 里的查询串</strong>：新 URI 带 <code>?</code> 时原查询串被丢弃，想保留要显式拼接；</li>
+    <li><strong>正则小括号没转义</strong>：URI 里的字面量 <code>(</code> 要写成 <code>\(</code>；</li>
+    <li><strong>last 与 break 选错</strong>：映射磁盘路径用 break，换处理逻辑用 last；</li>
+    <li><strong>循环 500</strong>：互相改写或改写到自己，看 error.log 的 cycle 关键字。</li>
+  </ol>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>四个 flag</td><td>last 重新匹配、break 原地处理、redirect 302、permanent 301</td></tr>
+      <tr><td>两阶段执行</td><td>server 阶段先行，location 阶段可循环，10 次封顶</td></tr>
+      <tr><td>return 优先</td><td>无重组逻辑的跳转一律 return + $request_uri</td></tr>
+      <tr><td>if 纪律</td><td>if 里只允许 return / rewrite last，其余用 map</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>配置 http→https 的 301 跳转 server，用 curl -I 验证 Location 头包含完整路径与查询串。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现旧路径 <code>/p/123</code> → 内部改写到 <code>/items?id=123</code>，用假后端打印收到的 URI 验证。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>故意构造 rewrite 循环，抓 error.log 里的 cycle 报错并解释为何 Nginx 设计了 10 次上限。</div>
+  <p class="note">下一章：内置变量体系——读懂并利用 $uri、$args、map 的一切基础。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="008_第8章_try_files与SPA路由兜底.html">← 上一章</a>
+  <a class="doc-nav-btn" href="010_第10章_内置变量体系.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Nginx 从 0 到精通》 · 第 9 章 rewrite 重写规则</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){var b=document.getElementById('backTop');if(!b)return;
+var t=function(){b.classList.toggle('show',window.scrollY>480)};
+window.addEventListener('scroll',t,{passive:true});t();
+b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

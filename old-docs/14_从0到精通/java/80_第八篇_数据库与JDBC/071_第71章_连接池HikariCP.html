@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 71 章 连接池：HikariCP 原理与配置｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第八篇 数据库与 JDBC</p>
+    <h1>第 71 章 连接池：HikariCP 原理与配置</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 71 章 / 共 112 章 · 预计 40 分钟 · 上一章：JDBC 增删改查全流程</span>
+    </div>
+    <p class="hero-desc">每次操作都新建连接，就像每次打车都重新造一辆车。连接池把连接变成"借与还"，而 HikariCP（Spring Boot 默认）是其中最快的一个。本章讲它的借还模型、参数含义与故障排查。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="070_第70章_JDBC增删改查全流程.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="072_第72章_事务commit_rollback实战.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">71.1 为什么需要连接池</a></li>
+    <li><a href="#sec3">71.2 HikariCP 的借还模型</a></li>
+    <li><a href="#sec4">71.3 核心参数详解</a></li>
+    <li><a href="#sec5">71.4 手写一个迷你连接池</a></li>
+    <li><a href="#sec6">71.5 连接泄漏与故障排查</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清连接池<strong>解决的三个问题</strong>：建连开销、数量失控、故障连接；</li>
+    <li>理解 HikariCP <strong>ConCurrentBag 借还模型</strong>的直觉（无锁快路径）；</li>
+    <li>掌握 <strong>maximumPoolSize / connectionTimeout / maxLifetime</strong> 等核心参数；</li>
+    <li>会诊断<strong>连接泄漏</strong>与"获取连接超时"。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">71.1</span> 为什么需要连接池</h2>
+  <p class="lead"><strong>一句话定位</strong>：连接池 = 预先建好一批连接，请求来时"借用"，用完"归还"，由池统一管理数量与健康状况。</p>
+  <ul>
+    <li><strong>建连太贵</strong>：TCP 三次握手 + TLS + 认证 + 会话初始化，每次几毫秒起步；池化后摊销为零；</li>
+    <li><strong>数量失控</strong>：没有池时，1000 个并发就开 1000 条连接——数据库连接是稀缺资源，会直接把 DB 打挂；</li>
+    <li><strong>健康巡检</strong>：MySQL 默认 8 小时无活动断开连接（wait_timeout），池负责"保活与报废"，业务代码永远拿到可用连接。</li>
+  </ul>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:46%"><col style="width:32%"></colgroup>
+    <thead><tr><th>常见池</th><th>特点</th><th>现状</th></tr></thead>
+    <tbody>
+      <tr><td><strong>HikariCP</strong></td><td>字节码精调、FastList、无锁快路径</td><td>Spring Boot 默认，事实标准</td></tr>
+      <tr><td>Druid</td><td>内置 SQL 监控页面、WallFilter</td><td>国内运维生态丰富</td></tr>
+      <tr><td>DBCP2 / C3P0</td><td>老牌</td><td>新项目基本不用</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">71.2</span> HikariCP 的借还模型</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="连接池借还模型">
+      <defs><marker id="arr71" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">HikariCP：借（getConnection）→ 用 → 还（close 即归还）</text>
+      <rect x="60" y="50" width="180" height="100" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/><text x="150" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">连接池 Bag</text><text x="150" y="104" text-anchor="middle" font-size="11.5" fill="#4f6348">空闲连接 · 使用中连接</text><text x="150" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">CAS 抢占，无锁快路径</text>
+      <rect x="330" y="50" width="180" height="100" rx="10" fill="#fefce8" stroke="#d97706"/><text x="420" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">业务线程</text><text x="420" y="104" text-anchor="middle" font-size="11.5" fill="#4f6348">conn = pool.getConnection()</text><text x="420" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">用完必须 close()</text>
+      <rect x="600" y="50" width="160" height="100" rx="10" fill="#eef2ff" stroke="#4f46e5"/><text x="680" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#4f46e5">数据库</text><text x="680" y="104" text-anchor="middle" font-size="11.5" fill="#4f6348">物理连接始终存在</text><text x="680" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">由池保活/重建</text>
+      <line x1="240" y1="85" x2="326" y2="85" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr71)"/>
+      <text x="283" y="78" text-anchor="middle" font-size="10.5" fill="#7a8a70">借出</text>
+      <line x1="326" y1="115" x2="240" y2="115" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr71)"/>
+      <text x="283" y="132" text-anchor="middle" font-size="10.5" fill="#7a8a70">归还(close)</text>
+      <line x1="510" y1="100" x2="596" y2="100" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr71)"/>
+      <text x="400" y="180" text-anchor="middle" font-size="12" fill="#7a8a70">超过 connectionTimeout 还借不到 → SQLTransientConnectionException</text>
+    </svg>
+    <p class="diagram-caption">图 71-1 连接池借还模型</p>
+  </div>
+  <p class="key-sentence">连接池世界的 <code>close()</code> 不是关闭，而是<strong>归还</strong>——HikariCP 返回的是包装代理，close 被拦截后把物理连接放回 Bag。忘记 close 的连接永远不会自动回来（直到 leakDetectionThreshold 报警）。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">71.3</span> 核心参数详解</h2>
+  <pre class="code" data-lang="java"><code>import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
+public class PoolSetup {
+    public static HikariDataSource create() {
+        HikariConfig cfg = new HikariConfig();
+        cfg.setJdbcUrl("jdbc:mysql://localhost:3306/jdbc_demo?serverTimezone=Asia/Shanghai");
+        cfg.setUsername("app");
+        cfg.setPassword("App#123456");
+
+        cfg.setMaximumPoolSize(10);          // 最大连接数（默认 10）
+        cfg.setMinimumIdle(10);              // 固定池大小（官方建议 max=idle）
+        cfg.setConnectionTimeout(3000);      // 借不到连接等多久（默认 30s，太长！）
+        cfg.setMaxLifetime(25 * 60 * 1000);  // 连接寿命，必须 &lt; MySQL wait_timeout
+        cfg.setIdleTimeout(5 * 60 * 1000);   // 空闲回收（固定池时可不管）
+        cfg.setKeepaliveTime(60 * 1000);     // 空闲保活探测
+        cfg.setConnectionTestQuery("SELECT 1"); // 驱动支持 JDBC4 可不设
+        cfg.setPoolName("demo-pool");
+        return new HikariDataSource(cfg);
+    }
+    public static void main(String[] args) throws Exception {
+        try (var ds = create(); var conn = ds.getConnection()) {
+            System.out.println("池名：" + conn.getMetaData().getUserName());
+        }
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:28%"><col style="width:42%"></colgroup>
+    <thead><tr><th>参数</th><th>建议值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>maximumPoolSize</td><td><strong>小！</strong> CPU×2 起</td><td>池不是越大越好：数据库端连接切换有成本，Hikari 官方实测小池吞吐更高</td></tr>
+      <tr><td>connectionTimeout</td><td>1~3s</td><td>默认 30s 会让故障雪崩拖 30s 才报错；快速失败更健康</td></tr>
+      <tr><td>maxLifetime</td><td>小于 DB wait_timeout</td><td>连接主动报废重建，避免被服务端单方面掐断</td></tr>
+      <tr><td>leakDetectionThreshold</td><td>生产 60s 可开</td><td>借出超过该时长未归还 → 打出持有堆栈（抓泄漏神器）</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>："数据库报 too many connections，我把池调到 200 好了"——错。3 个实例 × 200 = 600，直接压垮库。正确解法是<strong>限流、缓存、拆库</strong>，池大小仍保持小。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">71.4</span> 手写一个迷你连接池</h2>
+  <p>理解原理最好的方式是自己造一个（生产请勿使用）：</p>
+  <pre class="code" data-lang="java"><code>import java.sql.*;
+import java.util.concurrent.*;
+
+public class MiniPool implements AutoCloseable {
+    private final BlockingQueue&lt;Connection&gt; idle;
+    private final String url, user, pass;
+    private final int size;
+
+    public MiniPool(String url, String user, String pass, int size) throws SQLException {
+        this.url = url; this.user = user; this.pass = pass; this.size = size;
+        this.idle = new LinkedBlockingQueue&lt;&gt;(size);
+        for (int i = 0; i &lt; size; i++) idle.offer(newConnection());  // 预热
+    }
+    private Connection newConnection() throws SQLException {
+        return DriverManager.getConnection(url, user, pass);
+    }
+    /** 借：超时快速失败 */
+    public Connection getConnection(long timeoutMs) throws InterruptedException, SQLException {
+        Connection c = idle.poll(timeoutMs, TimeUnit.MILLISECONDS);
+        if (c == null) throw new SQLException("借连接超时，池满或泄漏");
+        return c;
+    }
+    /** 还：包装 Connection，拦截 close 改为归还 */
+    public void release(Connection c) { idle.offer(c); }
+
+    @Override public void close() throws SQLException {
+        Connection c;
+        while ((c = idle.poll()) != null) c.close();   // 真关闭
+    }
+}
+// 不足之处（也是 Hikari 解决的）：无泄漏检测、无健康检查、
+// 状态变更（事务未回滚）不复位、并发借还的细节处理粗糙。</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">71.5</span> 连接泄漏与故障排查</h2>
+  <table>
+    <colgroup><col style="width:40%"><col style="width:60%"></colgroup>
+    <thead><tr><th>症状</th><th>排查动作</th></tr></thead>
+    <tbody>
+      <tr><td>请求偶尔卡 3 秒后报 connection is not available</td><td>典型泄漏：活跃连接耗尽。开 leakDetectionThreshold 看持有堆栈</td></tr>
+      <tr><td>所有请求统一卡住，DB 正常</td><td>慢 SQL 占满连接：查慢 SQL 日志 + <code>SHOW PROCESSLIST</code></td></tr>
+      <tr><td>运行 8 小时后批量报 Communications link failure</td><td>maxLifetime ≥ MySQL wait_timeout，调小 maxLifetime</td></tr>
+      <tr><td>池监控 active 持续 = max</td><td>容量不足或泄漏，结合业务时段判断</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>// 防泄漏的代码纪律：连接只在方法内创建、方法内归还
+// 错误示范：把 Connection 存进成员变量/ThreadLocal 长期持有
+// 正确姿势：
+try (Connection conn = ds.getConnection()) {
+    // 所有 SQL 在 try 块内完成
+}   // 自动归还</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>池化动机</td><td>摊销建连成本、限制总量、保活巡检</td></tr>
+      <tr><td>借还模型</td><td>close 即归还；池小吞吐高（Hikari 实测）</td></tr>
+      <tr><td>关键参数</td><td>max 小（10~20）、timeout 快失败、maxLifetime &lt; wait_timeout</td></tr>
+      <tr><td>泄漏排查</td><td>leakDetectionThreshold 打持有点堆栈；根因几乎都是没 try-with-resources</td></tr>
+      <tr><td>容量账</td><td>池大小 × 实例数 × 数据库副本数 = 总连接，预算要算清</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>解释连接池里 close() 的真实语义，以及为什么"忘记 close"不会立刻报错。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给 Hikari 配置 leakDetectionThreshold=1000，故意写一段借了不还的代码，观察日志输出的持有堆栈。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给第 71.4 节的 MiniPool 加上"借出记录 Map + 定时扫描"实现简易泄漏检测。</div>
+  <p class="note">下一章：多条 SQL 要么全成要么全败——事务 commit/rollback 实战。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="070_第70章_JDBC增删改查全流程.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="072_第72章_事务commit_rollback实战.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 71 章 连接池 HikariCP</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+
+---
+<section id="sec5" class="card">
+  <h2><span class="num">12.4</span> 内部改写链路全景</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 820 170" role="img" aria-label="URI 在转发链路中的变化">
+      <defs><marker id="arrD" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <rect x="20" y="55" width="130" height="46" rx="8" fill="#eef3e8" stroke="#2d6a3f"/>
+      <text x="85" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">用户请求</text>
+      <text x="85" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">/api/user?id=1</text>
+      <rect x="210" y="55" width="160" height="46" rx="8" fill="#fefce8" stroke="#b45309"/>
+      <text x="290" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">rewrite（可选）</text>
+      <text x="290" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">改写 $uri；$request_uri 不变</text>
+      <rect x="430" y="55" width="140" height="46" rx="8" fill="#f0f6ff" stroke="#0f4c81"/>
+      <text x="500" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#0f4c81">location 匹配</text>
+      <text x="500" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">决定 proxy_pass 写法</text>
+      <rect x="630" y="55" width="160" height="46" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="710" y="75" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">上游收到的 URI</text>
+      <text x="710" y="93" text-anchor="middle" font-size="10.5" fill="#4f6348">透传 or 前缀替换</text>
+      <line x1="150" y1="78" x2="208" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrD)"/>
+      <line x1="370" y1="78" x2="428" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrD)"/>
+      <line x1="570" y1="78" x2="628" y2="78" stroke="#7a8a70" stroke-width="2" marker-end="url(#arrD)"/>
+      <text x="410" y="140" text-anchor="middle" font-size="12" fill="#7a8a70">$request_uri 全程不变——它记录用户最初的输入，排障与跳转都靠它</text>
+    </svg>
+    <p class="diagram-caption">图 12-1 URI 从用户到上游的变化链路</p>
+  </div>
+  <p>把 12.1 的规则放进这条链路就通了：rewrite 阶段改的是 $uri；proxy_pass 无 URI 时把（可能已被改写的）$uri 整体透传；带 URI 时做前缀替换。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">12.5</span> 常见坑</h2>
+  <ol>
+    <li><strong>多打的 / 让接口消失</strong>：<code>proxy_pass http://b/;</code> 想剥前缀，但上游其实要完整路径——回显实验一分钟定位；</li>
+    <li><strong>带变量后参数蒸发</strong>：忘拼 <code>$is_args$args</code>，上游收到无参请求；</li>
+    <li><strong>正则 location 中 proxy_pass 带 URI</strong>：直接报配置错（正则 location 不能有 URI 部分），只能用 rewrite 或变量方案；</li>
+    <li><strong>前缀替换引发部分匹配错切</strong>：location /api 与 proxy_pass http://b/api/ 组合，/apifoo 也会被错误替换——location 一律带尾斜杠；</li>
+    <li><strong>resolver 缺失</strong>：变量化主机名报 <code>no resolver defined to resolve xxx</code>。</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>总规则</td><td>proxy_pass 带 URI 则替换 location 前缀，不带则透传 $uri</td></tr>
+      <tr><td>变量例外</td><td>含变量 = 全量自定义，$args 与 $is_args 要手动拼</td></tr>
+      <tr><td>排障方法</td><td>回显后端 + curl，直接看上游收到什么</td></tr>
+      <tr><td>正则限制</td><td>正则 location 里 proxy_pass 不能带 URI</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>跑通 12.2 的回显实验，四种写法逐一验证。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 <code>rewrite ^/old/(.*)$ /new/$1 break;</code> + 无 URI proxy_pass 实现 /old/x → 上游 /new/x，对照前缀替换写法。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现变量化转发 <code>proxy_pass http://b$uri$is_args$args;</code> 并验证带参请求完整到达；再补 resolver 消除告警。</div>
+  <p class="note">下一章：请求头透传与真实 IP——多层代理下的用户识别难题。</p>
+</section>

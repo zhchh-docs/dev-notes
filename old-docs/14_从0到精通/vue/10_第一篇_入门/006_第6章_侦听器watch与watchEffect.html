@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 6 章 侦听器 watch 与 watchEffect｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 6 章 侦听器 watch 与 watchEffect</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 6 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">计算属性解决"派生值"，侦听器解决"值变了以后做点什么"。这一章讲清 watch 与 watchEffect 的差别、immediate/deep 两个关键选项、停止与清理副作用，并用搜索防抖与数据请求两个真实场景收尾。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="007_第7章_class与style绑定.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">6.1 watch：监听指定数据源</a></li>
+    <li><a href="#sec3">6.2 immediate 与 deep</a></li>
+    <li><a href="#sec4">6.3 watchEffect：自动收集依赖</a></li>
+    <li><a href="#sec5">6.4 watch vs watchEffect 如何选择</a></li>
+    <li><a href="#sec6">6.5 停止侦听与清理副作用</a></li>
+    <li><a href="#sec7">6.6 实战一：搜索防抖</a></li>
+    <li><a href="#sec8">6.7 实战二：监听路由参数拉数据</a></li>
+    <li><a href="#sec9">6.8 本章常见坑</a></li>
+    <li><a href="#sec10">本章小结</a></li>
+    <li><a href="#sec11">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 <code>watch</code> 的三种监听目标：<strong>ref、getter 函数、数组（多个源）</strong>；</li>
+    <li>理解 <code>immediate</code>（立即执行）与 <code>deep</code>（深度监听）的适用时机与代价；</li>
+    <li>理解 <code>watchEffect</code> 的<strong>自动依赖收集</strong>机制及它与 <code>watch</code> 的本质区别；</li>
+    <li>会<strong>手动停止侦听器</strong>，会用 <code>onCleanup</code> 清理过期异步；</li>
+    <li>能写出<strong>搜索防抖</strong>与<strong>参数变化自动拉取数据</strong>两个高频场景。</li>
+  </ul>
+  <div class="note"><strong>前置</strong>：第 5 章（计算属性）。请先确认你能说出"什么时候不该用 watch"，再来看这一章。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">6.1</span> watch：监听指定数据源</h2>
+<pre class="code" data-lang="js"><code>import { ref, reactive, watch } from 'vue'
+
+const count = ref(0)
+const user = reactive({ name: '小明', age: 18 })
+
+// ① 监听一个 ref（最常见）
+watch(count, (newVal, oldVal) =&gt; {
+  console.log(`count: ${oldVal} → ${newVal}`)
+})
+
+// ② 监听一个 getter（想只关心对象的某个字段时用）
+watch(
+  () =&gt; user.age,
+  (newVal, oldVal) =&gt; { console.log('年龄变了', newVal) }
+)
+
+// ③ 监听多个源：任一个变化都触发
+watch(
+  [count, () =&gt; user.name],
+  ([newCount, newName], [oldCount, oldName]) =&gt; {
+    console.log(newCount, newName)
+  }
+)</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>监听目标</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>ref</code></td><td>直接传；回调拿到 <code>(新值, 旧值)</code></td></tr>
+      <tr><td><code>reactive</code> 对象</td><td>直接传会<strong>隐式开启 deep</strong>（见 6.2）；建议改用 getter 精确定位字段</td></tr>
+      <tr><td>getter 函数</td><td><code>() =&gt; obj.a.b</code>；精确监听某条路径，性能最好</td></tr>
+      <tr><td>数组</td><td>多源监听，回调参数是<strong>两个数组</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">监听 <code>reactive</code> 对象的<strong>某个属性</strong>时，必须写成 getter（<code>() =&gt; state.count</code>），不能直接写 <code>state.count</code>——后者传进去的是一个数字常量，没有响应性。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">6.2</span> immediate 与 deep</h2>
+  <h3>immediate：创建时立刻执行一次</h3>
+<pre class="code" data-lang="js"><code>// 需求：页面进来就拉一次数据，之后筛选条件变了再拉
+watch(
+  () =&gt; filters.value,
+  fetchList,
+  { immediate: true }   // 否则要手动再调一次 fetchList()
+)</code></pre>
+  <p>典型场景：<strong>立即拉取数据</strong>、<strong>初始化第三方库</strong>。</p>
+
+  <h3>deep：深度监听</h3>
+<pre class="code" data-lang="js"><code>const form = reactive({ user: { name: '小明', tags: ['a'] } })
+
+// 浅层：只关心 form 被整体替换
+watch(form, cb)
+
+// 深层：任意层级的字段变化都触发
+watch(form, cb, { deep: true })
+
+// 更推荐：精确定位，避免整树遍历
+watch(() =&gt; form.user.name, cb)</code></pre>
+  <p class="pit-sentence"><code>deep: true</code> 会<strong>递归遍历对象所有属性</strong>，在大对象上代价明显。能用 getter 精确定位就别用 deep。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>选项</th><th>默认</th><th>何时开</th></tr></thead>
+    <tbody>
+      <tr><td><code>immediate</code></td><td><code>false</code></td><td>需要"首次也执行"时</td></tr>
+      <tr><td><code>deep</code></td><td>false（监听 reactive 对象时隐式 true）</td><td>确实无法预知哪个层级会变时</td></tr>
+      <tr><td><code>flush</code></td><td><code>'pre'</code></td><td>需要 DOM 更新后再执行时设为 <code>'post'</code></td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="js"><code>// flush: 'post' —— 想在 DOM 更新后操作 DOM / 拿最新布局
+watch(count, () =&gt; {
+  console.log(el.value.offsetHeight)  // DOM 已更新
+}, { flush: 'post' })</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">6.3</span> watchEffect：自动收集依赖</h2>
+  <p class="lead"><code>watch</code> 需要你<strong>显式指出监听谁</strong>；<code>watchEffect</code> 不指定源，它<strong>执行一遍函数，用到谁就监听谁</strong>。</p>
+<pre class="code" data-lang="js"><code>import { ref, watchEffect } from 'vue'
+
+const keyword = ref('')
+const page = ref(1)
+
+// 不需要声明依赖：函数里读了 keyword 和 page，它们就自动成为依赖
+watchEffect(() =&gt; {
+  console.log('查询条件：', keyword.value, page.value)
+  fetchList({ keyword: keyword.value, page: page.value })
+})
+
+// watch 的等价写法要显式列出依赖，重复且易漏
+watch([keyword, page], () =&gt; {
+  fetchList({ keyword: keyword.value, page: page.value })
+}, { immediate: true })</code></pre>
+  <p>三个特点：</p>
+  <ol>
+    <li><strong>立即执行</strong>：创建时就跑一次（相当于自带 <code>immediate: true</code>）；</li>
+    <li><strong>自动收集</strong>：函数体里读到的响应式数据都被追踪；</li>
+    <li><strong>拿不到旧值</strong>：回调只接收一个 <code>onCleanup</code> 参数。</li>
+  </ol>
+<pre class="code" data-lang="js"><code>// watchEffect 的回调参数是"清理函数注册器"
+watchEffect((onCleanup) =&gt; {
+  const timer = setTimeout(() =&gt; { /* ... */ }, 500)
+  onCleanup(() =&gt; clearTimeout(timer))   // 下次执行前 / 停止时清理
+})</code></pre>
+  <div class="warn-box"><span class="tag-pit">坑</span><code>watchEffect</code> 只追踪<strong>同步执行期间</strong>读到的依赖。写在 <code>await</code> 之后的代码里读的响应式数据<strong>不会</strong>被追踪——这是最常见的"为什么它不更新"的原因。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">6.4</span> watch vs watchEffect 如何选择</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>watch</th><th>watchEffect</th></tr></thead>
+    <tbody>
+      <tr><td>依赖声明</td><td>显式指定</td><td>自动收集（函数里读了谁就是谁）</td></tr>
+      <tr><td>首次执行</td><td>默认不执行（需 <code>immediate</code>）</td><td><strong>立即执行</strong></td></tr>
+      <tr><td>旧值</td><td>能拿到 <code>(new, old)</code></td><td>拿不到</td></tr>
+      <tr><td>精确控制</td><td>强（只监听某个字段）</td><td>弱（可能多监听了分支里的值）</td></tr>
+      <tr><td>适合</td><td>需要旧值 / 精确监听 / 懒执行</td><td>依赖多且分散、逻辑"就这一段"</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">选择口诀：<strong>要旧值、要精确 → watch；要省事、要立即执行 → watchEffect。</strong></p>
+  <p>还有一个常见的替代思路——<strong>根本不用侦听器</strong>：</p>
+<pre class="code" data-lang="js"><code>// ❌ 用侦听器"同步"两个状态
+const total = ref(0)
+watch([price, count], () =&gt; { total.value = price.value * count.value })
+
+// ✅ 用计算属性
+const total = computed(() =&gt; price.value * count.value)</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6.5</span> 停止侦听与清理副作用</h2>
+  <h3>自动停止</h3>
+  <p>在 <code>&lt;script setup&gt;</code> 或组件的 <code>setup()</code> 里同步创建的侦听器，会<strong>随组件卸载自动停止</strong>，一般不用管。</p>
+  <h3>手动停止</h3>
+<pre class="code" data-lang="js"><code>const stop = watch(count, cb)
+
+// 条件满足后主动停掉
+if (someCondition) stop()
+
+// 异步创建的侦听器必须手动停（组件已卸载的话，自动清理不会生效）
+let stopAsync
+setTimeout(() =&gt; {
+  stopAsync = watch(count, cb)
+}, 1000)
+onUnmounted(() =&gt; stopAsync &amp;&amp; stopAsync())</code></pre>
+  <h3>清理过期副作用（onCleanup）</h3>
+  <p>这是写出"正确异步"的关键：侦听器回调被再次触发或侦听器停止时，先执行上一次注册的清理函数。</p>
+<pre class="code" data-lang="js"><code>watch(id, (newId, oldId, onCleanup) =&gt; {
+  let cancelled = false
+  onCleanup(() =&gt; { cancelled = true })   // 下一次触发前把上次的请求作废
+
+  fetchDetail(newId).then(res =&gt; {
+    if (cancelled) return                  // 过期响应直接丢弃
+    detail.value = res
+  })
+})</code></pre>
+  <p class="key-sentence">没有这段清理，快速切换 id 时会出现<strong>响应竞态</strong>：先发的请求后返回，把新数据覆盖成旧数据。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">6.6</span> 实战一：搜索防抖</h2>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;input v-model="keyword" placeholder="输入关键字搜索"&gt;
+  &lt;p v-if="loading"&gt;搜索中…&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li v-for="item in results" :key="item.id"&gt;{{ item.title }}&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, watch } from 'vue'
+
+const keyword = ref('')
+const results = ref([])
+const loading = ref(false)
+
+watch(keyword, (kw, _, onCleanup) =&gt; {
+  if (!kw.trim()) { results.value = []; return }
+
+  loading.value = true
+  const timer = setTimeout(async () =&gt; {
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(kw)}`)
+      results.value = await res.json()
+    } finally {
+      loading.value = false
+    }
+  }, 300)                       // 300ms 防抖
+
+  onCleanup(() =&gt; clearTimeout(timer))   // 关键字再变：取消上一次定时器
+})
+&lt;/script&gt;</code></pre>
+  <p>要点：<code>onCleanup</code> 让"上一次还没发出的请求"被取消，用户连续输入时只会发最后一次请求。</p>
+  <div class="note">这个逻辑在真实项目里通常抽成组合式函数（第 23 章）或直接复用 VueUse 的 <code>useDebounceFn</code> / <code>refDebounced</code>。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">6.7</span> 实战二：监听路由参数拉数据</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const detail = ref(null)
+
+// 路由参数变化（/user/1 → /user/2）时重新拉取
+watch(
+  () =&gt; route.params.id,
+  (id) =&gt; { loadDetail(id) },
+  { immediate: true }        // 首次进入也要拉
+)
+
+async function loadDetail(id) {
+  detail.value = null
+  const res = await fetch(`/api/users/${id}`)
+  detail.value = await res.json()
+}
+&lt;/script&gt;</code></pre>
+  <p class="pit-sentence">这里有个高频陷阱：<strong>组件没被销毁时</strong>（例如 <code>/user/1</code> 跳到 <code>/user/2</code> 复用同一个组件），<code>onMounted</code> 不会再次执行，只有侦听路由参数才能拿到新数据。</p>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">6.8</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>监听 <code>props.xxx</code> 写成常量</strong>：<code>watch(props.count, ...)</code> 传的是数字。正确：<code>watch(() =&gt; props.count, ...)</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>新旧值相同</strong>：监听 <code>reactive</code> 对象时（隐式 deep），回调里的 <code>newVal</code> 与 <code>oldVal</code> 是<strong>同一个对象引用</strong>，比较无意义。请监听具体字段。</li>
+    <li><span class="tag-pit">坑 3</span><strong>在 <code>await</code> 之后读依赖</strong>：<code>watchEffect</code> 收集不到异步后的依赖。</li>
+    <li><span class="tag-pit">坑 4</span><strong>忘了清理</strong>：定时器、请求、事件监听未清理 → 内存泄漏 + 竞态覆盖。</li>
+    <li><span class="tag-pit">坑 5</span><strong>滥用 deep</strong>：大表单上开 deep，每次输入都全树遍历。改用具体字段或多个 getter。</li>
+    <li><span class="tag-pit">坑 6</span><strong>用 watch 派生值</strong>：见 6.4，那是 computed 的活。</li>
+  </ul>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>watch</td><td>显式指定源，拿得到新旧值，默认懒执行</td></tr>
+      <tr><td>watchEffect</td><td>自动收集依赖、立即执行、拿不到旧值</td></tr>
+      <tr><td>immediate</td><td>创建时立刻跑一次（首次拉数据必备）</td></tr>
+      <tr><td>deep</td><td>递归监听，代价高；优先用 getter 精确定位</td></tr>
+      <tr><td>flush</td><td><code>pre</code>（默认，更新前）/ <code>post</code>（DOM 更新后）/ <code>sync</code></td></tr>
+      <tr><td>清理</td><td><code>onCleanup</code> 取消过期异步；手动 <code>stop()</code> 停止侦听</td></tr>
+      <tr><td>纪律</td><td>能用 computed 就别用 watch</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec11" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>分别用 <code>watch</code> 与 <code>watchEffect</code> 实现"监听 a、b 两个 ref，任一变化就打印它们的和"，体会两者在"首次是否执行"上的差别。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在 6.6 的搜索防抖基础上增加：① 请求竞态处理（只接受最后一次响应）；② 关键字清空时立刻清空结果且不发请求；③ 组件卸载时取消定时器。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个 <code>useTitle(titleRef)</code> 组合式函数：内部用 <code>watchEffect</code> 把标题同步到 <code>document.title</code>，并要求组件卸载后停止同步。再思考：为什么用 <code>watchEffect</code> 比 <code>watch</code> 更省事？</div>
+  <p class="note">参考答案见附录 C。下一章讲 class 与 style 的动态绑定。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="005_第5章_计算属性与方法.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="007_第7章_class与style绑定.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 6 章 侦听器 watch 与 watchEffect</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

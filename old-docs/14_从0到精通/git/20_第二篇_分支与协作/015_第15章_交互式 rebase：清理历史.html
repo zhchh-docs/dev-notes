@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 15 章 交互式 rebase：清理历史｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第二篇 分支与协作</p>
+    <h1>第 15 章 交互式 rebase：清理历史</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 15 章 / 共 40 章 · 预计 45 分钟 · 高危高能章</span>
+    </div>
+    <p class="hero-desc">本地开发时我们盯着"能跑就行"，可以随便 wip；但在推送给同事评审之前，历史应该像一篇写好的文章。交互式 rebase（git rebase -i）就是这支"橡皮 + 钢笔"：合并、拆分、重排、改写、删除——本章逐个动作演示。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="014_第14章_rebase：换基的艺术.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="016_第16章_cherry-pick：摘取提交.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">15.1 进入编辑界面：读懂那张清单</a></li>
+    <li><a href="#sec3">15.2 六大动作逐个演示</a></li>
+    <li><a href="#sec4">15.3 场景演练：把 6 条 wip 整理成 2 条</a></li>
+    <li><a href="#sec5">15.4 拆分提交（break / edit）</a></li>
+    <li><a href="#sec6">15.5 安全网：abort、备份分支与 reflog</a></li>
+    <li><a href="#sec7">15.6 推送整理后的历史</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>会用 <code>git rebase -i HEAD~n</code> 打开交互界面，并读懂每个字段；</li>
+    <li>掌握 <code>pick / reword / edit / squash / fixup / drop</code> 六大动作；</li>
+    <li>能把一堆 <code>wip</code> 提交整理成若干条语义清晰的提交；</li>
+    <li>会用 <code>edit</code> 拆分一个大提交，以及用备份分支/reflog 给自己留后路。</li>
+  </ul>
+  <div class="warn-box"><strong>适用边界</strong>：交互式 rebase 同样<strong>改写哈希</strong>，只应在<strong>未推送</strong>或<strong>明确属于自己的分支</strong>上使用（遵循第 14 章的黄金法则）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">15.1</span> 进入编辑界面：读懂那张清单</h2>
+  <pre class="code" data-lang="bash"><code>git rebase -i HEAD~4          # 整理最近 4 条提交</code></pre>
+  <p>编辑器里出现（注意顺序：<strong>从上到下是从旧到新</strong>，与 <code>git log</code> 相反）：</p>
+  <pre class="code" data-lang="text"><code>pick 1a2b3c4 feat: 初始化登录页面
+pick 5d6e7f8 wip
+pick 9a8b7c6 fix 一下
+pick 3e4f5a6 wip: 又改了点东西
+
+# Rebase 7c1d2e3..3e4f5a6 onto 7c1d2e3 (4 commands)
+#
+# Commands:
+# p, pick &lt;commit&gt; = use commit
+# r, reword &lt;commit&gt; = use commit, but edit the commit message
+# e, edit &lt;commit&gt; = use commit, but stop for amending
+# s, squash &lt;commit&gt; = use commit, but meld into previous commit
+# f, fixup &lt;commit&gt; = like "squash", but discard this commit's log message
+# x, exec &lt;command&gt; = run command (the rest of the line) using shell
+# b, break = stop here (continue rebase later with 'git rebase --continue')
+# d, drop &lt;commit&gt; = remove commit
+# l, label &lt;label&gt; = label current HEAD with a name
+# t, reset &lt;label&gt; = reset HEAD to a label
+# m, merge [-C &lt;commit&gt; | -c &lt;commit&gt;] &lt;label&gt; [# &lt;oneline&gt;]
+#
+# These lines can be re-ordered; they are executed from top to bottom.</code></pre>
+  <p><span class="tag-key">两个易错点</span>：① 顺序是<strong>旧的在上</strong>；② <strong>移动行</strong>就能改变提交顺序（重排），但重排可能引发冲突（后面的改动依赖前面的代码）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">15.2</span> 六大动作逐个演示</h2>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:36%"><col style="width:48%"></colgroup>
+    <thead><tr><th>动作</th><th>作用</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>pick</code></td><td>原样保留</td><td>默认动作；不动它</td></tr>
+      <tr><td><code>reword</code></td><td>保留改动，改写提交信息</td><td>修正错别字、补全规范前缀（第 10 章）</td></tr>
+      <tr><td><code>edit</code></td><td>停在该提交，允许改内容/拆分</td><td>拆分提交、补文件、删掉误提交的文件</td></tr>
+      <tr><td><code>squash</code></td><td>合并到<strong>上一条</strong>，保留两条信息供编辑</td><td>把相关提交合成一条，信息需要重新组织</td></tr>
+      <tr><td><code>fixup</code></td><td>合并到上一条，<strong>丢弃本条信息</strong></td><td>吸收 <code>wip</code> / <code>typo</code> 这类无意义提交</td></tr>
+      <tr><td><code>drop</code>（或删掉整行）</td><td>删除该提交</td><td>丢弃实验性/已废弃的改动</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="text"><code>pick   1a2b3c4 feat: 初始化登录页面
+fixup  5d6e7f8 wip                 # 吸收进上一条，丢掉 "wip" 这条信息
+squash 9a8b7c6 fix 一下            # 合并进上一条，稍后编辑合并后的信息
+drop   3e4f5a6 wip: 又改了点东西    # 丢弃（或干脆删掉这一行）</code></pre>
+  <p>保存退出后，Git 会顺序执行：遇到 <code>squash</code> 会再次打开编辑器让你写合并后的提交信息；遇到 <code>edit</code> 会停下来等你操作。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">15.3</span> 场景演练：把 6 条 wip 整理成 2 条</h2>
+  <pre class="code" data-lang="bash"><code>cd ~/git-lab &amp;&amp; rm -rf ch15 &amp;&amp; mkdir ch15 &amp;&amp; cd ch15 &amp;&amp; git init
+echo "v1" &gt; app.js &amp;&amp; git add . &amp;&amp; git commit -m "feat: 初始化"
+
+git switch -c feature/user
+echo "a" &gt;&gt; app.js &amp;&amp; git commit -am "wip"
+echo "b" &gt;&gt; app.js &amp;&amp; git commit -am "wip: 继续"
+echo "c" &gt;&gt; app.js &amp;&amp; git commit -am "feat(user): 用户列表"
+echo "d" &gt;&gt; app.js &amp;&amp; git commit -am "fix typo"
+echo "e" &gt;&gt; app.js &amp;&amp; git commit -am "wip: 收尾"
+echo "f" &gt;&gt; app.js &amp;&amp; git commit -am "test: 补测试"
+
+git log --oneline
+# 6 条杂乱提交
+
+# 整理最近 6 条
+git rebase -i HEAD~6</code></pre>
+  <p>编辑器中改为：</p>
+  <pre class="code" data-lang="text"><code>pick   aaa111 wip
+fixup  bbb222 wip: 继续
+pick   ccc333 feat(user): 用户列表
+fixup  ddd444 fix typo
+fixup  eee555 wip: 收尾
+pick   fff666 test: 补测试</code></pre>
+  <p>保存后（第一条需要改写信息，Git 会再次打开编辑器）：</p>
+  <pre class="code" data-lang="bash"><code># 第一次弹出：为 "wip + wip继续" 写新信息
+feat(user): 用户列表页面骨架
+
+# 第二次弹出：squash 汇总信息（本例没有 squash，只有 fixup，故只弹一次）
+
+git log --oneline
+# 3f2e1d0 test: 补测试
+# 5b2e9d1 feat(user): 用户列表页面骨架   ← 吸收了 3 条 wip
+# 9d8e7c6 feat: 初始化</code></pre>
+  <p class="key-sentence">整理后的历史：<strong>一条功能 + 一条测试</strong>，评审者一眼看懂；而代码内容完全没变。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">15.4</span> 拆分提交（edit / break）</h2>
+  <p>场景：一条提交里混了"功能代码 + 调试日志"，想拆成两条。</p>
+  <pre class="code" data-lang="bash"><code>git rebase -i HEAD~3
+# 把目标那行的 pick 改成 edit，保存退出
+
+# Git 停在那个提交上：
+git status
+# interactive rebase in progress; onto xxx
+# Stopped at 3f2e1d0... feat(user): 混在一起的改动
+
+# ① 把提交"拆回"工作区（保留内容，撤销提交）
+git reset HEAD~1            # mixed：改动回到工作区
+
+# ② 分两次暂存与提交
+git add src/user.js
+git commit -m "feat(user): 用户列表接口"
+git add src/debug-log.js
+git commit -m "chore: 调试日志"
+
+# ③ 继续重放剩余提交
+git rebase --continue</code></pre>
+  <div class="note"><strong>更省事的写法</strong>：新版 Git（2.20+）在 <code>rebase -i</code> 的清单里直接把该行写成 <code>break</code>，或用 <code>git rebase -i --exec</code> 插入命令；拆分思路不变：<code>reset HEAD~1</code> → 分批 add/commit → <code>--continue</code>。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">15.5</span> 安全网：abort、备份分支与 reflog</h2>
+  <p>任何改写历史的操作，动手前先做一件事：<strong>打个备份分支</strong>——成本为零，救急价值极高。</p>
+  <pre class="code" data-lang="bash"><code># ① 备份（强烈推荐）
+git branch backup/feature-user        # 记住当前尖端
+
+# ② 放心改写
+git rebase -i HEAD~6
+
+# ③ 搞砸了？一键回退
+git reset --hard backup/feature-user
+
+# 或者用 reflog 找回（第 23 章详解）
+git reflog
+git reset --hard HEAD@{5}
+
+# ④ 进行中想中止
+git rebase --abort</code></pre>
+  <p><span class="tag-point">心理安全</span>：rebase 之后<strong>旧提交并没有立即消失</strong>，它们变成悬空对象，可通过 reflog 找回（默认保留 30/90 天）。所以"改错了"在短期内几乎总是可恢复的。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">15.6</span> 推送整理后的历史</h2>
+  <pre class="code" data-lang="bash"><code># 从未推送过的分支：正常推
+git push -u origin feature/user
+
+# 之前推过（自己独占的功能分支）：需要强推，用安全版
+git push --force-with-lease origin feature/user
+
+# ❌ 危险：--force 会无视他人新提交
+git push --force</code></pre>
+  <p>强推前检查清单：</p>
+  <ul>
+    <li>该分支<strong>只有你一个人</strong>在推（PR 未创建或尚未有人基于它开分支）；</li>
+    <li>本地已 <code>git fetch</code> 过，确认远程没有你不知道的新提交（<code>--force-with-lease</code> 会帮你验证）；</li>
+    <li>若已开 PR：GitHub/GitLab 的 PR 通常能自动跟随强推更新（评论不会丢），但仍建议<strong>在 PR 里留一句说明</strong>。</li>
+  </ul>
+  <div class="danger-box"><strong>绝对不要</strong>：<code>git push --force origin main</code>（强推主干）。一旦发生，立即通知全队停止推送，用 reflog 定位强推前的尖端并恢复（第 36 章有完整事故复盘）。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：清单顺序看反（以为上面是最新的）→ 记住"<strong>上旧下新</strong>"，可用 <code>git log --oneline</code> 对照；</li>
+    <li><span class="tag-pit">坑 2</span>：把 <code>fixup</code> 写在第一条上 → 它必须"跟随"某条 <code>pick</code>，第一行是 fixup 会报错；</li>
+    <li><span class="tag-pit">坑 3</span>：重排提交后冲突不断 → 尽量避免跨依赖重排；冲突时逐个解决再 <code>--continue</code>；</li>
+    <li><span class="tag-pit">坑 4</span>：<code>edit</code> 后忘了 <code>--continue</code> 就去干别的 → 仓库处于 rebase 中；用 <code>git status</code> 检查；</li>
+    <li><span class="tag-pit">坑 5</span>：整理完直接 <code>--force</code> → 用 <code>--force-with-lease</code>，且先确认分支归属。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>入口</td><td><code>git rebase -i HEAD~n</code>；清单<strong>上旧下新</strong></td></tr>
+      <tr><td>六动作</td><td>pick / reword / edit / squash / fixup / drop</td></tr>
+      <tr><td>整理套路</td><td>wip 用 fixup 吸收，功能用 squash 重组，信息用 reword</td></tr>
+      <tr><td>拆分</td><td><code>edit</code> 停住 → <code>reset HEAD~1</code> → 分批提交 → <code>--continue</code></td></tr>
+      <tr><td>安全网</td><td>先建 backup 分支；出错用 <code>--abort</code> / <code>reset --hard backup</code> / reflog</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>造 5 条 wip 提交，用 <code>fixup</code> 整理成 1 条，并用 <code>git show</code> 验证代码内容未变。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>练习 <code>edit</code> 拆分：把一次"功能 + 日志"的提交拆成两条；再练习 <code>reword</code> 把所有信息改成 Conventional Commits 格式。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计你自己的"推送前整理清单"：备份 → fetch → rebase -i → 逐条验证（编译/测试）→ <code>--force-with-lease</code> → PR 说明，并说明每步防的是什么事故。</div>
+  <p class="note">下一章：cherry-pick——只摘取某几个提交到别的分支，以及它的典型误用。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="014_第14章_rebase：换基的艺术.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="016_第16章_cherry-pick：摘取提交.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 15 章 交互式 rebase：清理历史</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

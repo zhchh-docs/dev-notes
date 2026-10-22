@@ -1,0 +1,144 @@
+title: 第 7 章 root 与 alias 的差异
+part: 第一篇 入门与配置体系
+outdir: 10_第一篇_入门与配置体系
+file: 007_第7章_root与alias的差异.html
+prev: 006_第6章_location匹配优先级详解.html
+next: 008_第8章_try_files与SPA路由兜底.html
+meta: 第 7 章 / 共 32 章 · 预计 25 分钟 · 核心必学
+desc: root 与 alias 只差一个词，行为却天差地别——"alias 后面忘写斜杠"与"alias 拼进 root 语义"是真实事故榜单的常客。本章用对照表与实验一次讲清。
+toc: sec1|本章目标;sec2|7.1 拼接规则：两条公式;sec3|7.2 alias 的末尾斜杠坑;sec4|7.3 正则 location 中的 alias;sec5|7.4 选择决策;sec6|7.5 实战：子路径部署前端应用;sec7|7.6 常见坑;sec8|小结与习题
+---
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>背出两条拼接公式：<strong>root = 前缀 + 整个 URI；alias = 替换 location 匹配的部分</strong>；</li>
+    <li>避免 alias 末尾斜杠的两大变体坑；</li>
+    <li>会在正则 location 中用捕获组配合 alias；</li>
+    <li>能独立完成"应用部署在子路径 /app/ 下"的静态映射。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">7.1</span> 拼接规则：两条公式</h2>
+  <pre class="code" data-lang="nginx"><code># 写法一：root
+location /images/ {
+    root /data;
+}
+# 请求 /images/a.png  -&gt;  实际读取  /data/images/a.png
+# 规律：磁盘路径 = root + 完整 URI
+
+# 写法二：alias
+location /images/ {
+    alias /data/pics/;
+}
+# 请求 /images/a.png  -&gt;  实际读取  /data/pics/a.png
+# 规律：磁盘路径 = alias 替换掉 location 匹配到的那段 URI</code></pre>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:36%"><col style="width:46%"></colgroup>
+    <thead><tr><th>指令</th><th>拼接公式</th><th>心智模型</th></tr></thead>
+    <tbody>
+      <tr><td><code>root</code></td><td>root + URI（URI 原样附加）</td><td>"文件的根目录"，URI 会接着往下走</td></tr>
+      <tr><td><code>alias</code></td><td>alias + (URI - location 前缀)</td><td>"路径别名"，把 URL 前缀映射成另一个磁盘目录</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">一句话：<strong>root 是"接着拼"，alias 是"替换着拼"</strong>。root 可用在 server/location/http 层；alias 只能用在 location 里。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">7.2</span> alias 的末尾斜杠坑</h2>
+  <pre class="code" data-lang="nginx"><code># 坑一：alias 有斜杠，location 前缀没有
+location /images {
+    alias /data/pics/;
+}
+# /images/a.png   -&gt; /data/pics//a.png  双斜杠，通常能容错但别依赖
+# /imagesx/a.png  -&gt; /data/pics/x/a.png 前缀误伤后被"切"出诡异路径！
+
+# 坑二：location 有斜杠，alias 没有
+location /images/ {
+    alias /data/pics;
+}
+# /images/a.png   -&gt; /data/picsa.png    直接拼错，404</code></pre>
+  <div class="danger-box"><strong>铁律</strong>：location 前缀与 alias 的值<strong>要么都带尾斜杠，要么都不带</strong>。团队规范建议都带。</div>
+  <p>用 curl 验证（配合 error.log 观察实际查找的路径）：</p>
+  <pre class="code" data-lang="bash"><code>curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/images/a.png
+sudo tail -1 /var/log/nginx/error.log
+# open() "/data/picsa.png" failed (2: No such file or directory)</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">7.3</span> 正则 location 中的 alias</h2>
+  <p>正则 location 里 alias 必须使用捕获组，否则 Nginx 不知道 URI 的哪部分要映射进磁盘路径：</p>
+  <pre class="code" data-lang="nginx"><code>location ~ ^/avatars/(.+\.(?:png|jpg|webp))$ {
+    alias /data/avatars/$1;      # /avatars/u/1.png -&gt; /data/avatars/u/1.png
+    expires 30d;
+}</code></pre>
+  <ul>
+    <li><code>$1</code> 对应捕获组内容；正则必须"锚定"住要替换的前缀；</li>
+    <li>捕获组要防目录穿越：允许 <code>../</code> 是隐患。生产上更简单的做法是文件按哈希平铺，从源头杜绝 <code>..</code>。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">7.4</span> 选择决策</h2>
+  <table>
+    <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+    <thead><tr><th>用 root</th><th>用 alias</th></tr></thead>
+    <tbody>
+      <tr><td>磁盘目录结构与 URL 一致（最常见）</td><td>URL 前缀与磁盘目录名不一致</td></tr>
+      <tr><td>server 级统一根目录 + 各 location 微调</td><td>把旧路径映射到新位置做兼容</td></tr>
+      <tr><td>配合 try_files 的 SPA 站点（默认选择）</td><td>正则捕获组映射（头像、缩略图变体）</td></tr>
+    </tbody>
+  </table>
+  <p>经验法则：<strong>默认用 root，只有"路径对不上"时才引入 alias</strong>——alias 能少用就少用，它是可读性与事故率的负资产。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">7.5</span> 实战：子路径部署前端应用</h2>
+  <p>需求：主站在根路径，一个独立前端应用挂在 <code>/admin/</code> 下，产物在磁盘的 <code>/var/www/admin-dist</code>：</p>
+  <pre class="code" data-lang="nginx"><code>server {
+    listen 80;
+    server_name portal.example.com;
+
+    root /var/www/portal;
+
+    # 子路径前端：alias 指向独立构建产物
+    location /admin/ {
+        alias /var/www/admin-dist/;
+        try_files $uri $uri/ /admin/index.html;   # SPA 兜底，注意兜底路径
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}</code></pre>
+  <div class="warn-box"><strong>配套改造提醒</strong>：前端构建必须同步设置 base（Vite 的 <code>base: '/admin/'</code>、Vue Router 的 <code>createWebHistory('/admin/')</code>），否则资源会以根路径引用而 404。Nginx 只负责映射，路径前缀要两边一起改。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">7.6</span> 常见坑</h2>
+  <ol>
+    <li><strong>alias 忘尾斜杠</strong>或 location 忘尾斜杠（7.2 两大变体）；</li>
+    <li><strong>alias 与 try_files 混用拼错兜底路径</strong>：兜底要写 <code>/admin/index.html</code> 而不是 <code>/index.html</code>；</li>
+    <li><strong>正则 location 里写 root 以为会替换前缀</strong>：root 永远"接着拼"，想替换只能 alias；</li>
+    <li><strong>嵌套 location 继承混乱</strong>：location 里不写 root 会继承 server 的 root，拼出双层路径；</li>
+    <li><strong>alias 目录权限</strong>：同样要满足第 4 章 4.4 的权限清单。</li>
+  </ol>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>两条公式</td><td>root 接着拼 URI；alias 替换 location 匹配段</td></tr>
+      <tr><td>斜杠铁律</td><td>location 前缀与 alias 要么都带 / 要么都不带</td></tr>
+      <tr><td>正则场景</td><td>alias 必须配捕获组 $1，并防目录穿越</td></tr>
+      <tr><td>选择原则</td><td>默认 root，路径对不上才 alias</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>分别用 root 与 alias 映射同一批文件，用 curl + error.log 验证两种拼接结果。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>复现 7.2 的两个坑，记录实际查找路径。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>完成 7.5 的子路径部署（用任意静态页代替 admin-dist），并保证页面内资源引用路径全部正确。</div>
+  <p class="note">下一章：try_files 与 SPA 路由兜底——前端工程化部署的核心指令。</p>
+</section>

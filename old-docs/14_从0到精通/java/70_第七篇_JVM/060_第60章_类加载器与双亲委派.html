@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 60 章 类加载器与双亲委派｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第七篇 JVM</p>
+    <h1>第 60 章 类加载器与双亲委派</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 60 章 / 共 112 章 · 预计 40 分钟 · 上一章：JVM 内存区域</span>
+    </div>
+    <p class="hero-desc">class 文件从磁盘上的字节，变成方法区里可用的类，中间要经过"谁来找、怎么装、何时初始化"三道工序。本章讲清类加载的完整链条，以及让面试官频频点头的"双亲委派"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="059_第59章_JVM内存区域.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="061_第61章_对象的创建与内存布局.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">60.1 类加载的五个阶段</a></li>
+    <li><a href="#sec3">60.2 四种类加载器</a></li>
+    <li><a href="#sec4">60.3 双亲委派模型</a></li>
+    <li><a href="#sec5">60.4 打破双亲委派的场景</a></li>
+    <li><a href="#sec6">60.5 动手验证类加载</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出类从加载到初始化的<strong>五个阶段</strong>，以及每个阶段 JVM 在做什么；</li>
+    <li>区分 <strong>Bootstrap、Extension/Platform、Application、自定义</strong> 四层类加载器的职责；</li>
+    <li>理解<strong>双亲委派模型</strong>的委派流程，以及它解决了什么问题（安全性 + 唯一性）；</li>
+    <li>知道 Tomcat、SPI、OSGi 这些"打破委派"的体系为什么要打破。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">60.1</span> 类加载的五个阶段</h2>
+  <p class="lead"><strong>一句话定位</strong>：类的一生是 加载 → 验证 → 准备 → 解析 → 初始化 → 使用 → 卸载；前五步合称"类加载过程"。</p>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:52%"><col style="width:32%"></colgroup>
+    <thead><tr><th>阶段</th><th>做什么</th><th>易考点</th></tr></thead>
+    <tbody>
+      <tr><td>加载（Loading）</td><td>读 class 字节流，生成 Class 对象放入方法区</td><td>来源可以是 jar、网络、动态生成</td></tr>
+      <tr><td>验证（Verification）</td><td>校验字节码合法性：魔数、版本、指令合规</td><td>防恶意字节码</td></tr>
+      <tr><td>准备（Preparation）</td><td>为静态变量<strong>分配内存并赋零值</strong></td><td><code>static int a = 1</code> 此时 a=0，不是 1</td></tr>
+      <tr><td>解析（Resolution）</td><td>符号引用替换为直接引用</td><td>可推迟到首次使用</td></tr>
+      <tr><td>初始化（Initialization）</td><td>执行静态变量赋值与 <code>static{}</code> 块（clinit）</td><td>只执行一次，线程安全</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>public class InitOrder {
+    static int a = 1;            // 准备阶段 a=0，初始化阶段才 a=1
+    static final int B = 2;      // 编译期常量：准备阶段就直接赋 2
+    static { System.out.println("静态块执行"); }
+
+    static class Holder {        // 利用内部类实现线程安全的单例（第 78 章呼应）
+        static final InitOrder INSTANCE = new InitOrder();
+    }
+    public static void main(String[] args) {
+        System.out.println(InitOrder.B);   // 只触发加载，不触发 InitOrder 初始化！
+    }
+}</code></pre>
+  <div class="key-sentence">六种触发初始化的场景：new、读写静态字段（非编译期常量）、调用静态方法、反射 Class.forName、子类初始化连带父类、main 方法所在类。其余情况都是"只加载不初始化"。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">60.2</span> 四种类加载器</h2>
+  <p>JDK 8 及之前的层次；JDK 9 模块化后 Extension 更名为 Platform，职责微调但层次思想不变。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:44%"><col style="width:30%"></colgroup>
+    <thead><tr><th>类加载器</th><th>负责加载</th><th>Java 类</th></tr></thead>
+    <tbody>
+      <tr><td>Bootstrap ClassLoader</td><td>JAVA_HOME/lib 核心库（rt.jar 等）</td><td>C++ 实现，Java 里表示为 null</td></tr>
+      <tr><td>Extension / Platform</td><td>lib/ext 扩展库（9+ 平台模块）</td><td>ExtClassLoader / PlatformClassLoader</td></tr>
+      <tr><td>Application ClassLoader</td><td>classpath 上的类（你写的代码）</td><td>AppClassLoader，默认加载器</td></tr>
+      <tr><td>自定义 ClassLoader</td><td>任意来源：网络、加密文件、热部署</td><td>继承 ClassLoader 重写 findClass</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>public class LoaderChain {
+    public static void main(String[] args) {
+        Class&lt;?&gt; c = LoaderChain.class;
+        ClassLoader cl = c.getClassLoader();
+        while (cl != null) {
+            System.out.println(cl);
+            cl = cl.getParent();          // 沿父链向上
+        }
+        System.out.println("Bootstrap（C++ 实现，Java 中为 null）");
+    }
+}
+// 典型输出：
+// jdk.internal.loader.ClassLoaders$AppClassLoader@...
+// jdk.internal.loader.ClassLoaders$PlatformClassLoader@...
+// Bootstrap（C++ 实现，Java 中为 null）</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：<code>String.class.getClassLoader()</code> 返回 <strong>null</strong>——不是"没有加载器"，而是加载它的 Bootstrap 加载器在 Java 层不可见。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">60.3</span> 双亲委派模型</h2>
+  <p class="lead"><strong>一句话定位</strong>：收到类加载请求时，先交给父加载器去办；父加载器办不了（在自己搜索范围里找不到），子加载器才自己动手。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 210" role="img" aria-label="双亲委派流程图">
+      <defs><marker id="arr60" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="380" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">双亲委派：自下而上委派，自上而下加载</text>
+      <rect x="60" y="46" width="640" height="34" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/><text x="380" y="68" text-anchor="middle" font-size="12.5" fill="#2d6a3f">Bootstrap —— 加载 java.lang.String（找到，直接返回）</text>
+      <rect x="110" y="92" width="540" height="34" rx="8" fill="#fefce8" stroke="#d97706"/><text x="380" y="114" text-anchor="middle" font-size="12.5" fill="#b45309">Extension/Platform —— 找不到 → 交回子级</text>
+      <rect x="160" y="138" width="440" height="34" rx="8" fill="#f0fdf4" stroke="#047857"/><text x="380" y="160" text-anchor="middle" font-size="12.5" fill="#047857">Application —— 找不到 → 自己加载（或交自定义）</text>
+      <line x1="380" y1="138" x2="380" y2="86" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr60)"/>
+      <line x1="380" y1="92" x2="380" y2="86" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#arr60)"/>
+      <text x="620" y="196" text-anchor="middle" font-size="12" fill="#7a8a70">核心：无论谁先要 String，最终都由 Bootstrap 加载 → 全 JVM 只有一份</text>
+    </svg>
+    <p class="diagram-caption">图 60-1 双亲委派：保证核心类唯一与安全</p>
+  </div>
+  <p>它解决了两个问题：</p>
+  <ol>
+    <li><strong>唯一性</strong>：同一个类在委派链上只会被加载一次，两个加载器加载的同名类在 JVM 里也算<strong>不同的类</strong>（Class 对象不相等）；</li>
+    <li><strong>安全性</strong>：有人自己写一个 <code>java.lang.String</code> 想投毒，委派机制会让 Bootstrap 先加载官方版本，恶意代码根本没有出场机会。</li>
+  </ol>
+  <pre class="code" data-lang="java"><code>// JDK 9+ ClassLoader#loadClass 的双亲委派核心逻辑（简化）
+protected Class&lt;?&gt; loadClass(String name, boolean resolve) throws ClassNotFoundException {
+    synchronized (getClassLoadingLock(name)) {
+        Class&lt;?&gt; c = findLoadedClass(name);      // 1. 查缓存：已加载过？
+        if (c == null) {
+            try {
+                ClassLoader parent = getParent();
+                if (parent != null) {
+                    c = parent.loadClass(name, false); // 2. 委派给父加载器
+                }
+            } catch (ClassNotFoundException e) { /* 父级找不到，继续 */ }
+            if (c == null) {
+                c = findClass(name);              // 3. 父级办不了，自己找
+            }
+        }
+        return c;
+    }
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">60.4</span> 打破双亲委派的场景</h2>
+  <p>委派模型不是铁律，主流框架都动过刀：</p>
+  <ul>
+    <li><strong>SPI（JDBC 驱动）</strong>：核心库 DriverManager 需要加载 classpath 上的驱动类，Bootstrap 加载器"够不着"应用类路径——用 <strong>线程上下文类加载器</strong> 反向委派给 Application 加载器；</li>
+    <li><strong>Tomcat</strong>：每个 webapp 一个独立 WebappClassLoader，实现<strong>应用隔离</strong>与依赖版本隔离（A 应用用 Log4j1，B 应用用 Log4j2 互不干扰）；先自己加载（本地优先），找不到才委派父级；</li>
+    <li><strong>OSGi / 热部署</strong>：网状委派 + 模块化，支持运行期替换类；</li>
+    <li><strong>加密保护</strong>：自定义加载器解密自研 class 文件后再 defineClass。</li>
+  </ul>
+  <pre class="code" data-lang="java"><code>import java.io.*;
+import java.nio.file.*;
+
+public class MyLoader extends ClassLoader {
+    private final Path dir;
+    public MyLoader(Path dir, ClassLoader parent) { super(parent); this.dir = dir; }
+
+    @Override
+    protected Class&lt;?&gt; findClass(String name) throws ClassNotFoundException {
+        Path f = dir.resolve(name.replace('.', '/') + ".class");
+        try (InputStream in = Files.newInputStream(f)) {
+            byte[] bytes = in.readAllBytes();
+            return defineClass(name, bytes, 0, bytes.length);  // 字节 → Class 对象
+        } catch (IOException e) {
+            throw new ClassNotFoundException(name, e);
+        }
+    }
+    public static void main(String[] args) throws Exception {
+        MyLoader loader = new MyLoader(Paths.get("target/classes"),
+                MyLoader.class.getClassLoader());
+        Class&lt;?&gt; c = loader.loadClass("demo.Hello");
+        System.out.println(c.newInstance());       // 调用 Hello 的 toString
+        System.out.println("加载器：" + c.getClassLoader());
+    }
+}</code></pre>
+  <p>自定义加载器只需要重写 <code>findClass</code>，<strong>不要重写 loadClass</strong>——保留双亲委派骨架，只替换"去哪里找字节"这一步。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">60.5</span> 动手验证类加载</h2>
+  <pre class="code" data-lang="bash"><code># 观察类加载顺序与来源
+java -verbose:class MyApp | head -20
+
+# 查看 JDK 9+ 中某个类由谁加载（jcmd 需要目标进程）
+jcmd &lt;pid&gt; VM.class_hierarchy java.lang.String
+
+# 热排查利器（第 65 章详讲）
+# arthas: sc -d com.demo.User   显示类加载信息与来源 jar</code></pre>
+  <div class="warn-box"><strong>生产坑位</strong>：ClassNotFoundException（运行期显式加载失败）与 NoClassDefFoundError（编译期存在、运行期丢包）原因不同：前者查 classpath 与依赖冲突，后者常见于 fat jar 里 exclude 误伤或拆包部署漏文件。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>类加载五阶段</td><td>加载→验证→准备→解析→初始化；静态赋值发生在初始化而非准备</td></tr>
+      <tr><td>加载器层次</td><td>Bootstrap / Platform / Application / 自定义，逐层父链</td></tr>
+      <tr><td>双亲委派</td><td>先委派父级再自己加载，保证核心类唯一、防投毒</td></tr>
+      <tr><td>打破委派</td><td>SPI 线程上下文加载器、Tomcat 应用隔离、OSGi 模块化</td></tr>
+      <tr><td>同名不同类</td><td>不同加载器加载的同名类不相等——排查 ClassCastException 时先看加载器</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出 <code>static int a = 1</code> 在"准备阶段"和"初始化阶段"的值，并解释 clinit 是什么。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>打印你的 main 类的加载器父链，解释为什么顶层打印出 null。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个加密 ClassLoader：先用工具类对 class 文件做异或加密，再由自定义加载器解密加载成功。</div>
+  <p class="note">下一章：类装好了，对象怎么生？——对象的创建与内存布局。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="059_第59章_JVM内存区域.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="061_第61章_对象的创建与内存布局.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 60 章 类加载器与双亲委派</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

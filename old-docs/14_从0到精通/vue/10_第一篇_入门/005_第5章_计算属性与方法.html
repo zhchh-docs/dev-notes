@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 5 章 计算属性 vs 方法｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 5 章 计算属性 vs 方法</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 5 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">模板里放不下复杂逻辑时该怎么办？计算属性是最常用的答案。这一章讲清它的缓存机制、与方法/侦听器的区别、可写计算属性的写法，以及"什么时候不该用计算属性"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="006_第6章_侦听器watch与watchEffect.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">5.1 问题：模板里的逻辑越写越长</a></li>
+    <li><a href="#sec3">5.2 computed 基本用法</a></li>
+    <li><a href="#sec4">5.3 缓存机制：与方法的核心差别</a></li>
+    <li><a href="#sec5">5.4 可写计算属性（get / set）</a></li>
+    <li><a href="#sec6">5.5 computed vs 方法 vs 侦听器</a></li>
+    <li><a href="#sec7">5.6 计算属性的调试与性能</a></li>
+    <li><a href="#sec8">5.7 本章常见坑</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>计算属性存在的理由</strong>：让模板保持"声明式"，逻辑可复用、可缓存；</li>
+    <li>掌握 <code>computed</code> 的<strong>缓存语义</strong>——依赖不变就不重算；</li>
+    <li>能说清 <strong>computed 与 methods 的差异</strong>并能举例证明（不是"听说"）；</li>
+    <li>会写<strong>可写计算属性</strong>（<code>get/set</code>）处理"组合字段"与"反解字段"；</li>
+    <li>面对一个需求能判断：<strong>用计算属性、方法还是侦听器</strong>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">5.1</span> 问题：模板里的逻辑越写越长</h2>
+  <p>看一段真实会出现的模板：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;p&gt;{{ user.firstName + ' ' + user.lastName }}&lt;/p&gt;
+  &lt;p&gt;{{ list.filter(i =&gt; i.done).length }} / {{ list.length }} 已完成&lt;/p&gt;
+  &lt;p&gt;{{ (price * (vip ? 0.8 : 1) * (coupon ? 0.95 : 1)).toFixed(2) }} 元&lt;/p&gt;
+  &lt;p&gt;{{ orders.filter(o =&gt; o.status === 1).map(o =&gt; o.amount).reduce((a, b) =&gt; a + b, 0) }}&lt;/p&gt;
+&lt;/template&gt;</code></pre>
+  <p>问题不在于"能不能跑"，而在于：</p>
+  <ul>
+    <li><strong>读不懂</strong>：模板本该描述结构，现在塞满了业务计算；</li>
+    <li><strong>不能复用</strong>：同一个"已完成数量"要在三处显示，就得复制三遍；</li>
+    <li><strong>每次渲染都重算</strong>：<code>filter/map/reduce</code> 在每次组件更新时都会执行一遍；</li>
+    <li><strong>无法测试</strong>：逻辑粘在模板里，单测无从下手。</li>
+  </ul>
+  <p>计算属性就是为了解决这四点。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">5.2</span> computed 基本用法</h2>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;p&gt;{{ fullName }}&lt;/p&gt;
+  &lt;p&gt;{{ doneCount }} / {{ list.length }} 已完成&lt;/p&gt;
+  &lt;p&gt;{{ finalPrice }} 元&lt;/p&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, reactive, computed } from 'vue'
+
+const user = reactive({ firstName: '张', lastName: '三' })
+const list = ref([
+  { id: 1, title: '写文档', done: true },
+  { id: 2, title: '改 bug', done: false }
+])
+const price = ref(199)
+const vip = ref(true)
+const coupon = ref(false)
+
+// 只读计算属性：传一个 getter 函数
+const fullName = computed(() =&gt; user.firstName + ' ' + user.lastName)
+
+const doneCount = computed(() =&gt; list.value.filter(i =&gt; i.done).length)
+
+const finalPrice = computed(() =&gt; {
+  const rate = (vip.value ? 0.8 : 1) * (coupon.value ? 0.95 : 1)
+  return (price.value * rate).toFixed(2)
+})
+&lt;/script&gt;</code></pre>
+  <p>要点：</p>
+  <ol>
+    <li><code>computed()</code> 的参数是一个 <strong>getter 函数</strong>，返回值就是计算属性的值；</li>
+    <li>模板里<strong>不需要 <code>.value</code></strong>（与 ref 一样自动解包），JS 里要写 <code>fullName.value</code>；</li>
+    <li>计算属性是<strong>只读</strong>的，直接赋值会告警（需要可写版本见 5.4）；</li>
+    <li>它会自动追踪函数内用到的响应式数据（<code>user.firstName</code> 等），这就是"依赖"。</li>
+  </ol>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">5.3</span> 缓存机制：与方法的核心差别</h2>
+  <p class="lead">一句话：<strong>计算属性基于依赖缓存，方法每次渲染都重新执行。</strong></p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;!-- 方法：每次渲染都调用 --&gt;
+  &lt;p&gt;{{ calcSum() }}&lt;/p&gt;
+  &lt;p&gt;{{ calcSum() }}&lt;/p&gt;
+  &lt;p&gt;{{ calcSum() }}&lt;/p&gt;
+
+  &lt;!-- 计算属性：依赖不变时只算一次 --&gt;
+  &lt;p&gt;{{ sum }}&lt;/p&gt;
+  &lt;p&gt;{{ sum }}&lt;/p&gt;
+  &lt;p&gt;{{ sum }}&lt;/p&gt;
+
+  &lt;button @click="other++"&gt;改一个无关数据（触发重新渲染）：{{ other }}&lt;/button&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, computed } from 'vue'
+const list = ref([1, 2, 3, 4, 5])
+const other = ref(0)
+
+function calcSum() {
+  console.log('方法执行了')
+  return list.value.reduce((a, b) =&gt; a + b, 0)
+}
+
+const sum = computed(() =&gt; {
+  console.log('计算属性执行了')
+  return list.value.reduce((a, b) =&gt; a + b, 0)
+})
+&lt;/script&gt;</code></pre>
+  <p>打开控制台观察：</p>
+  <ul>
+    <li>首次渲染：<strong>方法打印 3 次</strong>（模板里出现 3 次就执行 3 次），<strong>计算属性只打印 1 次</strong>；</li>
+    <li>点击按钮（<code>other</code> 变化触发重新渲染，但 <code>list</code> 没变）：<strong>方法又打印 3 次，计算属性一次都不打印</strong>；</li>
+    <li>只有 <code>list</code> 真正变化时，计算属性才会重新计算。</li>
+  </ul>
+  <div class="diagram">
+    <svg viewBox="0 0 800 190" role="img" aria-label="计算属性缓存示意">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">计算属性：依赖变了才重算，否则直接返回缓存值</text>
+      <rect x="40" y="45" width="150" height="40" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="115" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">依赖 list / price</text>
+      <rect x="240" y="45" width="150" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="315" y="70" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">依赖变了吗？</text>
+      <rect x="440" y="40" width="150" height="50" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="515" y="62" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">是 → 重算</text>
+      <text x="515" y="80" text-anchor="middle" font-size="11" fill="#4f6348">并写入缓存</text>
+      <rect x="620" y="40" width="150" height="50" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="695" y="62" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">否 → 用缓存</text>
+      <text x="695" y="80" text-anchor="middle" font-size="11" fill="#4f6348">getter 根本不执行</text>
+      <path d="M190,65 L238,65" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a51)"/>
+      <path d="M390,65 L438,65" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a51)"/>
+      <path d="M390,115 L480,115 L480,92" stroke="#7a8a70" stroke-width="2" fill="none" marker-end="url(#a51)"/>
+      <defs><marker id="a51" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="145" text-anchor="middle" font-size="12" fill="#4f6348">“脏检查”标记：依赖变化 → 标脏 → 下次读取时才真正重算（惰性求值）</text>
+      <text x="400" y="172" text-anchor="middle" font-size="12" fill="#4f6348">第 33 章会从源码层面手写一个 computed，把这个机制彻底讲透</text>
+    </svg>
+    <p class="diagram-caption">图 5-1 计算属性的缓存与惰性求值</p>
+  </div>
+  <p class="key-sentence">缓存带来的不只是性能：它保证了<strong>同一个值在一轮渲染中绝对一致</strong>，不会因为多次调用算出不同结果。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5.4</span> 可写计算属性（get / set）</h2>
+  <p>只读计算属性赋值会失败。想让它可写，传一个对象形式的 <code>get</code> / <code>set</code>：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;input v-model="fullName"&gt;
+  &lt;p&gt;姓：{{ user.firstName }}｜名：{{ user.lastName }}&lt;/p&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { reactive, computed } from 'vue'
+const user = reactive({ firstName: '张', lastName: '三' })
+
+const fullName = computed({
+  // 读：组合
+  get() {
+    return user.firstName + ' ' + user.lastName
+  },
+  // 写：反解回依赖
+  set(val) {
+    const parts = val.split(' ')
+    user.firstName = parts[0] || ''
+    user.lastName = parts[1] || ''
+  }
+})
+&lt;/script&gt;</code></pre>
+  <p>典型使用场景：</p>
+  <ul>
+    <li><strong>组合字段</strong>：姓 + 名 ↔ 全名、省 + 市 + 区 ↔ 完整地址；</li>
+    <li><strong>单位换算</strong>：元 ↔ 分、摄氏度 ↔ 华氏度；</li>
+    <li><strong>与组件 v-model 配合</strong>：把 props 值包装成本地可写的计算属性（第 13 章会用到）。</li>
+  </ul>
+  <div class="warn-box"><span class="tag-pit">坑</span>setter 里<strong>不要去改计算属性自己</strong>（<code>fullName = x</code>），要改的是它的<strong>依赖源</strong>（<code>user.firstName</code>）。否则就是自己写自己，造成死循环。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">5.5</span> computed vs 方法 vs 侦听器</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>维度</th><th>computed</th><th>methods</th><th>watch</th></tr></thead>
+    <tbody>
+      <tr><td>目的</td><td><strong>派生出一个值</strong></td><td>执行一段逻辑</td><td>值变了<strong>做点什么</strong></td></tr>
+      <tr><td>缓存</td><td>有（依赖不变不重算）</td><td>无（每次调用都跑）</td><td>—</td></tr>
+      <tr><td>模板用法</td><td><code>{{ fullName }}</code></td><td><code>{{ fn() }}</code></td><td>不在模板用</td></tr>
+      <tr><td>副作用</td><td>不应有（纯函数）</td><td>可以有</td><td>专门做副作用</td></tr>
+      <tr><td>异步</td><td>不合适</td><td>可以</td><td>可以（常见）</td></tr>
+    </tbody>
+  </table>
+  <p>决策流程：</p>
+  <ol>
+    <li>你需要一个"由别的数据算出来的值" → <strong>computed</strong>；</li>
+    <li>你需要"用户点一下就做某事"或"每次渲染都要重新执行（如取当前时间）" → <strong>methods</strong>；</li>
+    <li>你需要"数据变化后发请求 / 写日志 / 操作 DOM / 做防抖" → <strong>watch</strong>（第 6 章）。</li>
+  </ol>
+<pre class="code" data-lang="js"><code>// ❌ 错误示范：用 watch 去"派生"一个值
+const fullName = ref('')
+watch(() =&gt; user.firstName + user.lastName, v =&gt; { fullName.value = v })
+
+// ✅ 正确：这就是计算属性的活
+const fullName = computed(() =&gt; user.firstName + ' ' + user.lastName)</code></pre>
+  <p class="key-sentence">判断口诀：<strong>能用 computed 表达的需求，就不要用 watch</strong>。watch 是"逃生舱"，不是首选。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">5.6</span> 计算属性的调试与性能</h2>
+  <ul>
+    <li><strong>别在计算属性里做重活</strong>：它会在依赖变化时同步执行，排序上万条数据会卡住渲染。大数据列表请用分页/虚拟列表（第 72 章）。</li>
+    <li><strong>依赖要"被读取"才算依赖</strong>：写在 <code>if</code> 分支里、本次没走到的响应式数据，不会被追踪。</li>
+    <li><strong>Vue 3.4+ 支持调试选项</strong>（了解即可）：</li>
+  </ul>
+<pre class="code" data-lang="js"><code>const sum = computed(() =&gt; list.value.length, {
+  onTrack(e) { console.log('被追踪的依赖：', e) },
+  onTrigger(e) { console.log('触发重算的原因：', e) }
+})</code></pre>
+  <div class="note">在生产构建中这些调试回调会被移除，不会影响体积。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">5.7</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>给只读计算属性赋值</strong>：报 <code>Write operation failed: computed value is readonly</code>。需要改就写 setter，或改依赖源。</li>
+    <li><span class="tag-pit">坑 2</span><strong>在计算属性里做副作用</strong>：如发请求、改别的 state、操作 DOM。计算属性应当是<strong>纯函数</strong>（同样的输入永远同样的输出）。</li>
+    <li><span class="tag-pit">坑 3</span><strong>在 getter 里用异步</strong>：<code>async computed</code> 返回的是 Promise，模板里会渲染成 <code>[object Promise]</code>。异步数据请用 watch + ref，或第 63 章的 Suspense。</li>
+    <li><span class="tag-pit">坑 4</span><strong>以为计算属性"一定会实时更新"</strong>：它惰性地在<strong>下次读取时</strong>才重算，不是依赖一变就立刻算（第 33 章详解）。</li>
+    <li><span class="tag-pit">坑 5</span><strong>把 <code>Date.now()</code> 放进计算属性</strong>：它不是响应式依赖，永远不会更新。需要"当前时间"请用方法或在定时器里改 ref。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>为什么用</td><td>让模板保持声明式；逻辑可复用、可缓存、可测试</td></tr>
+      <tr><td>缓存语义</td><td>依赖不变不重算；惰性求值（读取时才算）</td></tr>
+      <tr><td>vs 方法</td><td>方法每次渲染都执行；计算属性按依赖缓存</td></tr>
+      <tr><td>可写版本</td><td><code>computed({ get, set })</code>，setter 里改依赖源</td></tr>
+      <tr><td>vs 侦听器</td><td>派生值用 computed，副作用用 watch</td></tr>
+      <tr><td>纪律</td><td>计算属性保持纯函数：不同步、无异步、无副作用</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用一段可运行代码证明"计算属性有缓存、方法没有"：分别在两者里 <code>console.log</code>，然后修改一个与其无关的数据触发渲染，记录打印次数。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现一个"购物车结算"：商品列表（含单价、数量、选中状态），用计算属性派生出「已选商品件数」「商品总价」「满 200 减 30 后的应付金额」「是否可用优惠券」。要求模板中没有任何复杂表达式。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写一个可写计算属性完成「金额（元）↔ 金额（分）」双向转换：输入框以元为单位编辑，底层存储以分为单位（避免浮点误差）。思考：为什么金融场景要用分而不是元？</div>
+  <p class="note">参考答案见附录 C。下一章讲侦听器：数据变化后"做点什么"。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="004_第4章_指令体系.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="006_第6章_侦听器watch与watchEffect.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 5 章 计算属性 vs 方法</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

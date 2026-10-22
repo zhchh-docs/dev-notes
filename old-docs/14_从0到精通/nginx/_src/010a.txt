@@ -1,0 +1,105 @@
+title: 第 10 章 内置变量体系
+part: 第一篇 入门与配置体系
+outdir: 10_第一篇_入门与配置体系
+file: 010_第10章_内置变量体系.html
+prev: 009_第9章_rewrite重写规则.html
+next: ../20_第二篇_反向代理与HTTPS/011_第11章_反向代理基础：proxy_pass.html
+meta: 第 10 章 / 共 32 章 · 预计 30 分钟 · 第一篇收官
+desc: $uri、$args、$host、$http_*……Nginx 内置变量是配置的"积木"，map 则让你造出自定义积木。第一篇收官章，为第二篇的反向代理备齐全部语言基础。
+toc: sec1|本章目标;sec2|10.1 变量分类总览;sec3|10.2 高频变量详解;sec4|10.3 map：派生自定义变量;sec5|10.4 典型组合用法;sec6|10.5 惰性求值与性能;sec7|10.6 常见坑;sec8|小结与习题
+---
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>按"请求 / 连接 / 响应 / 上游"四大类建立变量索引；</li>
+    <li>熟练使用 $uri、$args、$host、$arg_xxx、$http_xxx 等高频变量；</li>
+    <li>用 <code>map</code> 派生自定义变量替代危险的 if；</li>
+    <li>理解变量的惰性求值，避免无谓的性能损耗。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">10.1</span> 变量分类总览</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:46%"><col style="width:34%"></colgroup>
+    <thead><tr><th>类别</th><th>代表变量</th><th>用于</th></tr></thead>
+    <tbody>
+      <tr><td>请求信息</td><td><code>$request_method</code> / <code>$request_uri</code> / <code>$uri</code> / <code>$args</code> / <code>$arg_名</code> / <code>$scheme</code> / <code>$http_头名</code></td><td>路由、改写、日志</td></tr>
+      <tr><td>连接与客户端</td><td><code>$remote_addr</code> / <code>$remote_port</code> / <code>$host</code> / <code>$server_port</code> / <code>$binary_remote_addr</code></td><td>限流、访问控制</td></tr>
+      <tr><td>响应侧</td><td><code>$status</code> / <code>$body_bytes_sent</code> / <code>$sent_http_头名</code> / <code>$request_time</code></td><td>日志、监控</td></tr>
+      <tr><td>上游（反代）</td><td><code>$upstream_addr</code> / <code>$upstream_response_time</code> / <code>$upstream_status</code></td><td>排障、负载分析（第二篇主角）</td></tr>
+    </tbody>
+  </table>
+  <p>命名规则两条：<code>$http_头名</code> 取请求头（<code>User-Agent</code> → <code>$http_user_agent</code>，字母转小写、中划线转下划线）；<code>$sent_http_头名</code> 取 Nginx 将要发送的响应头。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">10.2</span> 高频变量详解</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>变量</th><th>值（示例）</th><th>注意点</th></tr></thead>
+    <tbody>
+      <tr><td><code>$uri</code></td><td>/docs/a.html</td><td><strong>已归一化、不含参数、随 rewrite 改变</strong></td></tr>
+      <tr><td><code>$request_uri</code></td><td>/docs/a.html?x=1</td><td>原始完整 URI，永不因 rewrite 改变</td></tr>
+      <tr><td><code>$args</code> / <code>$query_string</code></td><td>x=1&amp;y=2</td><td>不含 ?；改写时单独处理</td></tr>
+      <tr><td><code>$arg_xxx</code></td><td><code>$arg_id</code> → 1</td><td>取单个参数；注意注入风险</td></tr>
+      <tr><td><code>$host</code></td><td>example.com</td><td>依次取请求行、Host 头、server_name</td></tr>
+      <tr><td><code>$http_host</code></td><td>example.com:8443</td><td>原样 Host 头（含端口）</td></tr>
+      <tr><td><code>$scheme</code></td><td>https</td><td>http/https 判断</td></tr>
+      <tr><td><code>$request_time</code></td><td>0.056</td><td>秒，含读请求体到发完响应</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">$uri 与 $request_uri 的分野是本章最重要考点：<strong>rewrite 改的是 $uri，$request_uri 记录用户最初敲的什么</strong>。跳转拼 URL 用后者，磁盘定位用前者。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">10.3</span> map：派生自定义变量</h2>
+  <pre class="code" data-lang="nginx"><code>http {
+    # 依据 $http_user_agent 派生 $device 变量
+    map $http_user_agent $device {
+        default              desktop;
+        ~*mobile             mobile;      # 正则匹配 UA
+        ~*bot|spider         bot;         # 爬虫
+    }
+
+    server {
+        location /api/ {
+            # 把复杂条件收敛成一个变量再消费
+            proxy_pass http://$device_backend;   # upstream 名变量化（需 resolver）
+        }
+    }
+}</code></pre>
+  <ul>
+    <li><code>map</code> 只能放 http 层；<strong>命中规则从上到下，default 兜底</strong>；正则条目支持 <code>~</code> / <code>~*</code>；</li>
+    <li>map 的价值：把复杂条件<strong>收敛成一个变量</strong>，配置主体保持"读起来像 English"。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">10.4</span> 典型组合用法</h2>
+  <pre class="code" data-lang="nginx"><code># 用法一：区分内外网（第 21 章限流会用到）
+geo $remote_addr $is_internal {
+    default         0;
+    10.0.0.0/8      1;
+    192.168.0.0/16  1;
+}
+
+# 用法二：按接口版本分流
+map $arg_version $api_upstream {
+    default   backend_v1;
+    "2"       backend_v2;
+}
+
+# 用法三：日志记录命中路径辅助排障
+log_format debug_loc '$uri -> $document_root [$status] $request_time';</code></pre>
+  <p>变量组合的威力在于<strong>声明式</strong>：条件写在 map/geo 里集中审阅，处理逻辑只消费结果变量——这是大型 nginx.conf 保持可读的关键。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">10.5</span> 惰性求值与性能</h2>
+  <ul>
+    <li>大多数内置变量<strong>用到才算</strong>（lazy）：没出现在配置里的变量几乎零成本；</li>
+    <li>例外警告：<code>$request_body</code> 每次求值要读完整请求体到内存——日志里加它等于全站强制缓冲请求体；</li>
+    <li><code>$http_* / $arg_*</code> 逐请求解析，出现在 map/log_format 高频路径时注意匹配顺序（常用条目放前面）。</li>
+  </ul>
+</section>

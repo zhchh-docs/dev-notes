@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 9 章 远程仓库与 clone｜Git 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4;line-height:1.7}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;padding:16px;z-index:60}
+  nav.toc ol{display:block}
+  nav.toc ol li{margin:6px 0}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;border-radius:6px}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:16px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;white-space:pre}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 14px;margin-left:0;max-width:100%}
+  .hero{padding:28px 0 24px}
+  .hero h1{font-size:22px}
+  nav.toc{margin:0 0 16px;padding:14px}
+  nav.toc ol{grid-template-columns:1fr}
+  section.card{padding:18px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:14px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px;padding:2px 5px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Git 从 0 到精通》 · 第一篇 入门与对象模型</p>
+    <h1>第 9 章 远程仓库与 clone</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 9 章 / 共 40 章 · 预计 40 分钟 · 协作入门章</span>
+    </div>
+    <p class="hero-desc">一个人的 Git 只是备份系统，连上远程才是协作系统。本章讲清 origin 到底是什么、HTTPS 与 SSH 如何选、clone/fetch/pull/push 四者的层次关系，以及远程追踪分支这个"本地指针"的机制。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="008_第8章_.gitignore 的正确写法.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="010_第10章_提交信息规范：怎么写才算好.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">9.1 远程是什么：一个别名 + 一个 URL</a></li>
+    <li><a href="#sec3">9.2 HTTPS 还是 SSH</a></li>
+    <li><a href="#sec4">9.3 clone 的完整过程与常用参数</a></li>
+    <li><a href="#sec5">9.4 远程追踪分支：origin/main 是什么</a></li>
+    <li><a href="#sec6">9.5 fetch / pull / push 的层次关系</a></li>
+    <li><a href="#sec7">9.6 场景演练：从零把本地项目推上远程</a></li>
+    <li><a href="#sec8">常见坑清单</a></li>
+    <li><a href="#sec9">本章小结与习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <code>origin</code> 只是一个<strong>别名</strong>，可以增删改、也可以有多个远程；</li>
+    <li>能根据场景选择 HTTPS 或 SSH，并完成 SSH key 配置；</li>
+    <li>明白 <code>clone</code> 背后做了哪四件事；区分 <strong>远程分支</strong>与<strong>远程追踪分支</strong>；</li>
+    <li>掌握 <code>fetch</code> / <code>pull</code> / <code>push</code> 的关系，知道为何推荐"<strong>先 fetch 看一眼再合并</strong>"。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">9.1</span> 远程是什么：一个别名 + 一个 URL</h2>
+  <p>"远程仓库（remote）"在 Git 里只是<strong>存了一对"别名 → URL"映射的配置项</strong>，写在 <code>.git/config</code> 中：<code>origin</code> 是 clone 时自动起的默认别名，别无玄机。</p>
+  <pre class="code" data-lang="bash"><code>git remote -v
+# origin  https://github.com/you/demo.git (fetch)
+# origin  https://github.com/you/demo.git (push)
+
+# 增 / 改 / 删
+git remote add upstream https://github.com/company/demo.git
+git remote set-url origin git@github.com:you/demo.git
+git remote remove upstream
+git remote rename origin github
+
+# 看某个远程的详情（分支映射、HEAD）
+git remote show origin</code></pre>
+  <p class="key-sentence">一个仓库可以同时配多个远程——典型场景：自己 fork 的仓库用 <code>origin</code>，上游原仓库用 <code>upstream</code>（第 38 章"多远程与镜像"深入）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">9.2</span> HTTPS 还是 SSH</h2>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>协议</th><th>优点</th><th>缺点</th></tr></thead>
+    <tbody>
+      <tr><td>HTTPS</td><td>无需配置；企业网络（443 端口）几乎总能连通</td><td>每次可能要输 token/密码；需配凭据管理器</td></tr>
+      <tr><td>SSH</td><td>配一次永久免密；密钥更安全可控</td><td>需生成并上传公钥；部分公司网络封 22 端口</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># SSH 密钥生成（一次即可）
+ssh-keygen -t ed25519 -C "you@example.com"        # 推荐 ed25519
+# 老系统不支持时：ssh-keygen -t rsa -b 4096 -C "you@example.com"
+
+# 复制公钥内容，粘贴到 GitHub → Settings → SSH and GPG keys
+cat ~/.ssh/id_ed25519.pub
+
+# 验证连通性
+ssh -T git@github.com
+# Hi username! You've successfully authenticated...
+
+# 已有 HTTPS 远程，改为 SSH
+git remote set-url origin git@github.com:you/demo.git</code></pre>
+  <div class="warn-box"><strong>HTTPS 的 token 时代</strong>：GitHub 自 2021 年起<strong>不再接受账号密码</strong>做 HTTPS 推送，需使用 Personal Access Token（PAT）或凭据管理器。遇到 <code>Authentication failed</code> 多半是密码还在用。</div>
+  <pre class="code" data-lang="bash"><code># 凭据管理（避免重复输入）
+git config --global credential.helper manager     # Windows / 新版 Git
+git config --global credential.helper osxkeychain # macOS
+git config --global credential.helper 'cache --timeout=3600'  # Linux</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">9.3</span> clone 的完整过程与常用参数</h2>
+  <p><code>git clone &lt;url&gt;</code> 实际做了四件事：</p>
+  <ol>
+    <li><code>init</code>：建本地仓库（或建目录再 init）；</li>
+    <li><code>remote add origin &lt;url&gt;</code>：配好远程别名；</li>
+    <li><code>fetch</code>：把远程<strong>全部对象</strong>下载到本地对象库（含所有分支的历史）；</li>
+    <li><code>checkout</code>：按远程 HEAD 创建本地分支（如 <code>main</code>）并签出工作区。</li>
+  </ol>
+  <pre class="code" data-lang="bash"><code>git clone git@github.com:you/demo.git              # 目录名 = demo
+git clone git@github.com:you/demo.git mydemo       # 自定义目录名
+git clone -b develop git@github.com:you/demo.git   # 直接签出 develop 分支
+git clone --depth 1 git@github.com:you/demo.git    # 浅克隆：只取最近一次提交（CI 常用）
+git clone --depth 1 --branch v1.2.0 &lt;url&gt;          # 只要某个 tag 的快照
+git clone --recurse-submodules &lt;url&gt;               # 连子模块一起拉（第 28 章）
+git clone --filter=blob:none &lt;url&gt;                 # 部分克隆：按需下载文件内容（超大仓库）</code></pre>
+  <div class="note"><strong>浅克隆的代价</strong>：<code>--depth 1</code> 只有最新提交，<code>git log</code> 看不到历史、<code>blame</code> 不准、无法回溯。需要完整历史时补：<code>git fetch --unshallow</code>。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">9.4</span> 远程追踪分支：origin/main 是什么</h2>
+  <p>这是初学者的关键分水岭。Git 里有两类"看起来像远程分支"的东西：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:38%"><col style="width:36%"></colgroup>
+    <thead><tr><th>名称</th><th>本质</th><th>能否直接提交</th></tr></thead>
+    <tbody>
+      <tr><td>远程分支（服务器上）</td><td>别人仓库里的指针</td><td>不能直接操作</td></tr>
+      <tr><td>远程追踪分支 <code>origin/main</code></td><td><strong>你本地</strong>的一份"上次通信时远程长什么样"的快照</td><td>不能（只读快照）</td></tr>
+      <tr><td>本地分支 <code>main</code></td><td>你自己的指针</td><td>能</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code>git branch -a
+# * main                      # 本地分支
+#   remotes/origin/main       # 远程追踪分支（本地存的一份快照）
+#   remotes/origin/develop
+
+git branch -vv
+# * main   3f2e1d0 [origin/main] feat: 登录功能
+#                    ^追踪关系    ^本地比远程领先的提示会出现在这里</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">关键认知</span>：<code>origin/main</code> <strong>不会自动更新</strong>！它只在你执行 <code>fetch</code> / <code>pull</code> / <code>push</code> 时才刷新。所以"我看到 origin/main 落后了"可能只是你<strong>很久没 fetch</strong> 的假象。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">9.5</span> fetch / pull / push 的层次关系</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="本地与远程的数据流">
+      <defs><marker id="ar9" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7a8a70"/></marker></defs>
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">本地仓库 ←→ 远程仓库的数据流</text>
+      <rect x="80" y="60" width="260" height="110" rx="10" fill="#f0f5e6" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="210" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">你的电脑</text>
+      <text x="210" y="112" text-anchor="middle" font-size="11.5" fill="#4f6348">本地分支 main</text>
+      <text x="210" y="134" text-anchor="middle" font-size="11.5" fill="#4f6348">远程追踪 origin/main</text>
+      <text x="210" y="156" text-anchor="middle" font-size="11.5" fill="#4f6348">工作区 + 暂存区</text>
+      <rect x="470" y="60" width="250" height="110" rx="10" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
+      <text x="595" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">远程服务器</text>
+      <text x="595" y="112" text-anchor="middle" font-size="11.5" fill="#4f6348">GitHub / GitLab / Gitee</text>
+      <text x="595" y="134" text-anchor="middle" font-size="11.5" fill="#4f6348">共享分支 main</text>
+      <text x="595" y="156" text-anchor="middle" font-size="11.5" fill="#4f6348">PR / CI 的触发源</text>
+      <line x1="472" y1="100" x2="344" y2="100" stroke="#7a8a70" stroke-width="2" marker-end="url(#ar9)"/>
+      <text x="408" y="92" text-anchor="middle" font-size="11.5" fill="#2d6a3f">fetch（只下载，不合并）</text>
+      <line x1="344" y1="145" x2="472" y2="145" stroke="#7a8a70" stroke-width="2" marker-end="url(#ar9)"/>
+      <text x="408" y="168" text-anchor="middle" font-size="11.5" fill="#b45309">push（上传本地提交）</text>
+      <text x="400" y="196" text-anchor="middle" font-size="11.5" fill="#7a8a70">pull = fetch + 合并（merge 或 rebase）到当前分支</text>
+    </svg>
+    <p class="diagram-caption">图 9-1 fetch 只更新"远程追踪分支"，pull 才动你的工作分支，push 只上传提交</p>
+  </div>
+  <pre class="code" data-lang="bash"><code># 推荐习惯：先 fetch 看清再决定
+git fetch origin
+git log --oneline main..origin/main     # 别人新提交了什么
+git diff main origin/main --stat        # 差异概览
+git merge origin/main                   # 确认后再合并（或用 rebase）
+
+# 一键版（等于 fetch + merge）
+git pull
+git pull --rebase        # fetch + rebase（历史更线性，第 14 章）
+
+# 上传
+git push origin main
+git push -u origin feature/x   # 首次推送并建立追踪关系，之后只需 git push
+git push --force-with-lease    # 安全强推（第 18 章）</code></pre>
+  <p><span class="tag-point">为什么推荐先 fetch</span>：<code>pull</code> 会<strong>自动改你的工作分支与工作区</strong>；<code>fetch</code> 永远安全（只下载对象、只更新追踪分支），让你先看清楚再决定怎么合。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">9.6</span> 场景演练：从零把本地项目推上远程</h2>
+  <pre class="code" data-lang="bash"><code># 1. 本地已有项目 → 建库并提交
+cd my-project
+git init
+git add . &amp;&amp; git commit -m "chore: 初始化项目"
+
+# 2. 在 GitHub 上新建"空"仓库（不要勾选 README/LICENSE，否则会有历史冲突）
+
+# 3. 关联远程并推送
+git remote add origin git@github.com:you/my-project.git
+git branch -M main                     # 确保本地分支叫 main
+git push -u origin main
+# Enumerating objects...  To github.com:you/my-project.git
+#  * [new branch]      main -&gt; main
+#  branch 'main' set up to track 'origin/main'.
+
+# 4. 之后日常三连
+git add . &amp;&amp; git commit -m "feat: xxx"
+git push
+
+# 5. 换电脑继续：直接 clone
+git clone git@github.com:you/my-project.git</code></pre>
+  <div class="danger-box"><strong>常见失败：non-fast-forward</strong>：远程已有提交（比如网页上建了 README），本地历史与之分叉。解决：先 <code>git pull --rebase origin main</code> 再 push；<strong>不要</strong>一上来就 <code>--force</code>（会覆盖他人提交）。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">⚠</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span>：<code>permission denied (publickey)</code> → SSH key 没配好或没加进 ssh-agent；用 <code>ssh -T</code> 排查；</li>
+    <li><span class="tag-pit">坑 2</span>：HTTPS 报密码错误 → 需要用 PAT 而非账号密码；</li>
+    <li><span class="tag-pit">坑 3</span>：以为 <code>origin/main</code> 是最新的 → 它只在 fetch/pull/push 时更新，先 <code>git fetch</code>；</li>
+    <li><span class="tag-pit">坑 4</span>：<code>git push</code> 没指定分支报错 → 首次用 <code>-u</code> 建立追踪；或配置 <code>push.default=current</code>；</li>
+    <li><span class="tag-pit">坑 5</span>：clone 下来只有默认分支 → 其他分支在本地有追踪分支，用 <code>git switch 分支名</code> 即可自动创建本地分支。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结与习题</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>remote 本质</td><td>别名 → URL 的映射，可多个（origin / upstream）</td></tr>
+      <tr><td>协议选择</td><td>SSH 免密安全；HTTPS 通用但需 token</td></tr>
+      <tr><td>clone 四步</td><td>init + remote add + fetch + checkout</td></tr>
+      <tr><td>origin/main</td><td>本地保存的"远程上次的样子"，只在通信时刷新</td></tr>
+      <tr><td>三个动作</td><td>fetch 只下载、pull = fetch+合并、push 只上传</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>创建一个本地项目，推到 GitHub 新空仓库，用 <code>git remote -v</code> 与 <code>git branch -vv</code> 验证远程与追踪关系。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在另一目录 clone 同一仓库，两边各提交一次，练习"先 fetch 看差异，再决定 merge 或 rebase"，记录两种做法下 <code>git log --graph</code> 的形状差异。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为仓库添加第二个远程 <code>upstream</code>（随便用一个公开仓库 URL），从它 fetch 后查看 <code>git branch -a</code>，说明"多远程"适合什么协作场景。</div>
+  <p class="note">下一章：提交信息规范——Conventional Commits、写好正文与脚注，以及为什么它对自动化发布至关重要。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="008_第8章_.gitignore 的正确写法.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="010_第10章_提交信息规范：怎么写才算好.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Git 从 0 到精通》 · 第 9 章 远程仓库与 clone</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

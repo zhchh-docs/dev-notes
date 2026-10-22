@@ -1,0 +1,142 @@
+title: 第 11 章 反向代理基础：proxy_pass
+part: 第二篇 反向代理与 HTTPS
+outdir: 20_第二篇_反向代理与HTTPS
+file: 011_第11章_反向代理基础：proxy_pass.html
+prev: ../10_第一篇_入门与配置体系/010_第10章_内置变量体系.html
+next: 012_第12章_斜杠语义与URI重写细节.html
+meta: 第 11 章 / 共 32 章 · 预计 35 分钟 · 第二篇开篇
+desc: proxy_pass 让 Nginx 化身反向代理：对用户是一个站点，背后是一组服务。本章覆盖最小可用配置、请求头透传三件套与超时参数全景，是全书最核心的一章。
+toc: sec1|本章目标;sec2|11.1 正向代理 vs 反向代理;sec3|11.2 最小可用的反代配置;sec4|11.3 proxy_pass 的四种写法;sec5|11.4 请求头透传三件套;sec6|11.5 超时与缓冲参数全景;sec7|11.6 常见坑;sec8|小结与习题
+---
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>分清正向代理与反向代理的角色差异；</li>
+    <li>写出生产可用的最小反代配置（代理 + 头透传 + 超时）；</li>
+    <li>记住 <code>proxy_set_header</code> 三件套并理解每一条为什么必须；</li>
+    <li>建立 proxy_ 超时参数地图，上游慢时知道调哪里。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">11.1</span> 正向代理 vs 反向代理</h2>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:44%"><col style="width:40%"></colgroup>
+    <thead><tr><th>角色</th><th>代理的对象</th><th>用户感知</th></tr></thead>
+    <tbody>
+      <tr><td>正向代理</td><td>代理<strong>客户端</strong>（VPN、科学上网、爬虫代理池）</td><td>服务器不知道真实客户端是谁</td></tr>
+      <tr><td><strong>反向代理</strong></td><td>代理<strong>服务端</strong>（Nginx 站在服务前面）</td><td>用户以为 Nginx 就是服务本身，看不到内部结构</td></tr>
+    </tbody>
+  </table>
+  <p>反向代理给服务端带来的能力：统一入口与 TLS、隐藏拓扑、负载均衡、缓存、限流、灰度——第二篇逐章展开，全部建立在 proxy_pass 这一个指令之上。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">11.2</span> 最小可用的反代配置</h2>
+  <pre class="code" data-lang="nginx"><code>server {
+    listen 80;
+    server_name api.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+
+        # 透传三件套（见 11.4，缺一不可）
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 超时基线（见 11.5）
+        proxy_connect_timeout 5s;
+        proxy_send_timeout    60s;
+        proxy_read_timeout    60s;
+    }
+}</code></pre>
+  <p>先在本地起一个假上游验证：<code>python3 -m http.server 8080</code>，然后 <code>curl http://127.0.0.1/</code>——Nginx 80 收到的请求被原样转给 8080 并把响应带回来。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">11.3</span> proxy_pass 的四种写法</h2>
+  <pre class="code" data-lang="nginx"><code>location /api/ {
+    proxy_pass http://backend;              # ① 不带 URI：原样透传
+    proxy_pass http://backend/;             # ② 带根 URI：替换 location 前缀
+    proxy_pass http://backend/v2/;          # ③ 带路径 URI：前缀替换为该路径
+    proxy_pass http://$upstream_var;        # ④ 变量化（需 resolver，第 10 章）
+}</code></pre>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>写法</th><th>请求 /api/user 的转发结果</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>① 无 URI</td><td>/api/user 原样发给上游</td><td><strong>默认选择</strong>，上游认识原路径</td></tr>
+      <tr><td>② 带 /</td><td>/user（/api/ 被剥掉）</td><td>上游挂在根路径，网关层剥前缀</td></tr>
+      <tr><td>③ 带 /v2/</td><td>/v2/user</td><td>路由到不同版本的 API</td></tr>
+      <tr><td>④ 变量</td><td>运行时决定</td><td>动态路由、灰度（第 29 章）</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">①②③ 的差异全部来自 <strong>proxy_pass 是否带 URI</strong>——这是第 12 章的主题，先把"默认写 ①"刻进习惯，能避开 80% 的斜杠事故。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">11.4</span> 请求头透传三件套</h2>
+  <p>proxy_pass <strong>默认只透传部分头</strong>，Host 会被改成 upstream 名、客户端 IP 信息全部丢失。三件套各自补一块拼图：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:38%"><col style="width:36%"></colgroup>
+    <thead><tr><th>头</th><th>作用</th><th>不配的后果</th></tr></thead>
+    <tbody>
+      <tr><td><code>Host $host</code></td><td>把原始域名带给上游</td><td>上游按域名路由的应用（虚拟主机）全部 404/错站点</td></tr>
+      <tr><td><code>X-Real-IP $remote_addr</code></td><td>直连客户端 IP</td><td>上游看到的全是 Nginx 的 IP，风控/日志失真</td></tr>
+      <tr><td><code>X-Forwarded-For $proxy_add_x_forwarded_for</code></td><td>追加到 XFF 链尾</td><td>多层代理时丢失链路，第 13 章详析</td></tr>
+      <tr><td><code>X-Forwarded-Proto $scheme</code></td><td>告知原始协议</td><td>TLS 终结后上游误判 http，生成 http:// 的跳转/资源链接</td></tr>
+    </tbody>
+  </table>
+  <p>团队实践：把三件套写进 <code>snippets/proxy-common.conf</code>，各 location 统一 include（注意 3.6 数组型指令的坑：include 片段本身就是完整的一组 set_header，不要在 location 再零散追加后忘记片段）。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">11.5</span> 超时与缓冲参数全景</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:12%"><col style="width:56%"></colgroup>
+    <thead><tr><th>指令</th><th>默认</th><th>语义</th></tr></thead>
+    <tbody>
+      <tr><td><code>proxy_connect_timeout</code></td><td>60s</td><td>与上游建立 TCP 的时间上限，内网建议 3-5s</td></tr>
+      <tr><td><code>proxy_send_timeout</code></td><td>60s</td><td>向上游发送请求的<strong>相邻写操作</strong>间隔上限</td></tr>
+      <tr><td><code>proxy_read_timeout</code></td><td>60s</td><td>等上游响应的<strong>相邻读操作</strong>间隔上限（不是总时长！）</td></tr>
+      <tr><td><code>proxy_buffering</code></td><td>on</td><td>响应缓冲：上游回得快慢不均时 Nginx 先攒后发</td></tr>
+      <tr><td><code>proxy_buffer_size</code></td><td>4k/8k</td><td>响应头缓冲区，上游响应头巨大时需调大</td></tr>
+      <tr><td><code>proxy_next_upstream</code></td><td>error timeout</td><td>何种失败切换下一个上游节点（第 14 章配合）</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li><strong>read_timeout 是"间隔"不是"总时长"</strong>：SSE/长轮询会被 60s 静默切断，第 15 章专门处理；</li>
+    <li><strong>502 vs 504</strong>：连接被拒/失败 → 502 Bad Gateway；超时 → 504 Gateway Timeout。排障先分清这两个码。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">11.6</span> 常见坑</h2>
+  <ol>
+    <li><strong>忘配 Host 头</strong>：上游 Spring 应用 context 路由依赖域名，表现为"直连正常、走 Nginx 404"；</li>
+    <li><strong>大文件上传 413</strong>：默认 <code>client_max_body_size 1m</code>——在 http 或 location 调大（如 <code>100m</code>）；</li>
+    <li><strong>上游重定向后 URL 变内网地址</strong>：上游返回的 Location 头是内部域名，用 <code>proxy_redirect</code> 重写；</li>
+    <li><strong>响应头超缓冲区</strong>：上游塞了巨型 Set-Cookie，报 <code>upstream sent too big header</code>，调 <code>proxy_buffer_size</code> 与 <code>proxy_buffers</code>；</li>
+    <li><strong>HTTP/1.0 回源</strong>：默认 <code>proxy_http_version 1.0</code> 且无 keepalive，长连接场景（第 14/15 章）要改 1.1。</li>
+  </ol>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 小结与习题</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>proxy_pass 本质</td><td>不带 URI 原样透传；带 URI 做前缀替换（第 12 章细讲）</td></tr>
+      <tr><td>三件套</td><td>Host / X-Real-IP / X-Forwarded-For（+Proto），统一进 snippets</td></tr>
+      <tr><td>超时三兄弟</td><td>connect 管握手、send/read 管间隔；502=连接失败，504=超时</td></tr>
+      <tr><td>上传大小</td><td>client_max_body_size 默认 1m，生产必调</td></tr>
+    </tbody>
+  </table>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 <code>python3 -m http.server 8080</code> 当上游，完成 11.2 最小配置，用 curl 验证并观察 8080 端收到的请求头。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>注释掉 Host 头再请求一个依赖域名的上游（可用 hosts + 两个 server 模拟），复现"错站点"现象。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写一个 sleep 3 秒的假上游，把 read_timeout 调到 1s，观察 504 与 error.log 的 <code>upstream timed out</code>。</div>
+  <p class="note">下一章：斜杠语义——proxy_pass 尾巴上那个 / 的全部秘密。</p>
+</section>

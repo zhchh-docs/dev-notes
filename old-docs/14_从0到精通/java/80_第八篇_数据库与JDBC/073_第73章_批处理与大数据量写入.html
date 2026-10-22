@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 73 章 批处理与大数据量写入｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第八篇 数据库与 JDBC</p>
+    <h1>第 73 章 批处理与大数据量写入</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 73 章 / 共 112 章 · 预计 40 分钟 · 上一章：事务 commit/rollback 实战</span>
+    </div>
+    <p class="hero-desc">导 Excel、同步数据、迁移历史库——一次写几万行是后端日常。逐条 insert 慢到怀疑人生，批处理能快百倍，但配置错一个开关就白搭。本章把批量写入的性能账算明白。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="072_第72章_事务commit_rollback实战.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="074_第74章_DAO模式与代码分层.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">73.1 为什么逐条 insert 慢</a></li>
+    <li><a href="#sec3">73.2 addBatch/executeBatch 正确用法</a></li>
+    <li><a href="#sec4">73.3 两个决定性开关</a></li>
+    <li><a href="#sec5">73.4 分批提交与失败恢复</a></li>
+    <li><a href="#sec5b">73.5 更快的路：LOAD DATA 与 ON DUPLICATE KEY</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>解释逐条写入慢的<strong>三层成本</strong>（网络往返、SQL 解析、事务刷盘）；</li>
+    <li>掌握 <strong>addBatch / executeBatch</strong> 与 <strong>rewriteBatchedStatements</strong>；</li>
+    <li>会用<strong>分批提交</strong>平衡速度与风险；</li>
+    <li>知道超大数据量的<strong>更优解</strong>（LOAD DATA、ON DUPLICATE KEY）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">73.1</span> 为什么逐条 insert 慢</h2>
+  <p class="lead"><strong>一句话定位</strong>：慢不在数据库执行，而在"每行一次完整对话"——每条 SQL 都是独立的网络往返、独立解析、（默认）独立提交。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:46%"><col style="width:28%"></colgroup>
+    <thead><tr><th>成本层</th><th>逐条时的开销</th><th>批量化收益</th></tr></thead>
+    <tbody>
+      <tr><td>网络往返</td><td>每条 1 次 RTT（局域网 0.5ms，跨机房 20ms+）</td><td>打包后接近 0</td></tr>
+      <tr><td>SQL 解析</td><td>每条完整解析一遍</td><td>预编译复用 + 改写成多值</td></tr>
+      <tr><td>事务刷盘</td><td>autoCommit 下每条一次 redo 刷盘</td><td>一批一次 fsync</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence"><span class="tag-pit">实测感知</span>：本机 MySQL 插 10 万行，逐条约 60~90 秒，正确批处理后 3~5 秒——差距来自上表三层，缺一层就回到慢速档。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">73.2</span> addBatch/executeBatch 正确用法</h2>
+  <pre class="code" data-lang="java"><code>public long batchInsert(Connection conn, List&lt;User&gt; users) throws SQLException {
+    String sql = "INSERT INTO user(name, email) VALUES(?, ?)";
+    long total = 0;
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        conn.setAutoCommit(false);                  // 批处理必须配手动事务
+        int count = 0;
+        for (User u : users) {
+            ps.setString(1, u.name());
+            ps.setString(2, u.email());
+            ps.addBatch();                          // 攒进批次，不执行
+            if (++count % 1000 == 0) {              // 每 1000 条刷一次
+                total += sum(ps.executeBatch());
+                ps.clearBatch();
+            }
+        }
+        total += sum(ps.executeBatch());            // 收尾零头
+        conn.commit();
+    } catch (SQLException e) {
+        conn.rollback();
+        throw e;
+    }
+    return total;
+}
+private static int sum(int[] arr) { int s = 0; for (int n : arr) s += n; return s; }</code></pre>
+  <ul>
+    <li>executeBatch 返回<strong>每条语句的受影响行数数组</strong>；</li>
+    <li>批大小 500~2000 是常见甜点区：太小往返多，太大单包超限（max_allowed_packet）与回滚代价大；</li>
+    <li>批内循环要 <strong>clearBatch</strong>（或依赖驱动自动清），否则内存与行为都可能异常。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">73.3</span> 两个决定性开关</h2>
+  <p>JDBC 批处理默认只是"攒起来逐条发"——真正提速必须开这两个：</p>
+  <pre class="code" data-lang="bash"><code># ① MySQL 驱动：把批改写成多值 INSERT（性能差 10~50 倍的关键）
+jdbc:mysql://localhost:3306/jdbc_demo?rewriteBatchedStatements=true
+
+# ② 关自动提交（代码里）：一批一次 fsync，而不是每条一次
+conn.setAutoCommit(false);   # 已在第 73.2 节代码中</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 170" role="img" aria-label="批处理改写示意">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">rewriteBatchedStatements 的作用</text>
+      <rect x="50" y="44" width="330" height="70" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="215" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">未开启：网络上传 1000 条独立 INSERT</text>
+      <text x="215" y="94" text-anchor="middle" font-size="11.5" fill="#4f6348">INSERT ...; INSERT ...; INSERT ...（逐条往返）</text>
+      <rect x="420" y="44" width="330" height="70" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="585" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">开启：驱动改写成一条多值语句</text>
+      <text x="585" y="94" text-anchor="middle" font-size="11.5" fill="#4f6348">INSERT INTO user VALUES(...),(...),(...)...（一次往返）</text>
+      <text x="400" y="150" text-anchor="middle" font-size="12" fill="#7a8a70">同一份 Java 批处理代码，开关不同，速度可差 10~50 倍</text>
+    </svg>
+    <p class="diagram-caption">图 73-1 批处理改写前后对比</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">73.4</span> 分批提交与失败恢复</h2>
+  <ul>
+    <li><strong>可重跑</strong>：导入任务要能"从断点续传"——用唯一键 + <code>INSERT IGNORE</code> / <code>ON DUPLICATE KEY UPDATE</code> 让重复执行幂等；</li>
+    <li><strong>分批事务</strong>：10 万行不要一个事务到底（undo 膨胀、锁窗口过长），按 1 万行一个事务；</li>
+    <li><strong>失败样本留存</strong>：单行格式错误不要让整批失败——错误行落文件/表，继续跑；</li>
+    <li><strong>限速</strong>：线上导入注意主从延迟，必要时批间 sleep 控制复制压力。</li>
+  </ul>
+  <pre class="code" data-lang="java"><code>// 幂等批量的常用模板（可重跑、可恢复）
+String sql = "INSERT INTO user(id, name, email) VALUES(?, ?, ?) " +
+             "ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)";
+// 断了再跑一遍也不会产生重复数据</code></pre>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">73.5</span> 更快的路：LOAD DATA 与替代方案</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>方案</th><th>适用与要点</th></tr></thead>
+    <tbody>
+      <tr><td>JDBC 批处理</td><td>通用首选；十万级 3~5 秒可接受</td></tr>
+      <tr><td>LOAD DATA INFILE</td><td>CSV 大导入最快（百万级分钟内）；需 LOCAL INFILE 权限，注意字符集</td></tr>
+      <tr><td>导入临时表 + 迁移</td><td>先快速入临时表，再分批 INSERT...SELECT 校验清洗，回滚友好</td></tr>
+      <tr><td>消息队列削峰</td><td>实时链路的大批量入库：先落 MQ，消费者按自身节奏批量写</td></tr>
+      <tr><td>LOAD 时禁索引</td><td>超大导入可先删二级索引、导完重建（离线库专用，慎用于生产主库）</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code>mysql&gt; LOAD DATA LOCAL INFILE '/tmp/users.csv'
+    -&gt; INTO TABLE user FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'
+    -&gt; (name, email);
+# 需要连接参数 allowLoadLocalInfile=true 与服务端 local_infile=ON</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>慢的根源</td><td>往返 + 解析 + 刷盘三层各自独立；批量同时消掉三层</td></tr>
+      <tr><td>正确姿势</td><td>addBatch + executeBatch + 手动事务 + 每 1000 条刷</td></tr>
+      <tr><td>致命开关</td><td>rewriteBatchedStatements=true；不开等于白批</td></tr>
+      <tr><td>可靠性</td><td>分批事务、幂等重跑（ON DUPLICATE KEY）、错误行留存</td></tr>
+      <tr><td>更大体量</td><td>LOAD DATA 最快；实时链路用 MQ 削峰</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出批量插入模板代码，标出四个关键点（batch、大小、事务、开关）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>插 5 万行分别测三种模式：逐条、仅批处理（无开关）、批处理+rewrite，记录耗时并解释差距。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把批处理改成可恢复任务：记录已完成的批号到进度表，中断后重跑从断点继续且无重复数据。</div>
+  <p class="note">下一章：DAO 模式与代码分层——让这些 JDBC 代码住在正确的位置。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="072_第72章_事务commit_rollback实战.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="074_第74章_DAO模式与代码分层.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 73 章 批处理与大数据量写入</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

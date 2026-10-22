@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 7 章 Set：去重与集合运算｜Redis 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.basic{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px;margin:24px 0}
+section.card h2{font-size:21px;margin:0 0 18px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:30px;height:30px;line-height:30px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:17px;margin:26px 0 10px;color:var(--accent-2)}
+section.card h4{font-size:15px;margin:18px 0 8px}
+section.card p{margin:10px 0}
+section.card ul,section.card ol{margin:10px 0;padding-left:24px}
+section.card li{margin:6px 0}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media (max-width:760px){
+  .container{padding:0 14px}
+  .hero{padding:32px 0 26px}
+  .hero h1{font-size:23px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 18px}
+  pre.code{font-size:12.5px;padding:14px 14px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+
+/* ===== 全库统一导航 ===== */
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}.doc-nav-btn{font-size:13px;padding:6px 9px}}
+
+/* ===== 全库统一 Prism 深色主题 ===== */
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}:not(pre)>code[class*=language-],pre[class*=language-]{background:#272822}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}
+/* 适配库内代码块：保留 --code-bg 深底与 --mono 字体，去除主题自带背景/阴影 */
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+
+/* ===== 全库统一可读性排版 ===== */
+/* 正文阅读密度：行距加大、留白充足 */
+body{line-height:1.85}
+section.card{padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px}
+section.card h2 .num{min-width:32px;height:32px;line-height:32px;font-size:16px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+/* 一级要点：主题色圆点/序号 */
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+/* 二级细节：细色条 + 缩进 + 次级色 marker */
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+/* 行内强调标签：关键术语 / 要点 / 坑 */
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+/* 强调句：结论/易错点 左侧色条 */
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+/* 概念块「一句话定位」 */
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+/* 长代码/长句折行保护 */
+section.card li strong{color:var(--ink)}
+@media(max-width:760px){
+  body{line-height:1.8}
+  section.card{padding:22px 18px}
+  section.card h2{font-size:21px}
+  section.card h3{font-size:17.5px;margin:28px 0 10px}
+  section.card h4{font-size:15.5px;margin:20px 0 8px}
+  .lead{padding:8px 10px;font-size:14.5px}
+}
+
+
+
+
+
+
+/* ===== 左侧目录树样式（覆盖原来的） ===== */
+@media(min-width:1024px){
+  nav.toc {
+    position: fixed !important;
+    left: 20px;
+    top: 80px;
+    width: 240px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d8e2cc;
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 60;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    color: #22331f;
+    margin: 0 0 12px 0 !important;
+    padding: 0 0 8px 0 !important;
+    border-bottom: 1px solid #d8e2cc !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: normal !important;
+  }
+  nav.toc ol {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    columns: 1 !important;
+    column-count: 1 !important;
+  }
+  nav.toc ol li {
+    margin: 6px 0 !important;
+    break-inside: avoid !important;
+  }
+  nav.toc ol li a {
+    display: block !important;
+    padding: 6px 10px !important;
+    color: #7a8a70 !important;
+    text-decoration: none !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-radius: 6px !important;
+    transition: all .15s !important;
+    background: transparent !important;
+    border: none !important;
+    font-weight: normal !important;
+  }
+  nav.toc ol li a:hover {
+    background: #f0f5e6 !important;
+    color: #2d6a3f !important;
+  }
+  .container {
+    margin-left: 280px !important;
+    max-width: calc(100% - 300px) !important;
+  }
+}
+@media(max-width:1023px){
+  nav.toc {
+    position: static !important;
+    width: auto !important;
+  }
+}
+
+
+
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 20px 16px !important;
+  }
+  .hero h1 {
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  .breadcrumb {
+    font-size: 12px !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 12px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 16px 0 !important;
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+  nav.toc h2 {
+    font-size: 14px !important;
+    margin-bottom: 10px !important;
+  }
+  nav.toc ol li a {
+    font-size: 13px !important;
+    padding: 5px 8px !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 18px 16px !important;
+    margin: 16px 0 !important;
+    border-radius: 10px !important;
+  }
+  section.card h2 {
+    font-size: 19px !important;
+    margin-bottom: 16px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 24px 0 10px !important;
+  }
+  section.card h4 {
+    font-size: 15px !important;
+    margin: 18px 0 8px !important;
+  }
+  section.card p {
+    font-size: 14px !important;
+    line-height: 1.75 !important;
+  }
+  section.card li {
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 12px !important;
+    overflow-x: auto !important;
+  }
+  code {
+    font-size: 13px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+    overflow-x: auto !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 12px !important;
+    flex-wrap: wrap;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 12px !important;
+    margin: 16px 0 !important;
+  }
+  .glossary-item {
+    font-size: 13px !important;
+    padding: 4px 8px !important;
+    margin: 4px !important;
+  }
+
+
+
+/* ===== 手机端深度优化 ===== */
+@media(max-width:768px){
+  /* 全局 */
+  body {
+    line-height: 1.7 !important;
+    font-size: 15px !important;
+  }
+  
+  /* 顶部导航 */
+  .doc-nav.top {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .doc-nav-btn {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  /* 页面头部 */
+  .hero {
+    padding: 16px 14px !important;
+  }
+  .hero h1 {
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+  }
+  .hero-desc {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+  }
+  
+  /* 内容容器 */
+  .container {
+    padding: 0 10px !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  /* 卡片 */
+  section.card {
+    padding: 16px 14px !important;
+    margin: 12px 0 !important;
+    border-radius: 8px !important;
+  }
+  section.card h2 {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+    padding-left: 10px !important;
+  }
+  section.card h2 .num {
+    min-width: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    font-size: 13px !important;
+  }
+  section.card h3 {
+    font-size: 16px !important;
+    margin: 20px 0 8px !important;
+    padding-left: 8px !important;
+  }
+  section.card h4 {
+    font-size: 14.5px !important;
+    margin: 16px 0 6px !important;
+  }
+  section.card p {
+    font-size: 14.5px !important;
+    line-height: 1.75 !important;
+    margin: 10px 0 !important;
+  }
+  section.card ul, section.card ol {
+    padding-left: 20px !important;
+    margin: 10px 0 !important;
+  }
+  section.card li {
+    font-size: 14.5px !important;
+    line-height: 1.7 !important;
+    margin: 6px 0 !important;
+  }
+  
+  /* 行内代码 - 关键优化！ */
+  code {
+    font-size: 13px !important;
+    padding: 2px 5px !important;
+    border-radius: 4px !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    display: inline !important;
+    max-width: 100% !important;
+  }
+  
+  /* 代码块 */
+  pre.code {
+    font-size: 12px !important;
+    padding: 10px !important;
+    overflow-x: auto !important;
+    border-radius: 6px !important;
+  }
+  
+  /* 图示 */
+  .diagram {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+    overflow-x: auto !important;
+    border-radius: 8px !important;
+  }
+  .diagram svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* 目录 */
+  nav.toc {
+    margin: 0 0 12px 0 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  nav.toc h2 {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+  nav.toc ol li a {
+    font-size: 12.5px !important;
+    padding: 4px 6px !important;
+  }
+  
+  /* 底部导航 */
+  .doc-nav.bottom {
+    padding: 10px !important;
+  }
+  
+  /* 术语条 */
+  .glossary-bar {
+    padding: 10px !important;
+    margin: 12px 0 !important;
+  }
+  .glossary-item {
+    font-size: 12.5px !important;
+    padding: 3px 6px !important;
+    margin: 3px !important;
+  }
+  
+  /* 强调句 */
+  .key-sentence, .pit-sentence {
+    padding: 8px 10px !important;
+    margin: 10px 0 !important;
+    font-size: 14px !important;
+  }
+  
+  /* lead */
+  .lead {
+    padding: 8px 10px !important;
+    font-size: 13.5px !important;
+    margin: 10px 0 !important;
+  }
+}
+
+
+/* ===== 修复手机端页面溢出 ===== */
+html, body {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+* {
+  max-width: 100% !important;
+}
+
+img, svg, video {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* 代码块内部可以滚动，但不撑开页面 */
+pre, .code, .diagram {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* 行内代码不换行但不溢出 */
+code {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+
+/* ===== 强制修复行内代码溢出 ===== */
+code {
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  word-wrap: break-word !important;
+  max-width: 100% !important;
+  display: inline !important;
+  overflow: hidden !important;
+}
+
+p, li, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+
+/* ===== 教科书模块专属样式 ===== */
+.book-toc{columns:2;column-gap:36px;padding-left:24px}
+.book-toc li{break-inside:avoid;font-size:13.5px;color:var(--ink-2);margin:4px 0;line-height:1.6;list-style:disc}
+.book-toc li b{color:var(--accent);margin-right:6px}
+@media(max-width:760px){.book-toc{columns:1}}
+.bstat{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:2px;white-space:nowrap}
+.bstat.plan{background:#eef3e8;color:#4f6348;border:1px solid #d8e2cc}
+.bstat.doing{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.bstat.done{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.book-part h3{margin-top:22px}
+
+/* ===== 教科书章页专属 ===== */
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+section.card h2 .num{font-size:14px;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Redis 从 0 到精通》 · 第一篇 入门与数据结构</p>
+    <h1>第 7 章 Set：去重与集合运算</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 7 章 / 共 54 章 · 预计 30 分钟 · 零基础可读</span>
+    </div>
+    <p class="hero-desc">无序不重复的魔法：抽奖、共同关注、标签系统——SINTER/SUNION/SDIFF 三个集合运算撑起一半业务场景。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">7.1 Set 命令全景</a></li>
+    <li><a href="#sec3">7.2 集合运算：SINTER/SUNION/SDIFF</a></li>
+    <li><a href="#sec4">7.3 底层编码：intset 到 hashtable</a></li>
+    <li><a href="#sec5">7.4 四个高频业务场景</a></li>
+    <li><a href="#sec6">7.5 大型集合的运算策略</a></li>
+    <li><a href="#sec7">7.6 常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 Set 的核心命令，尤其是<strong>随机取样</strong>（SRANDMEMBER / SPOP）这对抽奖好搭档；</li>
+    <li>理解三个集合运算<strong>各自的复杂度与副作用</strong>，知道什么时候必须加 <code>STORE</code> 而不是直出；</li>
+    <li>能用 Set 落地<strong>抽奖、共同关注、标签、防重复</strong>四个场景；</li>
+    <li>面对百万级集合，知道如何避免一次操作阻塞整个实例；</li>
+    <li>识别"把 Set 当 Redis 版 DISTINCT 查询"这类误用。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 3-6 章。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">7.1</span> Set 命令全景</h2>
+  <p class="lead"><b>Set = <b>无序、去重</b>的字符串集合；单个元素增删查芯是 <b>O(1)</b>。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD tags:post:1 redis 缓存 ceph
+(integer) 3                        # 返回新增成功数（已存在的不算）
+127.0.0.1:6379&gt; SADD tags:post:1 redis
+(integer) 0                        # 去重生效
+127.0.0.1:6379&gt; SISMEMBER tags:post:1 redis
+(integer) 1
+127.0.0.1:6379&gt; SMISMEMBER tags:post:1 redis mysql      # 7.0+：批量判断
+1) (integer) 1
+2) (integer) 0
+127.0.0.1:6379&gt; SCARD tags:post:1
+(integer) 3
+127.0.0.1:6379&gt; SMEMBERS tags:post:1      # 全部成员（大集合危险！见 7.6）
+1) "ceph"
+2) "redis"
+3) "缓存"
+127.0.0.1:6379&gt; SREM tags:post:1 ceph
+(integer) 1
+127.0.0.1:6379&gt; SMOVE tags:post:1 tags:post:2 缓存      # 原子地把成员迁移到另一个集合
+(integer) 1</code></pre>
+
+  <h4>随机家族：抽奖全靠它</h4>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD lottery:users u1 u2 u3 u4 u5
+(integer) 5
+
+# SRANDMEMBER：随机返回，【不删除】（可以做多次抽，可重复出现）
+127.0.0.1:6379&gt; SRANDMEMBER lottery:users 2        # 正数：互不重复的 2 个
+1) "u3"
+2) "u1"
+127.0.0.1:6379&gt; SRANDMEMBER lottery:users -3       # 负数：允许重复的 3 个
+1) "u2"
+2) "u2"
+3) "u5"
+
+# SPOP：随机返回并【删除】（等额抽奖、抽完不重姓名单）
+127.0.0.1:6379&gt; SPOP lottery:users 2
+1) "u4"
+2) "u2"
+127.0.0.1:6379&gt; SCARD lottery:users
+(integer) 3</code></pre>
+  <p class="key-sentence">抽奖口诀：<b>不剔除（可重复中奖）用 SRANDMEMBER；要剔名额（抽完即走）用 SPOP。</b>两者都是<b>原子</b>操作，不需要自己加锁做"防重复中奖"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">7.2</span> 集合运算：SINTER/SUNION/SDIFF</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>运算</th><th>命令</th><th>含义</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td>交集</td><td><code>SINTER k1 k2 ...</code></td><td>同时在所有集合里</td><td>O(N×M)，M=最小集合规模</td></tr>
+      <tr><td>并集</td><td><code>SUNION k1 k2 ...</code></td><td>任一集合里有的全部</td><td>O(N)，N=全体成员数</td></tr>
+      <tr><td>差集</td><td><code>SDIFF k1 k2 ...</code></td><td>在 k1 但不在 k2.. 里</td><td>O(N)，N=成员总数</td></tr>
+      <tr><td>带存储</td><td><code>SINTERSTORE dest ...</code></td><td>算完存到 dest 而不返回</td><td>同上 + 写入开销</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD follow:u1 a b c d
+(integer) 4
+127.0.0.1:6379&gt; SADD follow:u2 b c e
+(integer) 3
+
+127.0.0.1:6379&gt; SINTER follow:u1 follow:u2        # 共同关注
+1) "b"
+2) "c"
+127.0.0.1:6379&gt; SDIFF follow:u1 follow:u2         # u1 关注了但 u2 没关注 → 推荐候选
+1) "a"
+2) "d"
+127.0.0.1:6379&gt; SUNION follow:u1 follow:u2        # 合并
+1) "a" 2) "b" 3) "c" 4) "d" 5) "e"
+
+# 结果要留给下次用：用 STORE 版本（返回存进去的元素个数）
+127.0.0.1:6379&gt; SINTERSTORE mutual:u1:u2 follow:u1 follow:u2
+(integer) 2
+127.0.0.1:6379&gt; EXPIRE mutual:u1:u2 600           # 记得给结果一个 TTL！</code></pre>
+  <div class="danger-box"><strong>复杂度陷阱</strong>：<code>SINTER</code> 的复杂度是 <strong>O(N×M)</strong>，要对两个各 10 万成员的集合求交集，Redis 要遍历小集合的成员去大集合里查——这是<strong>毫秒到秒级</strong>的操作，且<strong>阻塞所有其它请求</strong>。<br/>三个对策：<br/>① 在<strong>从库</strong>上做（不能接受实时一致性时）；<br/>② 结果用 <code>SINTERSTORE</code> 缓存起来复用，而不是每次实时算；<br/>③ 把"好友关系"这类需要实时运算的数据放回 SQL/图数据库，Redis 只存热点。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">7.3</span> 底层编码：intset 到 hashtable</h2>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD nums 1 2 3 4 5
+(integer) 5
+127.0.0.1:6379&gt; OBJECT ENCODING nums
+intset                     # 全是整数时，用紧凑的有序整数数组，极省内存
+
+127.0.0.1:6379&gt; SADD nums hello
+(integer) 1
+127.0.0.1:6379&gt; OBJECT ENCODING nums
+hashtable                  # 一加入非整数就转 hashtable，【不可逆】
+
+127.0.0.1:6379&gt; CONFIG GET set-max-intset-entries
+1) "set-max-intset-entries"
+2) "512"                   # 纯整数元素超过 512 个也会转 hashtable
+# 另有 set-max-listpack-entries 128 / set-max-listpack-value 64（7.2 起的过渡编码）</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>编码</th><th>适用</th><th>特点</th></tr></thead>
+    <tbody>
+      <tr><td>intset</td><td>全整数 且 ≤512 个</td><td>最省内存；查找 O(logN)（内部有序，二分）</td></tr>
+      <tr><td>listpack</td><td>少量短字符串成员</td><td>紧凑；查找 O(N)</td></tr>
+      <tr><td>hashtable</td><td>其它</td><td>查找 O(1)；内存开销最大</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">启示：<b>用 Set 存一大堆用户 ID（如签到名单、黑名单），保持纯整数 ID 会很省内存；一旦混进一个非数字字符串，整个集合变成 hashtable，内存可能翻几倍且不可逆。</b></p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">7.4</span> 四个高频业务场景</h2>
+
+  <h3>① 抽奖 / 随机推荐</h3>
+  <pre class="code" data-lang="bash"><code># 参与资格写入（活动结束记得删）
+SADD lottery:2026:participants 1001 1002 1003 ...
+# 一等奖 1 名（抽出后移除）：SPOP
+SPOP lottery:2026:participants 1
+# 二等奖 10 名（可重复参与池、不移除）：SRANDMEMBER
+SRANDMEMBER lottery:2026:participants 10</code></pre>
+
+  <h3>② 共同关注 / 好友推荐（二度人脉）</h3>
+  <pre class="code" data-lang="bash"><code># 每个用户的关注列表一个 Set
+SADD follow:u1 u2 u3 u4
+SADD follow:u2 u3 u5
+# 共同关注
+SINTER follow:u1 follow:u2                  # → u3
+# 你可能认识的人（我对 x 的关注 ∩ x 的关注者 → 简化版：差集 + 随机）
+SDIFF follow:u2 follow:u1                   # u2 关注了但 u1 没关注的 → 推荐给 u1</code></pre>
+
+  <h3>③ 标签 / 反向索引</h3>
+  <pre class="code" data-lang="bash"><code># 正向：这篇文章的标签
+SADD tags:article:1 redis 性能 缓存
+# 反向：这个标签下有哪些文章（便于筛选）
+SADD tagidx:redis article:1 article:5 article:9
+SADD tagidx:性能 article:1 article:7
+# 「同时有 redis 和 性能 标签的文章」
+SINTER tagidx:redis tagidx:性能</code></pre>
+  <p class="note">注意：Redis 没有"查询"能力，所谓筛选=自己维护反向索引。关联数据复杂时请交给 ES / MySQL。</p>
+
+  <h3>④ 去重 / 幂等 / UV 辅助</h3>
+  <pre class="code" data-lang="bash"><code># 一天内已处理过的消息 ID（幂等）
+SADD dedup:2026-10-19 msgid1 msgid2
+SISMEMBER dedup:2026-10-19 msgid1      # 已处理过？跳过
+EXPIRE dedup:2026-10-19 172800         # 留两天（注意：SADD 后补 TTL 才能保证过期）
+
+# UV（精确）—— 基数一亿请不要这样存，见第 9 章 HyperLogLog
+SADD uv:2026-10-19 uid1 uid2 uid3
+SCARD uv:2026-10-19                    # = UV 数</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">7.5</span> 大型集合的运算策略</h2>
+  <p>百万级成员的集合是运维事故常客，处理原则：</p>
+  <ol>
+    <li><strong>避免一次性返回全集</strong>：<code>SMEMBERS</code> / <code>SUNION</code> 直出都可能导致阻塞与客户端 OOM；用 <code>SSCAN</code> 分批。</li>
+      <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SSCAN follow:u1 0 COUNT 500
+1) "832"                       # 下一批游标
+2)  1) "u2"
+    2) "u7"
+    ...</code></pre>
+    <li><strong>大集合运算放到从库</strong>：主库只承接实时写，（注意从库也有淘汰/延迟）。</li>
+    <li><strong>化整为零</strong>：把超大 Set 拆成分片（如按 uid % 64），运算时逐片 SUNIONSTORE 累积；虽然复杂但可控。</li>
+    <li><strong>结果复用</strong>：<code>SINTERSTORE</code> + TTL，把"共同好友"这种低频变动的结果缓存 5-10 分钟。</li>
+    <li><strong>必要时别用 Redis</strong>：社交图谱这种图数据，图数据库/关系库更合适。</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">7.6</span> 常见坑</h2>
+  <div class="warn-box"><strong>坑 1</strong>：<code>SMEMBERS</code> 一个百万 Set（O(N) 且返回全部）——一步到位的阻塞堵塞。替代：<code>SSCAN</code>。</div>
+  <div class="warn-box"><strong>坑 2</strong>：实时 <code>SINTER</code> 两个大集合。<strong>O(N×M)</strong>，务必评估数据量或提前算好缓存。</div>
+  <div class="warn-box"><strong>坑 3</strong>：忘了给 <code>SINTERSTORE</code> 产生的 dest key 设 TTL —— 它是"一次性结果"，不设过期会变成垃圾。</div>
+  <div class="warn-box"><strong>坑 4</strong>：把 Set 里塞<strong>完整的业务对象</strong>而不是 ID → 既浪费内存，也无法去重（对象内容变了就重fanée）。<strong>Set 里一律放 id。</strong></div>
+  <div class="warn-box"><strong>坑 5</strong>：误以为 Set 有序。Set 无顺序，需要按分数/时间排序用 <strong>ZSet</strong>（第 8 章）或 List。</div>
+  <div class="warn-box"><strong>坑 6</strong>：用 Set 存亿级 UV。<code>SCARD</code> 精确但内存爆炸（1 亿 uid ≈ 数 GB）；该用 <strong>HyperLogLog</strong> 时别硬撑（第 9 章）。</div>
+  <div class="warn-box"><strong>坑 7</strong>：Python/Java 客户端返回类型混淆：<code>SISMEMBER</code> 返回的是 <strong>0/1 整数</strong>，有些语言里 <code>false</code> 与 <code>null</code> 混淆，注意判空。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>结构</td><td>无序去重集合，单元素操作 O(1)</td></tr>
+      <tr><td>随机</td><td>SRANDMEMBER（不删）vs SPOP（删除），抽奖核心</td></tr>
+      <tr><td>三大运算</td><td>SINTER(O(N×M)) / SUNION(O(N)) / SDIFF(O(N))，带 STORE 可缓存结果</td></tr>
+      <tr><td>编码</td><td>intset（纯整数≤512，最省）→ hashtable，<strong>不可逆</strong></td></tr>
+      <tr><td>典型场景</td><td>抽奖、共同关注、标签反向索引、幂等去重、精确 UV</td></tr>
+      <tr><td>大集合</td><td>SSCAN 分批、从库运算、分片化、结果缓存</td></tr>
+      <tr><td>误用</td><td>Set 里放大对象、把它当查询引擎、亿级基数硬存</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 Set 完成一个"抽奖+不重复中奖"的活动：写一、二、三等奖抽取命令，并保证一个人不会被抽中两次。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>构造两个各含 10 万成员的 Set，分别用 <code>SINTER</code> 直出和 <code>SINTERSTORE</code> 到 dest 两种方式求交集，对比耗时（可用 <code>redis-cli --latency</code> 或 <code>SLOWLOG GET</code>），并说明在什么场景下必须用 STORE 版本。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一个"文章标签筛选"：支持"同时包含标签 A 和 B 的文章"和"包含 A 或 B 的文章"两种查询，写出正反索引的完整命令；并说明当某个标签下有 500 万篇文章时，你的方案该如何演进。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章是本篇重头戏——ZSet，排行榜的核心。</p>
+</section>
+
+</main>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+{prev}{next}</nav>
+<footer>从 0 到精通 · 《Redis 从 0 到精通》 · 第 {num} 章 {title}</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+{scripts}</body>
+</html>

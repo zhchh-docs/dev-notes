@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 75 章 SQL 注入与 PreparedStatement｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第八篇 数据库与 JDBC</p>
+    <h1>第 75 章 SQL 注入与 PreparedStatement</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 75 章 / 共 112 章 · 预计 35 分钟 · 上一章：DAO 模式与代码分层</span>
+    </div>
+    <p class="hero-desc">把用户输入拼进 SQL 字符串，等于把源码编辑权交给陌生人。本章用可复现的例子展示注入如何发生、为什么 PreparedStatement 能根治它，以及 ORDER BY 这类"参数化盲区"的补位方案。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="074_第74章_DAO模式与代码分层.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="076_第76章_为什么需要MyBatis.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">75.1 注入如何发生：可复现演示</a></li>
+    <li><a href="#sec3">75.2 根治：PreparedStatement 原理</a></li>
+    <li><a href="#sec4">75.3 参数化盲区：动态表名与 ORDER BY</a></li>
+    <li><a href="#sec5">75.4 纵深防御清单</a></li>
+    <li><a href="#sec6">75.5 审查：找出项目里的注入点</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解注入本质：<strong>数据被当成了代码</strong>；</li>
+    <li>说清 <strong>PreparedStatement 预编译</strong>为什么天然免疫注入；</li>
+    <li>掌握 <strong>ORDER BY / 表名 / LIKE</strong> 等无法参数化场景的安全写法；</li>
+    <li>带走一份<strong>纵深防御清单</strong>与代码审查方法。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">75.1</span> 注入如何发生：可复现演示</h2>
+  <p class="lead"><strong>一句话定位</strong>：字符串拼接让"用户输入的值"变成"SQL 的语法"——引号闭合、注释符截断，攻击者就能改写语义。</p>
+  <pre class="code" data-lang="java"><code>// 危险写法：拼接（仅用于教学，严禁出现在真实代码）
+public boolean loginBuggy(Connection conn, String user, String pass)
+        throws SQLException {
+    String sql = "SELECT * FROM account WHERE username = '" + user
+               + "' AND password = '" + pass + "'";   // ← 灾难现场
+    try (Statement st = conn.createStatement();
+         ResultSet rs = st.executeQuery(sql)) {
+        return rs.next();
+    }
+}
+// 正常调用：loginBuggy(conn, "alice", "123456")
+//   生成：SELECT * FROM account WHERE username='alice' AND password='123456'
+
+// 攻击调用：loginBuggy(conn, "alice", "' OR '1'='1")
+//   生成：SELECT * FROM account WHERE username='alice'
+//         AND password='' OR '1'='1'      ← 恒真，密码校验失效！
+// 更狠的：pass = "'; DROP TABLE account; --"（配合 allowMultiQueries）</code></pre>
+  <div class="danger-box"><strong>危害不止绕登录</strong>：拖库（UNION 全表导出）、删表、提权。OWASP 十大漏洞常年榜首，法律后果严重——攻击生产系统是刑事犯罪，本章所有演示只在自建测试库进行。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">75.2</span> 根治：PreparedStatement 原理</h2>
+  <pre class="code" data-lang="java"><code>// 安全写法：参数化——SQL 结构与数据彻底分离
+public boolean login(Connection conn, String user, String pass)
+        throws SQLException {
+    String sql = "SELECT * FROM account WHERE username = ? AND password = ?";
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, user);      // 无论内容是什么，都只是"一个字符串值"
+        ps.setString(2, pass);
+        try (ResultSet rs = ps.executeQuery()) {
+            return rs.next();
+        }
+    }
+}
+// 同样的恶意输入 "' OR '1'='1" 会被当成字面密码去比对 → 查不到 → 拒绝</code></pre>
+  <p>为什么有效：PreparedStatement <strong>先发送带占位符的 SQL 模板给数据库预编译</strong>，语法树已定；参数随后单独传输并填充到"值"的位置。<strong>数据永远进不了语法树</strong>，引号、注释符都只是字符。</p>
+  <div class="key-sentence">两附赠收益：① 预编译语句可被数据库缓存复用，同结构反复执行更快；② 类型由 setXxx 显式约束，顺带挡掉一批类型混淆错误。</div>
+  <p class="pit-sentence"><span class="tag-pit">注意</span>：加了 PreparedStatement 但仍拼接进 SQL 模板（如 <code>"... WHERE id IN (" + ids + ")"</code>）等于白防。原则：<strong>占位符数量可以是动态的，占位符内容必须永远是值</strong>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">75.3</span> 参数化盲区：动态表名与 ORDER BY</h2>
+  <p>有些位置不能放 <code>?</code>：表名、列名、排序方向是<strong>语法结构</strong>不是值。处理原则：<strong>白名单校验</strong>，绝不透传。</p>
+  <pre class="code" data-lang="java"><code>// 场景 1：动态排序字段——白名单映射
+private static final Set&lt;String&gt; SORTABLE = Set.of("id", "name", "created_at");
+
+public List&lt;User&gt; list(String sortField, boolean asc) throws SQLException {
+    if (!SORTABLE.contains(sortField))
+        throw new IllegalArgumentException("非法排序字段: " + sortField);
+    String order = asc ? "ASC" : "DESC";                  // 二选一，非用户原文
+    String sql = "SELECT id, name FROM user ORDER BY " + sortField + " " + order;
+    // sortField 经白名单，order 是常量——拼接重新安全
+    ...
+}
+
+// 场景 2：IN 列表——占位符数量动态生成
+String placeholders = ids.stream().map(x -&gt; "?").collect(joining(","));
+String sql = "SELECT * FROM user WHERE id IN (" + placeholders + ")";
+// 拼进 SQL 的只有 '?'，真正的值逐个 setLong——安全
+
+// 场景 3：LIKE 模糊查询——通配符是值的一部分，照常参数化
+ps.setString(1, "%" + escapeLike(keyword) + "%");   // 转义 % _ \ 语义歧义</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">75.4</span> 纵深防御清单</h2>
+  <ol>
+    <li><strong>参数化优先</strong>：所有值全部走 PreparedStatement/MyBatis #{}；</li>
+    <li><strong>白名单兜底</strong>：表名、列名、排序方向用枚举/集合校验；</li>
+    <li><strong>最小权限</strong>：应用账号只给增删改查，不给 DDL/DROP（第 69 章的 app 账号）；</li>
+    <li><strong>错误信息克制</strong>：数据库报错原样返回会泄露表结构与 SQL，统一转通用错误（第 91 章）；</li>
+    <li><strong>审计与告警</strong>：静态扫描（SpotBugs/自定义规则）拦拼接 SQL；WAF 作为外层缓冲；</li>
+    <li><strong>不信任任何输入</strong>：包括内部接口、请求头、文件内容。</li>
+  </ol>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">75.5</span> 审查：找出项目里的注入点</h2>
+  <pre class="code" data-lang="bash"><code># 快速扫描疑似拼接点（团队 code review 前置筛查）
+grep -rn "createStatement" --include="*.java" src/ | grep -v test
+grep -rn "Statement stmt" --include="*.java" src/
+grep -rnE "\+ *(request|param|keyword|name|id)[^;]*\+" --include="*.java" src/
+
+# MyBatis 项目重点查：${} 是字符串替换（注入！），#{} 才是参数化
+grep -rn '\${' --include="*.xml" src/main/resources/</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>发现</th><th>处置</th></tr></thead>
+    <tbody>
+      <tr><td>createStatement + 拼接</td><td>改 PreparedStatement；确需动态结构则白名单</td></tr>
+      <tr><td>MyBatis ${orderBy}</td><td>改白名单映射或 <code>@Param</code> + case when；校验后仍建议白名单</td></tr>
+      <tr><td>动态表名来自用户</td><td>重新设计：不应该存在——用枚举路由到固定的多张表查询方法</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>注入本质</td><td>数据被解释成代码；引号与注释符改变 SQL 语义</td></tr>
+      <tr><td>根治手段</td><td>预编译：语法树先行，参数只填值位</td></tr>
+      <tr><td>盲区处理</td><td>表名/列名/排序用白名单；IN 用动态占位符</td></tr>
+      <tr><td>纵深防御</td><td>参数化 + 白名单 + 最小权限 + 克制报错 + 扫描</td></tr>
+      <tr><td>审查入口</td><td>grep createStatement / ${}；凡拼接必复审</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复现 75.1 节登录绕过，再改用 PreparedStatement 验证防御成功。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现安全的多条件排序接口（字段白名单 + 方向二选一），并解释每个拼接点为何安全。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为 DAO 层写一个静态检查脚本：出现 createStatement 或 MyBatis ${} 即报错，接进构建流程。</div>
+  <p class="note">下一章：SQL 都写在 Java 里太累——告别手写，为什么需要 MyBatis。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="074_第74章_DAO模式与代码分层.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="076_第76章_为什么需要MyBatis.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 75 章 SQL 注入与 PreparedStatement</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

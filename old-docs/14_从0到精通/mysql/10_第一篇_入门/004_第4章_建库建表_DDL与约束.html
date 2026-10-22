@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 4 章 建库建表：DDL 与约束｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 4 章 建库建表：DDL 与约束</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 4 章 / 共 72 章 · 预计 45 分钟</span>
+    </div>
+    <p class="hero-desc">本章开始认真写 DDL：把 bookshop 的核心表真正建起来。重点不是背语法，而是理解每一条约束——NOT NULL、UNIQUE、主键、外键、CHECK——它们是数据库替你把关的第一道防线。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="003_第3章_库表行与数据类型选型.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="005_第5章_增删改_INSERT_UPDATE_DELETE与软删.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">4.1 CREATE TABLE 逐项拆解</a></li>
+    <li><a href="#sec3">4.2 六大约束：数据库的把关人</a></li>
+    <li><a href="#sec4">4.3 ALTER TABLE：改表怎么做</a></li>
+    <li><a href="#sec4b">4.4 DROP / TRUNCATE / 重命名</a></li>
+    <li><a href="#sec5">4.5 生产级建表惯例</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能独立写出包含类型、注释、默认值、约束的完整 <code>CREATE TABLE</code>；</li>
+    <li>理解六大约束各自拦住什么问题，以及外键在互联网业务的取舍；</li>
+    <li>掌握 <code>ALTER TABLE</code> 加列、改类型、加索引的常用姿势；</li>
+    <li>分清 <code>DROP</code> 与 <code>TRUNCATE</code> 的破坏力差别；</li>
+    <li>建立一套可复用的建表模板惯例。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">4.1</span> CREATE TABLE 逐项拆解</h2>
+  <p>以 bookshop 的商品表为例，逐行读懂它：</p>
+  <pre class="code" data-lang="sql"><code>CREATE TABLE product (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  name        VARCHAR(100)    NOT NULL COMMENT '商品名',
+  price       DECIMAL(10,2)   NOT NULL DEFAULT 0.00 COMMENT '售价',
+  stock       INT UNSIGNED    NOT NULL DEFAULT 0 COMMENT '库存',
+  status      TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '1上架 0下架',
+  created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP
+                              ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';</code></pre>
+  <p>拆解要点：</p>
+  <ul>
+    <li><strong>列定义 = 列名 + 类型 + 可选修饰</strong>：可空性（NOT NULL）、默认值（DEFAULT）、自增（AUTO_INCREMENT）、注释（COMMENT）；</li>
+    <li><strong>AUTO_INCREMENT</strong> 自动生成递增整数，必须配合键使用，通常就是主键；删掉最大行后编号不复用；</li>
+    <li><strong>DEFAULT CURRENT_TIMESTAMP</strong> 自动填创建时间；<code>ON UPDATE CURRENT_TIMESTAMP</code> 让更新时间随 UPDATE 自动刷新——审计字段几乎每张表都该有；</li>
+    <li><strong>表选项</strong>：引擎 InnoDB（默认）、字符集 utf8mb4，表级 COMMENT 一句话说明用途。</li>
+  </ul>
+  <div class="note"><strong>COMMENT 不是装饰</strong>：半年后没人记得 status=2 是什么意思。注释写进 DDL，配合 SHOW CREATE TABLE 随时可查，是成本最低的文档。</div>
+</section>
+<section id="sec3" class="card">
+  <h2><span class="num">4.2</span> 六大约束：数据库的把关人</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:44%"><col style="width:36%"></colgroup>
+    <thead><tr><th>约束</th><th>拦住什么</th><th>写法示例</th></tr></thead>
+    <tbody>
+      <tr><td>NOT NULL</td><td>关键字段漏填</td><td>name VARCHAR(100) NOT NULL</td></tr>
+      <tr><td>DEFAULT</td><td>新行缺值</td><td>stock INT NOT NULL DEFAULT 0</td></tr>
+      <tr><td>UNIQUE</td><td>重复值（允许 NULL）</td><td>UNIQUE KEY uk_phone (phone)</td></tr>
+      <tr><td>PRIMARY KEY</td><td>无唯一标识；隐含 NOT NULL + UNIQUE</td><td>PRIMARY KEY (id)</td></tr>
+      <tr><td>FOREIGN KEY</td><td>引用不存在的数据</td><td>FOREIGN KEY (cid) REFERENCES customer(id)</td></tr>
+      <tr><td>CHECK</td><td>非法取值范围（8.0 起真正生效）</td><td>CHECK (price &gt;= 0)</td></tr>
+    </tbody>
+  </table>
+  <p>给订单表加外键与 CHECK，感受完整形态：</p>
+  <pre class="code" data-lang="sql"><code>CREATE TABLE orders (
+  id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单号',
+  customer_id  BIGINT UNSIGNED NOT NULL COMMENT '下单客户',
+  product_id   BIGINT UNSIGNED NOT NULL COMMENT '商品',
+  quantity     INT UNSIGNED    NOT NULL DEFAULT 1 COMMENT '数量',
+  amount       DECIMAL(12,2)   NOT NULL COMMENT '订单金额',
+  created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_customer (customer_id),
+  CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id)
+    REFERENCES customer (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CHECK (quantity &gt; 0),
+  CHECK (amount &gt;= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';</code></pre>
+  <h4>外键用还是不用？</h4>
+  <p>外键保证引用完整性（插一笔指向不存在客户的订单直接报错），代价是每次写入多一次父表检查、高并发下可能引发锁等待。因此存在两种流派：</p>
+  <ul>
+    <li><strong>传统/强一致业务</strong>（财务、ERP）：建外键，让数据库兜底；</li>
+    <li><strong>互联网高并发业务</strong>：通常不建物理外键，靠<strong>应用层校验 + 定期对账</strong>保证一致性，并在关联列上建普通索引（KEY idx_customer）。</li>
+  </ul>
+  <div class="key-sentence">不建外键 ≠ 不需要约束：即使不建物理外键，逻辑上"订单必须属于某个客户"的规则依然要由应用层严格执行。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">4.3</span> ALTER TABLE：改表怎么做</h2>
+  <pre class="code" data-lang="sql"><code>-- 加一列
+ALTER TABLE product ADD COLUMN remark VARCHAR(255) NULL COMMENT '备注' AFTER status;
+
+-- 改类型 / 改默认值（MODIFY 会重写整个列定义）
+ALTER TABLE product MODIFY COLUMN name VARCHAR(200) NOT NULL COMMENT '商品名';
+
+-- 改列名（CHANGE：旧名 新名 完整定义）
+ALTER TABLE product CHANGE COLUMN remark note VARCHAR(255) NULL;
+
+-- 删一列（危险：数据一起没）
+ALTER TABLE product DROP COLUMN note;
+
+-- 改表名
+ALTER TABLE product RENAME TO goods;</code></pre>
+  <p>两个必知事项：</p>
+  <ul>
+    <li><strong>缩列有风险</strong>：把 VARCHAR(200) 缩成 50，超过 50 字符的数据会被截断或直接报错（取决于 SQL 模式）；改类型在大表上是昂贵操作（第 60 章细讲）；</li>
+    <li><strong>IF EXISTS / IF NOT EXISTS</strong>：<code>DROP TABLE IF EXISTS t</code>、<code>CREATE TABLE IF NOT EXISTS t</code>，让初始化脚本可以重复执行不报错。</li>
+  </ul>
+</section>
+
+<section id="sec4b" class="card">
+  <h2><span class="num">4.4</span> DROP / TRUNCATE / 重命名</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>操作</th><th>行为</th><th>能否回滚</th></tr></thead>
+    <tbody>
+      <tr><td>DELETE</td><td>逐行删，可带 WHERE，触发触发器</td><td>事务内可以</td></tr>
+      <tr><td>TRUNCATE</td><td>清空全表、重建表结构，速度快、自增归零</td><td>不能（隐式提交）</td></tr>
+      <tr><td>DROP</td><td>表定义+数据+索引全部删除</td><td>不能（除非有备份）</td></tr>
+    </tbody>
+  </table>
+  <div class="danger-box">TRUNCATE 和 DROP 默认不可回滚。生产环境执行前先跑一次备份或确认 binlog 开启；强烈建议把这两类语句设为 SQL 客户端的"高危确认"关键词。</div>
+</section>
+<section id="sec5" class="card">
+  <h2><span class="num">4.5</span> 生产级建表惯例</h2>
+  <p>把本章内容收敛成一张"默认模板"，绝大多数业务表可以直接套：</p>
+  <pre class="code" data-lang="sql"><code>CREATE TABLE t_xxx (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+  -- ... 业务字段：一律 NOT NULL + DEFAULT，允许"暂无值"用默认值而非 NULL
+  status      TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态，见字典表',
+  is_deleted  TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删标记 0否 1是',
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                       ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  KEY idx_xxx (xxx)            -- 按查询需求建普通索引
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='表说明';</code></pre>
+  <ul>
+    <li><strong>命名</strong>：表名小写下划线、单数或复数二选一全库统一；索引前缀 idx_ / uk_，一眼分辨普通索引与唯一索引；</li>
+    <li><strong>NULL 最小化</strong>：NULL 参与 IS NULL 判断、聚合和索引统计都有额外心智负担，能用默认值就不用 NULL；</li>
+    <li><strong>is_deleted 软删</strong>：业务数据通常不许物理删除，打标记即可（第 5 章展开）；</li>
+    <li><strong>id 用 BIGINT UNSIGNED</strong>：INT 约 21 亿，流水型表几年就可能耗尽，BIGINT 一次到位。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>CREATE TABLE</td><td>列定义（类型+NOT NULL+DEFAULT+COMMENT）+ 主键 + 表选项</td></tr>
+      <tr><td>六大约束</td><td>NOT NULL / DEFAULT / UNIQUE / PRIMARY KEY / FOREIGN KEY / CHECK</td></tr>
+      <tr><td>外键取舍</td><td>强一致建外键兜底；高并发不建物理外键靠应用层校验+对账</td></tr>
+      <tr><td>ALTER</td><td>ADD / MODIFY / CHANGE / DROP COLUMN，缩列与改类型需谨慎</td></tr>
+      <tr><td>危险操作</td><td>TRUNCATE 清空不可回滚，DROP 连定义一起删</td></tr>
+      <tr><td>建表模板</td><td>id(BIGINT) + status + is_deleted + created_at/updated_at 起步</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>按本章模板建一张 <code>book</code> 表：书名、作者、价格、库存、上架状态，含完整注释与审计字段；用 SHOW CREATE TABLE 回看成果。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给 book 表的 price 加 CHECK（price &gt;= 0），插入 -1 与 0 各试一次，记录数据库的反应；再试试向 NOT NULL 的 title 插入 NULL。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>分别用 DELETE、TRUNCATE 清空 book 表各一次，观察 AUTO_INCREMENT 的行为差异；思考：为什么 TRUNCATE 更快？（提示：它不逐行删，也不写 undo）</div>
+  <p class="note">表建好了，下一章往里写数据：INSERT / UPDATE / DELETE，以及互联网公司几乎只用软删的原因。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="003_第3章_库表行与数据类型选型.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="005_第5章_增删改_INSERT_UPDATE_DELETE与软删.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 4 章 建库建表：DDL 与约束</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

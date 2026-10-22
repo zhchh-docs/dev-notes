@@ -1,0 +1,241 @@
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">5.1 Hash 命令全景</a></li>
+    <li><a href="#sec3">5.2 存对象：Hash vs String(JSON) 的胜负清单</a></li>
+    <li><a href="#sec4">5.3 底层编码：什么时候会从 listpack 变成 hashtable</a></li>
+    <li><a href="#sec5">5.4 HGETALL 不能乱用：HSCAN 与分批读取</a></li>
+    <li><a href="#sec6">5.5 field 级过期做不到，怎么办</a></li>
+    <li><a href="#sec7">5.6 常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 Hash 的<strong>完整命令集</strong>：HSET / HGET / HMSET / HMGET / HGETALL / HDEL / HLEN / HEXISTS / HKEYS / HVALS / HINCRBY / HSETNX / HSCAN；</li>
+    <li>能在"对象该用 String 存 JSON 还是用 Hash"这个问题上<strong>给出有依据的选择</strong>（不是背结论）；</li>
+    <li>理解 Hash 的<strong>两种底层编码与阈值</strong>，知道为什么"大 Hash 要拆"；</li>
+    <li>知道 <code>HGETALL</code> 的生产风险与替代方案；</li>
+    <li>为"字段级过期"这个不存在的特性，给出 <strong>3 种可行替代设计</strong>。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 3-4 章。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">5.1</span> Hash 命令全景</h2>
+  <p class="lead"><b>Hash = 一个 key 里面有若干 field→value 的小字典：<code>key → {field: value}</code>。<b>value 只能是字符串</b>（没有嵌套结构）。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; HSET user:1001 name "张三" age 28 city "杭州"
+(integer) 3                      # 返回新建 field 数
+127.0.0.1:6379&gt; HGET user:1001 name
+"张三"
+127.0.0.1:6379&gt; HMGET user:1001 name city
+1) "张三"
+2) "杭州"
+127.0.0.1:6379&gt; HSETNX user:1001 vip 1       # field 不存在才设
+(integer) 1
+127.0.0.1:6379&gt; HEXISTS user:1001 vip
+(integer) 1
+127.0.0.1:6379&gt; HLEN user:1001
+(integer) 4
+127.0.0.1:6379&gt; HKEYS user:1001
+1) "name"
+2) "age"
+3) "city"
+4) "vip"
+127.0.0.1:6379&gt; HVALS user:1001
+1) "张三"
+2) "28"
+3) "杭州"
+4) "1"
+127.0.0.1:6379&gt; HINCRBY user:1001 age 1      # 只对整型 field 自增
+(integer) 29
+127.0.0.1:6379&gt; HINCRBYFLOAT user:1001 score 0.5
+"0.5"
+127.0.0.1:6379&gt; HDEL user:1001 vip score
+(integer) 2
+127.0.0.1:6379&gt; HSTRLEN user:1001 name       # field 值长度
+(integer) 6</code></pre>
+  <p>几个容易忽略的细节：</p>
+  <ul>
+    <li><code>HSET</code> 已经支持一次写多个 field，<code>HMSET</code> 从 4.0 起只是它的别名（<strong>新代码统一用 HSET</strong>）。</li>
+    <li>Hash 里的 value <strong>没有类型</strong>，都是二进制字符串。<code>HINCRBY</code> 遇到非数字会报错 <code>ERR hash value is not an integer</code>。</li>
+    <li><code>HSETNX</code> 是<b>field 级</b>的 NX，和第 4 章的 key 级 NX 是两个层级。</li>
+  </ul>
+  <pre class="code" data-lang="bash"><code># 购物车是 Hash 的经典用法：key=用户购物车，field=商品ID，value=数量
+127.0.0.1:6379&gt; HSET cart:u1001 sku:88 2 sku:99 1
+(integer) 2
+127.0.0.1:6379&gt; HINCRBY cart:u1001 sku:88 1     # 加一件
+(integer) 3
+127.0.0.1:6379&gt; HDEL cart:u1001 sku:99          # 移除商品
+(integer) 1
+127.0.0.1:6379&gt; HLEN cart:u1001                 # 商品种类数
+(integer) 1
+127.0.0.1:6379&gt; HGETALL cart:u1001              # 展示全部（注意第 5.4 节风险）
+1) "sku:88"
+2) "3"</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">5.2</span> 存对象：Hash vs String(JSON) 的胜负清单</h2>
+  <p>这是本篇最有价值的一张表，答案不是"永远用 Hash"：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>String 存 JSON</th><th>Hash 存字段</th></tr></thead>
+    <tbody>
+      <tr><td>读取单个字段</td><td>要 GET 整个对象 + 反序列化</td><td><strong>HGET 只读一个 field</strong>，网络量小</td></tr>
+      <tr><td>更新单个字段</td><td>读 → 改 → 写全量（有并发覆盖风险）</td><td><strong>HSET 一个 field</strong>，天然局部</td></tr>
+      <tr><td>内存开销</td><td>小对象时<strong>略省</strong>（一个 dict entry）</td><td>每个 field 都要 redisObject+SDS，但 listpack 编码下非常紧凑</td></tr>
+      <tr><td>嵌套结构</td><td><strong>支持</strong>（JSON 天然嵌套）</td><td>不支持（value 只能是字符串）</td></tr>
+      <tr><td>序列化开销</td><td>CPU 上有 JSON 编解码成本</td><td>无</td></tr>
+      <tr><td>批量读全部</td><td>一次 GET 拿全对象</td><td>HGETALL 或 HMGET</td></tr>
+      <tr><td>字段级 TTL</td><td>同样不支持</td><td><strong>不支持</strong>（第 5.5 节）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">选择口诀：<b>整体读写、结构嵌套 → String(JSON)；频繁改单字段、希望省网络 → Hash。</b>例如：商品详情/文章详情（整条缓存）用 String 存 JSON；购物车/用户配置/计数器（字段独立变动）用 Hash。</p>
+  <h4>内存实测：小 Hash 比你想象的省</h4>
+  <pre class="code" data-lang="bash"><code># 100 万个小 Hash（每个 10 个短 field），用 listpack 编码时的对比
+# 用一百万个 String key 存同样数据：约 200MB+
+# 用几千个大 Hash 分段存（每 Hash 500 个 entry）：可能降到 50-80MB
+# 原因：listpack 紧凑存储 + 大量减少 dict 元数据与 key 字符串
+redis-cli INFO memory | grep used_memory_human
+redis-cli --bigkeys    # 看看实例里最占地的结构</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">5.3</span> 底层编码：什么时候会从 listpack 变成 hashtable</h2>
+  <p>Hash 有两种底层实现，Redis 自动切换：</p>
+  <ul>
+    <li><strong>listpack</strong>（Redis 7 起，6.x 及以前叫 ziplist）：所有 field/value 紧凑排在一块连续内存里，<strong>查找是 O(N) 线性扫描</strong>。省内存到极致，但 field 多了就慢。</li>
+    <li><strong>hashtable</strong>：真正的哈希表，<strong>查找 O(1)</strong>，但每个 entry 都有指针/key/value 的额外开销，内存占用大得多。</li>
+  </ul>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; CONFIG GET hash-max-listpack-*
+1) "hash-max-listpack-entries"
+2) "128"                    # field 数量 &gt; 128 → 转 hashtable
+3) "hash-max-listpack-value"
+4) "64"                     # 任一 field/value 长度 &gt; 64 字节 → 转 hashtable
+
+127.0.0.1:6379&gt; HSET h1 f1 aaa f2 bbb
+(integer) 2
+127.0.0.1:6379&gt; OBJECT ENCODING h1
+listpack
+127.0.0.1:6379&gt; CONFIG SET hash-max-listpack-entries 1
+OK
+127.0.0.1:6379&gt; HSET h2 f1 aaa f2 bbb
+(integer) 2
+127.0.0.1:6379&gt; OBJECT ENCODING h2
+hashtable</code></pre>
+  <div class="warn-box"><strong>重要</strong>：<strong>编码转换是不可逆的</strong>。一个 Hash 从 listpack 转成 hashtable 之后，就算你把 field 删到只剩 1 个，<strong>它也不会变回 listpack</strong>。所以：临时写入超阈值数据会把 Hash 永久"撑胖"，长期累积的内存浪费不可回收。</div>
+  <h4>由此得出一条重要优化（也是大 key 治理的核心）</h4>
+  <p>把"一个巨大的 Hash（100 万 field）"拆成"多个小 Hash（每个 ≤128 field）"，让它们都能保持 listpack 编码，可以省下可观的内存：</p>
+  <pre class="code" data-lang="bash"><code># 拆分方案：key = 原key + ":" + (hash(field) % 分片数)
+slot = crc32(userId) % 1024
+key  = "user:profile:" + slot
+HSET key userId profileJson
+# 这样每个分片平均 ~1000/u 个 field —— 注意：分片数要按预期总量算，
+# 让每个分片 field 数控制在 128（listpack 阈值）附近，才能保持紧凑编码</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">5.4</span> HGETALL 不能乱用：HSCAN 与分批读取</h2>
+  <p class="lead"><b>HGETALL / HKEYS / HVALS 都是 <b>O(N)</b>（N = field 数），对一个 50 万 field 的 Hash 执行它，等同于第 1 章说的 <code>KEYS *</code> 事故。</b></p>
+  <pre class="code" data-lang="bash"><code># ❌ 危险
+redis.call('HGETALL', 'user:index')      # 一次性拉几十万个 field：阻塞 + 内存暴涨 + 网络打满
+
+# ✅ 安全：HSCAN 游标分批
+127.0.0.1:6379&gt; HSCAN user:index 0 MATCH "u1*" COUNT 200
+1) "152"                 # 下一个游标
+2) 1) "u1001"
+   2) "{...}"
+   3) "u1002"
+   4) "{...}"
+
+# ✅ 也安全：只需要部分字段时，用 HMGET 精确取
+127.0.0.1:6379&gt; HMGET user:index u1001 u1002 u1003
+
+# ✅ 或限制范围（20 个一组）
+127.0.0.1:6379&gt; HRANDFIELD user:index 20 WITHVALUES     # 随机抽样，做巡检很有用</code></pre>
+  <p>客户端侧的标准分批读取伪代码：</p>
+  <pre class="code" data-lang="bash"><code>cursor = 0
+seen = set()
+while True:
+    cursor, batch = redis.hscan(key, cursor=cursor, count=500)
+    for f, v in batch.items():
+        if f not in seen:            # SCAN 可能返回重复，必须去重
+            seen.add(f)
+            process(f, v)
+    if cursor == 0:
+        break</code></pre>
+  <div class="warn-box"><strong>坑</strong>：Cluster 模式下，Hash 的所有 field 都在<strong>同一个 slot</strong>（因为 key 就一个），所以 HSCAN 不受 split 影响——这正是 Hash 相比"拆成一堆独立 String key"在多 key 操作上的优势（第 47 章 hash tag）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">5.5</span> field 级过期做不到，怎么办</h2>
+  <p class="lead"><b>Redis 的过期只能作用于 <b>key</b>，Hash 里的 field <b>没有过期时间</b>。这不是 bug，是设计约定——因为过期字典只挂在 key 上。</b></p>
+  <p>真实需求举例："购物车里的每个商品 7 天没动就自动消失"、"用户的每条浏览记录在 30 天后过期"。三种可行方案：</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:40%"><col style="width:42%"></colgroup>
+    <thead><tr><th>方案</th><th>做法</th><th>取舍</th></tr></thead>
+    <tbody>
+      <tr><td>整体 key 过期</td><td>整个 Hash 设 TTL，每次有变动就 <code>EXPIRE</code> 续期</td><td>最简单；粒度粗（整个对象一起活/死），<strong>首选</strong></td></tr>
+      <tr><td>ZSet 辅助</td><td>field→过期时间戳存 ZSet，定时 <code>ZRANGEBYSCORE</code> 捞出到期的再 HDEL</td><td>精确到 field；要写清理任务</td></tr>
+      <tr><td>拆成独立 key</td><td>不用 Hash，每个条目一个 String key 各自 EXPIRE</td><td>最简单精确；但 key 数量暴涨、不可原子整批操作</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 方案二示例：购物车 item 单独过期
+127.0.0.1:6379&gt; HSET cart:u1001 sku:88 2
+(integer) 1
+127.0.0.1:6379&gt; ZADD cart:u1001:expire 1761235200 sku:88    # 到期时间戳
+(integer) 1
+
+# 清理任务每 5 分钟跑一次
+127.0.0.1:6379&gt; ZRANGEBYSCORE cart:u1001:expire 0 $(date +%s)
+1) "sku:88"
+127.0.0.1:6379&gt; HDEL cart:u1001 sku:88
+(integer) 1
+127.0.0.1:6379&gt; ZREM cart:u1001:expire sku:88
+(integer) 1</code></pre>
+  <div class="note"><strong>小提示</strong>：Redis 7.4 起原生 <code>HEXPIRE</code> 系列命令（TTL 到 field 级），但生态支持还不普及，本书仍以通用方案为主。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">5.6</span> 常见坑</h2>
+  <div class="warn-box"><strong>坑 1</strong>：认为 Hash 省内存就无脑用。<strong>field 超过 128 个或 value 超过 64 字节会转成 hashtable，内存反而更贵</strong>，且不可逆。</div>
+  <div class="warn-box"><strong>坑 2</strong>：<code>HGETALL</code> 当成"读取常规操作"。生产必须 HSCAN / HMGET。</div>
+  <div class="warn-box"><strong>坑 3</strong>：把 Hash 当关系型表做"<strong>按 value 查 field</strong>"（比如"找出城市=杭州的用户"）。Redis 无二级索引，这种需求要么自己维护倒排索引（ZSet/Set），要么交给数据库。</div>
+  <div class="warn-box"><strong>坑 4</strong>：HSET 一个已经存在的 field 时会<strong>静默覆盖</strong>，不会告诉你是新建还是更新。需要区分时用 HSETNX 或先 HEXISTS。</div>
+  <div class="warn-box"><strong>坑 5</strong>：误把 field 名字设计成动态值（时间戳、随机 UUID）导致 <strong>HLEN 无限增长</strong>（等于创建了一个永不清理的大 key）。</div>
+  <div class="warn-box"><strong>坑 6</strong>：Hash 嵌套需求用 JSON 字符串塞进某个 field，然后又想对这个子结构做原子操作 —— 不如直接用 String 存 JSON 或拆层。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>结构</td><td>key → {field: value}，value 只能是字符串，无嵌套</td></tr>
+      <tr><td>核心命令</td><td>HSET/HGET/HMGET/HGETALL/HDEL/HLEN/HINCRBY/HSETNX/HSCAN</td></tr>
+      <tr><td>选型</td><td>整体读写+嵌套用 String(JSON)；频繁改单字段用 Hash</td></tr>
+      <tr><td>编码</td><td>listpack（≤128 field 且 ≤64 字节）↔ hashtable，<strong>转换不可逆</strong></td></tr>
+      <tr><td>大 Hash 治理</td><td>拆分成多个小 Hash 保持 listpack；这才是"横向拆分"的收益来源</td></tr>
+      <tr><td>安全遍历</td><td>HGETALL 危险 → HSCAN 分批 + 去重游标</td></tr>
+      <tr><td>field 过期</td><td>不存在；用整体 TTL / ZSet 辅助 / 拆独立 key 三种方案</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 Hash 实现一个购物车：<code>HSET cart:test sku:1 2</code>、加购、减购（数量为 0 时自动删除该 field）、查看种类数与全部明细。要求写出每条命令。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>构造一个 200 个 field 的 Hash，先后执行 <code>OBJECT ENCODING</code> 观察 listpack→hashtable 的切换；再把它删到只剩 1 个 field，确认<strong>编码不会回退</strong>，并解释运维上的含义。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一个"用户最近浏览商品"功能：最多保留 50 条、每条 30 天后过期、支持按时间倒序返回。给出数据结构选型（Hash / ZSet / List 都能实现，请比较）与关键命令实现。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章进入 List——列表与简单队列。</p>
+</section>
+
+</main>

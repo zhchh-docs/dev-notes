@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 48 章 线程生命周期与中断｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);line-height:1.45;color:var(--accent-2)}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card li>ul,section.card li>ol{margin:6px 0}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card li strong{color:var(--ink)}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+p,li,h1,h2,h3,h4{overflow-wrap:break-word}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+@media(min-width:1024px){
+nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.toc h2{font-size:14px;color:#22331f;margin:0 0 12px;padding:0 0 8px;border-bottom:1px solid #d8e2cc;font-weight:600}
+nav.toc ol{list-style:none;padding:0;margin:0;display:block}
+nav.toc ol li{margin:6px 0}
+nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;text-decoration:none;font-size:13px;line-height:1.4;border-radius:6px;transition:all .15s;background:transparent;border:none}
+nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f}
+.container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+.container{padding:0 14px;margin:0;max-width:100%}
+.hero{padding:20px 16px}
+.hero h1{font-size:22px}
+.hero-desc{font-size:14px}
+.toc ol{grid-template-columns:1fr}
+section.card{padding:20px 18px;margin:16px 0}
+section.card h2{font-size:19px;margin-bottom:16px}
+section.card h3{font-size:16px;margin:24px 0 10px}
+section.card h4{font-size:15px;margin:18px 0 8px}
+pre.code{font-size:12px;padding:12px}
+code{font-size:13px}
+#backTop{right:16px;bottom:20px}
+.doc-nav{gap:6px;padding-left:14px;padding-right:14px}
+.doc-nav-btn{font-size:12px;padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第六篇 并发编程</p>
+    <h1>第 48 章 线程生命周期与中断</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 48 章 / 共 112 章 · 预计 40 分钟 · 边读边练</span>
+    </div>
+    <p class="hero-desc">NEW 到 TERMINATED 的六种状态迁移图；interrupt 的协作式中断模型：为什么 stop 被废弃、如何优雅停止线程。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="047_第47章_线程创建与Runnable.html">← 上一章</a>
+  <a class="doc-nav-btn" href="049_第49章_synchronized与锁升级.html">下一章 →</a>
+</nav>
+<div class="container">
+<main>
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">48.1 六种状态</a></li>
+    <li><a href="#sec3">48.2 协作式中断</a></li>
+    <li><a href="#sec4">48.3 优雅停止线程</a></li>
+    <li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>画清线程六种状态及迁移路径；</li>
+    <li>理解 interrupt 的协作式模型：置标志位，不强行终止；</li>
+    <li>会用 isInterrupted / interrupted / InterruptedException 组合拳；</li>
+    <li>写出可优雅停止的任务循环。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">48.1</span> 六种状态</h2>
+<pre class="code" data-lang="java"><code>NEW（新建）          ── start() ──▶ RUNNABLE（可运行）
+                                       │ 拿到 CPU 时间片就在跑，
+                                       │ 没拿到就在就绪队列等
+RUNNABLE ── 阻塞/等待事件 ──▶ BLOCKED（等锁）      synchronized 拿不到锁
+         ── wait/join ────▶ WAITING（无限等）      wait()、join() 无超时
+         ── sleep/wait(超时) ▶ TIMED_WAITING（限时等） sleep(n)、wait(n)
+任何状态 ── run() 结束/异常 ──▶ TERMINATED（终止）</code></pre>
+  <ul>
+    <li>RUNNABLE 把"运行中"和"就绪中"合并了——JVM 视角只看你是否愿意被调度，占不占 CPU 是 OS 的事；</li>
+    <li>BLOCKED 专指等<strong>对象锁</strong>（synchronized）；LOCK 接口（ReentrantLock）等锁表现为 WAITING/TIMED_WAITING，jstack 里显示 parking；</li>
+    <li>线程只能<strong>从阻塞/等待中自然返回</strong>或被打断——这就是下一节的主题。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">48.2</span> 协作式中断</h2>
+  <p>为什么 stop() 被废弃？强行杀死线程，锁不会释放、数据停在半路——就像拔掉运行中机器的电源。Java 选择了<strong>协作式中断</strong>：调用方发"请求"，被中断方自己决定何时何地响应。</p>
+<pre class="code" data-lang="java"><code>Thread t = new Thread(() -&gt; { /* ... */ });
+t.start();
+t.interrupt();                 // 不是"杀死"，是置中断标志位 = true
+
+// 被中断方查询标志
+t.isInterrupted()              // 查标志，不清除
+Thread.interrupted()           // 静态方法，查当前线程并【清除】标志——坑！
+
+// 阻塞方法被 interrupt 会抛 InterruptedException 并清除标志
+Thread.sleep(1000);            // 等待时被 interrupt → 抛异常</code></pre>
+  <ul>
+    <li>sleep/wait/join 是可中断的：收到中断信号抛 <code>InterruptedException</code>，同时<strong>清除中断标志</strong>——所以 catch 里通常要 <code>Thread.currentThread().interrupt()</code> 恢复标志再退出；</li>
+    <li>循环任务的标准写法：<code>while (!Thread.currentThread().isInterrupted()) { ... }</code>；</li>
+    <li>吞掉 InterruptedException 是经典错误——等于拒绝停机请求，线程池 shutdown 时任务不肯停。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">48.3</span> 优雅停止线程</h2>
+<pre class="code" data-lang="java"><code>public class OrderWorker implements Runnable {
+    private volatile boolean running = true;    // 标志位（volatile 保证可见）
+
+    public void stop() { running = false; }
+
+    @Override
+    public void run() {
+        while (running) {
+            Order order = queue.poll(1, TimeUnit.SECONDS);   // 限时阻塞
+            if (order == null) continue;                     // 没任务，回来查标志
+            if (Thread.currentThread().isInterrupted()) {    // 双保险
+                System.out.println("被中断，保存现场后退出");
+                break;
+            }
+            process(order);
+        }
+        cleanup();   // 收尾：刷缓存、关资源
+    }
+}</code></pre>
+  <ul>
+    <li>模式：<strong>标志位 + 限时阻塞 + 响应中断</strong>——三者齐了才能秒停；</li>
+    <li>shutdown 场景：<code>executor.shutdown()</code> 等任务跑完；<code>shutdownNow()</code> 给所有线程发 interrupt；</li>
+    <li>stop 标志用 volatile：否则你的修改可能一直留在自己线程的工作内存里，别的线程永远看不到（第 50 章细讲）。</li>
+  </ul>
+  <div class="key-sentence">停止线程 = 发信号 + 对方配合；优雅 = 它有机会保存现场、释放资源，而不是被当场击毙。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>六态</td><td>NEW / RUNNABLE / BLOCKED / WAITING / TIMED_WAITING / TERMINATED</td></tr>
+      <tr><td>BLOCKED</td><td>专指 synchronized 等锁；ReentrantLock 等锁显示 parking</td></tr>
+      <tr><td>中断</td><td>协作式：interrupt 置标志，阻塞方法抛 InterruptedException 并清标志</td></tr>
+      <tr><td>吞异常</td><td>catch 里要恢复中断：Thread.currentThread().interrupt()</td></tr>
+      <tr><td>优雅停止</td><td>volatile 标志 + 限时阻塞 + 响应中断 + 收尾逻辑</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个线程 sleep(5000)，主线程 1 秒后 interrupt 它，捕获 InterruptedException 并打印"收到中断信号"；再验证 interrupt 后 isInterrupted() 的值（注意抛异常时标志被清了）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用标志位 + 限时阻塞实现"生产者-消费者停止"：主线程 put 100 个任务后调用 stop()，工作线程处理完已取出的任务后退出，统计实际处理数量——要求不丢已取出的任务、不处理未取出的任务。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 ExecutorService 提交 10 个 sleep(10s) 的任务，调用 shutdownNow()，捕获每个任务的 InterruptedException 并打印哪些任务被成功中断、哪些已完成；回答：为什么 shutdown() 等所有任务结束而 shutdownNow() 不能保证？</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章上锁：synchronized 与锁升级。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="047_第47章_线程创建与Runnable.html">← 上一章</a>
+  <a class="doc-nav-btn" href="049_第49章_synchronized与锁升级.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 48 章 线程生命周期与中断</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function(){
+  var b=document.getElementById('backTop');
+  if(b){var t=function(){b.classList.toggle('show',window.scrollY>480)};window.addEventListener('scroll',t,{passive:true});t();b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})})}
+  try{var ps=document.querySelectorAll('pre.code');for(var i=0;i<ps.length;i++)(function(p){var c=document.createElement('button');c.type='button';c.className='code-copy';c.textContent='复制';p.appendChild(c);c.addEventListener('click',function(){var e=p.querySelector('code'),x=e?e.innerText:p.innerText,d=function(){c.textContent='已复制';setTimeout(function(){c.textContent='复制'},1600)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x).then(d,function(){})}else{var a=document.createElement('textarea');a.value=x;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');document.body.removeChild(a);d()}})})(ps[i])}catch(e){}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

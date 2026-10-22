@@ -1,0 +1,230 @@
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">7.1 Set 命令全景</a></li>
+    <li><a href="#sec3">7.2 集合运算：SINTER/SUNION/SDIFF</a></li>
+    <li><a href="#sec4">7.3 底层编码：intset 到 hashtable</a></li>
+    <li><a href="#sec5">7.4 四个高频业务场景</a></li>
+    <li><a href="#sec6">7.5 大型集合的运算策略</a></li>
+    <li><a href="#sec7">7.6 常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 Set 的核心命令，尤其是<strong>随机取样</strong>（SRANDMEMBER / SPOP）这对抽奖好搭档；</li>
+    <li>理解三个集合运算<strong>各自的复杂度与副作用</strong>，知道什么时候必须加 <code>STORE</code> 而不是直出；</li>
+    <li>能用 Set 落地<strong>抽奖、共同关注、标签、防重复</strong>四个场景；</li>
+    <li>面对百万级集合，知道如何避免一次操作阻塞整个实例；</li>
+    <li>识别"把 Set 当 Redis 版 DISTINCT 查询"这类误用。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 3-6 章。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">7.1</span> Set 命令全景</h2>
+  <p class="lead"><b>Set = <b>无序、去重</b>的字符串集合；单个元素增删查芯是 <b>O(1)</b>。</b></p>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD tags:post:1 redis 缓存 ceph
+(integer) 3                        # 返回新增成功数（已存在的不算）
+127.0.0.1:6379&gt; SADD tags:post:1 redis
+(integer) 0                        # 去重生效
+127.0.0.1:6379&gt; SISMEMBER tags:post:1 redis
+(integer) 1
+127.0.0.1:6379&gt; SMISMEMBER tags:post:1 redis mysql      # 7.0+：批量判断
+1) (integer) 1
+2) (integer) 0
+127.0.0.1:6379&gt; SCARD tags:post:1
+(integer) 3
+127.0.0.1:6379&gt; SMEMBERS tags:post:1      # 全部成员（大集合危险！见 7.6）
+1) "ceph"
+2) "redis"
+3) "缓存"
+127.0.0.1:6379&gt; SREM tags:post:1 ceph
+(integer) 1
+127.0.0.1:6379&gt; SMOVE tags:post:1 tags:post:2 缓存      # 原子地把成员迁移到另一个集合
+(integer) 1</code></pre>
+
+  <h4>随机家族：抽奖全靠它</h4>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD lottery:users u1 u2 u3 u4 u5
+(integer) 5
+
+# SRANDMEMBER：随机返回，【不删除】（可以做多次抽，可重复出现）
+127.0.0.1:6379&gt; SRANDMEMBER lottery:users 2        # 正数：互不重复的 2 个
+1) "u3"
+2) "u1"
+127.0.0.1:6379&gt; SRANDMEMBER lottery:users -3       # 负数：允许重复的 3 个
+1) "u2"
+2) "u2"
+3) "u5"
+
+# SPOP：随机返回并【删除】（等额抽奖、抽完不重姓名单）
+127.0.0.1:6379&gt; SPOP lottery:users 2
+1) "u4"
+2) "u2"
+127.0.0.1:6379&gt; SCARD lottery:users
+(integer) 3</code></pre>
+  <p class="key-sentence">抽奖口诀：<b>不剔除（可重复中奖）用 SRANDMEMBER；要剔名额（抽完即走）用 SPOP。</b>两者都是<b>原子</b>操作，不需要自己加锁做"防重复中奖"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">7.2</span> 集合运算：SINTER/SUNION/SDIFF</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>运算</th><th>命令</th><th>含义</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td>交集</td><td><code>SINTER k1 k2 ...</code></td><td>同时在所有集合里</td><td>O(N×M)，M=最小集合规模</td></tr>
+      <tr><td>并集</td><td><code>SUNION k1 k2 ...</code></td><td>任一集合里有的全部</td><td>O(N)，N=全体成员数</td></tr>
+      <tr><td>差集</td><td><code>SDIFF k1 k2 ...</code></td><td>在 k1 但不在 k2.. 里</td><td>O(N)，N=成员总数</td></tr>
+      <tr><td>带存储</td><td><code>SINTERSTORE dest ...</code></td><td>算完存到 dest 而不返回</td><td>同上 + 写入开销</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD follow:u1 a b c d
+(integer) 4
+127.0.0.1:6379&gt; SADD follow:u2 b c e
+(integer) 3
+
+127.0.0.1:6379&gt; SINTER follow:u1 follow:u2        # 共同关注
+1) "b"
+2) "c"
+127.0.0.1:6379&gt; SDIFF follow:u1 follow:u2         # u1 关注了但 u2 没关注 → 推荐候选
+1) "a"
+2) "d"
+127.0.0.1:6379&gt; SUNION follow:u1 follow:u2        # 合并
+1) "a" 2) "b" 3) "c" 4) "d" 5) "e"
+
+# 结果要留给下次用：用 STORE 版本（返回存进去的元素个数）
+127.0.0.1:6379&gt; SINTERSTORE mutual:u1:u2 follow:u1 follow:u2
+(integer) 2
+127.0.0.1:6379&gt; EXPIRE mutual:u1:u2 600           # 记得给结果一个 TTL！</code></pre>
+  <div class="danger-box"><strong>复杂度陷阱</strong>：<code>SINTER</code> 的复杂度是 <strong>O(N×M)</strong>，要对两个各 10 万成员的集合求交集，Redis 要遍历小集合的成员去大集合里查——这是<strong>毫秒到秒级</strong>的操作，且<strong>阻塞所有其它请求</strong>。<br/>三个对策：<br/>① 在<strong>从库</strong>上做（不能接受实时一致性时）；<br/>② 结果用 <code>SINTERSTORE</code> 缓存起来复用，而不是每次实时算；<br/>③ 把"好友关系"这类需要实时运算的数据放回 SQL/图数据库，Redis 只存热点。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">7.3</span> 底层编码：intset 到 hashtable</h2>
+  <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SADD nums 1 2 3 4 5
+(integer) 5
+127.0.0.1:6379&gt; OBJECT ENCODING nums
+intset                     # 全是整数时，用紧凑的有序整数数组，极省内存
+
+127.0.0.1:6379&gt; SADD nums hello
+(integer) 1
+127.0.0.1:6379&gt; OBJECT ENCODING nums
+hashtable                  # 一加入非整数就转 hashtable，【不可逆】
+
+127.0.0.1:6379&gt; CONFIG GET set-max-intset-entries
+1) "set-max-intset-entries"
+2) "512"                   # 纯整数元素超过 512 个也会转 hashtable
+# 另有 set-max-listpack-entries 128 / set-max-listpack-value 64（7.2 起的过渡编码）</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>编码</th><th>适用</th><th>特点</th></tr></thead>
+    <tbody>
+      <tr><td>intset</td><td>全整数 且 ≤512 个</td><td>最省内存；查找 O(logN)（内部有序，二分）</td></tr>
+      <tr><td>listpack</td><td>少量短字符串成员</td><td>紧凑；查找 O(N)</td></tr>
+      <tr><td>hashtable</td><td>其它</td><td>查找 O(1)；内存开销最大</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">启示：<b>用 Set 存一大堆用户 ID（如签到名单、黑名单），保持纯整数 ID 会很省内存；一旦混进一个非数字字符串，整个集合变成 hashtable，内存可能翻几倍且不可逆。</b></p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">7.4</span> 四个高频业务场景</h2>
+
+  <h3>① 抽奖 / 随机推荐</h3>
+  <pre class="code" data-lang="bash"><code># 参与资格写入（活动结束记得删）
+SADD lottery:2026:participants 1001 1002 1003 ...
+# 一等奖 1 名（抽出后移除）：SPOP
+SPOP lottery:2026:participants 1
+# 二等奖 10 名（可重复参与池、不移除）：SRANDMEMBER
+SRANDMEMBER lottery:2026:participants 10</code></pre>
+
+  <h3>② 共同关注 / 好友推荐（二度人脉）</h3>
+  <pre class="code" data-lang="bash"><code># 每个用户的关注列表一个 Set
+SADD follow:u1 u2 u3 u4
+SADD follow:u2 u3 u5
+# 共同关注
+SINTER follow:u1 follow:u2                  # → u3
+# 你可能认识的人（我对 x 的关注 ∩ x 的关注者 → 简化版：差集 + 随机）
+SDIFF follow:u2 follow:u1                   # u2 关注了但 u1 没关注的 → 推荐给 u1</code></pre>
+
+  <h3>③ 标签 / 反向索引</h3>
+  <pre class="code" data-lang="bash"><code># 正向：这篇文章的标签
+SADD tags:article:1 redis 性能 缓存
+# 反向：这个标签下有哪些文章（便于筛选）
+SADD tagidx:redis article:1 article:5 article:9
+SADD tagidx:性能 article:1 article:7
+# 「同时有 redis 和 性能 标签的文章」
+SINTER tagidx:redis tagidx:性能</code></pre>
+  <p class="note">注意：Redis 没有"查询"能力，所谓筛选=自己维护反向索引。关联数据复杂时请交给 ES / MySQL。</p>
+
+  <h3>④ 去重 / 幂等 / UV 辅助</h3>
+  <pre class="code" data-lang="bash"><code># 一天内已处理过的消息 ID（幂等）
+SADD dedup:2026-10-19 msgid1 msgid2
+SISMEMBER dedup:2026-10-19 msgid1      # 已处理过？跳过
+EXPIRE dedup:2026-10-19 172800         # 留两天（注意：SADD 后补 TTL 才能保证过期）
+
+# UV（精确）—— 基数一亿请不要这样存，见第 9 章 HyperLogLog
+SADD uv:2026-10-19 uid1 uid2 uid3
+SCARD uv:2026-10-19                    # = UV 数</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">7.5</span> 大型集合的运算策略</h2>
+  <p>百万级成员的集合是运维事故常客，处理原则：</p>
+  <ol>
+    <li><strong>避免一次性返回全集</strong>：<code>SMEMBERS</code> / <code>SUNION</code> 直出都可能导致阻塞与客户端 OOM；用 <code>SSCAN</code> 分批。</li>
+      <pre class="code" data-lang="bash"><code>127.0.0.1:6379&gt; SSCAN follow:u1 0 COUNT 500
+1) "832"                       # 下一批游标
+2)  1) "u2"
+    2) "u7"
+    ...</code></pre>
+    <li><strong>大集合运算放到从库</strong>：主库只承接实时写，（注意从库也有淘汰/延迟）。</li>
+    <li><strong>化整为零</strong>：把超大 Set 拆成分片（如按 uid % 64），运算时逐片 SUNIONSTORE 累积；虽然复杂但可控。</li>
+    <li><strong>结果复用</strong>：<code>SINTERSTORE</code> + TTL，把"共同好友"这种低频变动的结果缓存 5-10 分钟。</li>
+    <li><strong>必要时别用 Redis</strong>：社交图谱这种图数据，图数据库/关系库更合适。</li>
+  </ol>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">7.6</span> 常见坑</h2>
+  <div class="warn-box"><strong>坑 1</strong>：<code>SMEMBERS</code> 一个百万 Set（O(N) 且返回全部）——一步到位的阻塞堵塞。替代：<code>SSCAN</code>。</div>
+  <div class="warn-box"><strong>坑 2</strong>：实时 <code>SINTER</code> 两个大集合。<strong>O(N×M)</strong>，务必评估数据量或提前算好缓存。</div>
+  <div class="warn-box"><strong>坑 3</strong>：忘了给 <code>SINTERSTORE</code> 产生的 dest key 设 TTL —— 它是"一次性结果"，不设过期会变成垃圾。</div>
+  <div class="warn-box"><strong>坑 4</strong>：把 Set 里塞<strong>完整的业务对象</strong>而不是 ID → 既浪费内存，也无法去重（对象内容变了就重fanée）。<strong>Set 里一律放 id。</strong></div>
+  <div class="warn-box"><strong>坑 5</strong>：误以为 Set 有序。Set 无顺序，需要按分数/时间排序用 <strong>ZSet</strong>（第 8 章）或 List。</div>
+  <div class="warn-box"><strong>坑 6</strong>：用 Set 存亿级 UV。<code>SCARD</code> 精确但内存爆炸（1 亿 uid ≈ 数 GB）；该用 <strong>HyperLogLog</strong> 时别硬撑（第 9 章）。</div>
+  <div class="warn-box"><strong>坑 7</strong>：Python/Java 客户端返回类型混淆：<code>SISMEMBER</code> 返回的是 <strong>0/1 整数</strong>，有些语言里 <code>false</code> 与 <code>null</code> 混淆，注意判空。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>结构</td><td>无序去重集合，单元素操作 O(1)</td></tr>
+      <tr><td>随机</td><td>SRANDMEMBER（不删）vs SPOP（删除），抽奖核心</td></tr>
+      <tr><td>三大运算</td><td>SINTER(O(N×M)) / SUNION(O(N)) / SDIFF(O(N))，带 STORE 可缓存结果</td></tr>
+      <tr><td>编码</td><td>intset（纯整数≤512，最省）→ hashtable，<strong>不可逆</strong></td></tr>
+      <tr><td>典型场景</td><td>抽奖、共同关注、标签反向索引、幂等去重、精确 UV</td></tr>
+      <tr><td>大集合</td><td>SSCAN 分批、从库运算、分片化、结果缓存</td></tr>
+      <tr><td>误用</td><td>Set 里放大对象、把它当查询引擎、亿级基数硬存</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 Set 完成一个"抽奖+不重复中奖"的活动：写一、二、三等奖抽取命令，并保证一个人不会被抽中两次。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>构造两个各含 10 万成员的 Set，分别用 <code>SINTER</code> 直出和 <code>SINTERSTORE</code> 到 dest 两种方式求交集，对比耗时（可用 <code>redis-cli --latency</code> 或 <code>SLOWLOG GET</code>），并说明在什么场景下必须用 STORE 版本。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一个"文章标签筛选"：支持"同时包含标签 A 和 B 的文章"和"包含 A 或 B 的文章"两种查询，写出正反索引的完整命令；并说明当某个标签下有 500 万篇文章时，你的方案该如何演进。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章是本篇重头戏——ZSet，排行榜的核心。</p>
+</section>
+
+</main>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 68 章 建立性能基线：怎么算"正常"｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第七篇 JVM</p>
+    <h1>第 68 章 建立性能基线：怎么算"正常"</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 68 章 / 共 112 章 · 预计 35 分钟 · 第七篇收官章</span>
+    </div>
+    <p class="hero-desc">排障的第一句话不是"哪里有问题"，而是"以前正常时是什么样"。本章教你为服务建立可量化、可对比、可持续更新的性能基线——第七篇 JVM 的收官，也是从"会看"到"会管"的分水岭。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档文档导航">
+  <a class="doc-nav-btn" href="067_第67章_JIT与逃逸分析.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../80_第八篇_数据库与JDBC/069_第69章_环境准备与驱动加载.html">下一篇 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">68.1 基线的定义与内容</a></li>
+    <li><a href="#sec3">68.2 采集：一张基线卡</a></li>
+    <li><a href="#sec4">68.3 常见服务的"正常"参考值</a></li>
+    <li><a href="#sec5">68.4 基线的对比与告警</a></li>
+    <li><a href="#sec5b">68.5 基线的生命周期</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清<strong>基线</strong>与"快照"的区别：基线 = 正常态的量化画像；</li>
+    <li>为服务采集一张<strong>六维基线卡</strong>（流量/延迟/GC/内存/线程/CPU）；</li>
+    <li>知道通用服务的<strong>合理参考区间</strong>与报警阈值思路；</li>
+    <li>建立基线的<strong>更新机制</strong>：随版本演进、随容量变化重测。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">68.1</span> 基线的定义与内容</h2>
+  <p class="lead"><strong>一句话定位</strong>：性能基线是服务在"设计容量内正常运行"时各项指标的范围记录。没有基线，所有异常判断都靠感觉；有基线，异常是"偏离画像"的量化事实。</p>
+  <div class="key-sentence">"我们服务卡了"不可行动；"老年代水位比基线高 30%，P99 从 80ms 涨到 300ms，发生时间与 X 版本发布吻合"才可行动。基线是排障的坐标系。</div>
+  <p>一张完整基线应覆盖六个维度：</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:50%"><col style="width:30%"></colgroup>
+    <thead><tr><th>维度</th><th>指标</th><th>采集来源</th></tr></thead>
+    <tbody>
+      <tr><td>流量</td><td>QPS/TPS、连接数</td><td>网关日志、监控平台</td></tr>
+      <tr><td>延迟</td><td>P50/P95/P99、接口分级耗时</td><td>APM（Skywalking/Prometheus）</td></tr>
+      <tr><td>GC</td><td>YGC 频率、单次停顿、FGC 次数/天</td><td>GC 日志 + jstat</td></tr>
+      <tr><td>内存</td><td>堆水位、老年代占比、元空间、堆外</td><td>jstat / exporter</td></tr>
+      <tr><td>线程</td><td>线程总数、各状态数量、线程池活跃度</td><td>jstack / arthas</td></tr>
+      <tr><td>资源</td><td>CPU 使用率、Load、IO、带宽</td><td>top / node_exporter</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">68.2</span> 采集：一张基线卡</h2>
+  <p>在<strong>正常工作日高峰</strong>（不是深夜也不是全空）采集 30 分钟，填写基线卡：</p>
+  <pre class="code" data-lang="text"><code>==================== 服务基线卡 v1.0 ====================
+服务: order-service        实例: 2C4G × 3        日期: 2026-01-05
+JVM: JDK 21 · G1 · -Xms4g -Xmx4g      版本: v2.3.1
+
+[流量]    峰值 QPS: 850        日常 QPS: 300~500
+[延迟]    P50: 18ms   P95: 45ms   P99: 85ms（核心接口 /orders）
+[GC]      YGC: 2~4 次/分钟, 单次 8~15ms   FGC: 0 次/天
+[内存]    堆稳态水位: 45%~60%   老年代: 40%~50%   Metaspace: 180M
+[线程]    总数: 210±20（tomcat 200 + 自定义 8 + GC 2）
+          BLOCKED: 0    WAITING(tomcat idle): ~190
+[资源]    CPU: 30%~50%   Load: &lt;2   磁盘 IO 稳定无毛刺
+
+异常判定红线（超出即告警）：
+  P99 &gt; 200ms 或 YGC &gt; 15 次/分钟 或 单次 GC &gt; 100ms
+  老年代 &gt; 75% 且持续上涨 或 FGC ≥ 1 次/天
+  BLOCKED &gt; 5 持续 1 分钟 或 CPU &gt; 80% 持续 5 分钟
+========================================================</code></pre>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>：用<strong>平均数</strong>做基线会被长尾掩盖问题——延迟基线必须看 P95/P99 分位数；同理，CPU 看 5 分钟滑动窗口而不是瞬时值。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">68.3</span> 常见服务的"正常"参考值</h2>
+  <p>不同服务形态的合理画像差异巨大，先对照再定制：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:42%"><col style="width:36%"></colgroup>
+    <thead><tr><th>服务形态</th><th>画像特点</th><th>重点盯</th></tr></thead>
+    <tbody>
+      <tr><td>Web API 服务</td><td>YGC 频繁但短（&lt;20ms）、FGC=0、线程数与 Tomcat 配置相当</td><td>P99、YGC 频率、线程池活跃度</td></tr>
+      <tr><td>批处理任务</td><td>CPU 高、吞吐优先、允许长 GC</td><td>总耗时、吞吐、OOM</td></tr>
+      <tr><td>消息消费者</td><td>内存平稳、LAG 稳定不增长</td><td>消费延迟（LAG）、重试率</td></tr>
+      <tr><td>网关类</td><td>CPU 相对低、连接数高、内存小</td><td>连接数、FD 数、GC 停顿（影响全局）</td></tr>
+      <tr><td>计算型服务</td><td>CPU 贴满、堆分配速率高</td><td>CPU 与吞吐的比值、分配速率</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>通用健康线（经验值，需按业务校准）</strong>：FGC 每天 &gt; 0 次要查；YGC 单次 &gt; 50ms 要查（G1）；老年代稳态 &gt; 70% 要查；线程数 &gt; 1000 要查。基线卡里的红线应以这些为起点，而不是拍脑袋。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">68.4</span> 基线的对比与告警</h2>
+  <ol>
+    <li><strong>环比异常检测</strong>：当前指标 vs 基线区间，超出即触发；比静态阈值更能适应流量波动；</li>
+    <li><strong>版本变更绑定</strong>：每次发版后自动对比发布前后 24h 指标——性能回退在发布时刻最容易被抓到；</li>
+    <li><strong>容量预警</strong>：基线 + 增长率可以推算扩容时间点，而不是等 OOM 了才扩；</li>
+    <li><strong>排障入口</strong>：偏离哪个维度就从哪个维度进（第 65 章的 SOP）。</li>
+  </ol>
+  <pre class="code" data-lang="bash"><code># 手工巡检脚本骨架（cron 每 10 分钟）
+PID=$(pgrep -f order-service)
+OUT=$(jstat -gcutil $PID 1000 5 | tail -1)
+O=$(echo $OUT | awk '{print $4}')
+if (( $(echo "$O &gt; 75" | bc -l) )); then
+  echo "$(date) 老年代水位 $O% 超红线，转储快照" &gt;&gt; /ops/alert.log
+  jcmd $PID GC.heap_dump /dumps/heap-$(date +%s).hprof
+fi
+# 生产建议换成 Prometheus + Grafana + 告警规则，脚本仅用于小规模兜底</code></pre>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">68.5</span> 基线的生命周期</h2>
+  <ul>
+    <li><strong>建立</strong>：新服务上线稳定一周后首次采集；</li>
+    <li><strong>更新</strong>：大版本发布、JVM 升级、参数调整、流量翻倍后重测；</li>
+    <li><strong>废弃</strong>：架构变更（单体→微服务）后旧基线作废；</li>
+    <li><strong>归档</strong>：基线卡进版本库随代码演进，与发版记录关联——出问题时能查"当时基线是什么"。</li>
+  </ul>
+  <div class="key-sentence">第七篇总结：内存区域是地图，GC 是天气，工具是导航，基线是"正常天气"的气象档案。掌握四者，你对 JVM 就从"背概念"进入了"会运维"。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>基线定义</td><td>正常态的六维量化画像；异常=偏离画像的量化事实</td></tr>
+      <tr><td>采集纪律</td><td>工作日高峰 30 分钟；延迟看分位数，CPU 看滑动窗口</td></tr>
+      <tr><td>健康红线</td><td>FGC=0、YGC&lt;20ms、老年代&lt;70%、BLOCKED=0 为起点</td></tr>
+      <tr><td>使用方式</td><td>环比告警、发版对比、容量推算、排障入口</td></tr>
+      <tr><td>生命周期</td><td>随版本更新重测，随代码归档</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>列出基线卡六个维度，并说明每个维度各用一个什么工具采集。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为自己（或课程示例）的 Spring 服务采集一张基线卡，含红线定义。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>故意注入一个泄漏点（静态 Map），观察哪个维度先越线，写下"从发现到定位"的时间线。</div>
+  <p class="note">第七篇 JVM 完。第八篇进入数据库与 JDBC：Java 与数据打交道的基本功。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="067_第67章_JIT与逃逸分析.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../80_第八篇_数据库与JDBC/069_第69章_环境准备与驱动加载.html">下一篇 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 68 章 建立性能基线</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>
