@@ -46,7 +46,7 @@ window.KB_MANIFEST = {
       "name": "书架总导览",
       "icon": "📚",
       "desc": "教科书模块总入口：每本对应一个技术点的从 0 到精通完整学习线",
-      "color": "#57534E",
+      "color": "#6B5D4F",
       "chapters": [
         {
           "t": "从 0 到精通 · 书架与总导览",
@@ -63,7 +63,7 @@ window.KB_MANIFEST = {
       "name": "《JavaScript 从 0 到精通》",
       "icon": "🟨",
       "desc": "10 篇 · 97 章完稿 + 3 附录 · 全书完",
-      "color": "#B8860B",
+      "color": "#A8842C",
       "chapters": [
         {
           "t": "《JavaScript 从 0 到精通》全书目录",
@@ -835,7 +835,7 @@ window.KB_MANIFEST = {
       "name": "《TypeScript 从 0 到精通》",
       "icon": "🔷",
       "desc": "6 篇 · 52 章完稿 · 全书完",
-      "color": "#2F74C0",
+      "color": "#33608C",
       "chapters": [
         {
           "t": "《TypeScript 从 0 到精通》全书目录",
@@ -1251,7 +1251,7 @@ window.KB_MANIFEST = {
       "name": "《Java 从 0 到精通》",
       "icon": "☕",
       "desc": "12 篇 · 规划 112 章 · 撰写中",
-      "color": "#C05621",
+      "color": "#B4552D",
       "chapters": [
         {
           "t": "《Java 从 0 到精通》全书目录",
@@ -1886,7 +1886,7 @@ window.KB_MANIFEST = {
       "name": "《MySQL 从 0 到精通》",
       "icon": "🐬",
       "desc": "8 篇 · 规划 72 章 · 撰写中",
-      "color": "#0E7490",
+      "color": "#2E7D74",
       "chapters": [
         {
           "t": "《MySQL 从 0 到精通》全书目录",
@@ -1990,7 +1990,7 @@ window.KB_MANIFEST = {
       "name": "《Python 从 0 到精通》",
       "icon": "🐍",
       "desc": "6 篇 · 规划 60 章 · 撰写中",
-      "color": "#3776AB",
+      "color": "#3A6B9C",
       "chapters": [
         {
           "t": "《Python 从 0 到精通》全书目录",
@@ -2175,7 +2175,7 @@ window.KB_MANIFEST = {
       "name": "《Vue 从 0 到精通》",
       "icon": "💚",
       "desc": "8 篇 · 规划 78 章 · 撰写中",
-      "color": "#16A34A",
+      "color": "#4A8B5C",
       "chapters": [
         {
           "t": "《Vue 从 0 到精通》全书目录",
@@ -2363,7 +2363,7 @@ window.KB_MANIFEST = {
       "name": "《React 从 0 到精通》",
       "icon": "⚛️",
       "desc": "7 篇 · 规划 74 章 · 撰写中",
-      "color": "#0891B2",
+      "color": "#2E8FA3",
       "chapters": [
         {
           "t": "《React 从 0 到精通》全书目录",
@@ -2497,7 +2497,7 @@ window.KB_MANIFEST = {
       "name": "《Git 从 0 到精通》",
       "icon": "🌿",
       "desc": "4 篇 · 规划 40 章 · 撰写中",
-      "color": "#D97706",
+      "color": "#C07A2E",
       "chapters": [
         {
           "t": "《Git 从 0 到精通》全书目录",
@@ -2651,7 +2651,7 @@ window.KB_MANIFEST = {
       "name": "《Nginx 从 0 到精通》",
       "icon": "🔁",
       "desc": "3 篇 · 规划 32 章 · 撰写中",
-      "color": "#15803D",
+      "color": "#3D7A4F",
       "chapters": [
         {
           "t": "《Nginx 从 0 到精通》全书目录",
@@ -2772,7 +2772,7 @@ window.KB_MANIFEST = {
       "name": "《Redis 从 0 到精通》",
       "icon": "🧱",
       "desc": "5 篇 · 规划 54 章 · 撰写中",
-      "color": "#DC2626",
+      "color": "#B04A4A",
       "chapters": [
         {
           "t": "《Redis 从 0 到精通》全书目录",
@@ -2896,7 +2896,7 @@ window.KB_MANIFEST = {
       "name": "全栈公开课",
       "icon": "🎓",
       "desc": "赫尔辛基大学 Full Stack Open 中文版 · React / Node / GraphQL / TS 循序渐进全栈实战",
-      "color": "#7C3AED",
+      "color": "#6E5A8E",
       "chapters": [
         {
           "t": "课程导览与学习路线",
@@ -3424,7 +3424,7 @@ window.KB_MANIFEST = {
       "name": "前端基础",
       "icon": "🎨",
       "desc": "HTML5 / CSS3 / JavaScript / TypeScript / 浏览器原理 / HTTP",
-      "color": "#DB2777",
+      "color": "#A05268",
       "chapters": [
         {
           "t": "前端基础 · 模块导览【精讲】",
@@ -3532,7 +3532,7 @@ window.KB_MANIFEST = {
       "name": "框架与状态",
       "icon": "⚛️",
       "desc": "Vue / React / 组件化 / Pinia / 微前端 / SSR / 跨端",
-      "color": "#059669",
+      "color": "#4E7A52",
       "chapters": [
         {
           "t": "框架与状态 · 模块导览【精讲】",
@@ -3633,7 +3633,7 @@ window.KB_MANIFEST = {
       "name": "组件与工具库",
       "icon": "🧰",
       "desc": "Axios / vxe-table / Monaco / JsPlumb / VueUse / 文件处理",
-      "color": "#2563EB",
+      "color": "#4A6FA5",
       "chapters": [
         {
           "t": "工具库 · 模块导览【精讲】",
@@ -3720,7 +3720,7 @@ window.KB_MANIFEST = {
       "name": "数据可视化",
       "icon": "📊",
       "desc": "ECharts / AntV G6 / Three.js / Canvas / SVG / 大屏",
-      "color": "#D97706",
+      "color": "#B0763A",
       "chapters": [
         {
           "t": "数据可视化 · 模块导览【精讲】",
@@ -3800,7 +3800,7 @@ window.KB_MANIFEST = {
       "name": "实时通信",
       "icon": "📡",
       "desc": "WebSocket / SSE / WebRTC / Janus / 音视频协议",
-      "color": "#6D28D9",
+      "color": "#6B5E9E",
       "chapters": [
         {
           "t": "实时通信 · 模块导览【精讲】",
@@ -3866,7 +3866,7 @@ window.KB_MANIFEST = {
       "name": "后端开发",
       "icon": "☕",
       "desc": "Java / Spring / Spring Boot / MyBatis / RESTful / JWT",
-      "color": "#B45309",
+      "color": "#996033",
       "chapters": [
         {
           "t": "后端开发 · 模块导览【精讲】",
@@ -3960,7 +3960,7 @@ window.KB_MANIFEST = {
       "name": "数据库与建模",
       "icon": "🗄️",
       "desc": "MySQL / Redis / Oracle / ES / MongoDB / 分库分表 / 建模",
-      "color": "#0F766E",
+      "color": "#35706B",
       "chapters": [
         {
           "t": "数据库 · 模块导览【精讲】",
@@ -4061,7 +4061,7 @@ window.KB_MANIFEST = {
       "name": "Python",
       "icon": "🐍",
       "desc": "入门语法 / 工程化与 FastAPI / GIL 与并发 / 性能调优",
-      "color": "#1D4ED8",
+      "color": "#35608C",
       "chapters": [
         {
           "t": "Python模块导览【精讲】",
@@ -4134,7 +4134,7 @@ window.KB_MANIFEST = {
       "name": "工程化与工具链",
       "icon": "⚙️",
       "desc": "Vite / Webpack / Git / ESLint / 测试 / Monorepo",
-      "color": "#EA580C",
+      "color": "#A5622F",
       "chapters": [
         {
           "t": "工程化 · 模块导览【精讲】",
@@ -4228,7 +4228,7 @@ window.KB_MANIFEST = {
       "name": "部署与运维",
       "icon": "🚀",
       "desc": "Nginx / Docker / K8s / CI-CD / Linux / 监控",
-      "color": "#4D7C0F",
+      "color": "#5E7A3A",
       "chapters": [
         {
           "t": "DevOps · 模块导览【精讲】",
@@ -4329,7 +4329,7 @@ window.KB_MANIFEST = {
       "name": "研发流程与 AI",
       "icon": "🤖",
       "desc": "敏捷 / 代码评审 / AI 编程 / RAG / 技术选型",
-      "color": "#9333EA",
+      "color": "#7A5E9A",
       "chapters": [
         {
           "t": "研发流程与AI · 模块导览【精讲】",
@@ -4395,7 +4395,7 @@ window.KB_MANIFEST = {
       "name": "体系精讲",
       "icon": "🎯",
       "desc": "知识总纲 + 分领域体系化精讲",
-      "color": "#334155",
+      "color": "#4E5D6B",
       "chapters": [
         {
           "t": "知识体系总纲 - 全面学习",
@@ -4489,7 +4489,7 @@ window.KB_MANIFEST = {
       "name": "技术路线图",
       "icon": "🗺️",
       "desc": "从计算机底层到项目实战的路线地图",
-      "color": "#475569",
+      "color": "#5E6B5A",
       "chapters": [
         {
           "t": "全栈技术路线图总览",

@@ -26,6 +26,16 @@
     }catch(e){ return u; }
   };
 
+  // 外壳样式自动补注（部分页面只注入了 app.js，缺 app.css）
+  try{
+    if(!document.querySelector('link[href*="app.css"]')){
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = new URL('app.css', document.currentScript.src).href;
+      document.head.appendChild(l);
+    }
+  }catch(e){}
+
   // 动态加载 manifest.js（路径随页面深度自适应）
   const s = document.createElement('script');
   s.src = UP + 'assets/manifest.js';

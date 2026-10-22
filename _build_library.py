@@ -83,41 +83,42 @@ TUTORIAL_BOOKS = {
 
 # ── 书注册表 ──
 # (key, group, name, icon, desc, color, src)
+# color：莫兰迪书布色（低饱和、中明度，白字可读、排架和谐）
 # src: "dir:<rel>"  收集该目录顶层 HTML 为章节
 #      "tree:<rel>" 递归收集该目录全部 HTML
 #      "entry:<rel>" 入口书：直接指向其自有导览页
 BOOKS = [
     # 📚 从 0 到精通
-    ("14_从0到精通",              "tutorial", "书架总导览",              "📚", "教科书模块总入口：每本对应一个技术点的从 0 到精通完整学习线", "#57534E", "dir:14_从0到精通"),
-    ("14_从0到精通/javascript",   "tutorial", "《JavaScript 从 0 到精通》", "🟨", "10 篇 · 97 章完稿 + 3 附录 · 全书完", "#B8860B", "tree:14_从0到精通/javascript"),
-    ("14_从0到精通/typescript",   "tutorial", "《TypeScript 从 0 到精通》", "🔷", "6 篇 · 52 章完稿 · 全书完", "#2F74C0", "tree:14_从0到精通/typescript"),
-    ("14_从0到精通/java",         "tutorial", "《Java 从 0 到精通》",      "☕", "12 篇 · 规划 112 章 · 撰写中", "#C05621", "tree:14_从0到精通/java"),
-    ("14_从0到精通/mysql",        "tutorial", "《MySQL 从 0 到精通》",     "🐬", "8 篇 · 规划 72 章 · 撰写中", "#0E7490", "tree:14_从0到精通/mysql"),
-    ("14_从0到精通/python",       "tutorial", "《Python 从 0 到精通》",    "🐍", "6 篇 · 规划 60 章 · 撰写中", "#3776AB", "tree:14_从0到精通/python"),
-    ("14_从0到精通/vue",          "tutorial", "《Vue 从 0 到精通》",       "💚", "8 篇 · 规划 78 章 · 撰写中", "#16A34A", "tree:14_从0到精通/vue"),
-    ("14_从0到精通/react",        "tutorial", "《React 从 0 到精通》",     "⚛️", "7 篇 · 规划 74 章 · 撰写中", "#0891B2", "tree:14_从0到精通/react"),
-    ("14_从0到精通/git",          "tutorial", "《Git 从 0 到精通》",       "🌿", "4 篇 · 规划 40 章 · 撰写中", "#D97706", "tree:14_从0到精通/git"),
-    ("14_从0到精通/nginx",        "tutorial", "《Nginx 从 0 到精通》",     "🔁", "3 篇 · 规划 32 章 · 撰写中", "#15803D", "tree:14_从0到精通/nginx"),
-    ("14_从0到精通/redis",        "tutorial", "《Redis 从 0 到精通》",     "🧱", "5 篇 · 规划 54 章 · 撰写中", "#DC2626", "tree:14_从0到精通/redis"),
-    ("15_全栈公开课",             "tutorial", "全栈公开课",              "🎓", "赫尔辛基大学 Full Stack Open 中文版 · React / Node / GraphQL / TS 循序渐进全栈实战", "#7C3AED", "dir:15_全栈公开课"),
+    ("14_从0到精通",              "tutorial", "书架总导览",              "📚", "教科书模块总入口：每本对应一个技术点的从 0 到精通完整学习线", "#6B5D4F", "dir:14_从0到精通"),
+    ("14_从0到精通/javascript",   "tutorial", "《JavaScript 从 0 到精通》", "🟨", "10 篇 · 97 章完稿 + 3 附录 · 全书完", "#A8842C", "tree:14_从0到精通/javascript"),
+    ("14_从0到精通/typescript",   "tutorial", "《TypeScript 从 0 到精通》", "🔷", "6 篇 · 52 章完稿 · 全书完", "#33608C", "tree:14_从0到精通/typescript"),
+    ("14_从0到精通/java",         "tutorial", "《Java 从 0 到精通》",      "☕", "12 篇 · 规划 112 章 · 撰写中", "#B4552D", "tree:14_从0到精通/java"),
+    ("14_从0到精通/mysql",        "tutorial", "《MySQL 从 0 到精通》",     "🐬", "8 篇 · 规划 72 章 · 撰写中", "#2E7D74", "tree:14_从0到精通/mysql"),
+    ("14_从0到精通/python",       "tutorial", "《Python 从 0 到精通》",    "🐍", "6 篇 · 规划 60 章 · 撰写中", "#3A6B9C", "tree:14_从0到精通/python"),
+    ("14_从0到精通/vue",          "tutorial", "《Vue 从 0 到精通》",       "💚", "8 篇 · 规划 78 章 · 撰写中", "#4A8B5C", "tree:14_从0到精通/vue"),
+    ("14_从0到精通/react",        "tutorial", "《React 从 0 到精通》",     "⚛️", "7 篇 · 规划 74 章 · 撰写中", "#2E8FA3", "tree:14_从0到精通/react"),
+    ("14_从0到精通/git",          "tutorial", "《Git 从 0 到精通》",       "🌿", "4 篇 · 规划 40 章 · 撰写中", "#C07A2E", "tree:14_从0到精通/git"),
+    ("14_从0到精通/nginx",        "tutorial", "《Nginx 从 0 到精通》",     "🔁", "3 篇 · 规划 32 章 · 撰写中", "#3D7A4F", "tree:14_从0到精通/nginx"),
+    ("14_从0到精通/redis",        "tutorial", "《Redis 从 0 到精通》",     "🧱", "5 篇 · 规划 54 章 · 撰写中", "#B04A4A", "tree:14_从0到精通/redis"),
+    ("15_全栈公开课",             "tutorial", "全栈公开课",              "🎓", "赫尔辛基大学 Full Stack Open 中文版 · React / Node / GraphQL / TS 循序渐进全栈实战", "#6E5A8E", "dir:15_全栈公开课"),
     # 🧱 前端开发
-    ("01_前端基础",               "fe", "前端基础",       "🎨", "HTML5 / CSS3 / JavaScript / TypeScript / 浏览器原理 / HTTP", "#DB2777", "dir:01_前端基础"),
-    ("02_前端框架与状态管理",     "fe", "框架与状态",     "⚛️", "Vue / React / 组件化 / Pinia / 微前端 / SSR / 跨端", "#059669", "dir:02_前端框架与状态管理"),
-    ("05_前端常用工具库",         "fe", "组件与工具库",   "🧰", "Axios / vxe-table / Monaco / JsPlumb / VueUse / 文件处理", "#2563EB", "dir:05_前端常用工具库"),
-    ("03_数据可视化",             "fe", "数据可视化",     "📊", "ECharts / AntV G6 / Three.js / Canvas / SVG / 大屏", "#D97706", "dir:03_数据可视化"),
-    ("04_实时通信",               "fe", "实时通信",       "📡", "WebSocket / SSE / WebRTC / Janus / 音视频协议", "#6D28D9", "dir:04_实时通信"),
+    ("01_前端基础",               "fe", "前端基础",       "🎨", "HTML5 / CSS3 / JavaScript / TypeScript / 浏览器原理 / HTTP", "#A05268", "dir:01_前端基础"),
+    ("02_前端框架与状态管理",     "fe", "框架与状态",     "⚛️", "Vue / React / 组件化 / Pinia / 微前端 / SSR / 跨端", "#4E7A52", "dir:02_前端框架与状态管理"),
+    ("05_前端常用工具库",         "fe", "组件与工具库",   "🧰", "Axios / vxe-table / Monaco / JsPlumb / VueUse / 文件处理", "#4A6FA5", "dir:05_前端常用工具库"),
+    ("03_数据可视化",             "fe", "数据可视化",     "📊", "ECharts / AntV G6 / Three.js / Canvas / SVG / 大屏", "#B0763A", "dir:03_数据可视化"),
+    ("04_实时通信",               "fe", "实时通信",       "📡", "WebSocket / SSE / WebRTC / Janus / 音视频协议", "#6B5E9E", "dir:04_实时通信"),
     # 🖥️ 服务端与数据
-    ("07_后端开发",               "server", "后端开发",     "☕", "Java / Spring / Spring Boot / MyBatis / RESTful / JWT", "#B45309", "dir:07_后端开发"),
-    ("08_数据库与建模",           "server", "数据库与建模", "🗄️", "MySQL / Redis / Oracle / ES / MongoDB / 分库分表 / 建模", "#0F766E", "dir:08_数据库与建模"),
-    ("13_Python",                 "server", "Python",       "🐍", "入门语法 / 工程化与 FastAPI / GIL 与并发 / 性能调优", "#1D4ED8", "dir:13_Python"),
+    ("07_后端开发",               "server", "后端开发",     "☕", "Java / Spring / Spring Boot / MyBatis / RESTful / JWT", "#996033", "dir:07_后端开发"),
+    ("08_数据库与建模",           "server", "数据库与建模", "🗄️", "MySQL / Redis / Oracle / ES / MongoDB / 分库分表 / 建模", "#35706B", "dir:08_数据库与建模"),
+    ("13_Python",                 "server", "Python",       "🐍", "入门语法 / 工程化与 FastAPI / GIL 与并发 / 性能调优", "#35608C", "dir:13_Python"),
     # ⚙️ 工程与交付
-    ("06_前端工程化与工具链",     "eng", "工程化与工具链", "⚙️", "Vite / Webpack / Git / ESLint / 测试 / Monorepo", "#EA580C", "dir:06_前端工程化与工具链"),
-    ("09_DevOps部署与运维",       "eng", "部署与运维",     "🚀", "Nginx / Docker / K8s / CI-CD / Linux / 监控", "#4D7C0F", "dir:09_DevOps部署与运维"),
+    ("06_前端工程化与工具链",     "eng", "工程化与工具链", "⚙️", "Vite / Webpack / Git / ESLint / 测试 / Monorepo", "#A5622F", "dir:06_前端工程化与工具链"),
+    ("09_DevOps部署与运维",       "eng", "部署与运维",     "🚀", "Nginx / Docker / K8s / CI-CD / Linux / 监控", "#5E7A3A", "dir:09_DevOps部署与运维"),
     # 🤝 研发与 AI
-    ("10_研发流程与AI辅助",       "workflow", "研发流程与 AI", "🤖", "敏捷 / 代码评审 / AI 编程 / RAG / 技术选型", "#9333EA", "dir:10_研发流程与AI辅助"),
+    ("10_研发流程与AI辅助",       "workflow", "研发流程与 AI", "🤖", "敏捷 / 代码评审 / AI 编程 / RAG / 技术选型", "#7A5E9A", "dir:10_研发流程与AI辅助"),
     # 🧭 体系与路线
-    ("11_全面学习",               "meta", "体系精讲",       "🎯", "知识总纲 + 分领域体系化精讲", "#334155", "dir:11_全面学习"),
-    ("12_全栈技术路线图",         "meta", "技术路线图",     "🗺️", "从计算机底层到项目实战的路线地图", "#475569", "dir:12_全栈技术路线图"),
+    ("11_全面学习",               "meta", "体系精讲",       "🎯", "知识总纲 + 分领域体系化精讲", "#4E5D6B", "dir:11_全面学习"),
+    ("12_全栈技术路线图",         "meta", "技术路线图",     "🗺️", "从计算机底层到项目实战的路线地图", "#5E6B5A", "dir:12_全栈技术路线图"),
 ]
 
 
