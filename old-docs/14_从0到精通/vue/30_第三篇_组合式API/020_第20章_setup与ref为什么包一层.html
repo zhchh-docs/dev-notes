@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 20 章 setup 与 ref 为什么包一层｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第三篇 组合式 API</p>
+    <h1>第 20 章 setup 与 ref 为什么包一层</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 20 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">进入第三篇组合式 API。第一个绕不开的问题是：为什么 ref 要多写一层 .value？本章从'拦截'的本质讲起，把 setup、ref、解包规则一次说清，并预告第四篇的 Proxy 原理。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../20_第二篇_组件化/019_第19章_动态组件与异步组件.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="021_第21章_reactive与解构陷阱.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">20.1 setup：组合式 API 的入口</a></li>
+    <li><a href="#sec3">20.2 为什么需要 ref：普通 let 拦不住</a></li>
+    <li><a href="#sec4">20.3 .value：JS 里必须手动，模板自动</a></li>
+    <li><a href="#sec5">20.4 ref 传参与解构：为什么不会丢</a></li>
+    <li><a href="#sec6">20.5 ref 与 reactive 怎么选</a></li>
+    <li><a href="#sec7">20.6 常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 <strong>setup 的定位</strong>：它和 <code>&lt;script setup&gt;</code> 的关系，顶层绑定为何自动暴露；</li>
+    <li>理解 <strong>ref 为什么要包一层</strong>——响应式的本质是"拦截读写"，普通变量做不到；</li>
+    <li>背下 <strong>.value 的三条规则</strong>：JS 中必须写、模板中自动解包、嵌进 reactive 自动解包；</li>
+    <li>体会 ref 作为<strong>容器传参不丢响应性</strong>的工程价值；</li>
+    <li>建立 <strong>ref vs reactive</strong> 的选型直觉。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 1 章"改了变量页面为什么不变"的铺垫、第 10 章 <code>&lt;script setup&gt;</code> 的编译行为。本章开始进入第三篇，后面 9 章都在这套 API 体系内展开。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">20.1</span> setup：组合式 API 的入口</h2>
+  <p>选项式 API 的组件长这样：<code>data</code>、<code>methods</code>、<code>computed</code>、<code>watch</code> 各占一个选项，Vue 内部把它们挂到 <code>this</code> 上。组合式 API 把这一切收进一个函数——<code>setup()</code>：</p>
+<pre class="code" data-lang="js"><code>// 显式 setup() 写法（看得清"组合式到底是什么"）
+export default {
+  setup() {
+    const count = ref(0)          // 状态：相当于 data() { return { count: 0 } }
+    function inc() { count.value++ }   // 方法：相当于 methods: { inc() {} }
+
+    return { count, inc }          // return 出去 = 暴露给模板
+  }
+}</code></pre>
+  <p>第 10 章说过，<code>&lt;script setup&gt;</code> 是这段代码的语法糖：你写在顶层的 <code>const count = ref(0)</code>，编译器自动把它 return 出去。所以日常开发中 <code>setup</code> 这个词你几乎看不到，但<strong>理解它的存在很重要</strong>：</p>
+  <ul>
+    <li><strong>顶层绑定自动暴露</strong>：<code>&lt;script setup&gt;</code> 里所有顶层变量/函数/组件 import，模板都能直接用；</li>
+    <li><strong>每实例独立执行</strong>：组件每挂载一次，<code>setup()</code> 就跑一遍，里面声明的变量是这个实例私有的；</li>
+    <li><strong>setup 阶段没有 this</strong>：这是组合式与选项式最大的分水岭——没有 <code>this.xxx</code>，一切都是函数里的普通闭包变量。</li>
+  </ul>
+  <p class="key-sentence">组合式 API 不是"换了个位置写代码"，而是<strong>把组件的状态与逻辑变成了普通 JS 闭包</strong>——这是它能被抽成函数、自由组合的根本原因（第 23 章展开）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">20.2</span> 为什么需要 ref：普通 let 拦不住</h2>
+  <p>先把"响应式到底要什么"想清楚。Vue 在 <code>count</code> 变化后要做两件事：<strong>重新跑渲染函数更新 DOM</strong>、<strong>通知所有依赖了它的 watcher</strong>。要做到这一点，框架必须能在你"读 count"和"写 count"的时候插入自己的逻辑。</p>
+  <p>普通 <code>let</code> 变量能被拦截吗？不能：</p>
+<pre class="code" data-lang="js"><code>let count = 0
+count++          // JS 引擎内部直接改值，Vue 完全无感
+// 框架没有任何机会知道"count 变了"</code></pre>
+  <p>但 JS 对象的属性可以拦截——给一个对象套上 getter/setter，读写属性时就会触发函数：</p>
+<pre class="code" data-lang="js"><code>// Vue 的 ref 内部大致就是这个结构（简化）
+const count = {
+  _value: 0,
+  get value() {
+    track(this)     // 读：记录"谁在用我"（依赖收集）
+    return this._value
+  },
+  set value(newVal) {
+    this._value = newVal
+    trigger(this)   // 写：通知所有依赖者更新
+  }
+}
+
+count.value = 1      // 触发 setter → trigger → 页面更新
+console.log(count.value)  // 触发 getter → track</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="ref 的 .value 拦截读写示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">ref：一个带 getter/setter 的小容器，读写都被 Vue 接管</text>
+      <rect x="60" y="50" width="220" height="130" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="170" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">count = ref(0)</text>
+      <text x="170" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">读 count.value</text>
+      <text x="170" y="122" text-anchor="middle" font-size="11.5" fill="#4f6348">→ getter：track 收集依赖</text>
+      <text x="170" y="150" text-anchor="middle" font-size="11.5" fill="#4f6348">写 count.value = 1</text>
+      <text x="170" y="170" text-anchor="middle" font-size="11.5" fill="#4f6348">→ setter：trigger 触发更新</text>
+      <rect x="330" y="50" width="200" height="130" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="430" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">Vue 运行时</text>
+      <text x="430" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">渲染 watcher</text>
+      <text x="430" y="124" text-anchor="middle" font-size="11.5" fill="#4f6348">computed 缓存失效</text>
+      <text x="430" y="146" text-anchor="middle" font-size="11.5" fill="#4f6348">watch 回调</text>
+      <text x="430" y="170" text-anchor="middle" font-size="11" fill="#7a8a70">全部因 trigger 联动</text>
+      <rect x="580" y="50" width="180" height="130" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="670" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">真实 DOM</text>
+      <text x="670" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">{{ count }}</text>
+      <text x="670" y="124" text-anchor="middle" font-size="11.5" fill="#4f6348">重新渲染</text>
+      <text x="670" y="150" text-anchor="middle" font-size="11" fill="#7a8a70">这就是"页面自动更新"</text>
+      <line x1="280" y1="115" x2="325" y2="115" stroke="#3d7a4f" stroke-width="2"/>
+      <line x1="530" y1="115" x2="575" y2="115" stroke="#047857" stroke-width="2"/>
+    </svg>
+    <p class="diagram-caption">图 20-1 ref 的读写拦截与联动更新（示意）</p>
+  </div>
+  <p>这就是"为什么要包一层"的答案：<strong>ref 是一个对象容器，只有把数据放进对象的 <code>.value</code> 属性里，Vue 才有地方挂 getter/setter</strong>。包这一层不是多余，而是 JS 语言层面唯一能拦截"变量读写"的抓手。</p>
+  <div class="note">Vue 3 用 <code>Proxy</code> 代理整个对象来实现 <code>reactive</code>，原理同根——都是"拦截"。<strong>第 29 章开始会把 Proxy 这套原理逐层拆开</strong>，这里先记住结论。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">20.3</span> .value：JS 里必须手动，模板自动</h2>
+  <p>既然 ref 是个容器对象，<strong>在 <code>&lt;script&gt;</code> 的 JS 上下文里读写它，就必须显式写 <code>.value</code></strong>：</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { ref, computed } from 'vue'
+
+const count = ref(0)
+const doubled = computed(() =&gt; count.value * 2)   // JS 里：必须 .value
+
+function inc() {
+  count.value++          // 写：必须 .value
+  console.log(count)     // 不写 .value → 打印的是整个 ref 对象！
+  console.log(count.value)   // 0 或 1，才是值
+}
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;!-- 模板里：直接用，不要写 count.value --&gt;
+  &lt;p&gt;{{ count }} × 2 = {{ doubled }}&lt;/p&gt;
+  &lt;button @click="inc"&gt;+1&lt;/button&gt;
+&lt;/template&gt;</code></pre>
+  <p>规则总结成三条：</p>
+  <ol>
+    <li><strong>JS 上下文（script、事件处理、普通函数）：必须写 <code>.value</code></strong>，否则操作的是容器对象本身；</li>
+    <li><strong>模板上下文：自动解包</strong>——编译器知道模板里的 <code>count</code> 是个 ref，渲染时自动取 <code>.value</code>；</li>
+    <li><strong>ref 被嵌套进 reactive 对象时：自动解包</strong>，像普通属性一样访问：</li>
+  </ol>
+<pre class="code" data-lang="js"><code>import { ref, reactive } from 'vue'
+
+const count = ref(0)
+const state = reactive({ count })   // ref 放进 reactive
+
+console.log(state.count)   // 0，不是 ref 对象——自动解包了
+state.count = 5            // 也等价于 count.value = 5，响应式照常
+console.log(count.value)    // 5
+
+// 例外：模板顶层返回的数组/对象不解包
+const list = reactive([{ n: ref(1) }])
+list[0].n.value             // 嵌套在深层结构里，仍要手动 .value</code></pre>
+  <p class="pit-sentence">新手第一周最常见的报错来源：<code>xxx.value is undefined</code>——多半是<strong>在已经解包的地方又写了 .value</strong>，或在模板里写了 <code>{{ count.value }}</code>（虽然模板也能跑，但写法错误，review 会打回）。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">20.4</span> ref 传参与解构：为什么不会丢</h2>
+  <p>这里藏着 ref 设计最精妙的一点。假设你写了一个组合式函数（第 23 章详讲），组件把状态传给它：</p>
+<pre class="code" data-lang="js"><code>// 组件里
+const keyword = ref('')
+
+// 把 ref 本身（不是 keyword.value）传进函数
+useSearch(keyword)
+
+function useSearch(keywordRef) {
+  // 函数内部改 keywordRef.value，组件里的 keyword 同步变化
+  // ——因为两边引用的是<strong>同一个容器对象</strong>
+  keywordRef.value = 'hello'
+}
+
+console.log(keyword.value)   // 'hello'</code></pre>
+  <p>对比一下 reactive（下一章详讲）：reactive 是对象代理，一旦<strong>解构</strong>，拿到的就是普通值，响应性当场丢失。而 ref 是"把值包进对象再传引用"，<strong>整个对象在到处传，容器里的值始终在被同一个 getter/setter 看守</strong>——这就是 ref 作为组合式函数参数的天然优势。</p>
+  <p>一句话总结这层价值：</p>
+  <p class="key-sentence">ref 传的是<strong>同一个容器</strong>，谁拿到容器改 <code>.value</code> 都走同一个拦截器——响应性因此可以自由穿越函数边界。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">20.5</span> ref 与 reactive 怎么选</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>维度</th><th>ref</th><th>reactive</th></tr></thead>
+    <tbody>
+      <tr><td>能装什么</td><td>任何类型：数字、字符串、布尔、对象、数组</td><td>仅对象/数组/Map/Set（原始类型不行）</td></tr>
+      <tr><td>取值方式</td><td>JS 里要 <code>.value</code>，模板自动解包</td><td>直接 <code>state.x</code>，无 .value</td></tr>
+      <tr><td>解构</td><td>传容器不丢响应（20.4）</td><td>解构即丢失，需 <code>toRefs</code>（第 21 章）</td></tr>
+      <tr><td>整体替换</td><td><code>list.value = newList</code> 直接换，响应性保留</td><td><code>state = newObj</code> 直接断，要改属性（第 21 章）</td></tr>
+      <tr><td>工程主流</td><td><strong>推荐</strong>：Vue 官方文档与 VueUse 默认风格</td><td>适合整块表单/配置对象</td></tr>
+    </tbody>
+  </table>
+  <p>实用建议：<strong>状态一律先用 ref</strong>；一个明显的"表单对象/配置对象"用 reactive 更顺手。两者不是对立关系——reactive 的字段里照样可以放 ref（自动解包）。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">20.6</span> 常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>模板里写 <code>{{ count.value }}</code></strong>：虽然能渲染，但这是错误写法。模板里 ref 自动解包，直接写 <code>count</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>JS 里忘了 .value</strong>：<code>console.log(count)</code> 打出来是个 Ref 对象；<code>if (count)</code> 永远为真（对象恒真）。这类 bug 隐蔽又高发，建议开 ESLint 的 <code>vue/ref-unref</code> 规则。</li>
+    <li><span class="tag-pit">坑 3</span><strong>把 ref 对象整个替换</strong>：<code>count = ref(5)</code> 重新赋值一个新 ref 不会报错，但如果别处持有旧容器引用，它们不会跟着变。需要换值就 <code>count.value = 5</code>。</li>
+    <li><span class="tag-pit">坑 4</span><strong>原始类型硬用 reactive</strong>：<code>reactive(0)</code> 根本不存在——reactive 只接受对象。单个数字/布尔就是 <code>ref(false)</code>。</li>
+    <li><span class="tag-pit">坑 5</span><strong>在 setup 顶层之外声明变量</strong>：模块顶层的 <code>const data = ref(...)</code> 会被所有组件实例共享，改一个全变。状态必须写在 <code>setup</code> 内部（<code>&lt;script setup&gt;</code> 顶层）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>setup</td><td>组合式入口：状态与逻辑都是闭包变量；&lt;script setup&gt; 自动暴露顶层绑定</td></tr>
+      <tr><td>为什么包一层</td><td>普通 let 无法被拦截；ref 用 .value 的 getter/setter 挂依赖收集与触发</td></tr>
+      <tr><td>.value 规则</td><td>JS 里必须写；模板自动解包；嵌进 reactive 自动解包</td></tr>
+      <tr><td>传参价值</td><td>ref 传容器引用，跨函数边界改 .value 始终走同一拦截器</td></tr>
+      <tr><td>选型</td><td>默认 ref；整块表单/配置对象用 reactive；原始类型只能 ref</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个 <code>ref(0)</code> 计数器：模板里放 <code>{{ count }}</code> 和 <code>{{ count.value }}</code> 两种写法的输出，对比结果；再把事件处理函数里的 <code>count.value++</code> 改成 <code>count++</code>，观察控制台与页面的差异。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个函数 <code>useDouble(ref入参)</code>：接收一个 ref，返回它的 2 倍（要求用 computed 实现）。在组件里传入不同的 ref，验证：改原始 ref 的 <code>.value</code>，组件里的显示是否同步更新。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用纯 JS（不引入 Vue）手写一个极简 <code>myRef(init)</code> 对象：包含 <code>.value</code> 的 getter/setter，set 时打印 "触发更新"。再写一个 <code>effect(fn)</code>：第一次执行 fn，之后每次 .value 变化自动重新执行 fn。用它验证"读收集依赖、写触发更新"这个最小模型。</div>
+  <p class="note">参考答案见附录 C。下一章讲 reactive 与解构陷阱：为什么 <code>const { a } = reactive(...)</code> 之后页面就不更新了。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../20_第二篇_组件化/019_第19章_动态组件与异步组件.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="021_第21章_reactive与解构陷阱.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 20 章 setup 与 ref 为什么包一层</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

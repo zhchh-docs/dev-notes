@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 30 章 依赖收集 track 的过程｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第四篇 响应式原理</p>
+    <h1>第 30 章 依赖收集 track 的过程</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 30 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">上一章 Proxy 只负责"拦截"，但拦截之后要回答一个问题：谁关心这个属性？这一章讲响应式系统的心脏——依赖收集 track：三层 Map 结构怎么存依赖、activeEffect 全局变量怎么指向当前正在跑的副作用、为什么"访问过才收集"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="029_第29章_Proxy基础与拦截时机.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="031_第31章_触发更新trigger与调度.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">30.1 为什么需要依赖收集</a></li>
+    <li><a href="#sec3">30.2 三层结构 targetMap / depsMap / dep</a></li>
+    <li><a href="#sec4">30.3 activeEffect 与 track 代码骨架</a></li>
+    <li><a href="#sec5">30.4 访问才收集：effect 闭包是什么</a></li>
+    <li><a href="#sec6">30.5 渲染 effect 与组件的关系</a></li>
+    <li><a href="#sec7">30.6 本章常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <strong>track 存在的意义</strong>：没有它，set 根本不知道该通知谁；</li>
+    <li>画得出 <strong>targetMap → depsMap → key → dep</strong> 的三层结构，并说清 WeakMap / Map / Set 各自的选型理由；</li>
+    <li>说清 <code>activeEffect</code> 这个<strong>全局变量</strong>在 track 里扮演什么角色；</li>
+    <li>能手写 track 的代码骨架，解释"<strong>访问过才收集</strong>"这条铁律；</li>
+    <li>知道组件的渲染函数本质上是一个<strong>渲染 effect</strong>，为第 36 章铺垫。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 29 章的 get/set 拦截、Proxy + Reflect；第三篇 <code>effect</code> / <code>watchEffect</code> 的使用体验（第 24 章）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">30.1</span> 为什么需要依赖收集</h2>
+  <p class="lead">设想一个最简单的场景：</p>
+<pre class="code" data-lang="js"><code>const state = reactive({ name: 'vue', age: 3 })
+
+effect(() =&gt; {
+  console.log(state.name)    // 只关心 name
+})
+
+state.age = 4                // 这一步要不要触发上面的 effect？</code></pre>
+  <p>答案是<strong>不要</strong>——上面那个 effect 从来没读过 <code>state.age</code>，age 变了它不该重跑。如果没有"依赖收集"，set 能做的只有"通知所有人"：</p>
+  <ul>
+    <li>方案 A：set 时遍历所有 effect 全跑一遍——白白浪费，而且会跑根本不关心这个字段的副作用；</li>
+    <li>方案 B：set 时按"对象 + key"找到一份<strong>专门关心它的 effect 列表</strong>，只跑这些——这就是 track + trigger 的分工。</li>
+  </ul>
+  <p class="key-sentence">track 解决的问题只有一个：<strong>在读属性的时候，把"当前正在跑的副作用"登记到这个属性名下</strong>。等到 set 时，按名单通知。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">30.2</span> 三层结构 targetMap / depsMap / dep</h2>
+  <p>依赖名单的存储结构是三层 Map：</p>
+<pre class="code" data-lang="js"><code>// 全局唯一的依赖表
+const targetMap = new WeakMap()
+//   key:  原始对象 rawTarget
+//   val:  depsMap
+
+// depsMap: Map&lt;key, dep&gt;
+//   key:  属性名（字符串 / Symbol）
+//   val:  dep —— 一个 Set，装着所有依赖这个 key 的 effect
+
+// dep: Set&lt;ReactiveEffect&gt;
+//   一个 effect 集合，即"谁关心这个 key"</code></pre>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="三层依赖表结构示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">targetMap → depsMap → dep：三层查找链</text>
+      <rect x="40" y="50" width="170" height="170" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="125" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">WeakMap targetMap</text>
+      <text x="125" y="100" text-anchor="middle" font-size="11" fill="#4f6348">rawTargetA ⇒ depsMapA</text>
+      <text x="125" y="122" text-anchor="middle" font-size="11" fill="#4f6348">rawTargetB ⇒ depsMapB</text>
+      <text x="125" y="144" text-anchor="middle" font-size="11" fill="#4f6348">rawTargetC ⇒ depsMapC</text>
+      <text x="125" y="190" text-anchor="middle" font-size="10.5" fill="#7a8a70">键是对象，弱引用</text>
+      <text x="125" y="208" text-anchor="middle" font-size="10.5" fill="#7a8a70">对象被回收，名单自动消失</text>
+      <rect x="290" y="50" width="190" height="170" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="385" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">Map depsMapA</text>
+      <text x="385" y="100" text-anchor="middle" font-size="11" fill="#4f6348">'name' ⇒ dep_name</text>
+      <text x="385" y="122" text-anchor="middle" font-size="11" fill="#4f6348">'age'  ⇒ dep_age</text>
+      <text x="385" y="144" text-anchor="middle" font-size="11" fill="#4f6348">'list' ⇒ dep_list</text>
+      <text x="385" y="190" text-anchor="middle" font-size="10.5" fill="#7a8a70">键是属性名</text>
+      <text x="385" y="208" text-anchor="middle" font-size="10.5" fill="#7a8a70">值是该 key 的 effect 集合</text>
+      <rect x="560" y="50" width="200" height="170" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="660" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">Set dep_name</text>
+      <text x="660" y="100" text-anchor="middle" font-size="11" fill="#4f6348">渲染 effect #1</text>
+      <text x="660" y="122" text-anchor="middle" font-size="11" fill="#4f6348">watchEffect #3</text>
+      <text x="660" y="144" text-anchor="middle" font-size="11" fill="#4f6348">computed #2</text>
+      <text x="660" y="190" text-anchor="middle" font-size="10.5" fill="#7a8a70">Set 自动去重</text>
+      <text x="660" y="208" text-anchor="middle" font-size="10.5" fill="#7a8a70">同一 effect 不会重复登记</text>
+      <line x1="210" y1="135" x2="290" y2="135" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a2)"/>
+      <line x1="480" y1="135" x2="560" y2="135" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a2)"/>
+      <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3d7a4f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 30-1 三层依赖表：从对象一路查到关心它的 effect 集合（示意）</p>
+  </div>
+
+  <h3>三种容器的选型理由</h3>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:38%"><col style="width:40%"></colgroup>
+    <thead><tr><th>容器</th><th>放在哪一层</th><th>为什么是它</th></tr></thead>
+    <tbody>
+      <tr><td><code>WeakMap</code></td><td>最外层 targetMap</td><td>键是<strong>原始对象</strong>。WeakMap 持弱引用：当原始对象没有任何地方再引用时，它的依赖名单能被 GC 自动回收，不会内存泄漏</td></tr>
+      <tr><td><code>Map</code></td><td>中间层 depsMap</td><td>键是<strong>属性名</strong>（字符串/Symbol/数字），普通 Map 即可；数字 key 也能存（数组下标）</td></tr>
+      <tr><td><code>Set</code></td><td>最内层 dep</td><td>键是 effect 实例。Set <strong>自动去重</strong>：同一个 effect 多次读同一 key，只登记一次</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">WeakMap 的"弱引用"不是玄学：如果你用普通 <code>Map</code> 当 targetMap，那些已经在组件卸载后没人引用的对象，会因为依赖表还拿着它，永远无法被垃圾回收——大型应用跑久了内存只涨不跌。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">30.3</span> activeEffect 与 track 代码骨架</h2>
+  <p>track 要回答的核心问题是：<strong>"现在正在跑的副作用是谁？"</strong>。get 陷阱只是一个拦截点，它本身不知道调用栈上层是谁在读属性。Vue 的办法是一个模块级全局变量：</p>
+<pre class="code" data-lang="js"><code>let activeEffect = null   // 当前正在执行的副作用实例
+
+class ReactiveEffect {
+  constructor(fn) { this.fn = fn }
+  run() {
+    activeEffect = this       // 1. 把自己设为"当前副作用"
+    this.fn()                // 2. 执行用户的函数 —— 函数内部一旦读响应式属性
+    activeEffect = null      // 3. 执行完立刻清掉
+  }
+}
+
+function effect(fn) {
+  const runner = () =&gt; {
+    const ef = new ReactiveEffect(fn)
+    ef.run()
+    return ef
+  }
+  return runner()
+}</code></pre>
+
+  <h3>track 本身</h3>
+<pre class="code" data-lang="js"><code>function track(target, key) {
+  // 关键：如果当前没有正在跑的 effect，直接什么都不做
+  // （比如你在浏览器控制台直接 state.name，没有 effect 在跑）
+  if (activeEffect === null) return
+
+  // ① 查 / 建 depsMap
+  let depsMap = targetMap.get(target)
+  if (!depsMap) {
+    targetMap.set(target, (depsMap = new Map()))
+  }
+
+  // ② 查 / 建 dep
+  let dep = depsMap.get(key)
+  if (!dep) {
+    depsMap.set(key, (dep = new Set()))
+  }
+
+  // ③ 把当前 effect 登记进 dep（Set 自动去重）
+  dep.add(activeEffect)
+}</code></pre>
+
+  <h3>和 get 陷阱串起来</h3>
+<pre class="code" data-lang="js"><code>const proxy = new Proxy(raw, {
+  get(target, key, receiver) {
+    track(target, key)                        // ← 读属性时收集
+    return Reflect.get(target, key, receiver)
+  },
+  set(target, key, value, receiver) {
+    Reflect.set(target, key, value, receiver)
+    trigger(target, key)                     // ← 下一章讲
+    return true
+  }
+})</code></pre>
+  <p>把上面两段连起来，完整流程就是：</p>
+  <ol>
+    <li><code>effect(() =&gt; console.log(state.name))</code> 被调用 → 构造 ReactiveEffect → <code>activeEffect = 自己</code> → 执行函数；</li>
+    <li>函数体内读到 <code>state.name</code> → 进 get 陷阱 → <code>track(raw, 'name')</code>；</li>
+    <li>track 查表：<code>targetMap[raw]['name']</code> 这个 Set 里加上"自己"；</li>
+    <li>函数跑完 → <code>activeEffect = null</code>；</li>
+    <li>以后谁 <code>state.name = 'x'</code> → set 陷阱 → trigger 按表通知这个 Set 里的所有 effect。</li>
+  </ol>
+  <p class="key-sentence">activeEffect 是一个<strong>"线程局部"式的全局游标</strong>：它只在 effect.fn() 执行的那一瞬非空——track 能不能收集，全靠这一瞬。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">30.4</span> 访问才收集：effect 闭包是什么</h2>
+  <p>回到 30.1 的例子：为什么 <code>state.age = 4</code> 不会触发那个 effect？因为 <code>activeEffect</code> 在跑这个函数期间，<strong>从来没经过过 age 的 get 陷阱</strong>，所以 <code>depsMap['age']</code> 里根本没有它的名字。</p>
+
+  <h3>"收集了什么"——不是值，是 effect 闭包</h3>
+  <p>Set 里装的是 <code>ReactiveEffect</code> 实例，实例身上有一个 <code>fn</code> 字段——就是你传给 <code>effect()</code> / <code>watchEffect()</code> 那个函数的<strong>闭包</strong>。闭包里捕获了渲染需要的所有东西：组件实例、DOM 引用、computed 引用、其他响应式变量。</p>
+<pre class="code" data-lang="js"><code>effect(() =&gt; {
+  // 这个闭包捕获了 document.body、user、format 等外部变量
+  document.body.innerText = `${user.name} 的年龄是 ${user.age}`
+})
+// 上面这个函数一旦被登记进 dep，trigger 时直接 ef.run() 就能完整重跑这段逻辑
+// —— Vue 不需要知道函数内部干了什么，只要"原样执行一遍"就够了</code></pre>
+
+  <h3>访问才收集带来的两个推论</h3>
+  <ul>
+    <li><strong>动态属性访问也会被收集</strong>：<code>state[someKey]</code> 这种动态读，key 是运行时确定的，track 会用那个具体的 key 登记——没问题；</li>
+    <li><strong>没读到的字段变化不会触发</strong>：这是 feature 不是 bug。它解释了为什么"条件分支里的字段不读就不触发"、为什么"console.log(state) 之后改 state.xxx 可能不更新"（console.log 不一定读具体 key）。</li>
+  </ul>
+
+  <h3>trackShouldTrack 的边界</h3>
+  <p>真实源码里 track 不是无脑收集，会判断几件事：</p>
+  <ul>
+    <li><code>activeEffect</code> 是否存在；</li>
+    <li>这个 effect 是否正在被"清理依赖"中（避免自循环）；</li>
+    <li>属性是不是 <code>markRaw</code> 过的（跳过代理的不收集）。</li>
+  </ul>
+  <p class="note"><strong>为什么要"重新收集"而不是累计</strong>：effect 每次重跑前，会先把自己从所有 dep 里删掉（cleanup），再重新执行函数、重新 track 一遍。这样<strong>上一次跑时读过、这一次跑时没读的字段</strong>，就不会再通知这个 effect——否则条件分支切换会漏更新或多更新。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">30.5</span> 渲染 effect 与组件的关系</h2>
+  <p>Vue 的组件实例在挂载时，本质上就是把它的渲染函数包成一个 effect：</p>
+<pre class="code" data-lang="js"><code>// 简化示意（不是真实源码）
+class ComponentInstance {
+  mount() {
+    this.effect = new ReactiveEffect(() =&gt; {
+      this.render()    // 把虚拟 DOM diff、patch 到真实 DOM
+    })
+    this.effect.run()  // 首次执行：render 过程中读到的 props/state 全部被 track
+  }
+}</code></pre>
+  <ul>
+    <li>组件的<strong>整个 render 函数</strong>就是一个 effect：模板里用到的每个响应式字段，都在 render 执行时被收集到对应 dep；</li>
+    <li>以后这些字段任何一个变化，trigger 通知这个渲染 effect，组件重渲染；</li>
+    <li>组件卸载时，把这个 effect 从所有 dep 里删掉（stop），否则组件销毁了还在被通知——内存泄漏。</li>
+  </ul>
+
+  <table>
+    <colgroup><col style="width:30%"><col style="width:34%"><col style="width:36%"></colgroup>
+    <thead><tr><th>effect 类型</th><th>来源</th><th>典型职责</th></tr></thead>
+    <tbody>
+      <tr><td>渲染 effect</td><td>组件挂载时自动创建</td><td>把模板渲染到 DOM，组件卸载时 stop</td></tr>
+      <tr><td><code>watchEffect</code></td><td>用户手动调用</td><td>自定义副作用（请求、日志、订阅）</td></tr>
+      <tr><td><code>watch</code> 的回调</td><td>用户指定 source + cb</td><td>拿到新旧值做副作用</td></tr>
+      <tr><td><code>computed</code> 的求值器</td><td> computed 内部</td><td>惰性求值（第 33 章）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">Vue 的所有"响应式"现象，追到底都是同一件事：<strong>某个 effect 在跑的时候读了属性，被记进 dep；属性变了，trigger 把这些 effect 再跑一遍</strong>。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">30.6</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>在 console 里直接 state.xxx 没被收集</strong>：因为 <code>activeEffect = null</code>，track 直接 return。不要以为"我打印过它，它就该响应"。</li>
+    <li><span class="tag-pit">坑 2</span><strong>组件卸载后还在跑请求</strong>：effect 没被 stop，组件销毁了 dep 里还有它的引用，state 一变就重跑旧组件的 render——内存泄漏 + 报错。</li>
+    <li><span class="tag-pit">坑 3</span><strong>在 setTimeout / Promise.then 里读响应式属性</strong>：回调执行时 activeEffect 已经是 null（effect 已经跑完），读了也白读。要收集，必须在 effect 同步执行期间读。</li>
+    <li><span class="tag-pit">坑 4</span><strong>对普通对象（未 reactive）做依赖收集</strong>：没有 get 陷阱，track 永远不会被调用。</li>
+    <li><span class="tag-pit">坑 5</span><strong>把依赖表存在普通 Map 上做大型应用</strong>：组件卸载后无法 GC，内存只涨不跌。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>track 意义</td><td>读属性时把"当前 effect"登记到这个属性名下</td></tr>
+      <tr><td>三层结构</td><td>WeakMap(target) → Map(key) → Set(effects)</td></tr>
+      <tr><td>选型理由</td><td>WeakMap 让无引用对象可被 GC；Map 装属性；Set 自动去重</td></tr>
+      <tr><td>activeEffect</td><td>模块级全局游标，只在 effect.fn() 执行期间非空</td></tr>
+      <tr><td>访问才收集</td><td>没被读过的字段，set 时不会通知它</td></tr>
+      <tr><td>cleanup + 重收集</td><td>effect 每次重跑前先删自己，再重新登记</td></tr>
+      <tr><td>渲染 effect</td><td>组件 render 函数本质就是一个 effect</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>画一张图：对 <code>const state = reactive({ a: 1, b: 2 })</code> 跑 <code>effect(() =&gt; state.a + 1)</code>，然后 <code>state.b = 3</code>，把 track 之后 targetMap / depsMap / dep 三层里各自有哪些 key、哪些 effect 写出来。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>手写一个能跑的 <code>effect + reactive</code> 最小版（get 里 track、set 里 trigger 重跑 effect）。验证：连续读两个字段时，两个 dep 都收集了同一个 effect；改其中一个字段时，effect 重跑一次。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在 B 的基础上加 cleanup：effect 每次重跑前先把自己从所有 dep 里删掉，再重跑。然后构造"if 分支切换"的场景（effect 内部根据 <code>state.showB</code> 决定是否读 state.b），验证：showB=false 时改 state.b 不触发，showB=true 时改 state.b 触发。解释为什么必须每次重跑前 cleanup。</div>
+  <p class="note">参考答案见附录 C。下一章讲 trigger：属性变了之后，怎么按表把通知分发出去，以及为什么不能同步立刻全部重跑。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="029_第29章_Proxy基础与拦截时机.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="031_第31章_触发更新trigger与调度.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 30 章 依赖收集 track 的过程</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

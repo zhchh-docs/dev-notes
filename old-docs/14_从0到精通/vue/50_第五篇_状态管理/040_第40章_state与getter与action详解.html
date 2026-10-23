@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 40 章 state、getter 与 action 详解｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第五篇 状态管理</p>
+    <h1>第 40 章 state、getter 与 action 详解</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 40 章 / 共 76 章 · 预计 40 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">上一章把三个概念介绍了一遍，这一章把所有细节讲透：$patch 的两种写法、$reset、getter 的参数化技巧、异步 action 的 this、以及 $subscribe / $onAction 这两个"事件钩子"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="039_第39章_Pinia入门defineStore.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="041_第41章_插件与持久化.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">40.1 state：$patch、$reset、直接赋值</a></li>
+    <li><a href="#sec3">40.2 getters：缓存与参数化</a></li>
+    <li><a href="#sec4">40.3 actions：this 与异步</a></li>
+    <li><a href="#sec5">40.4 $subscribe / $onAction / $dispose</a></li>
+    <li><a href="#sec6">40.5 本章常见坑</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>分清改 state 的三种方式：<strong>直接赋值、$patch 对象式、$patch 函数式</strong>；</li>
+    <li>知道 <strong>$reset</strong> 什么时候用、什么时候不适用；</li>
+    <li>会写<strong>参数化 getter</strong>（getter 返回一个函数）；</li>
+    <li>理解 action 的 <code>this</code> 指向 store 本身，能写异步 action、能跨 action 调用；</li>
+    <li>会用 <code>$subscribe</code> 监听 state 变化、用 <code>$onAction</code> 监听 action 调用。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 39 章 defineStore 基本用法。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">40.1</span> state：$patch、$reset、直接赋值</h2>
+
+  <h3>三种改 state 的方式</h3>
+<pre class="code" data-lang="js"><code>const store = useCounterStore()
+
+// ① 直接改：简单，但多个字段要分多次
+store.count = 1
+store.history.push(1)
+
+// ② $patch 对象式：一次合并多个字段
+store.$patch({
+  count: 1,
+  history: [...store.history, 1]   // 注意 history 要整体替换（因为不能直接改引用）
+})
+
+// ③ $patch 函数式：最灵活，能拿到 state 直接 mutate
+store.$patch((state) =&gt; {
+  state.count = 1
+  state.history.push(1)   // 直接 push，不用整体替换
+})</code></pre>
+
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>方式</th><th>适用</th><th>注意</th></tr></thead>
+    <tbody>
+      <tr><td>直接赋值</td><td>改 1-2 个简单字段</td><td>数组/对象要整体替换</td></tr>
+      <tr><td>$patch 对象式</td><td>一次性改多个顶层字段</td><td>嵌套对象要手动展开</td></tr>
+      <tr><td>$patch 函数式</td><td>改嵌套、需要计算</td><td>最灵活，推荐复杂场景</td></tr>
+    </tbody>
+  </table>
+
+  <h3>$reset</h3>
+<pre class="code" data-lang="js"><code>store.$reset()   // 把 state 重置回初始值（state() 返回的那个对象）</code></pre>
+  <p>注意：<strong>setup store 不支持 $reset</strong>（因为没有"选项式 state 函数"可以重新调）。选项式 store 才能用。setup store 要自己写一个 reset action。</p>
+
+  <h3>TS 自动推断</h3>
+<pre class="code" data-lang="ts"><code>export const useUserStore = defineStore('user', {
+  state: () =&gt; ({
+    name: 'unknown',     // 自动推断为 string
+    age: 0,              // 自动推断为 number
+    tags: [] as string[] // 空数组要显式标注，否则推断为 never[]
+  })
+})</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">40.2</span> getters：缓存与参数化</h2>
+
+  <h3>getter 的 this 与缓存</h3>
+<pre class="code" data-lang="js"><code>getters: {
+  // 方式一：参数 state（推荐，TS 推导好）
+  double: (state) =&gt; state.count * 2,
+
+  // 方式二：用 this 访问其他 getter
+  doublePlusOne() {
+    return this.double + 1
+  },
+
+  // 访问整个 store 的其他 state 也行
+  recentHistory() {
+    return this.history.slice(-5)
+  }
+}</code></pre>
+  <p>getter 和 computed 一样有缓存：依赖没变，多次读只算一次。</p>
+
+  <h3>参数化 getter：返回一个函数</h3>
+<pre class="code" data-lang="js"><code>getters: {
+  // 根据 id 找商品 —— 返回一个函数，调用时传参
+  getProductById: (state) =&gt; (id) =&gt; {
+    return state.products.find(p =&gt; p.id === id)
+  }
+}
+
+// 组件里：
+store.getProductById(42)   // 找到 id=42 的商品</code></pre>
+  <div class="warn-box"><span class="tag-pit">提醒</span>参数化 getter <strong>没有缓存</strong>——每次调用都会重新执行那个返回的函数。高频调用、大数组查找时要注意性能；这时候不如直接在 action 里写或用普通函数。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">40.3</span> actions：this 与异步</h2>
+
+  <h3>this 指向 store 本身</h3>
+<pre class="code" data-lang="js"><code>actions: {
+  increment() {
+    this.count++               // this 就是 store
+    this.history.push('+1')
+    this.double                // 也能读 getter
+  },
+  incrementBy(n) {
+    this.count += n
+  }
+}</code></pre>
+
+  <h3>异步 action</h3>
+<pre class="code" data-lang="js"><code>actions: {
+  async fetchUser(id) {
+    const res = await fetch(`/api/users/${id}`)
+    const data = await res.json()
+    this.name = data.name
+    this.age = data.age
+    return data        // 返回 Promise，调用方可以 await
+  },
+
+  // action 里调另一个 action
+  async loadAndSetName(id) {
+    const data = await this.fetchUser(id)   // 直接 this 调
+    this.history.push(`loaded ${id}`)
+  }
+}</code></pre>
+<pre class="code" data-lang="js"><code>// 组件里调用
+async function onClick() {
+  try {
+    const data = await userStore.fetchUser(1)
+    console.log('loaded', data)
+  } catch (e) {
+    console.error('加载失败', e)
+  }
+}</code></pre>
+
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>场景</th><th>怎么写</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>同步改 state</td><td>直接 this.xxx</td><td>最简单</td></tr>
+      <tr><td>异步请求后改 state</td><td>async action</td><td>await 之后 this.xxx</td></tr>
+      <tr><td>action 调另一个 action</td><td>this.otherAction()</td><td>同一 store 内</td></tr>
+      <tr><td>action 调其他 store</td><td>useOtherStore()（在 action 内调）</td><td>第 42 章展开</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">40.4</span> $subscribe / $onAction / $dispose</h2>
+
+  <h3>$subscribe：监听 state 变化</h3>
+<pre class="code" data-lang="js"><code>const unsubscribe = userStore.$subscribe((mutation, state) =&gt; {
+  // mutation: { type, storeId, events } —— 本次变化的描述
+  // state: 当前最新 state
+  console.log('user store 变了', mutation.type)
+  // 典型用途：持久化、日志、广播
+  localStorage.setItem('user', JSON.stringify(state))
+})
+
+// 不再需要时取消订阅
+unsubscribe()</code></pre>
+
+  <h3>$onAction：监听 action 调用</h3>
+<pre class="code" data-lang="js"><code>const stop = userStore.$onAction(({
+  name,        // action 名
+  store,       // store 实例
+  args,        // 调用参数
+  after,       // 注册"action 成功后"的回调
+  onError      // 注册"action 失败"的回调
+}) =&gt; {
+  const start = Date.now()
+  after((result) =&gt; {
+    console.log(`action ${name} 耗时 ${Date.now() - start}ms`)
+  })
+  onError((err) =&gt; {
+    console.error(`action ${name} 失败`, err)
+  })
+})</code></pre>
+
+  <h3>$dispose</h3>
+<pre class="code" data-lang="js"><code>// 默认情况下，$subscribe / $onAction 在组件卸载时不会自动停
+// 要手动停：
+userStore.$subscribe(cb, { detached: true })   // 组件卸载后还在
+// 或者组件卸载时自己调 unsubscribe()</code></pre>
+
+  <div class="key-sentence">$subscribe 监听"数据变了"，$onAction 监听"方法被调了"——前者做持久化/日志，后者做埋点/性能监控。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">40.5</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>数组直接改索引</strong>：<code>state.arr[0] = x</code> 在 Pinia 里是 OK 的（Vue3 Proxy 能感知），但读代码的人可能以为不响应——用 $patch 函数式更清晰。</li>
+    <li><span class="tag-pit">坑 2</span><strong>setup store 调 $reset</strong>：报错。setup store 要自己写 reset action。</li>
+    <li><span class="tag-pit">坑 3</span><strong>异步 action 里忘了 try/catch</strong>：未捕获的 rejection 会冒泡，可能导致整个组件崩溃。</li>
+    <li><span class="tag-pit">坑 4</span><strong>参数化 getter 被高频调用</strong>：每次都重算。大数组查找时改用 computed + Map 索引。</li>
+    <li><span class="tag-pit">坑 5</span><strong>$subscribe 里直接改 state</strong>：会触发新一轮 $subscribe（无限循环）。要改 state 应该在 action 里改。</li>
+  </ul>
+</section>
+
+<div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="state修改路径">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">改 state 的三条路径与副作用钩子</text>
+      <rect x="60" y="60" width="200" height="70" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="160" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">直接赋值</text>
+      <text x="160" y="110" text-anchor="middle" font-size="11" fill="#4f6348">store.count = 1</text>
+      <rect x="300" y="60" width="200" height="70" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">$patch 对象/函数</text>
+      <text x="400" y="110" text-anchor="middle" font-size="11" fill="#4f6348">批量改多个字段</text>
+      <rect x="540" y="60" width="200" height="70" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="640" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">action</text>
+      <text x="640" y="110" text-anchor="middle" font-size="11" fill="#4f6348">封装业务逻辑</text>
+      <rect x="220" y="160" width="360" height="45" rx="8" fill="#f8faf0" stroke="#c2cfb4"/>
+      <text x="400" y="188" text-anchor="middle" font-size="12" fill="#1f2e1f">三条路径最终都触发 $subscribe；action 调用触发 $onAction</text>
+    </svg>
+    <p class="diagram-caption">图 40-1 改 state 的路径与监听钩子（示意）</p>
+  </div>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>改 state</td><td>直接赋值 / $patch 对象式 / $patch 函数式</td></tr>
+      <tr><td>$reset</td><td>选项式 store 专用；setup store 要自己写</td></tr>
+      <tr><td>getter</td><td>有缓存；参数化 getter 返回函数但无缓存</td></tr>
+      <tr><td>action</td><td>this 指向 store；支持 async；return Promise</td></tr>
+      <tr><td>$subscribe</td><td>监听 state 变化，常用于持久化</td></tr>
+      <tr><td>$onAction</td><td>监听 action 调用，常用于埋点/性能</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>给 userStore 写三个 action：① fetchUser（async，请求接口）② setName（同步改 name）③ reset（重置 state）。在组件里调用 fetchUser，然后 await 之后读 userStore.name 验证。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给 userStore 加一个参数化 getter <code>getOrderById</code>（在 orders 数组里按 id 找）。然后 $subscribe 这个 store，把 state 持久化到 localStorage。刷新页面后验证 state 能恢复。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 $onAction 实现一个简单的"action 性能监控"：把每个 action 的耗时打在控制台。然后故意制造一个失败的 action（接口 404），验证 onError 回调能捕获。</div>
+  <p class="note">参考答案见附录 C。下一章讲 Pinia 插件：怎么写一个持久化插件、怎么用 pinia-plugin-persistedstate。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="039_第39章_Pinia入门defineStore.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="041_第41章_插件与持久化.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 40 章 state、getter 与 action 详解</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

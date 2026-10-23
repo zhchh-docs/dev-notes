@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 41 章 插件与持久化｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第五篇 状态管理</p>
+    <h1>第 41 章 插件与持久化</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 41 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">Pinia 的插件机制是它比 Vuex 好用的关键之一。这一章讲插件函数签名、手写一个 localStorage 持久化插件、以及现成的 pinia-plugin-persistedstate 怎么用。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="040_第40章_state与getter与action详解.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="042_第42章_组合式store与跨store.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">41.1 插件机制：pinia.use</a></li>
+    <li><a href="#sec3">41.2 手写 localStorage 持久化插件</a></li>
+    <li><a href="#sec4">41.3 pinia-plugin-persistedstate</a></li>
+    <li><a href="#sec5">41.4 SSR 下的持久化</a></li>
+    <li><a href="#sec6">41.5 选择性持久化与敏感数据</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>看懂 Pinia 插件的<strong>函数签名</strong>：<code>({ store, app, options }) =&gt; void</code>；</li>
+    <li>能在插件里<strong>扩展 store</strong>（加字段、加方法、订阅 state）；</li>
+    <li>手写一个能跑的 <strong>localStorage 持久化插件</strong>；</li>
+    <li>会用现成的 <strong>pinia-plugin-persistedstate</strong>（key / paths / storage）；</li>
+    <li>知道 SSR 下持久化要注意什么、敏感数据不要持久化。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 40 章 $subscribe / $onAction。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">41.1</span> 插件机制：pinia.use</h2>
+  <p>Pinia 插件是一个函数，每次 store 初始化时都会被调用一次：</p>
+<pre class="code" data-lang="js"><code>function myPiniaPlugin({ store, app, options }) {
+  // store: 刚创建的 store 实例
+  // app: 当前应用实例（app.use(pinia) 时传进来的）
+  // options: defineStore 时的选项（一般用不到）
+
+  // 你可以：
+  // 1. 给 store 加新属性
+  store.$hello = 'world'
+
+  // 2. 订阅 store 的变化
+  store.$subscribe(() =&gt; {})
+
+  // 3. 返回要注入 store 的对象（会被合并到 store 上）
+  return {
+    someState: ref(0)
+  }
+}
+
+// 注册：
+const pinia = createPinia()
+pinia.use(myPiniaPlugin)</code></pre>
+
+  <h3>插件能做什么</h3>
+  <ul>
+    <li>给所有 store 加统一的字段/方法（比如 $reset、$log）；</li>
+    <li>全局监听所有 store 的变化（埋点、日志、持久化）；</li>
+    <li>注入第三方库实例（比如把 axios 包成 $http 挂到 store 上）；</li>
+    <li>SSR 下的状态注水/脱水。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">41.2</span> 手写 localStorage 持久化插件</h2>
+<pre class="code" data-lang="js"><code>// plugins/persistedState.js
+export function persistedStatePlugin(options = {}) {
+  return ({ store }) =&gt; {
+    // 1. 初始化时：从 localStorage 读，写回 store
+    const storageKey = options.key || `pinia-${store.$id}`
+    const saved = localStorage.getItem(storageKey)
+    if (saved) {
+      store.$patch(JSON.parse(saved))
+    }
+
+    // 2. 订阅：state 变化时写回 localStorage
+    store.$subscribe((_mutation, state) =&gt; {
+      localStorage.setItem(storageKey, JSON.stringify(state))
+    })
+  }
+}
+
+// 使用：
+const pinia = createPinia()
+pinia.use(persistedStatePlugin({ key: 'my-app-state' }))</code></pre>
+
+  <p>这个插件干了两件事：</p>
+  <ol>
+    <li>store 初始化时，从 localStorage 读上次保存的 state，$patch 进去；</li>
+    <li>订阅 state 变化，每次变化就序列化写回 localStorage。</li>
+  </ol>
+  <p>就这么简单。但真实项目里你会遇到：序列化大对象性能差、敏感数据不该存、SSR 环境没有 localStorage——下一节的成熟插件都处理了这些。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">41.3</span> pinia-plugin-persistedstate</h2>
+  <p>社区成熟的插件，处理了各种边界：</p>
+<pre class="code" data-lang="bash"><code>npm i pinia-plugin-persistedstate</code></pre>
+<pre class="code" data-lang="js"><code>// main.js
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)</code></pre>
+<pre class="code" data-lang="js"><code>// stores/user.js
+export const useUserStore = defineStore('user', {
+  state: () =&gt; ({
+    name: '',
+    token: '',
+    tempForm: {}
+  }),
+
+  // 开启持久化
+  persist: {
+    key: 'user-store',              // localStorage 的 key
+    storage: localStorage,           // 存哪（默认 localStorage）
+    pick: ['name', 'token']         // 只持久化这些字段（不写则全存）
+    // 注：具体 API 以官方文档为准，不同版本字段名略有差异
+  }
+})</code></pre>
+
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>配置</th><th>作用</th><th>示例</th></tr></thead>
+    <tbody>
+      <tr><td><code>key</code></td><td>localStorage 的键名</td><td><code>'user-store'</code></td></tr>
+      <tr><td><code>storage</code></td><td>存到哪（localStorage/sessionStorage/自定义）</td><td><code>localStorage</code></td></tr>
+      <tr><td><code>pick / paths</code></td><td>只持久化指定字段</td><td><code>['name', 'token']</code></td></tr>
+      <tr><td><code>serializer</code></td><td>自定义序列化（默认 JSON）</td><td>压缩、加密</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">41.4</span> SSR 下的持久化</h2>
+  <p>SSR 环境有两个问题：</p>
+  <ol>
+    <li><strong>没有 localStorage</strong>：服务端跑 Node，浏览器 API 不存在——直接 <code>localStorage.setItem</code> 会报错；</li>
+    <li><strong>每个用户请求是独立的 store 实例</strong>：要在服务端把初始 state 注水（hydrate），客户端再接管。</li>
+  </ol>
+
+  <h3>应对</h3>
+  <ul>
+    <li>插件里判断 <code>import.meta.env.SSR</code>，服务端不跑 localStorage 逻辑；</li>
+    <li>用成熟插件（pinia-plugin-persistedstate 已经处理 SSR）；</li>
+    <li>服务端把 state 序列化成 HTML 里的 <code>window.__PINIA_STATE__</code>，客户端启动时读它注水。</li>
+  </ul>
+  <div class="warn-box"><span class="tag-pit">提醒</span>不要自己写 SSR 持久化——Nuxt/SSR 框架都有现成的 pinia 集成方案（如 <code>@pinia/nuxt</code>），用官方方案。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">41.5</span> 选择性持久化与敏感数据</h2>
+  <p>不是所有 state 都该持久化。下面这些<strong>不要</strong>持久化：</p>
+  <ul>
+    <li><strong>敏感数据</strong>：token、密码、身份证号——localStorage 是明文存的，XSS 一拿就走；token 应该用 httpOnly Cookie；</li>
+    <li><strong>大对象</strong>：整个购物车、长列表——每次序列化都卡；</li>
+    <li><strong>临时状态</strong>：表单草稿、UI 开关——刷新后没意义；</li>
+    <li><strong>服务端缓存</strong>：接口返回的数据——直接刷新接口比读缓存更快更新。</li>
+  </ul>
+
+  <h3>选择性持久化</h3>
+<pre class="code" data-lang="js"><code>persist: {
+  key: 'user',
+  pick: ['name', 'avatar']   // 只存这两个
+  // token、tempForm、isLoggingIn 都不持久化
+}</code></pre>
+
+  <p class="pit-sentence">把 token 存 localStorage 是最常见的安全反模式。真要持久化登录态，用 httpOnly Cookie + 服务端校验，别让 JS 能拿到 token。</p>
+</section>
+
+<div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="Pinia插件机制">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Pinia 插件的执行时机</text>
+      <rect x="60" y="55" width="180" height="70" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="150" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">createPinia()</text>
+      <text x="150" y="104" text-anchor="middle" font-size="11" fill="#4f6348">pinia.use(plugin)</text>
+      <rect x="310" y="55" width="180" height="70" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">useXxxStore()</text>
+      <text x="400" y="104" text-anchor="middle" font-size="11" fill="#4f6348">store 初始化</text>
+      <rect x="560" y="55" width="180" height="70" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="650" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">plugin 被调用</text>
+      <text x="650" y="104" text-anchor="middle" font-size="11" fill="#4f6348">{ store, app, options }</text>
+      <line x1="240" y1="90" x2="310" y2="90" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a9)"/>
+      <line x1="490" y1="90" x2="560" y2="90" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a9)"/>
+      <text x="400" y="170" text-anchor="middle" font-size="12" fill="#1f2e1f">持久化插件：初始化时读 localStorage + $subscribe 写回</text>
+      <defs><marker id="a9" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3d7a4f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 41-1 Pinia 插件的触发时机（示意）</p>
+  </div>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>插件签名</td><td><code>({ store, app, options }) =&gt; void</code>，每个 store 初始化时调一次</td></tr>
+      <tr><td>插件能做</td><td>扩展 store、全局订阅、注入依赖、SSR 注水</td></tr>
+      <tr><td>手写持久化</td><td>初始化读 + $subscribe 写回 localStorage</td></tr>
+      <tr><td>成熟插件</td><td>pinia-plugin-persistedstate：key/storage/pick</td></tr>
+      <tr><td>SSR</td><td>服务端无 localStorage，用框架官方集成</td></tr>
+      <tr><td>敏感数据</td><td>token 别存 localStorage，用 httpOnly Cookie</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>给你的 userStore 接上 pinia-plugin-persistedstate，只持久化 name 和 avatar（不持久化 token）。刷新页面验证 state 能恢复。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>不依赖任何插件，手写一个持久化插件：支持 ① 配置 key ② pick 哪些字段 ③ 序列化失败时 catch 不崩。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为什么 token 不应该存 localStorage？从 XSS 攻击的角度解释：攻击者拿到页面 JS 执行权后，能怎么读 localStorage？对比 httpOnly Cookie 为什么能防住这种攻击。</div>
+  <p class="note">参考答案见附录 C。下一章讲组合式 store 与跨 store：什么时候用 setup 写法、怎么在 store 里调另一个 store。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="040_第40章_state与getter与action详解.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="042_第42章_组合式store与跨store.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 41 章 插件与持久化</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

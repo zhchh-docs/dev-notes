@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 34 章 watch 实现遍历与清理｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第四篇 响应式原理</p>
+    <h1>第 34 章 watch 实现遍历与清理</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 34 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">watch 是最常用的副作用 API，但它背后做了三件不简单的事：把 source 转成"getter"、深层遍历依赖、以及在上一次回调还没结束时处理竞态。这一章讲 traverse、flush 时机、onCleanup、watchEffect 与 stop。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="033_第33章_computed实现脏检查.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="035_第35章_数组与集合的响应式处理.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">34.1 把 source 转成 getter</a></li>
+    <li><a href="#sec3">34.2 traverse：深层遍历依赖</a></li>
+    <li><a href="#sec4">34.3 flush：pre / post / sync</a></li>
+    <li><a href="#sec5">34.4 onCleanup：处理竞态</a></li>
+    <li><a href="#sec6">34.5 watchEffect 与 stop</a></li>
+    <li><a href="#sec7">34.6 本章常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>看懂 <strong>watch 怎么把 source 变成 getter</strong>：ref / getter 函数 / 多源数组各自怎么处理；</li>
+    <li>理解 <strong>traverse</strong>：为什么 reactive 对象需要"深层遍历"才能收集到所有嵌套字段；</li>
+    <li>分清 <code>flush: 'pre' / 'post' / 'sync'</code> 的差别与适用场景；</li>
+    <li>会用 <strong>onCleanup（onInvalidate）</strong> 解决搜索请求竞态；</li>
+    <li>理解 watchEffect 与 watch 的差别，以及 <code>stop()</code> 手动停止监听。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 30、31 章 track/trigger/scheduler；第三篇 watch 与 watchEffect 的基本使用（第 24 章）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">34.1</span> 把 source 转成 getter</h2>
+  <p class="lead">watch 的第一个参数 source 可以是三种形态，它内部要先统一转成"一个能返回当前值的 getter 函数"。</p>
+<pre class="code" data-lang="js"><code>function watch(source, cb, options = {}) {
+  // ① 把 source 规范化为 getter
+  let getter
+  if (isRef(source)) {
+    getter = () =&gt; source.value           // ref：读 .value
+  } else if (isReactive(source)) {
+    getter = () =&gt; source                   // reactive：返回整个对象
+    options.deep = true                    // reactive 默认深层
+  } else if (isFunction(source)) {
+    getter = source                        // 用户直接给了函数，就是它
+  } else if (Array.isArray(source)) {
+    getter = () =&gt; source.map(s =&gt; ...)    // 多源：挨个转 getter
+  }
+
+  // ② 包一个 effect：run 时执行 getter（读响应式 → 被 track）
+  // ③ 数据变了，调 cb(newVal, oldVal)
+}</code></pre>
+
+  <h3>三种 source 的差别</h3>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:36%"><col style="width:38%"></colgroup>
+    <thead><tr><th>source 形态</th><th>getter 等价于</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>watch(ref, cb)</code></td><td><code>() =&gt; ref.value</code></td><td>最常见</td></tr>
+      <tr><td><code>watch(() =&gt; state.x, cb)</code></td><td>用户给的函数</td><td>灵活：可以读多个、可以过滤</td></tr>
+      <tr><td><code>watch(reactiveObj, cb)</code></td><td><code>() =&gt; reactiveObj</code></td><td>自动 deep</td></tr>
+      <tr><td><code>watch([a, b], cb)</code></td><td>组合 getter</td><td>cb 收到新旧值数组</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">watch 的本质就是：<strong>跑一遍 getter 收集依赖 → 依赖变了 → 调 cb(newVal, oldVal)</strong>。和普通 effect 的差别只在于"cb 拿到了新旧值"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">34.2</span> traverse：深层遍历依赖</h2>
+  <p>一个关键问题：<code>watch(state, cb)</code> 里 state 是 reactive 对象。如果只执行 getter（返回 state 本身），track 只会收集"读 state 这一步"——也就是 <code>state</code> 对象本身的 <code>'value'</code> 或顶层 key。state.user.name 变了，cb 不会触发，因为 getter 没读 user.name。</p>
+
+  <h3>解决办法：traverse</h3>
+<pre class="code" data-lang="js"><code>function traverse(value, seen = new Set()) {
+  // 只遍历响应式对象/数组；原始值、ref、标记过的就直接返回
+  if (!isObject(value) || seen.has(value)) return value
+  seen.add(value)
+
+  if (isArray(value)) {
+    value.forEach(item =&gt; traverse(item, seen))
+  } else if (value instanceof Map) {
+    value.forEach((v, k) =&gt; { traverse(k, seen); traverse(v, seen) })
+  } else {
+    // 普通对象：递归读每个 key
+    Object.keys(value).forEach(key =&gt; traverse(value[key], seen))
+  }
+  return value
+}
+
+// 在 watch 里：
+effect = new ReactiveEffect(() =&gt; {
+  const value = getter()
+  if (options.deep) traverse(value)   // ← 把整个对象读一遍，所有嵌套 key 都被 track
+  return value
+})</code></pre>
+
+  <h3>什么时候需要 deep</h3>
+  <ul>
+    <li><code>watch(reactiveObj, cb)</code>：Vue 自动 deep（因为返回的是整个对象，不 deep 收集不到嵌套字段）；</li>
+    <li><code>watch(() =&gt; state.obj, cb)</code>：如果 obj 本身是对象，但只是替换引用（obj = newObj），不需要 deep；如果你希望"obj 内部任意字段变"也触发，加 <code>{ deep: true }</code>。</li>
+  </ul>
+
+  <div class="warn-box"><span class="tag-pit">提醒</span>deep 会递归遍历整个对象树——大对象（上千字段）每次重跑都遍历一遍，有真实开销。只在必要时开 deep。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">34.3</span> flush：pre / post / sync</h2>
+  <p><code>flush</code> 决定 cb 什么时候跑：</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>值</th><th>时机</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>'pre'</code>（默认）</td><td>组件更新前跑 cb</td><td>大多数业务场景；cb 里改 state，下次 render 能一起更新</td></tr>
+      <tr><td><code>'post'</code></td><td>组件更新后跑 cb</td><td>需要操作 DOM（cb 里读新 DOM、调第三方库）</td></tr>
+      <tr><td><code>'sync'</code></td><td>同步立即跑</td><td>极少数必须同步的场景，性能差，慎用</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="js"><code>watch(
+  searchKeyword,
+  async (kw) =&gt; {
+    // flush: 'post' 时，DOM 已经更新，能读到新渲染的列表容器
+    const listEl = document.querySelector('#result-list')
+    await fetchList(kw)
+  },
+  { flush: 'post' }
+)</code></pre>
+  <p>pre/post 的差别本质是 scheduler 不同：</p>
+  <ul>
+    <li>pre：cb 进入组件更新队列，在组件 render 之前跑（和组件更新合并批处理）；</li>
+    <li>post：cb 进入 post 队列，在组件更新完成之后跑（等同 <code>await nextTick</code> 之后）。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">34.4</span> onCleanup：处理竞态</h2>
+  <p class="lead">经典场景：搜索框输入，每次变化发请求。如果用户连续输入"a"、"ab"、"abc"，三次请求并发返回——最后谁返回谁赢，可能"ab"的结果后到覆盖了"abc"。这就是竞态。</p>
+<pre class="code" data-lang="js"><code>// ❌ 没有清理：请求乱序返回会写错数据
+watch(searchKeyword, async (kw) =&gt; {
+  const result = await fetch(`/api/search?q=${kw}`)
+  resultBox.value = await result.json()
+})
+
+// ✅ 用 onCleanup：上一次回调还没结束就被新回调取代时，先跑清理函数
+watch(searchKeyword, async (kw, prevKw, onCleanup) =&gt; {
+  let cancelled = false
+  onCleanup(() =&gt; { cancelled = true })
+
+  const result = await fetch(`/api/search?q=${kw}`)
+  if (cancelled) return              // 已经被新回调取代，丢弃结果
+  resultBox.value = await result.json()
+})</code></pre>
+
+  <h3>onCleanup 的触发时机</h3>
+  <ul>
+    <li>下一次 cb 被调用之前（即新值触发时，旧回调还没结束，先调清理）；</li>
+    <li>watch 被 stop 时（清理最后一次未完成的工作）。</li>
+  </ul>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="搜索竞态时序图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">onCleanup：取消过期的搜索请求</text>
+      <rect x="40" y="50" width="180" height="45" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="130" y="78" text-anchor="middle" font-size="11.5" fill="#2d6a3f">输入 "a" → 请求 a</text>
+      <rect x="240" y="50" width="180" height="45" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="330" y="78" text-anchor="middle" font-size="11.5" fill="#b45309">输入 "ab" → onCleanup 取消 a</text>
+      <rect x="440" y="50" width="180" height="45" rx="6" fill="#f0fdf4" stroke="#047857"/>
+      <text x="530" y="78" text-anchor="middle" font-size="11.5" fill="#047857">输入 "abc" → 取消 ab</text>
+      <rect x="640" y="50" width="130" height="45" rx="6" fill="#f8faf0" stroke="#c2cfb4"/>
+      <text x="705" y="78" text-anchor="middle" font-size="11.5" fill="#4f6348">只渲染 abc</text>
+      <line x1="220" y1="72" x2="240" y2="72" stroke="#7a8a70" stroke-dasharray="3,3"/>
+      <line x1="420" y1="72" x2="440" y2="72" stroke="#7a8a70" stroke-dasharray="3,3"/>
+      <text x="400" y="150" text-anchor="middle" font-size="12" fill="#1f2e1f">没有 onCleanup：a 的请求可能比 abc 后返回，把 abc 的结果覆盖掉</text>
+      <text x="400" y="175" text-anchor="middle" font-size="12" fill="#4f6348">有 onCleanup：旧回调被新回调取代时，先把 cancelled 置 true，结果回来直接丢弃</text>
+    </svg>
+    <p class="diagram-caption">图 34-1 搜索输入竞态与 onCleanup 的工作方式（示意）</p>
+  </div>
+  <p class="note"><strong>命名澄清</strong>：早期文档里叫 <code>onInvalidate</code>，现在统一叫 <code>onCleanup</code>，是同一个参数（cb 的第三个参数）。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">34.5</span> watchEffect 与 stop</h2>
+  <h3>watchEffect</h3>
+<pre class="code" data-lang="js"><code>// watch：显式声明 source，cb 拿到新旧值
+watch(keyword, (kw, prev) =&gt; fetch(kw))
+
+// watchEffect：立即执行一次函数，函数内部读到的响应式数据自动成为依赖
+watchEffect(async () =&gt; {
+  const result = await fetch(`/api/search?q=${keyword.value}`)
+  box.value = await result.json()
+})</code></pre>
+  <p>差别：</p>
+  <ul>
+    <li><strong>watch 显式 source</strong>：依赖由你指定；<strong>watchEffect 隐式</strong>：函数内读到什么就收集什么；</li>
+    <li>watchEffect <strong>立即执行一次</strong>（默认），watch 不立即（除非 <code>immediate: true</code>）；</li>
+    <li>watchEffect 拿不到"旧值"，因为它不像 watch 那样比较新旧。</li>
+  </ul>
+
+  <h3>stop 手动停止监听</h3>
+<pre class="code" data-lang="js"><code>const stop = watchEffect(() =&gt; { /* ... */ })
+
+// 不再需要时：
+stop()    // 把这个 effect 从所有 dep 里删掉，再也不跑了</code></pre>
+  <p>组件 setup 里的 watch 一般不需要手动 stop——组件卸载时 Vue 自动停止。但如果你在组件外（路由切换后）创建的 watch，或在一个长时间运行的页面里"临时监听"，就要记得 stop，否则内存泄漏。</p>
+  <p class="pit-sentence">"组件卸载自动停"只对 setup 同步创建的 watch 有效。如果你在 <code>setTimeout</code>、异步回调里才创建 watch，Vue 不知道它属于哪个组件，要自己 stop。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">34.6</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>watch 一个 reactive 对象但没 deep</strong>：嵌套字段变不触发。要么直接 watch(reactiveObj)（自动 deep），要么显式 <code>{ deep: true }</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>watch 一个 getter 但 getter 只返回某个字段</strong>：那只有那个字段变才触发——这是 feature，不是 bug。想监听整个对象要 deep。</li>
+    <li><span class="tag-pit">坑 3</span><strong>cb 是异步函数但忘了 onCleanup</strong>：连续触发时旧请求覆盖新结果。</li>
+    <li><span class="tag-pit">坑 4</span><strong>在 cb 里改刚被 watch 的那个 ref</strong>：会立刻再触发一次（同步改 → 同步触发），小心无限循环。</li>
+    <li><span class="tag-pit">坑 5</span><strong>在 setTimeout / Promise.then 里创建 watch</strong>：组件卸载时 Vue 不会自动停它，内存泄漏。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>source 规范化</td><td>ref / getter / reactive / 多源数组统一转成 getter</td></tr>
+      <tr><td>traverse</td><td>deep 时递归遍历整个对象，把所有嵌套字段都 track</td></tr>
+      <tr><td>flush</td><td>pre 默认（更新前）、post 更新后（操作 DOM）、sync 同步</td></tr>
+      <tr><td>onCleanup</td><td>新回调触发前 / stop 时跑清理，解决异步竞态</td></tr>
+      <tr><td>watchEffect</td><td>立即执行 + 自动收集依赖，拿不到新旧值</td></tr>
+      <tr><td>stop</td><td>手动停止；组件外创建的 watch 必须自己 stop</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>什么时候需要给 watch 加 <code>{ deep: true }</code>？用 <code>watch(() =&gt; state.user, cb)</code> 举一个"不加 deep 不触发、加了才触发"的例子。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现一个搜索输入框：输入变化时发请求（用 onCleanup），模拟 200ms / 500ms / 800ms 三种不同延迟，验证：连续输入"a"、"ab"、"abc"，最终渲染的是"abc"的结果而不是"a"的。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>手写一个最小 watch：支持 source 为 ref 或 getter 函数，cb 在 source 变化时被调用，拿到新旧值。不需要 deep 和 onCleanup，但要正确处理 cleanup + 重收集（参考第 30 章 C 题）。</div>
+  <p class="note">参考答案见附录 C。下一章讲数组与集合：为什么数组下标、length、Map/Set 的响应式处理要单独设计。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="033_第33章_computed实现脏检查.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="035_第35章_数组与集合的响应式处理.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 34 章 watch 实现遍历与清理</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

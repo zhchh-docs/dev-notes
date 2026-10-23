@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 31 章 触发更新 trigger 与调度｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第四篇 响应式原理</p>
+    <h1>第 31 章 触发更新 trigger 与调度</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 31 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">track 把名单记好了，set 时就要按名单通知。但"通知"不是简单粗暴地挨个执行——为什么不能同步立刻跑？为什么连续改 100 个变量只渲染一次？这一章讲 trigger、scheduler、queueJob 与 nextTick 的关系。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="030_第30章_依赖收集track的过程.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="032_第32章_ref的实现get与set拦截.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">31.1 trigger 的基本过程</a></li>
+    <li><a href="#sec3">31.2 为什么不能同步立刻执行</a></li>
+    <li><a href="#sec4">31.3 scheduler：每个 effect 的"自定义执行器"</a></li>
+    <li><a href="#sec5">31.4 queueJob 与微任务 flush</a></li>
+    <li><a href="#sec6">31.5 nextTick 与调度器的关系</a></li>
+    <li><a href="#sec7">31.6 本章常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能写出 <strong>trigger 的代码骨架</strong>：按 key 找到 dep，遍历执行里面的 effect；</li>
+    <li>说清<strong>为什么不能同步立即跑 effect</strong>：循环、连续赋值、重复 render 的代价；</li>
+    <li>理解 <strong>scheduler</strong> 是 effect 的一个可选字段，它决定"trigger 时到底怎么执行这个 effect"；</li>
+    <li>搞懂 <strong>queueJob + Promise.then flush</strong>：同一轮同步代码里多次触发，只排一次队；</li>
+    <li>把 <code>nextTick</code> 的行为和微任务队列对应起来。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 29、30 章的 Proxy 拦截与三层依赖表；第三篇 <code>nextTick</code> 的使用（第 22 章）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">31.1</span> trigger 的基本过程</h2>
+  <p>有了上一章的 targetMap，trigger 的逻辑就很直白：</p>
+<pre class="code" data-lang="js"><code>function trigger(target, key, type) {
+  const depsMap = targetMap.get(target)
+  if (!depsMap) return                       // 这个对象没人依赖过
+
+  // 收集要执行的 effects（可能多个来源）
+  const effects = new Set()
+
+  const add = (dep) =&gt; {
+    if (dep) dep.forEach(e =&gt; effects.add(e))
+  }
+
+  add(depsMap.get(key))                      // 1. 这个 key 的依赖
+
+  // 2. 如果是新增 / 删除，还要通知"枚举类"依赖（ownKeys 收集的）
+  if (type === 'ADD' || type === 'DELETE') {
+    add(depsMap.get(ITERATE_KEY))
+  }
+  // 3. 如果是数组且改了 length，也要通知 length 相关的依赖
+  if (type === 'ADD' && Array.isArray(target)) {
+    add(depsMap.get('length'))
+  }
+
+  // 4. 挨个执行
+  effects.forEach(effect =&gt; {
+    if (effect.scheduler) {
+      effect.scheduler(effect)               // 有自定义调度器：交给他
+    } else {
+      effect.run()                           // 没有：直接跑
+    }
+  })
+}</code></pre>
+  <p>注意第 4 步的分叉：<strong>effect 有一个可选的 <code>scheduler</code> 字段，trigger 不直接 <code>effect.run()</code>，而是先问"你要不要自己决定怎么跑"</strong>。组件的渲染 effect 就是带 scheduler 的——它把自己塞进队列而不是立刻执行。</p>
+
+  <h3>为什么要拆出 ITERATE_KEY</h3>
+  <p>当 effect 内部用了 <code>Object.keys(state)</code> 或 <code>for...in</code>，它不关心任何具体 key，只关心"<strong>键的集合变了没有</strong>"。Vue 用一个特殊的 Symbol <code>ITERATE_KEY</code> 作为这类依赖的"key"。只有 ADD / DELETE（或数组的 length 变化）才会通知它——普通改一个已有字段，键集合没变，不用通知。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">31.2</span> 为什么不能同步立刻执行</h2>
+  <p class="lead">假设 trigger 就是同步 <code>effect.run()</code>，看下面这段代码会发生什么：</p>
+<pre class="code" data-lang="js"><code>const state = reactive({ count: 0 })
+
+effect(() =&gt; {
+  console.log('render, count =', state.count)
+})
+
+for (let i = 0; i &lt; 100; i++) {
+  state.count++        // 每次 ++ 都触发一次 render
+}
+console.log('done')</code></pre>
+  <p>同步执行的后果：</p>
+  <ul>
+    <li><strong>render 跑 100 次</strong>：虚拟 DOM diff 100 次、patch 100 次，而最终页面只需要反映最后一次 count=100 的结果；</li>
+    <li><strong>render 卡在循环中间</strong>：用户看到的中间态是 count=1,2,3...，而不是最终的 100；</li>
+    <li><strong>后续代码被阻塞</strong>：<code>console.log('done')</code> 要等 100 次 render 跑完才执行。</li>
+  </ul>
+
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>策略</th><th>连续改 100 次</th><th>问题</th></tr></thead>
+    <tbody>
+      <tr><td>同步立即执行</td><td>render 100 次</td><td>浪费、卡顿、中间态闪烁</td></tr>
+      <tr><td>同轮批处理（队列）</td><td>render 1 次（在下一个微任务）</td><td>用户只看到最终态，性能最优</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">Vue 的响应式更新<strong>默认是异步的、同轮批处理的</strong>：同一轮同步代码里触发的所有变更，攒成一批，在下一个微任务里统一刷一次。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">31.3</span> scheduler：每个 effect 的"自定义执行器"</h2>
+  <p>scheduler 是创建 effect 时传入的一个函数：</p>
+<pre class="code" data-lang="js"><code>const ef = new ReactiveEffect(
+  () =&gt; console.log('effect 跑了，count =', state.count),
+  {
+    // 这个调度器决定：trigger 时怎么执行这个 effect
+    scheduler(effect) {
+      console.log('trigger 来了，但我不立刻跑')
+      // 把 effect 放进队列，等下一个微任务统一跑
+      queueJob(effect)
+    }
+  }
+)</code></pre>
+
+  <h3>谁在用 scheduler</h3>
+  <ul>
+    <li><strong>组件的渲染 effect</strong>：scheduler 把组件的更新任务塞进"组件更新队列"，同一组件一轮内只更新一次；</li>
+    <li><strong>watch 的回调</strong>：默认调度到 post（DOM 更新完之后）再跑；</li>
+    <li><strong>computed</strong>：见第 33 章，它的 scheduler 把自己标记为 dirty 而不是立刻重算。</li>
+  </ul>
+
+  <h3>自定义 scheduler 的实际意义</h3>
+  <p>对普通业务代码，你几乎不会手写 scheduler；但理解它存在的意义是：<strong>"什么时候跑副作用"和"副作用是什么"是分开的</strong>。trigger 只负责说"依赖变了"，至于"立刻跑 / 下帧跑 / 队列去重跑 / 防抖跑"，由每个 effect 自己的 scheduler 决定。</p>
+  <div class="note"><strong>用户层面的对应物</strong>：<code>watch(source, cb, { flush: 'post' })</code> 里的 <code>flush</code> 选项、组件更新的 <code>nextTick</code>——本质都是在配置"这个 effect 何时执行"。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">31.4</span> queueJob 与微任务 flush</h2>
+  <p>组件更新队列的极简实现：</p>
+<pre class="code" data-lang="js"><code>const queue = []          // 当前等待执行的 job 列表
+let isFlushing = false    // 是否已经安排过 flush
+
+function queueJob(job) {
+  // 去重：同一个 job 已经在队列里就不重复加
+  if (!queue.includes(job)) {
+    queue.push(job)
+  }
+  if (!isFlushing) {
+    isFlushing = true
+    // 关键：把 flush 排到微任务，而不是立即执行
+    Promise.resolve().then(flushJobs)
+  }
+}
+
+function flushJobs() {
+  // 按 id 排序（父组件先于子组件更新），避免重复渲染
+  queue.sort((a, b) =&gt; a.id - b.id)
+  while (queue.length) {
+    const job = queue.shift()
+    job()                   // 实际执行组件的 render effect
+  }
+  isFlushing = false
+}</code></pre>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="批处理时序图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同步代码 → 微任务 flush：一次渲染吞掉 100 次触发</text>
+      <rect x="40" y="50" width="330" height="55" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="205" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">同步阶段（同一个宏任务）</text>
+      <text x="205" y="94" text-anchor="middle" font-size="11" fill="#4f6348">state.count++ ×100 → 每次 queueJob，但同一 job 去重</text>
+      <rect x="430" y="50" width="330" height="55" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="595" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">微任务阶段</text>
+      <text x="595" y="94" text-anchor="middle" font-size="11" fill="#4f6348">Promise.then(flushJobs) → 队列里只剩 1 个 job，执行 1 次 render</text>
+      <line x1="370" y1="77" x2="430" y2="77" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a3)"/>
+      <rect x="180" y="140" width="440" height="60" rx="8" fill="#f8faf0" stroke="#c2cfb4"/>
+      <text x="400" y="166" text-anchor="middle" font-size="12" fill="#1f2e1f">用户在同步代码结束前不会看到任何中间态</text>
+      <text x="400" y="186" text-anchor="middle" font-size="12" fill="#4f6348">DOM patch 一次，直接反映 count=100 的最终结果</text>
+      <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3d7a4f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 31-1 同轮批处理：同步阶段入队去重，微任务阶段统一 flush（示意）</p>
+  </div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">31.5</span> nextTick 与调度器的关系</h2>
+  <p>你写过的这段代码：</p>
+<pre class="code" data-lang="js"><code>import { nextTick, ref } from 'vue'
+
+const count = ref(0)
+count.value = 1
+console.log(document.querySelector('#count').textContent)   // 还是 '0'
+await nextTick()
+console.log(document.querySelector('#count').textContent)  // 已经是 '1'</code></pre>
+  <p>为什么必须 await nextTick 才能读到新 DOM？因为：</p>
+  <ol>
+    <li><code>count.value = 1</code> 只是把更新任务塞进了队列（微任务还没跑）；</li>
+    <li>同步代码继续往下走，DOM 还没 patch；</li>
+    <li><code>nextTick(cb)</code> 本质是 <code>Promise.then(cb)</code>——把 cb 排到当前 flush 的<strong>后面</strong>，保证 cb 跑的时候 DOM 已经更新完。</li>
+  </ol>
+
+  <table>
+    <colgroup><col style="width:30%"><col style="width:34%"><col style="width:36%"></colgroup>
+    <thead><tr><th>时机</th><th>DOM 状态</th><th>能否读到新值</th></tr></thead>
+    <tbody>
+      <tr><td>同步改完立刻读</td><td>未 patch</td><td>否（旧值）</td></tr>
+      <tr><td>await nextTick 后读</td><td>已 patch</td><td>是（新值）</td></tr>
+      <tr><td>在 watch flush:'post' 回调里</td><td>已 patch</td><td>是（等同于 nextTick）</td></tr>
+      <tr><td>onUpdated 钩子里</td><td>已 patch</td><td>是</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">常见错觉："改完数据立刻读 DOM，怎么还是旧值？"——不是 Vue 慢，是更新本来就被批处理到微任务里去了。读 DOM 新值要先 <code>await nextTick()</code> 或进 <code>onUpdated</code>。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">31.6</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>同步代码里连续读 DOM</strong>：以为改完就生效，读到旧值。用 <code>nextTick</code> 或 <code>onUpdated</code>。</li>
+    <li><span class="tag-pit">坑 2</span><strong>在 effect 内部又改响应式数据</strong>：改完又 trigger 自己，可能造成无限循环。Vue 通过"effect 正在执行时不再把它重新入队"做防护，但业务代码里尽量避免 render 期间改 state。</li>
+    <li><span class="tag-pit">坑 3</span><strong>以为 watch 默认就能拿到更新后的 DOM</strong>：watch 默认 <code>flush: 'pre'</code>（DOM 更新前跑），要拿 DOM 用 <code>flush: 'post'</code>。</li>
+    <li><span class="tag-pit">坑 4</span><strong>在循环里改 ref 又同步读 ref.value</strong>：ref.value 本身是同步的（数据已经改了），但 DOM 没更新，别混淆"数据变了"和"视图变了"。</li>
+    <li><span class="tag-pit">坑 5</span><strong>自己用 setTimeout 模拟 nextTick</strong>：setTimeout 是宏任务，比微任务晚得多；用 <code>Promise.then</code> / <code>nextTick</code>。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>trigger 过程</td><td>按 target + key 找到 dep，遍历执行；新增/删除还要通知 ITERATE_KEY</td></tr>
+      <tr><td>为什么异步</td><td>同步立即执行会让循环、连续赋值触发 N 次重复 render</td></tr>
+      <tr><td>scheduler</td><td>effect 的可选字段，决定 trigger 时怎么执行——组件渲染 effect、watch、computed 都用它</td></tr>
+      <tr><td>queueJob</td><td>同一 job 一轮内去重，统一排到微任务 flush</td></tr>
+      <tr><td>nextTick</td><td>本质是 Promise.then，等当前 flush 完成后读 DOM</td></tr>
+      <tr><td>更新时机</td><td>数据同步生效，DOM 微任务批处理后生效</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为什么在 <code>for (let i=0;i&lt;100;i++) count.value++</code> 之后，页面最终只渲染一次？从 queueJob 去重和微任务 flush 两个角度解释。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一段代码：连续改两个 ref，在同步代码末尾、nextTick 之后、onUpdated 里分别读 <code>document.querySelector('...').textContent</code>，记录每次读到的值，验证批处理时机。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在你第 30 章手写的 reactive/effect 基础上，给 trigger 加 scheduler：让 effect 支持传入调度器，默认同步执行；组件模拟用 queueJob + Promise.then 批处理。验证循环 ++ 只跑一次 render。</div>
+  <p class="note">参考答案见附录 C。下一章换个主角：ref 是怎么用 getter/setter 而不是 Proxy 实现拦截的。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="030_第30章_依赖收集track的过程.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="032_第32章_ref的实现get与set拦截.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 31 章 触发更新 trigger 与调度</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

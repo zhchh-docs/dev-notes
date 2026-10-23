@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 64 章 KeepAlive 与缓存策略｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第七篇 组件设计与模式</p>
+    <h1>第 64 章 KeepAlive 与缓存策略</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 64 章 / 共 76 章 · 预计 30 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">组件缓存不是越多越好：include/exclude/max、路由级缓存与回退策略、内存里的定时器陷阱。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="063_第63章_Suspense与异步体验.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="065_第65章_组件库思维出口与文档.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">64.1 KeepAlive 与 LRU</a></li>
+    <li><a href="#sec3">64.2 onActivated</a></li>
+    <li><a href="#sec4">64.3 路由级缓存</a></li>
+    <li><a href="#sec5">64.4 缓存策略与内存</a></li>
+    <li><a href="#sec6">64.5 命中与失活机制</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 <code>&lt;KeepAlive&gt;</code> 的 include / exclude / <strong>max</strong>；</li>
+    <li>区分 <code>onActivated / onDeactivated</code> 与 mounted 的时机；</li>
+    <li>做<strong>路由级缓存</strong>（router-view 外套 KeepAlive + meta.keepAlive）；</li>
+    <li>设计缓存策略：哪些页缓存、列表回退场景如何处理；</li>
+    <li>知道缓存组件内<strong>定时器/订阅的清理</strong>边界。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：已学第 27 章生命周期、第 50 章路由 router-view。</div>
+</section>
+<section id="sec2" class="card">
+  <h2><span class="num">64.1</span> KeepAlive 基本用法与 max 的 LRU</h2>
+  <p>默认切换组件时旧组件被卸载、再切回要重建。<code>&lt;KeepAlive&gt;</code> 会把切走的组件<strong>缓存下来</strong>，保留其状态与 DOM。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 缓存所有直接子组件 --&gt;
+&lt;KeepAlive&gt;
+  &lt;component :is="currentTab" /&gt;
+&lt;/KeepAlive&gt;
+
+&lt;!-- 只缓存 / 按名字排除 --&gt;
+&lt;KeepAlive :include="['UserList']" :max="10"&gt;
+  &lt;component :is="currentTab" /&gt;
+&lt;/KeepAlive&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+    <thead><tr><th>选项</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>include</code></td><td>只缓存名字匹配的组件（字符串/正则/数组）</td></tr>
+      <tr><td><code>exclude</code></td><td>排除某些组件不缓存</td></tr>
+      <tr><td><code>max</code></td><td>最多缓存实例数，超过按 <strong>LRU</strong>（最近最少使用）淘汰最久未访问的</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence"><code>max</code> 是<strong>内存保险丝</strong>：不设上限，缓存页面越攒越多，单页应用久开内存持续上涨。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">64.2</span> onActivated / onDeactivated</h2>
+  <p>被缓存的组件再切换时，<strong>不会</strong>再触发 mounted/unmounted，而是触发一对新钩子：</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { onActivated, onDeactivated } from 'vue'
+onActivated(() =&gt; {
+  // 每次切回这个组件都执行：如刷新列表、恢复滚动位置
+})
+onDeactivated(() =&gt; {
+  // 切走时执行：暂停轮询、停掉昂贵动画
+})
+&lt;/script&gt;</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">64.3</span> 路由级缓存</h2>
+<pre class="code" data-lang="vue"><code>&lt;!-- App.vue：router-view 外套 KeepAlive --&gt;
+&lt;router-view v-slot="{ Component }"&gt;
+  &lt;KeepAlive :include="cachedViews" :max="10"&gt;
+    &lt;component :is="Component" /&gt;
+  &lt;/KeepAlive&gt;
+&lt;/router-view&gt;</code></pre>
+<pre class="code" data-lang="js"><code>// 约定：在路由 meta 上声明需要缓存的页面
+const routes = [
+  { path: '/users', component: UserList, meta: { keepAlive: true, name: 'UserList' } }
+]
+// cachedViews 根据当前路由 meta.keepAlive 动态收集组件名</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="路由缓存流程">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">列表页 → 详情页 → 返回：命中缓存，列表状态保留</text>
+      <rect x="40" y="60" width="180" height="90" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="130" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">列表页(缓存)</text>
+      <text x="130" y="120" text-anchor="middle" font-size="11.5" fill="#4f6348">第3页/筛选保留</text>
+      <rect x="310" y="60" width="180" height="90" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">详情页(不缓存)</text>
+      <text x="400" y="120" text-anchor="middle" font-size="11.5" fill="#4f6348">每次全新进入</text>
+      <rect x="580" y="60" width="180" height="90" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="670" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">返回列表</text>
+      <text x="670" y="120" text-anchor="middle" font-size="11.5" fill="#4f6348">onActivated 刷新</text>
+      <line x1="220" y1="105" x2="308" y2="105" stroke="#3d7a4f" stroke-width="2"/>
+      <line x1="490" y1="105" x2="578" y2="105" stroke="#047857" stroke-width="2"/>
+    </svg>
+    <p class="diagram-caption">图 64-1 列表回退的缓存策略（示意）</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">64.4</span> 缓存策略与内存注意</h2>
+  <ul>
+    <li><strong>该缓存</strong>：列表页（用户翻页后点详情、返回要留在原页）、多标签切换的固定页；</li>
+    <li><strong>不该缓存</strong>：详情编辑页（每次进入要拿最新数据）、一次性表单；</li>
+    <li><strong>回退刷新</strong>：列表页在 <code>onActivated</code> 里按需静默刷新，而不是整页重建；</li>
+    <li><span class="tag-pit">内存</span>缓存组件里若 <code>setInterval</code> 轮询，<strong>切走时不会自动停</strong>！要在 <code>onDeactivated</code> 暂停、<code>onActivated</code> 恢复，否则后台空转耗电。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">64.5</span> 缓存命中与失活的内部机制</h2>
+  <p class="lead">KeepAlive 为什么能"记住"页面？本质是一个按 key 存取的<strong>虚拟 DOM 缓存表</strong>：组件失活时把它的 vnode 摘出渲染树、塞进缓存；再次进入时先查表，命中就复用这棵被缓存的树、只触发 <code>onActivated</code>，而不是重新挂载。</p>
+<pre class="code" data-lang="text"><code>用户离开 A 页（&lt;router-view&gt; 切换）
+  ├─ A 的 vnode 不再渲染 → 移入 cache(key = A)
+  └─ 触发 onDeactivated（DOM 保留在内存，从页面"隐藏"）
+
+用户再回到 A 页
+  ├─ 查 cache.has(A) → 命中
+  ├─ 复用缓存的 vnode 树（不重新创建组件实例）
+  └─ 触发 onActivated（等价"重新可见"）</code></pre>
+  <p class="key-sentence">缓存命中 = 复用旧 vnode 实例 + 触发 onActivated；缓存未命中 = 正常新建组件实例。</p>
+  <p>理解这套机制后，两个行为就有了根：一是<strong>组件实例不会随切走销毁</strong>，所以 data、表单输入、滚动位置都保留；二是 <code>max</code> 淘汰时，超出容量的旧实例会被<strong>真正卸载</strong>（触发 <code>onUnmounted</code>），缓存的状态随之丢失——这正是"内存保险丝"的含义。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="KeepAlive 缓存命中流程">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">进入路由：先查缓存表</text>
+      <rect x="60" y="55" width="150" height="60" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/><text x="135" y="90" text-anchor="middle" font-size="12" fill="#2d6a3f">匹配路由组件</text>
+      <rect x="250" y="55" width="150" height="60" rx="8" fill="#fefce8" stroke="#d97706"/><text x="325" y="82" text-anchor="middle" font-size="12" fill="#b45309">查 cache.has(key)</text><text x="325" y="102" text-anchor="middle" font-size="11" fill="#b45309">LRU 表</text>
+      <rect x="440" y="35" width="150" height="55" rx="8" fill="#f0fdf4" stroke="#047857"/><text x="515" y="60" text-anchor="middle" font-size="11.5" fill="#047857">命中：复用 vnode</text><text x="515" y="80" text-anchor="middle" font-size="11" fill="#047857">+ onActivated</text>
+      <rect x="440" y="110" width="150" height="55" rx="8" fill="#fbfdff" stroke="#3d7a4f"/><text x="515" y="135" text-anchor="middle" font-size="11.5" fill="#2d6a3f">未命中：新建实例</text><text x="515" y="155" text-anchor="middle" font-size="11" fill="#2d6a3f">+ mounted</text>
+      <rect x="630" y="55" width="130" height="60" rx="8" fill="#fef2f2" stroke="#dc2626"/><text x="695" y="90" text-anchor="middle" font-size="11.5" fill="#b91c1c">超 max：卸载旧的</text>
+    </svg>
+    <p class="diagram-caption">图 64-1 缓存命中与 LRU 淘汰流程（示意）</p>
+  </div>
+  <p>缓存策略的核心是「哪些页该留」：列表页翻页后点详情、返回要留在原页，所以缓存；详情编辑页每次进入要拿最新数据，所以不缓存。路由级缓存用 meta.keepAlive 标记，组件内 onActivated 里做静默刷新，而不是整页重建。</p>
+  <pre class="code" data-lang="js"><code>// 路由级缓存白名单（工程骨架）
+const router = createRouter({
+  routes: [
+    { path: '/list', component: List, meta: { keepAlive: true } },
+    { path: '/detail', component: Detail, meta: { keepAlive: false } }
+  ]
+})
+// App.vue: &lt;router-view v-slot="{ Component}"&gt;
+//   &lt;KeepAlive :include="cachedViews"&gt;&lt;component :is="Component"/&gt;&lt;/KeepAlive&gt;
+// &lt;/router-view&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">内存</span>被缓存组件里 setInterval 切走不会自动停——onDeactivated 暂停、onActivated 恢复。</div>
+  <p>缓存组件里最隐蔽的坑是「定时器空转」：切走页面后 setInterval 不会自动停，后台一直跑耗电。要在 onDeactivated 暂停、onActivated 恢复，把轮询挂在可见性上。</p>
+  <pre class="code" data-lang="js"><code>// 缓存组件定时器治理（工程骨架）
+let timer
+onActivated(()=&gt;{ timer = setInterval(poll, 5000) })
+onDeactivated(()=&gt;{ clearInterval(timer) })  // 切走即停</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>该缓存</td><td>列表页翻页后返回留原页</td></tr>
+      <tr><td>不缓存</td><td>详情编辑页每次拿最新</td></tr>
+      <tr><td>定时器</td><td>deactivated 暂停、activated 恢复</td></tr>
+    </tbody>
+  </table>
+  <p>缓存命中率取决于「白名单」：列表页该留、详情页不该留。用 meta.keepAlive 标记，组件内 onActivated 里静默刷新，而不是整页重建——否则缓存形同虚设。</p>
+  <pre class="code" data-lang="js"><code>// 路由白名单（工程骨架）
+routes: [
+  { path:'/list', meta:{ keepAlive:true } },
+  { path:'/detail', meta:{ keepAlive:false } }
+]
+// KeepAlive :include='cachedViews'</code></pre>
+  <div class="note"><strong>要点</strong>列表缓存留现场，详情不缓存拿最新。</div>
+  <p>onActivated/onDeactivated 替代 mounted/unmounted 管缓存组件的可见性。轮询在 deactivated 暂停、activated 恢复，否则切走后后台空转耗电。</p>
+  <pre class="code" data-lang="js"><code>// 定时器治理（工程骨架）
+let timer
+onActivated(()=>{ timer=setInterval(poll,5000) })
+onDeactivated(()=>{ clearInterval(timer) })</code></pre>
+  <div class="note"><strong>要点</strong>切走即停，回来再启。</div>
+  <p>include/exclude 按组件 name 匹配，max 用 LRU 淘汰最久未用。缓存别贪多——每页组件实例常驻内存，多了反而吃内存。</p>
+  <pre class="code" data-lang="js"><code>// LRU 上限（工程骨架）
+<KeepAlive :include='cachedViews' :max='10'>
+  <router-view/>
+</KeepAlive></code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>include</td><td>按 name 白名单</td></tr>
+      <tr><td>max</td><td>LRU 淘汰</td></tr>
+      <tr><td>内存</td><td>实例常驻，别贪多</td></tr>
+    </tbody>
+  </table>
+</section><section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table><colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>KeepAlive</td><td>切走的组件缓存起来，保留状态与 DOM</td></tr>
+      <tr><td>include/exclude/max</td><td>max 按 LRU 淘汰，是内存保险丝</td></tr>
+      <tr><td>两个新钩子</td><td>onActivated/onDeactivated 替代 mounted/unmounted</td></tr>
+      <tr><td>路由缓存</td><td>router-view 外套 KeepAlive，meta.keepAlive 约定</td></tr>
+      <tr><td>命中机制</td><td>命中复用旧 vnode+onActivated；超 max 真正卸载</td></tr>
+    </tbody>
+  </table>
+</section><section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>给两个 tab 包 KeepAlive，在一个 tab 里输入文字，切走再切回，验证文字是否保留。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现路由级缓存：只有 meta.keepAlive 为真的页面才进入缓存列表。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在被缓存组件里放一个 setInterval，验证切走后它是否仍在跑；用 onDeactivated/onActivated 修复。</div>
+  <p class="note">参考答案见附录 C。下一章是第七篇的出口：从组件走向组件库与文档。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="063_第63章_Suspense与异步体验.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="065_第65章_组件库思维出口与文档.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 64 章 KeepAlive 与缓存策略</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

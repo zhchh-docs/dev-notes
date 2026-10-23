@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 66 章 虚拟 DOM 与 diff 算法｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第八篇 原理深潜与性能</p>
+    <h1>第 66 章 虚拟 DOM 与 diff 算法</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 66 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">从「为什么需要」出发，把 VNode 结构、渲染链路与 diff 的 O(n) 假设一次讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../70_第七篇_组件设计与模式/065_第65章_组件库思维出口与文档.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="067_第67章_模板编译与优化.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">66.1 为什么需要虚拟 DOM</a></li>
+    <li><a href="#sec3">66.2 h 与 VNode 结构</a></li>
+    <li><a href="#sec4">66.3 渲染总链路</a></li>
+    <li><a href="#sec5">66.4 diff 策略</a></li>
+    <li><a href="#sec6">66.5 常见误区</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>为什么需要虚拟 DOM</strong>，它解决了什么问题；</li>
+    <li>认识 <code>h()</code> 与 VNode 的结构（type/props/children/key）；</li>
+    <li>看清渲染总链路：<strong>template→render→VNode→patch→DOM</strong>；</li>
+    <li>掌握 diff 的核心策略：同层比较、两端对比、key；</li>
+    <li>说清 diff 为什么是 <strong>O(n)</strong> 而非全量树比较。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：已学第 1 章声明式、第 10 章 SFC 编译；知道 Vue 会把模板编译成渲染函数。</div>
+</section>
+<section id="sec2" class="card">
+  <h2><span class="num">66.1</span> 为什么需要虚拟 DOM</h2>
+  <p class="lead">直接操作 DOM 很慢：每一次 <code>element.style.xxx</code> 都可能触发浏览器重排重绘。虚拟 DOM 的思路是——<strong>先在 JS 里描述界面，算好最小改动，再一次性写进真实 DOM</strong>。</p>
+  <ul>
+    <li><strong>跨平台</strong>：VNode 是 JS 对象，不只渲染到浏览器 DOM，也能渲染到原生/App/WebGL；</li>
+    <li><strong>批量与最小化</strong>：把多次状态变化合并成一次"比对后更新"，避免反复触碰 DOM；</li>
+    <li><strong>可推导</strong>：声明式描述界面，框架负责 diff，开发者不用手动找要改的节点。</li>
+  </ul>
+  <p class="key-sentence">虚拟 DOM 不是"比直接操作 DOM 更快"，而是<strong>在可维护性与性能之间取平衡</strong>：手写最优 DOM 操作更快，但成本是无法维护。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">66.2</span> h() 与 VNode 结构</h2>
+<pre class="code" data-lang="js"><code>import { h } from 'vue'
+// 一个 VNode 就是描述"界面上一个节点"的普通 JS 对象
+const vnode = h(
+  'div',                       // type：标签/组件
+  { class: 'box', onClick: onOpen },  // props：属性/事件
+  [h('span', 'hello')]         // children：子节点
+)
+// 关键长这样：
+// { type:'div', props:{...}, children:[...], key:null, el:真实DOM引用 }
+</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+    <thead><tr><th>字段</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>type</code></td><td>节点类型：标签名字符串、组件对象、Fragment、文本</td></tr>
+      <tr><td><code>props</code></td><td>属性、事件、指令等</td></tr>
+      <tr><td><code>children</code></td><td>子 VNode 数组或文本</td></tr>
+      <tr><td><code>key</code></td><td>diff 时的身份标识（第 70 章专讲）</td></tr>
+      <tr><td><code>el</code></td><td>该 VNode 对应的真实 DOM 元素（挂载后才填）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">66.3</span> 渲染总链路</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="Vue 渲染链路">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">从模板到真实 DOM 的完整链路</text>
+      <rect x="30" y="60" width="130" height="80" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="95" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">template</text>
+      <text x="95" y="118" text-anchor="middle" font-size="11" fill="#4f6348">你写的模板</text>
+      <rect x="200" y="60" width="130" height="80" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="265" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">render 函数</text>
+      <text x="265" y="118" text-anchor="middle" font-size="11" fill="#4f6348">编译产物</text>
+      <rect x="370" y="60" width="130" height="80" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="435" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">VNode 树</text>
+      <text x="435" y="118" text-anchor="middle" font-size="11" fill="#4f6348">JS 对象树</text>
+      <rect x="540" y="60" width="110" height="80" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="595" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">patch</text>
+      <text x="595" y="118" text-anchor="middle" font-size="11" fill="#4f6348">比对差异</text>
+      <rect x="680" y="60" width="100" height="80" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="730" y="95" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">真实 DOM</text>
+      <text x="730" y="118" text-anchor="middle" font-size="11" fill="#4f6348">浏览器</text>
+      <line x1="160" y1="100" x2="198" y2="100" stroke="#3d7a4f" stroke-width="2"/>
+      <line x1="330" y1="100" x2="368" y2="100" stroke="#3d7a4f" stroke-width="2"/>
+      <line x1="500" y1="100" x2="538" y2="100" stroke="#3d7a4f" stroke-width="2"/>
+      <line x1="650" y1="100" x2="678" y2="100" stroke="#3d7a4f" stroke-width="2"/>
+    </svg>
+    <p class="diagram-caption">图 66-1 渲染链路（示意）</p>
+  </div>
+  <p>当响应式数据变化，组件的 render 函数重新执行，生成<strong>新 VNode 树</strong>；框架把它与<strong>旧 VNode 树</strong>做 diff，只把差异 patch 到真实 DOM。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">66.4</span> diff 策略：同层比较 + 两端对比</h2>
+  <p>两棵树全量递归比较是 O(n³)，不可接受。Vue 采用两个关键假设把成本降到 O(n)：</p>
+  <ul>
+    <li><strong>同层比较</strong>：只比较同一层级的节点，不跨层移动节点（跨层移动视为"删旧建新"）；</li>
+    <li><strong>同类型才复用</strong>：type 变了（div→p 或组件 A→组件 B）直接销毁重建；type 相同才深入比较 props/children。</li>
+  </ul>
+<pre class="code" data-lang="js"><code>// diff 的核心伪代码（简化）
+function patch(n1, n2) {
+  if (!n1) mount(n2)                 // 旧节点没有 → 新建
+  else if (n1.type !== n2.type) destroy(n1); mount(n2)  // 类型不同 → 重建
+  else patchElement(n1, n2)         // 类型相同 → 复用 DOM，比对 props/children
+}</code></pre>
+  <p>对一组带 key 的子节点，Vue 用<strong>双端指针</strong>（旧头尾、新头尾四个指针）依次比对，尽量复用已有 DOM，减少移动与重建。key 的作用就是告诉框架"哪个新节点对应哪个旧节点"。</p>
+<pre class="code" data-lang="js"><code>// 新旧子节点：旧 [a,b,c] 新 [a,c,b,d]
+// 头头：a==a 复用；尾尾：d 是新增挂载
+// 中间 b/c 乱序，靠 key 映射找到旧位置，最小化移动
+const oldChildren = [a, b, c]
+const newChildren = [a, c, b, d]</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">66.5</span> 常见误区</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>以为虚拟 DOM 一定比手写 DOM 快</strong>——它是工程平衡，不是银弹。</li>
+    <li><span class="tag-pit">坑 2</span><strong>以为 diff 会跨层移动节点</strong>——不会，跨层变更直接删建。</li>
+    <li><span class="tag-pit">坑 3</span><strong>把 key 当"排序标记"</strong>——key 是身份，不是顺序号（第 70 章）。</li>
+  </ul>
+  <p>虚拟 DOM 不是更快，而是可维护 + 批量最小更新。直接操作 DOM 性能更好但难维护，VDOM 用一层 JS 抽象把 diff 成本降到 O(n)：只同层比较、同类型才复用，跨层移动视为删除+新建。</p>
+  <pre class="code" data-lang="js"><code>// 用 h() 手写一个三行列表（工程骨架）
+import { h } from 'vue'
+export default {
+  render() {
+    return h('ul', ['A','B','C'].map(t =&gt; h('li', t)))
+  }
+}
+// VNode 结构：{ type, props, children, key, el }</code></pre>
+  <div class="note"><strong>O(n) 前提</strong>同层比较 + 同类型复用 + key 身份识别，三者缺一，diff 都会退化为全量树比较。</div>
+  <p>VDOM 不是「更快」，而是「可维护 + 批量最小更新」。它把 diff 压到 O(n)：只同层比较、同类型才复用，跨层移动视为删除+新建。直接操作 DOM 更快但难维护，VDOM 用一层抽象换可维护性。</p>
+  <pre class="code" data-lang="js"><code>// h() 手写列表（工程骨架）
+import { h } from 'vue'
+export default { render(){ return h('ul', ['A','B','C'].map(t=&gt;h('li',t))) } }</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>同层比较</td><td>只比对同一层级</td></tr>
+      <tr><td>同类型复用</td><td>type 相同才复用 DOM</td></tr>
+      <tr><td>key 身份</td><td>用 key 识别节点身份</td></tr>
+    </tbody>
+  </table>
+  <p>VDOM 的 O(n) 不是白来的：靠同层比较、同类型复用、key 身份识别三条前提。跨层移动被当删除+新建，所以列表重排才要 key——它让 diff 按身份而非位置比对。</p>
+  <pre class="code" data-lang="js"><code>// VNode 结构（工程骨架）
+// { type, props, children, key, el }
+// h('ul', ['A','B','C'].map(t=>h('li',t)))</code></pre>
+  <div class="note"><strong>要点</strong>同层+同类型+key 三前提，缺一 diff 退化。</div>
+  <p>VDOM 把 diff 压到 O(n)：同层比较、同类型复用、key 身份识别。跨层移动当删除+新建，所以列表重排才需要 key——它让 diff 按身份比对，而非按位置。</p>
+  <pre class="code" data-lang="js"><code>// h() 列表（工程骨架）
+import { h } from 'vue'
+export default { render(){ return h('ul', ['A','B','C'].map(t=>h('li',t))) } }</code></pre>
+  <div class="note"><strong>要点</strong>三前提缺一，diff 退化为全量。</div>
+  <p>渲染链路：template→compile→render→VNode→patch→DOM。h() 手写 VNode 是为了理解结构，实际写 SFC 由编译器生成。diff 只在同层同类型间进行。</p>
+  <pre class="code" data-lang="js"><code>// VNode 字段（工程骨架）
+// { type, props, children, key, el, patchFlag }</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>链路</td><td>编译→VNode→patch</td></tr>
+      <tr><td>同层</td><td>只比对同层级</td></tr>
+      <tr><td>key</td><td>身份识别</td></tr>
+    </tbody>
+  </table>
+  <p>VDOM 的价值在跨平台：render 返回的是 VNode 对象，渲染器可以把它渲染成 DOM、Native 或 Canvas。diff 是渲染器内部算法，与视图层解耦。</p>
+  <pre class="code" data-lang="js"><code>// VNode 字段（工程骨架）
+// { type, props, children, key, el, patchFlag }</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>跨平台</td><td>渲染器可替换</td></tr>
+      <tr><td>O(n)</td><td>同层+同类型+key</td></tr>
+      <tr><td>链路</td><td>template→VNode→patch</td></tr>
+    </tbody>
+  </table>
+  <p>理解 VDOM 后回头看 diff：它不是魔法，而是「同层+同类型+key」三前提下的最小树比对。记住 O(n) 是有前提的，跨层移动会退化为删除+新建。</p>
+  <pre class="code" data-lang="js"><code>// 前提（工程骨架）
+// 同层 / 同类型复用 / key 身份</code></pre>
+  <p>跨平台是 VDOM 的隐藏红利：render 返回对象，渲染器可换成 Native/Canvas。diff 是渲染器内部算法，与视图层解耦。</p>
+  <pre class="code" data-lang="js"><code>// 跨平台（工程骨架）
+// render → VNode 对象 → 渲染器落地</code></pre>
+</section><section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table><colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>为什么 VDOM</td><td>跨平台、批量最小化更新，可维护性与性能的平衡</td></tr>
+      <tr><td>VNode</td><td>type/props/children/key/el 的普通 JS 对象</td></tr>
+      <tr><td>链路</td><td>template→render→VNode→patch→DOM</td></tr>
+      <tr><td>diff 策略</td><td>同层比较、同类型才复用，把 O(n³) 降到 O(n)</td></tr>
+      <tr><td>key</td><td>标识节点身份，双端 diff 复用 DOM 的依据</td></tr>
+    </tbody>
+  </table>
+</section><section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 h() 手写一个三行列表的 VNode，打印出来观察其结构。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>解释：为什么"跨层移动节点"在 Vue 里被当作删除+新建，而不是移动？这带来什么性能影响？</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>画图说明双端 diff 的四个指针如何在一次"头部插入"里只做一次新增而不移动已有节点。</div>
+  <p class="note">参考答案见附录 C。下一章看模板是怎么编译成 render 函数的。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../70_第七篇_组件设计与模式/065_第65章_组件库思维出口与文档.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="067_第67章_模板编译与优化.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 66 章 虚拟 DOM 与 diff 算法</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

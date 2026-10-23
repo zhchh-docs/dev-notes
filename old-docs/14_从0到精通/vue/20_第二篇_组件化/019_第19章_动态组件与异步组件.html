@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 19 章 动态组件与异步组件｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第二篇 组件化</p>
+    <h1>第 19 章 动态组件与异步组件</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 19 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">第二篇组件化的收官章：组件不再只在模板里静态写死，而是可以根据状态动态切换，也可以按需异步加载。<component :is>、keep-alive、defineAsyncComponent 是三个必须吃透的武器——它们决定了大型应用里组件树的装配方式。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="018_第18章_依赖注入provide与inject.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../30_第三篇_组合式API/020_第20章_setup与ref为什么包一层.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">19.1 component :is：运行时切换组件</a></li>
+    <li><a href="#sec3">19.2 切换即销毁：状态丢失从哪来</a></li>
+    <li><a href="#sec4">19.3 与 v-if / v-show 的取舍</a></li>
+    <li><a href="#sec5">19.4 keep-alive：把实例缓存起来</a></li>
+    <li><a href="#sec6">19.5 defineAsyncComponent：按需加载</a></li>
+    <li><a href="#sec7">19.6 与 Suspense 的关系（预告）</a></li>
+    <li><a href="#sec8">19.7 常见坑</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>掌握 <strong>&lt;component :is&gt;</strong> 的写法，知道 <code>is</code> 可以传哪三种值；</li>
+    <li>理解动态组件切换时<strong>实例销毁与重建</strong>的机制，以及"状态为什么丢"；</li>
+    <li>能在 <strong>动态组件 / v-if / v-show</strong> 三者之间做正确选型；</li>
+    <li>会用 <code>&lt;keep-alive&gt;</code> 缓存动态组件实例（第 64 章深挖原理）；</li>
+    <li>掌握 <code>defineAsyncComponent</code> 的完整选项，会处理加载失败与超时。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 10 章 SFC 与 <code>&lt;script setup&gt;</code>、第 16 章生命周期、第 18 章 provide/inject。本章是第二篇组件化的收官章，之后进入第三篇组合式 API。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">19.1</span> component :is：运行时切换组件</h2>
+  <p class="lead">前面写组件都是"模板里写死哪个就是哪个"。但 UI 里大量场景是<strong>同一个位置、按状态渲染不同组件</strong>：Tabs 标签页、后台管理的左侧菜单切换、向导步骤。<code>&lt;component :is="..."&gt;</code> 就是 Vue 提供的"占位符插槽"。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- Tabs 容器：同一个位置，按 activeTab 渲染不同组件 --&gt;
+&lt;template&gt;
+  &lt;div class="tabs"&gt;
+    &lt;button
+      v-for="tab in tabs"
+      :key="tab.key"
+      :class="{ active: activeTab === tab.key }"
+      @click="activeTab = tab.key"
+    &gt;{{ tab.label }}&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 动态组件：is 指向谁，就渲染谁 --&gt;
+  &lt;component :is="currentComponent" /&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref, computed } from 'vue'
+import UserList from './UserList.vue'
+import RoleList from './RoleList.vue'
+import DeptTree from './DeptTree.vue'
+
+const tabs = [
+  { key: 'user', label: '用户', comp: UserList },
+  { key: 'role', label: '角色', comp: RoleList },
+  { key: 'dept', label: '部门', comp: DeptTree }
+]
+const activeTab = ref('user')
+const currentComponent = computed(() =&gt;
+  tabs.find(t =&gt; t.key === activeTab.value).comp
+)
+&lt;/script&gt;</code></pre>
+  <p><code>is</code> 的值可以是三种东西：</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>is 的值</th><th>写法</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>组件对象（推荐）</td><td><code>:is="MyComp"</code></td><td>直接传 import 进来的组件，类型安全、可 tree-shaking</td></tr>
+      <tr><td>注册名（字符串）</td><td><code>:is="'MyComp'"</code></td><td>对应局部/全局注册的名字；TS 无推导</td></tr>
+      <tr><td>原生 HTML 标签</td><td><code>:is="'button'"</code></td><td>渲染原生元素，常用于包裹层抽象</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">动态组件的本质：<strong>模板里的一个占位符，具体渲染什么由 JS 状态决定</strong>。它把"视图结构"和"视图选择"解耦了。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">19.2</span> 切换即销毁：状态丢失从哪来</h2>
+  <p>把上面的 Tab 用一下你会立刻踩到坑：在"用户"页翻了第 3 页、填了半行筛选条件，切到"角色"再切回来——<strong>页码和筛选条件全没了</strong>。</p>
+  <p>原因看这张图：</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="动态组件切换时实例销毁与重建示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">无 keep-alive 时：切换 = 销毁旧实例 + 创建新实例</text>
+      <rect x="40" y="50" width="200" height="140" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="140" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">用户页（当前激活）</text>
+      <text x="140" y="100" text-anchor="middle" font-size="11.5" fill="#4f6348">实例 #1 挂载</text>
+      <text x="140" y="120" text-anchor="middle" font-size="11.5" fill="#4f6348">内部状态：page=3</text>
+      <text x="140" y="140" text-anchor="middle" font-size="11.5" fill="#4f6348">keyword="张"</text>
+      <text x="140" y="166" text-anchor="middle" font-size="11" fill="#7a8a70">占用内存、有 DOM</text>
+      <line x1="245" y1="120" x2="330" y2="120" stroke="#b45309" stroke-width="2" marker-end="url(#arrw19)"/>
+      <text x="287" y="108" text-anchor="middle" font-size="11" fill="#b45309">切走</text>
+      <rect x="335" y="50" width="200" height="140" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="435" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">销毁阶段</text>
+      <text x="435" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">onBeforeUnmount</text>
+      <text x="435" y="124" text-anchor="middle" font-size="11.5" fill="#4f6348">onUnmounted</text>
+      <text x="435" y="150" text-anchor="middle" font-size="11.5" fill="#b45309">实例 #1 状态被 GC</text>
+      <text x="435" y="172" text-anchor="middle" font-size="11" fill="#7a8a70">page=3 永远消失</text>
+      <line x1="540" y1="120" x2="625" y2="120" stroke="#047857" stroke-width="2" marker-end="url(#arrg19)"/>
+      <text x="582" y="108" text-anchor="middle" font-size="11" fill="#047857">切回</text>
+      <rect x="630" y="50" width="140" height="140" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="700" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">新实例 #2</text>
+      <text x="700" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">重新 setup</text>
+      <text x="700" y="124" text-anchor="middle" font-size="11.5" fill="#4f6348">onMounted</text>
+      <text x="700" y="150" text-anchor="middle" font-size="11.5" fill="#047857">page=1（重置）</text>
+      <text x="700" y="172" text-anchor="middle" font-size="11" fill="#7a8a70">keyword=""（重置）</text>
+      <defs>
+        <marker id="arrw19" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#b45309"/></marker>
+        <marker id="arrg19" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#047857"/></marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 19-1 动态组件在无缓存时的销毁与重建（示意）</p>
+  </div>
+  <p>这正是第 16 章生命周期的用武之地：组件切走时 <code>onBeforeUnmount</code> / <code>onUnmounted</code> 会执行，组件内部的 <code>ref</code> 状态、未保存的表单、已发出去但未响应的请求，都随实例一起被回收。</p>
+  <p>工程上这是<strong>特性不是 bug</strong>：卸载即清理，无需手动解绑事件、取消定时器。但你要记住这个行为，否则"切个 Tab 数据就没了"会变成反复出现的线上 bug。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">19.3</span> 与 v-if / v-show 的取舍</h2>
+  <p>同一个"按条件渲染组件"的需求，有三种写法。它们的差异不在视觉，而在<strong>实例生命周期</strong>：</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:28%"><col style="width:27%"><col style="width:27%"></colgroup>
+    <thead><tr><th>写法</th><th>切换时做了什么</th><th>状态是否保留</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;component :is&gt;</code></td><td>销毁旧实例、挂载新实例</td><td>不保留</td><td>分支 ≥3 个、组件各不相同</td></tr>
+      <tr><td><code>v-if / v-else</code></td><td>销毁/创建整个分支</td><td>不保留</td><td>分支少且固定（2 个）</td></tr>
+      <tr><td><code>v-show</code></td><td>只切 CSS <code>display</code></td><td><strong>保留</strong></td><td>两个组件频繁互切、都要保状态</td></tr>
+      <tr><td><code>:is</code> + <code>&lt;keep-alive&gt;</code></td><td>切走时把实例缓存进内存</td><td><strong>保留</strong></td><td>Tab 多、切换频繁（后台系统）</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">提醒</span>三个及以上分支时，别写 <code>v-if / v-else-if / v-else-if ...</code>——那会变成噩梦般的层级嵌套。<strong>分支数 ≥3 就上动态组件</strong>，分支数 =2 且要保状态就用 <code>v-show</code>。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">19.4</span> keep-alive：把实例缓存起来</h2>
+  <p>给动态组件包一层 <code>&lt;keep-alive&gt;</code>，切走的实例不再被销毁，而是<strong>挂在内存里休眠</strong>；切回来时原地唤醒，状态原样恢复。</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { ref } from 'vue'
+import UserList from './UserList.vue'
+import RoleList from './RoleList.vue'
+
+const activeTab = ref('user')
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;!-- 缓存所有动态切换的组件实例 --&gt;
+  &lt;keep-alive&gt;
+    &lt;component :is="activeTab === 'user' ? UserList : RoleList" /&gt;
+  &lt;/keep-alive&gt;
+&lt;/template&gt;</code></pre>
+<pre class="code" data-lang="vue"><code>&lt;!-- 更常见的精确控制：只缓存 UserList，RoleList 不缓存 --&gt;
+&lt;!-- include/exclude 匹配组件的 name（defineOptions 里定义） --&gt;
+&lt;keep-alive include="UserList" :max="5"&gt;
+  &lt;component :is="currentComponent" /&gt;
+&lt;/keep-alive&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>选项</th><th>作用</th><th>注意</th></tr></thead>
+    <tbody>
+      <tr><td><code>include</code></td><td>只缓存 name 命中的组件（字符串/正则/数组）</td><td>配合 <code>defineOptions({ name: 'X' })</code></td></tr>
+      <tr><td><code>exclude</code></td><td>name 命中的不缓存</td><td>优先级低于 include</td></tr>
+      <tr><td><code>max</code></td><td>最多缓存多少个实例（LRU 淘汰）</td><td>后台系统建议设上限，防止内存膨胀</td></tr>
+    </tbody>
+  </table>
+  <p>被缓存的组件多了两个生命周期钩子：<code>onActivated</code>（唤醒时）与 <code>onDeactivated</code>（休眠时）——第 27 章会给出完整的组合式写法。注意它们<strong>只在 keep-alive 包裹下触发</strong>，首次挂载仍然走 <code>onMounted</code>。</p>
+  <p class="note">本章只讲 keep-alive 的用法。它内部如何维护 LRU 缓存、<code>include</code> 的匹配算法、与异步组件的配合，放到<strong>第 64 章</strong>深挖。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">19.5</span> defineAsyncComponent：按需加载</h2>
+  <p>动态组件的另一个痛点是：<strong>一进页面就把 Tabs 里三个组件全打包、全下载</strong>。RoleList 里可能有个超大的图表组件，用户根本不点。<code>defineAsyncComponent</code> 把组件变成"用到时才发请求加载"。</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { defineAsyncComponent } from 'vue'
+
+// 箭头函数返回 Promise：打包时会单独拆成一个 chunk
+// 只有组件被首次渲染时才会去下载这个 chunk
+const UserList = defineAsyncComponent(() =&gt; import('./UserList.vue'))
+const RoleList = defineAsyncComponent(() =&gt; import('./RoleList.vue'))
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;!-- 用法与普通组件完全一样 --&gt;
+  &lt;component :is="activeTab === 'user' ? UserList : RoleList" /&gt;
+&lt;/template&gt;</code></pre>
+  <p>异步组件不只是"懒加载"，它还能控制加载中、失败、超时三种异常路径。完整选项：</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { defineAsyncComponent } from 'vue'
+import LoadingSpinner from './LoadingSpinner.vue'
+import LoadError from './LoadError.vue'
+
+const RoleList = defineAsyncComponent({
+  // 必填：加载器，返回 Promise（Vite 的动态 import）
+  loader: () =&gt; import('./RoleList.vue'),
+
+  // 加载中显示的占位组件；delay 避免快速加载时闪屏
+  loadingComponent: LoadingSpinner,
+  delay: 200,
+
+  // 失败显示的组件；onError 提供重试机会
+  errorComponent: LoadError,
+  timeout: 10000,   // 10 秒没加载出来算失败
+
+  // 发生错误时的回调：retry() 重试，fail() 放弃
+  onError(error, retry, fail, attempts) {
+    if (attempts &lt;= 3) retry()
+    else fail(error)
+  }
+})
+&lt;/script&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:42%"><col style="width:34%"></colgroup>
+    <thead><tr><th>选项</th><th>作用</th><th>典型值</th></tr></thead>
+    <tbody>
+      <tr><td><code>loader</code></td><td>返回 Promise 的加载函数（动态 import）</td><td><code>() =&gt; import('./X.vue')</code></td></tr>
+      <tr><td><code>loadingComponent</code></td><td>加载中的占位 UI</td><td>骨架屏 / Spinner</td></tr>
+      <tr><td><code>delay</code></td><td>延迟多少 ms 才显示 loading，避免闪屏</td><td>200</td></tr>
+      <tr><td><code>errorComponent</code></td><td>加载失败的错误 UI</td><td>带"重试"按钮的组件</td></tr>
+      <tr><td><code>timeout</code></td><td>超时即判失败（ms）</td><td>10000</td></tr>
+      <tr><td><code>onError</code></td><td>失败回调，可 <code>retry()</code> 重试</td><td>最多重试 3 次</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">工程上：<strong>路由级页面全部异步化</strong>（Vue Router 原生支持），<strong>首屏不展开的 Tabs/弹窗/重图表组件</strong>也用异步组件——这是 Vite 项目最立竿见影的分包手段。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">19.6</span> 与 Suspense 的关系（预告）</h2>
+  <p>异步组件解决了"组件代码按需加载"，但还有一个更细的问题：<strong>组件内部 setup 里就要发请求拿数据，加载期间整棵子树显示什么？</strong></p>
+  <p>Vue 提供了内置的 <code>&lt;Suspense&gt;</code> 组件（实验性特性）：它会等异步组件加载完毕、<code>async setup()</code> 完成后，再一起渲染；期间渲染 <code>#fallback</code> 插槽。它和 <code>defineAsyncComponent</code> 经常配合使用。</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 概念示例：具体语法在第 63 章精讲 --&gt;
+&lt;Suspense&gt;
+  &lt;template #default&gt;
+    &lt;UserProfile /&gt;   &lt;!-- async setup 会先请求用户数据 --&gt;
+  &lt;/template&gt;
+  &lt;template #fallback&gt;
+    &lt;LoadingSpinner /&gt;
+  &lt;/template&gt;
+&lt;/Suspense&gt;</code></pre>
+  <div class="note">本章只建立概念：<strong>defineAsyncComponent 管"组件代码加载"，Suspense 管"组件内部异步依赖的等待 UI"</strong>。完整 API、与 SSR 的配合、边界行为见第 63 章。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">19.7</span> 常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>切 Tab 后状态丢失却不知道为什么</strong>：默认动态组件不缓存。要么包 <code>&lt;keep-alive&gt;</code>，要么把状态提升到父级（第 24 章 provide / 第五篇 Pinia）。</li>
+    <li><span class="tag-pit">坑 2</span><strong>v-if / v-else 写四五个分支</strong>：分支数 ≥3 就改用 <code>:is</code> + 组件映射表。</li>
+    <li><span class="tag-pit">坑 3</span><strong>keep-alive include 匹配不上</strong>：<code>&lt;script setup&gt;</code> 里组件名要通过 <code>defineOptions({ name: 'X' })</code> 显式声明，include 按这个 name 匹配，不匹配文件名。</li>
+    <li><span class="tag-pit">坑 4</span><strong>把 <code>import()</code> 写成静态 import</strong>：只有 <code>() =&gt; import('./X.vue')</code> 这种动态形式才会被 Vite/Rollup 拆包；写成 <code>import X from './X.vue'</code> 就回退成同步加载。</li>
+    <li><span class="tag-pit">坑 5</span><strong>loading 组件一闪而过</strong>：网络快时 loading 只显示几十毫秒就消失，视觉上像闪烁。设置 <code>delay: 200</code>，加载超过 200ms 才显示 loading。</li>
+    <li><span class="tag-pit">坑 6</span><strong>异步组件没有超时与错误兜底</strong>：弱网环境下用户永远看到一个转圈。<code>timeout</code> + <code>errorComponent</code> + <code>retry</code> 是标准三件套。</li>
+    <li><span class="tag-pit">坑 7</span><strong>以为 keep-alive 缓存的是数据</strong>：缓存的是<strong>组件实例</strong>（含其 setup 里的 ref 状态）。如果状态在外部 store，那本来就不会丢，和 keep-alive 无关。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>:is 动态组件</td><td>模板占位符，运行时按状态渲染不同组件；is 可传组件对象/注册名/HTML 标签</td></tr>
+      <tr><td>切换即销毁</td><td>无缓存时切走 = onUnmounted，内部状态随之回收</td></tr>
+      <tr><td>选型</td><td>≥3 分支用 :is；2 个分支要保状态用 v-show；Tab 多且频繁切用 :is + keep-alive</td></tr>
+      <tr><td>keep-alive</td><td>休眠实例而非销毁；include/exclude 按组件 name；max 防内存膨胀</td></tr>
+      <tr><td>defineAsyncComponent</td><td>动态 import 拆包；配套 loadingComponent / errorComponent / delay / timeout / retry</td></tr>
+      <tr><td>Suspense</td><td>管组件内部异步依赖的等待 UI，第 63 章精讲</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 <code>&lt;component :is&gt;</code> 实现一个三标签 Tabs（"列表 / 卡片 / 设置"三个简单组件），点击按钮切换。验证：不包 keep-alive 时，在"列表"组件里放一个 <code>ref(0)</code> 计数器，点几次后切到别的 Tab 再切回来，计数是否归零？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给上面的 Tabs 包上 <code>&lt;keep-alive&gt;</code>，并用 <code>defineOptions</code> 给组件命名；再用 <code>include</code> 只缓存其中一个 Tab，验证：被缓存的 Tab 切回来计数保留，未被缓存的 Tab 计数仍归零。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把"设置"组件用 <code>defineAsyncComponent</code> 包装，配置 <code>loadingComponent</code>、<code>errorComponent</code>、<code>timeout: 3000</code> 与 <code>onError</code> 最多重试 2 次。用 Chrome DevTools 的 Network 节流到 "Fast 3G"，观察：① loading 是否在 delay 后才出现；② 弱网下超时后是否出现错误组件并可重试。</div>
+  <p class="note">参考答案见附录 C。下一章进入第三篇组合式 API：第 20 章 setup 与 ref 为什么包一层。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="018_第18章_依赖注入provide与inject.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../30_第三篇_组合式API/020_第20章_setup与ref为什么包一层.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 19 章 动态组件与异步组件</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

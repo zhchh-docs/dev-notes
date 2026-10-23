@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 70 章 key 的复用逻辑｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第八篇 原理深潜与性能</p>
+    <h1>第 70 章 key 的复用逻辑</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 70 章 / 共 76 章 · 预计 30 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">key 不是顺序号而是身份：用 index 的坑、稳定业务 id、以及 key 变化触发重建的正确理解。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="069_第69章_patch过程更新如何落地.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="071_第71章_性能排查工具与常见瓶颈.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">70.1 key 是身份</a></li>
+    <li><a href="#sec3">70.2 index 作 key 的坑</a></li>
+    <li><a href="#sec4">70.3 稳定 key 与默认行为</a></li>
+    <li><a href="#sec5">70.4 key 变化重建</a></li>
+    <li><a href="#sec6">70.5 复用边界 SSR/动画</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 <strong>key 在 diff 中的角色</strong>：决定复用还是重建；</li>
+    <li>理解 <strong>用 index 作 key 的坑</strong>（增删错乱案例）；</li>
+    <li>知道不写 key 的警告与默认行为；</li>
+    <li>会选取<strong>稳定唯一 key</strong>（id/业务码）；</li>
+    <li>正确理解 key 变化触发<strong>组件重建</strong>，以及 transition-group。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：已学第 66 章 diff、第 69 章 keyed diff。</div>
+</section>
+<section id="sec2" class="card">
+  <h2><span class="num">70.1</span> key 是节点身份，不是顺序号</h2>
+  <p class="lead">diff 要判断"新列表里的某一项，对应旧列表里的哪一项"，靠的就是 key。key 相同 = 同一个节点，复用 DOM 与组件状态；key 对不上 = 新节点，要重建。</p>
+  <p class="key-sentence">key 的唯一作用是<strong>身份标识</strong>，让 Vue 在列表变化时正确复用对应节点，而不是按位置瞎猜。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">70.2</span> 用 index 作 key 的坑</h2>
+  <p>假设列表 <code>[A, B, C]</code>，每项带一个输入框。我们在<strong>头部插入</strong>一项，变成 <code>[X, A, B, C]</code>。如果 key 是下标：</p>
+<pre class="code" data-lang="js"><code>// key=index 的后果
+// 旧: 0:A(输入"a")  1:B  2:C
+// 新: 0:X          1:A  2:B  3:C
+// diff 按下标复用：
+//   下标0 旧A → 新X：直接把 A 的 DOM 改写成 X 的内容
+//   下标1 旧B → 新A：把 B 的 DOM 改写成 A
+// 结果：A 输入框里的内容"跑错位置"，状态与节点错位！</code></pre>
+  <div class="warn-box"><span class="tag-pit">为什么错</span>用 index 作 key 时，头部插入会让<strong>所有项的下标都平移</strong>，Vue 以为"这是不同内容"，把 DOM 挨个改写，连同组件内部状态（输入框、勾选）一起错乱。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">70.3</span> 稳定唯一 key 与不写 key</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>做法</th><th>后果</th></tr></thead>
+    <tbody>
+      <tr><td>用业务 id / 码作 key</td><td>正确：增删排序都能精准复用对应节点</td></tr>
+      <tr><td>用 index 作 key</td><td>有增删/排序时状态错位</td></tr>
+      <tr><td>完全不写 key</td><td>Vue 按下标就地复用（无 key 模式），列表会报警告</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="vue"><code>&lt;!-- 正确：用稳定业务 id 作 key --&gt;
+&lt;div v-for="user in list" :key="user.id"&gt;{{ user.name }}&lt;/div&gt;</code></pre>
+</section>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="index 作 key 的错位">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">头部插入后，index 作 key 导致 DOM 与状态错位</text>
+      <rect x="60" y="55" width="280" height="40" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="200" y="80" text-anchor="middle" font-size="12" fill="#2d6a3f">旧: 0=A(输入"a") 1=B 2=C</text>
+      <rect x="60" y="110" width="280" height="40" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="200" y="135" text-anchor="middle" font-size="12" fill="#b45309">新: 0=X 1=A 2=B 3=C</text>
+      <rect x="400" y="80" width="330" height="70" rx="8" fill="#fbfdff" stroke="#3d7a4f"/>
+      <text x="565" y="108" text-anchor="middle" font-size="12" fill="#4f6348">按下标复用：A 的 DOM 被改写成 X</text>
+      <text x="565" y="132" text-anchor="middle" font-size="12" fill="#b45309">输入框内容跑错位置！</text>
+      <line x1="340" y1="115" x2="398" y2="115" stroke="#3d7a4f" stroke-width="2"/>
+    </svg>
+    <p class="diagram-caption">图 70-1 index 作 key 的错位原理（示意）</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">70.4</span> key 变化触发重建</h2>
+  <p>反过来，key 变了 Vue 就认为是"另一个节点"，会销毁旧组件、挂载新组件——<strong>组件内部状态随之丢失</strong>。这既是坑，也是工具：</p>
+<pre class="code" data-lang="vue"><code>&lt;!-- 想强制重置一个表单组件：换 key 即可让它全新挂载 --&gt;
+&lt;UserForm :key="formVersion" /&gt;
+&lt;button @click="formVersion++"&gt;重置表单&lt;/button&gt;</code></pre>
+  <p>另外，列表配合 <code>&lt;transition-group&gt;</code> 做增删动画时，稳定 key 也是动画正确播放的前提。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">70.5</span> key 与组件复用的边界（SSR / 动画）</h2>
+  <p class="lead">key 决定"复用还是重建"，但在两类场景下它的边界要特别留意：SSR 注水（hydration）与列表动画。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>场景</th><th>key 的影响</th><th>正确做法</th></tr></thead>
+    <tbody>
+      <tr><td>SSR 注水</td><td>前后端渲染出的列表 key 顺序要一致，否则注水 mismatch</td><td>用稳定业务 id，别用 index</td></tr>
+      <tr><td>transition-group 动画</td><td>key 不稳定会导致离场/入场动画错位、重播</td><td>每行绑业务 id</td></tr>
+      <tr><td>强制重置组件</td><td>改 key 让组件销毁重建，内部状态清空</td><td>:key="version"</td></tr>
+      <tr><td>同位置切换组件</td><td>不同组件类型天然不复用；同类型不同 key 才重建</td><td>区分"类型变"与"key 变"</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="vue"><code>&lt;!-- transition-group：每行绑业务 id，增删动画才正确 --&gt;
+&lt;transition-group name="list" tag="ul"&gt;
+  &lt;li v-for="u in users" :key="u.id"&gt;{{ u.name }}&lt;/li&gt;
+&lt;/transition-group&gt;
+&lt;!-- SSR 注水要求前后端 key 顺序一致，index 会错位 --&gt;</code></pre>
+  <div class="warn-box"><span class="tag-pit">边界</span>SSR 下列表若用 index 作 key，服务端与客户端渲染出的"第 0 项"可能指向不同数据，注水时报 mismatch——这是 index 作 key 在 SSR 里的典型事故。</div>
+  <p>key 决定「复用还是重建」。index 作 key 在头部插入时会让下标平移，DOM 与状态错位；用业务 id 作 key，diff 才能按身份识别节点、正确移动 DOM。SSR 注水时前后端 key 顺序必须一致，否则 mismatch。</p>
+  <pre class="code" data-lang="js"><code>// index 作 key 的错位复现（工程骨架）
+// 旧: [0=A(输入'a'), 1=B, 2=C]
+// 头部插入 X 后: [0=X, 1=A, 2=B, 3=C]
+// 按下标复用 → A 的 DOM 被改写成 X，输入框内容跑错位置！
+// 正确：:key="user.id"，diff 按身份移动 DOM，状态不错位</code></pre>
+  <div class="warn-box"><span class="tag-pit">SSR</span>列表用 index 作 key，前后端「第 0 项」可能指向不同数据，注水报 mismatch。</div>
+  <p>index 作 key 在头部插入时让下标平移，DOM 与状态错位；用业务 id 作 key，diff 才能按身份识别节点、正确移动 DOM。SSR 注水时前后端 key 顺序必须一致，否则 mismatch。</p>
+  <pre class="code" data-lang="js"><code>// index 错位复现（工程骨架）
+// 旧: [0=A(输入a),1=B,2=C]
+// 头部插 X: [0=X,1=A,2=B,3=C]
+// 按下标复用 → A 的 DOM 被改写成 X！
+// 正确: :key="user.id"</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>身份</td><td>key 决定复用/重建</td></tr>
+      <tr><td>index 坑</td><td>头部插入下标平移</td></tr>
+      <tr><td>SSR</td><td>前后端 key 顺序须一致</td></tr>
+    </tbody>
+  </table>
+  <p>index 作 key 在头部插入时下标平移，DOM 与状态错位。用业务 id 作 key，diff 按身份识别节点、正确移动 DOM。SSR 注水时前后端 key 顺序须一致。</p>
+  <pre class="code" data-lang="js"><code>// index 错位复现（工程骨架）
+// 旧:[0=A(a),1=B,2=C]
+// 头插X:[0=X,1=A,2=B,3=C]
+// 下标复用→A的DOM被改写成X！</code></pre>
+  <div class="note"><strong>要点</strong>身份 key 让 diff 按身份移动，状态不错位。</div>
+  <p>index 作 key 头部插入时下标平移，DOM 与状态错位。业务 id 作 key，diff 按身份识别节点、正确移动 DOM。SSR 注水前后端 key 顺序须一致。</p>
+  <pre class="code" data-lang="js"><code>// index 错位复现（工程骨架）
+// 旧:[0=A(a),1=B,2=C]
+// 头插X:[0=X,1=A,2=B,3=C]
+// 下标复用→A的DOM被改写！</code></pre>
+  <div class="note"><strong>要点</strong>身份 key 让移动正确。</div>
+  <p>key 变化触发组件重建：同位置换 key，Vue 认为是新节点，旧组件卸载、新组件挂载，内部状态全丢。这在 tab 切换里常用于强制重置表单。</p>
+  <pre class="code" data-lang="js"><code>// key 强制重建（工程骨架）
+// <UserForm :key='userId' />  切用户即重置</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>身份</td><td>key 决定复用/重建</td></tr>
+      <tr><td>index 坑</td><td>下标平移错位</td></tr>
+      <tr><td>SSR</td><td>前后端 key 一致</td></tr>
+    </tbody>
+  </table>
+  <p>key 变化触发组件重建：同位置换 key，Vue 视为新节点，旧卸载新挂载，内部状态全丢。tab 切换里用它强制重置表单。SSR 注水前后端 key 顺序须一致。</p>
+  <pre class="code" data-lang="js"><code>// key 强制重建（工程骨架）
+// <UserForm :key='userId' />  切用户即重置</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>身份</td><td>key 决定复用/重建</td></tr>
+      <tr><td>index 坑</td><td>下标平移错位</td></tr>
+      <tr><td>SSR</td><td>前后端 key 一致</td></tr>
+    </tbody>
+  </table>
+  <p>key 是节点的身份证：diff 靠它认出「这是同一个」，从而正确移动 DOM、保留状态。用 index 等于每换一个人就重发身份证，状态自然错乱。</p>
+  <pre class="code" data-lang="js"><code>// 身份证（工程骨架）
+// 稳定 id → 正确移动
+// index → 下标平移，状态错位</code></pre>
+  <p>稳定 key 用业务 id，别用 index。SSR 注水前后端 key 顺序须一致，否则 mismatch。key 变化也会触发组件重建、状态丢失。</p>
+  <pre class="code" data-lang="js"><code>// 稳定 key（工程骨架）
+// :key='user.id'
+// 勿用 :key='index'</code></pre>
+  <p>列表动画配合 key：transition-group 靠 key 识别哪些节点进入/离开/移动，才能播 FLIP 动画。没有稳定 key，动画位置全错。</p>
+  <pre class="code" data-lang="js"><code>// transition-group（工程骨架）
+// <transition-group><li v-for='u in list' :key='u.id'/></transition-group></code></pre>
+  <p>记住：稳定业务 id 作 key，index 是反模式；SSR 前后端 key 顺序须一致；key 变化会触发组件重建、状态丢失。</p>
+  <pre class="code" data-lang="js"><code>// 反例：:key='index'
+// 正例：:key='row.id'</code></pre>
+  <p>小结：key 决定复用还是重建。用业务稳定 id，别用 index；SSR 与列表动画都依赖稳定 key。</p>
+  <p>再强调：index 作 key 在头部插入时整列下标平移，diff 按下标复用会把 A 的 DOM 改写成 X，输入框内容随之错位。这是列表最隐蔽的 bug。</p>
+  <pre class="code" data-lang="html"><code>&lt;!-- 反例 --&gt;
+&lt;li v-for="(item,i) in list" :key="i"&gt;{{ item.name }}&lt;/li&gt;
+&lt;!-- 正例 --&gt;
+&lt;li v-for="item in list" :key="item.id"&gt;{{ item.name }}&lt;/li&gt;</code></pre>
+  <p>本章要点：稳定 id、勿用 index、SSR 顺序一致、key 变即重建。</p>
+</section><section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table><colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>key 角色</td><td>节点身份标识，决定复用还是重建</td></tr>
+      <tr><td>index 作 key</td><td>头部插入导致下标平移，状态与 DOM 错位</td></tr>
+      <tr><td>正确 key</td><td>用业务 id/码；不写 key 按下标复用会告警</td></tr>
+      <tr><td>key 重建</td><td>key 变 = 销毁重建，状态丢失；可借它强制重置</td></tr>
+      <tr><td>边界</td><td>SSR 注水与 transition-group 都要稳定 key</td></tr>
+    </tbody>
+  </table>
+</section><section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复现 70.2：列表项带输入框，头部插入后观察输入内容错位。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把 key 从 index 改成 user.id，再做一次头部插入，验证状态不再错乱。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>用 :key="formVersion" 实现"切换用户详情时强制重置详情组件"，并解释背后原理。</div>
+  <p class="note">参考答案见附录 C。下一章讲性能排查工具与常见瓶颈。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="069_第69章_patch过程更新如何落地.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="071_第71章_性能排查工具与常见瓶颈.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 70 章 key 的复用逻辑</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

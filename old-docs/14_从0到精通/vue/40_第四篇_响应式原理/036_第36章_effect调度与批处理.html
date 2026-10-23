@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 36 章 effect 调度与批处理｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第四篇 响应式原理</p>
+    <h1>第 36 章 effect 调度与批处理</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 36 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">第 31 章讲了 queueJob 的基本思路，这一章把它讲透：pendingJobs 队列怎么去重、为什么按 id 排序、pre/post 两个队列怎么和组件生命周期挂钩、自定义 scheduler 怎么用、批处理和 watch 回调的时序关系。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="035_第35章_数组与集合的响应式处理.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_手写迷你响应式系统.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">36.1 job 队列结构与去重</a></li>
+    <li><a href="#sec3">36.2 同步修改多次 → 一次渲染</a></li>
+    <li><a href="#sec4">36.3 pre / post 队列与组件顺序</a></li>
+    <li><a href="#sec5">36.4 自定义 scheduler 的用法</a></li>
+    <li><a href="#sec6">36.5 批处理与 watch 回调时机</a></li>
+    <li><a href="#sec7">36.6 本章常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>看懂<strong>pendingJobs 队列</strong>的完整结构：Set 去重 + 数组顺序；</li>
+    <li>说清为什么<strong>同一组件一轮内只更新一次</strong>；</li>
+    <li>理解 <strong>pre / post 队列</strong>与组件父先子后的顺序；</li>
+    <li>会用 <strong>自定义 scheduler</strong> 控制 effect 的执行时机；</li>
+    <li>把"批处理"与 watch 回调、nextTick 串成一张完整时序图。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 31 章 trigger 与 queueJob 雏形；第三篇 <code>watch</code> 的 flush 选项（第 24 章）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">36.1</span> job 队列结构与去重</h2>
+  <p class="lead">组件更新本质上是一个 job（一个 effect 的 run）。Vue 内部维护几个队列：</p>
+<pre class="code" data-lang="js"><code>let isFlushing = false          // 是否正在 flush
+let isFlushPending = false       // 是否已安排微任务 flush
+const queue = []                 // 当前待执行的 job 列表（pre 队列）
+const activePreFlushCbs = []    // pre watch 回调
+const activePostFlushCbs = []    // post watch 回调
+let currentFlushPromise = null   // 当前 flush 的 Promise（nextTick 用它）</code></pre>
+
+  <h3>queueJob 的去重</h3>
+<pre class="code" data-lang="js"><code>function queueJob(job) {
+  // 1. 同一 job 不能在队列里重复
+  if (!queue.includes(job)) {
+    // 2. 如果正在 flush 中，且当前 job.id 比"正在跑的位置"大，插到末尾
+    //    否则插到"正在跑的位置"之前——保证新 job 在当前位置之后执行
+    queue.push(job)
+  }
+  // 3. 安排一次微任务 flush（幂等）
+  queueFlush()
+}
+
+function queueFlush() {
+  if (!isFlushing && !isFlushPending) {
+    isFlushPending = true
+    currentFlushPromise = Promise.resolve().then(flushJobs)
+  }
+}</code></pre>
+  <p>去重的关键：<code>queue.includes(job)</code>——同一个组件的渲染 effect 被多次 trigger，只入队一次。这就是"循环 ++ 100 次只渲染一次"的实现根源。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">36.2</span> 同步修改多次 → 一次渲染</h2>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { ref } from 'vue'
+const count = ref(0)
+
+// 同步代码：连续改 100 次
+function onClick() {
+  for (let i = 0; i &lt; 100; i++) {
+    count.value++
+  }
+  // 此时：count 已经是 100，但 DOM 还没更新
+  // 队列里只有 1 个 job（组件的渲染 effect），去重过了
+}
+&lt;/script&gt;</code></pre>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="批处理完整时序图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">一次同步点击的完整时序：宏任务 → 微任务 flush</text>
+      <rect x="40" y="50" width="200" height="160" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="140" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">宏任务：onClick</text>
+      <text x="140" y="100" text-anchor="middle" font-size="11" fill="#4f6348">count.value++ ×100</text>
+      <text x="140" y="122" text-anchor="middle" font-size="11" fill="#4f6348">trigger ×100</text>
+      <text x="140" y="144" text-anchor="middle" font-size="11" fill="#4f6348">queueJob ×100</text>
+      <text x="140" y="166" text-anchor="middle" font-size="11" fill="#b45309">→ 队列去重后剩 1 个 job</text>
+      <text x="140" y="188" text-anchor="middle" font-size="11" fill="#7a8a70">DOM 还没 patch</text>
+      <rect x="300" y="50" width="200" height="160" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">微任务：flushJobs</text>
+      <text x="400" y="100" text-anchor="middle" font-size="11" fill="#4f6348">pre watch 回调</text>
+      <text x="400" y="122" text-anchor="middle" font-size="11" fill="#4f6348">组件 render（1 次）</text>
+      <text x="400" y="144" text-anchor="middle" font-size="11" fill="#4f6348">DOM patch</text>
+      <text x="400" y="166" text-anchor="middle" font-size="11" fill="#4f6348">post watch 回调</text>
+      <text x="400" y="188" text-anchor="middle" font-size="11" fill="#7a8a70">onUpdated 钩子</text>
+      <rect x="560" y="50" width="200" height="160" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="660" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">下一个宏任务</text>
+      <text x="660" y="100" text-anchor="middle" font-size="11" fill="#4f6348">用户看到 count=100</text>
+      <text x="660" y="122" text-anchor="middle" font-size="11" fill="#4f6348">await nextTick 之后</text>
+      <text x="660" y="144" text-anchor="middle" font-size="11" fill="#4f6348">读 DOM 是新值</text>
+      <line x1="240" y1="130" x2="300" y2="130" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a5)"/>
+      <line x1="500" y1="130" x2="560" y2="130" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#a5)"/>
+      <defs><marker id="a5" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3d7a4f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 36-1 一次同步点击的完整调度时序（示意）</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">36.3</span> pre / post 队列与组件顺序</h2>
+  <h3>组件更新顺序：父先于子</h3>
+  <p>flushJobs 里有一句关键：<code>queue.sort((a, b) =&gt; a.id - b.id)</code>。每个组件的渲染 job 有一个递增的 id（父组件先创建，id 小）。排序后：</p>
+  <ul>
+    <li><strong>父组件先 render、先 patch</strong>，再子组件；</li>
+    <li>避免"子组件先更新、父组件又更新导致子组件被重复渲染"。</li>
+  </ul>
+
+  <h3>pre / post 队列</h3>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>队列</th><th>内容</th><th>执行时机</th></tr></thead>
+    <tbody>
+      <tr><td>pre watch 回调</td><td><code>watch(cb, { flush: 'pre' })</code></td><td>所有组件 render 之前</td></tr>
+      <tr><td>组件 render job</td><td>组件的渲染 effect</td><td>父先子后</td></tr>
+      <tr><td>post watch 回调</td><td><code>watch(cb, { flush: 'post' })</code></td><td>所有组件 render + patch 之后</td></tr>
+      <tr><td>onUpdated 钩子</td><td>组件生命周期</td><td>组件 patch 后立即跑（在 post 之前）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">Vue 的整个响应式更新是<strong>一次微任务里的一轮批处理</strong>：pre cb → 父 render → 子 render → patch → onUpdated → post cb。用户永远不会看到中间态。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">36.4</span> 自定义 scheduler 的用法</h2>
+  <p>虽然业务代码很少直接手写 scheduler，但理解它能帮你看懂 watch 的 flush 选项是怎么实现的：</p>
+<pre class="code" data-lang="js"><code>// watch(cb, { flush: 'post' }) 等价于：
+new ReactiveEffect(getter, {
+  scheduler(effect) {
+    // 不是立刻跑，而是塞进 post 队列
+    activePostFlushCbs.push(() =&gt; {
+      const newVal = effect.run()
+      cb(newVal, oldVal)
+    })
+    queueFlush()
+  }
+})
+
+// flush: 'sync' 等价于：
+new ReactiveEffect(getter, {
+  scheduler(effect) {
+    const newVal = effect.run()   // 同步立刻跑
+    cb(newVal, oldVal)
+  }
+})</code></pre>
+
+  <h3>业务场景：自定义节流</h3>
+<pre class="code" data-lang="js"><code>// 你可以自己写一个"防抖的 watch"
+import { watch } from 'vue'
+
+watch(
+  searchKeyword,
+  (kw) =&gt; fetch(kw),
+  {
+    flush: 'post',
+    // 注：Vue 没暴露直接配 scheduler 的选项，但 flush 已经覆盖 99% 场景
+    // 真要完全自定义调度，可以用 watch 源 + 自己节流
+  }
+)</code></pre>
+  <div class="note"><strong>实际建议</strong>：业务代码用 <code>flush: 'pre' / 'post' / 'sync'</code> + <code>await nextTick</code> 就够了；手写 scheduler 是框架级的事（Pinia、VueUse 某些工具会用到）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">36.5</span> 批处理与 watch 回调时机</h2>
+  <p>把"批处理"和"watch 回调"放在一张表里：</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:34%"><col style="width:36%"></colgroup>
+    <thead><tr><th>代码位置</th><th>DOM 状态</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>同步改完立刻读 DOM</td><td>旧</td><td>批处理还没跑</td></tr>
+      <tr><td><code>watch(cb, { flush: 'pre' })</code> cb 里</td><td>旧</td><td>cb 在 patch 前跑</td></tr>
+      <tr><td><code>watch(cb, { flush: 'post' })</code> cb 里</td><td>新</td><td>cb 在 patch 后跑</td></tr>
+      <tr><td><code>onUpdated</code> 钩子里</td><td>新</td><td>组件 patch 后立即跑</td></tr>
+      <tr><td><code>await nextTick()</code> 之后</td><td>新</td><td>等当前 flush 完成</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">新手最常见的困惑："为什么我在 watch 里改了 state，页面没立刻更新？"——因为 watch cb 跑完之后还要进下一轮 flush（pre cb → render → patch），不是 cb 里改完就同步 patch。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">36.6</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>以为 watch pre cb 里能读到新 DOM</strong>：不能，pre cb 在 patch 前。要新 DOM 用 post 或 onUpdated。</li>
+    <li><span class="tag-pit">坑 2</span><strong>在 watch pre cb 里改 state</strong>：会触发新一轮 flush（又一轮 pre cb → render）——如果改的 state 又被 watch，可能引起额外渲染。能用 computed 就别用 watch。</li>
+    <li><span class="tag-pit">坑 3</span><strong>用 setTimeout 等 DOM 更新</strong>：setTimeout 是宏任务，比微任务晚得多。用 nextTick 或 post watch。</li>
+    <li><span class="tag-pit">坑 4</span><strong>以为组件更新顺序是子先父后</strong>：默认父先子后。如果你的代码依赖"子组件先更新"，要重新设计。</li>
+    <li><span class="tag-pit">坑 5</span><strong>在同步代码里多次 nextTick</strong>：每次 nextTick 都排到队列后面，但当前 flush 只跑一轮，多次 nextTick 回调都在同一轮 flush 后跑。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>队列结构</td><td>queue 装渲染 job，pre/post 两个数组装 watch cb</td></tr>
+      <tr><td>去重</td><td>同一 job 一轮内只入队一次</td></tr>
+      <tr><td>组件顺序</td><td>按 id 排序，父先子后</td></tr>
+      <tr><td>完整时序</td><td>pre cb → 父 render → 子 render → patch → onUpdated → post cb</td></tr>
+      <tr><td>scheduler</td><td>每个 effect 可以自定义怎么执行；flush 选项就是它的业务化</td></tr>
+      <tr><td>nextTick</td><td>等当前 flush 完成，本质是 Promise.then</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为什么同一组件一轮内只更新一次？从 queueJob 去重和微任务 flush 两个角度解释。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一段代码：在同步函数里连续改三个 ref，然后分别在 ① 同步末尾 ② pre watch ③ post watch ④ onUpdated ⑤ nextTick 里读 DOM，把每次读到的值列出来，和图 36-1 对照。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在第 31 章手写的 queueJob 基础上，加上"pre/post 两个队列"和"按 job.id 排序"。模拟父子两个组件（父 id 小、子 id 大），验证：父 render 先于子 render，post cb 在两个 render 之后。</div>
+  <p class="note">参考答案见附录 C。下一章是本篇的综合实战：手写一个能跑的迷你响应式系统。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="035_第35章_数组与集合的响应式处理.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_手写迷你响应式系统.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 36 章 effect 调度与批处理</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

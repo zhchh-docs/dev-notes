@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 51 章 路由懒加载与分包｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第六篇 路由与工程</p>
+    <h1>第 51 章 路由懒加载与分包</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 51 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">首屏不该下载全站代码。这一章用动态 import 做路由级代码分割，厘清 webpack 与 Vite 的分包差异，并用 manualChunks 优化缓存与加载体验。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="050_第50章_路由元信息与页面标题.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="052_第52章_表单处理v-model与校验.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">51.1 () => import 代码分割</a></li>
+    <li><a href="#sec3">51.2 命名 chunk：webpack 与 Vite</a></li>
+    <li><a href="#sec4">51.3 Vite manualChunks</a></li>
+    <li><a href="#sec5">51.4 加载状态与错误处理</a></li>
+    <li><a href="#sec6">51.5 预取与 keep-alive</a></li>
+    <li><a href="#sec7">51.6 分析打包产物体积</a></li>
+    <li><a href="#sec8">51.7 常见坑</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>路由级代码分割</strong>：首屏不下载用户暂时用不到的页面代码；</li>
+    <li>会用 <code>() =&gt; import('...')</code> 让路由组件按需加载；</li>
+    <li>知道 <strong>命名 chunk</strong> 在 webpack 与 Vite 下的差异；</li>
+    <li>能用 Vite <code>manualChunks</code> 手动拆分第三方依赖；</li>
+    <li>了解懒加载的加载态、错误处理与 keep-alive 的配合。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 2 章 Vite 构建；第 46 章路由表；对打包产物有概念。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">51.1</span> () =&gt; import：路由级代码分割</h2>
+  <p>如果路由表直接 <code>import Home from '../views/Home.vue'</code>，所有页面都会被打进首屏 bundle，用户一进门就下载全站代码。改成动态 import：</p>
+<pre class="code" data-lang="js"><code>const routes = [
+  // 静态导入：进首屏 bundle
+  // { path: '/', component: Home },
+
+  // 动态导入：该组件单独打成一个 chunk，访问 / 时才下载
+  { path: '/', component: () =&gt; import('../views/Home.vue') },
+  { path: '/about', component: () =&gt; import('../views/About.vue') },
+  { path: '/admin', component: () =&gt; import('../views/Admin.vue') }
+]</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="路由懒加载分包示意">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">静态打包 vs 路由级懒加载</text>
+      <rect x="40" y="50" width="300" height="120" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="190" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">静态打包</text>
+      <text x="190" y="104" text-anchor="middle" font-size="11.5" fill="#4f6348">一个巨大 bundle：</text>
+      <text x="190" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">首页+关于+管理+... 全在内</text>
+      <text x="190" y="152" text-anchor="middle" font-size="11" fill="#7a8a70">首屏下载慢</text>
+      <rect x="460" y="50" width="300" height="120" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="610" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">路由懒加载</text>
+      <text x="610" y="104" text-anchor="middle" font-size="11.5" fill="#4f6348">主包只放首屏</text>
+      <text x="610" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">其余页面各自一个小 chunk</text>
+      <text x="610" y="152" text-anchor="middle" font-size="11" fill="#7a8a70">访问到时才下载</text>
+    </svg>
+    <p class="diagram-caption">图 51-1 路由级代码分割：把首屏与其余页面拆开（示意）</p>
+  </div>
+  <p class="key-sentence"><code>() =&gt; import()</code> 不只是"异步加载组件"，它同时是一个<strong>构建信号</strong>：打包器看到它就会把该模块切到独立 chunk。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">51.2</span> 命名 chunk：webpack 与 Vite 的差异</h2>
+  <p>默认 chunk 名是哈希数字，不好定位。webpack 时代用魔法注释命名：</p>
+<pre class="code" data-lang="js"><code>// webpack：通过魔法注释命名 chunk（打包后文件名带这个名字）
+component: () =&gt; import(/* webpackChunkName: "about" */ '../views/About.vue')</code></pre>
+<pre class="code" data-lang="js"><code>// Vite（Rollup）：不识别 webpackChunkName。
+// Vite 用 /* @vite-ignore */ 之类注解，但命名 chunk 主要靠下面的 manualChunks
+// 或依赖文件路径自动分包；魔法注释在 Vite 里无效</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>能力</th><th>webpack</th><th>Vite（Rollup）</th></tr></thead>
+    <tbody>
+      <tr><td>动态 import 分包</td><td>支持</td><td>支持（自动）</td></tr>
+      <tr><td>命名 chunk</td><td><code>webpackChunkName</code> 注释</td><td>该注释无效，靠 manualChunks/路径约定</td></tr>
+      <tr><td>公共依赖提取</td><td>SplitChunks</td><td><code>build.rollupOptions.output.manualChunks</code></td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">提醒</span>网上大量教程教你写 <code>webpackChunkName</code>。如果你用的是 Vite（本书基线），那个注释<strong>不生效</strong>，别误以为它在起作用。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">51.3</span> Vite manualChunks：手动拆分依赖</h2>
+  <p>把 Vue、路由、UI 库这些<strong>不常变</strong>的第三方依赖单独打成 vendor chunk，利用浏览器长期缓存：</p>
+<pre class="code" data-lang="js"><code>// vite.config.js
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'element-plus': ['element-plus']
+        }
+      }
+    }
+  }
+})</code></pre>
+  <div class="note"><strong>优先级与权衡</strong>：<code>manualChunks</code> 是手动覆盖自动分包。拆太细会产生过多小请求，拆太粗又失去缓存意义。一般只把"体积大、更新频率低"的库单独拆，业务代码仍交给自动分包。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">51.4</span> 加载状态与错误处理</h2>
+  <p>懒加载组件在弱网下要花时间下载，期间 <code>router-view</code> 是空的。可以用 <code>&lt;Suspense&gt;</code> 包一层显示 loading（第 63 章详讲 Suspense）：</p>
+<pre class="code" data-lang="vue"><code>&lt;router-view v-slot="{ Component }"&gt;
+  &lt;Suspense&gt;
+    &lt;component :is="Component" /&gt;
+    &lt;template #fallback&gt;
+      &lt;div class="loading"&gt;页面加载中…&lt;/div&gt;
+    &lt;/template&gt;
+  &lt;/Suspense&gt;
+&lt;/router-view&gt;</code></pre>
+  <p>下载失败（如发版后旧 chunk 被删）要兜底。动态 import 可加 catch：</p>
+<pre class="code" data-lang="js"><code>const lazyLoad = (loader) =&gt;
+  loader().catch((err) =&gt; {
+    // 线上发版后旧 hash chunk 已不存在 → 提示刷新
+    window.location.reload()
+    throw err
+  })
+
+// 路由里：component: () =&gt; lazyLoad(() =&gt; import('../views/Report.vue'))</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">51.5</span> 预取与 keep-alive 的配合</h2>
+  <ul>
+    <li><strong>预取（prefetch）</strong>：Vite 在构建时会为入口动态 import 生成 <code>&lt;link rel="modulepreload"&gt;</code>，浏览器空闲时提前下载可能要去的页面。可按需关闭，不必手动写。</li>
+    <li><strong>与 keep-alive</strong>：懒加载组件被 <code>&lt;keep-alive&gt;</code> 缓存后，切走再回来<strong>不会重新下载/执行</strong>，但首次进入仍需加载。</li>
+    <li><strong>与动态组件</strong>：<code>&lt;component :is="() =&gt; import(...)"&gt;</code> 同理分包，但要配合 Suspense，否则切换瞬间空白。</li>
+  </ul>
+  <div class="pit-sentence">别把<strong>所有</strong>路由都懒加载。首屏首页（如登录页、仪表盘）用静态 import 更快——它本来就要立刻用，懒加载反而多一次异步往返。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">51.6</span> 如何分析打包产物体积</h2>
+  <p>光凭感觉调分包不可靠，要用工具看清楚每个 chunk 里到底装了什么：</p>
+<pre class="code" data-lang="bash"><code># 构建时生成分析报告（rollup-plugin-visualizer）
+npm install -D rollup-plugin-visualizer
+
+# vite.config.js 里加入后再 build，会产出 stats.html 可视化各模块占比
+# import { visualizer } from 'rollup-plugin-visualizer'
+# plugins: [vue(), visualizer({ open: true, gzipSize: true })]
+
+npm run build</code></pre>
+  <p>看报告时关注三件事：①首屏主包是否还含没用到的大依赖；②路由 chunk 是否拆得均匀；③有没有某个第三方库意外被打了两份。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>现象</th><th>可能原因与对策</th></tr></thead>
+    <tbody>
+      <tr><td>主包异常大</td><td>首屏直接 import 了重组件；改动态 import</td></tr>
+      <tr><td>单个 chunk 过大</td><td>某页面依赖了巨大库；manualChunks 把库拆出</td></tr>
+      <tr><td>重复模块出现两次</td><td>版本不一致或双向依赖；对齐依赖版本</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">51.7</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>在 Vite 里迷信 webpackChunkName</strong>：该注释无效，chunk 名由构建决定。</li>
+    <li><span class="tag-pit">坑 2</span><strong>所有路由都懒加载</strong>：首屏页面也被异步化，反而更慢。</li>
+    <li><span class="tag-pit">坑 3</span><strong>发版后用户停在旧页面，点进去报 chunk 404</strong>：旧 hash 文件已删。需 catch 后自动 reload。</li>
+    <li><span class="tag-pit">坑 4</span><strong>manualChunks 拆得过碎</strong>：请求数暴涨，首屏更慢。</li>
+    <li><span class="tag-pit">坑 5</span><strong>懒加载路由不包 Suspense</strong>：弱网下页面空白、无任何反馈。</li>
+  </ul>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>懒加载</td><td><code>() =&gt; import()</code> 让页面组件按需分包</td></tr>
+      <tr><td>命名 chunk</td><td>webpack 用魔法注释；Vite 不识别，靠 manualChunks</td></tr>
+      <tr><td>manualChunks</td><td>把大而稳定的第三方库拆成 vendor 缓存 chunk</td></tr>
+      <tr><td>加载态</td><td>router-view + Suspense 给 fallback loading</td></tr>
+      <tr><td>chunk 404</td><td>发版后旧 chunk 失效，catch 里自动 reload</td></tr>
+      <tr><td>取舍</td><td>首屏页面别懒加载，其余页面按需分包</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>把路由表里三个二级页面改为动态 <code>import()</code> 懒加载，运行 <code>npm run build</code> 观察产物目录里多出的独立 js chunk。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在 <code>vite.config.js</code> 用 manualChunks 把 vue/vue-router/pinia 拆成一个 vendor chunk，对比拆分前后首屏主包体积。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给路由懒加载包一层统一的错误处理：chunk 加载失败时自动刷新一次；再用 Suspense 给所有路由一个统一 loading 占位。</div>
+  <p class="note">参考答案见附录 C。下一章回到视图层：表单里 v-model 的修饰符与手写校验。</p>
+</section>
+
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="050_第50章_路由元信息与页面标题.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="052_第52章_表单处理v-model与校验.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 51 章 路由懒加载与分包</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

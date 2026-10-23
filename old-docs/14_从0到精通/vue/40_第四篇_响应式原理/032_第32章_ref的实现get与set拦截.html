@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 32 章 ref 的实现 get 与 set 拦截｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第四篇 响应式原理</p>
+    <h1>第 32 章 ref 的实现 get 与 set 拦截</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 32 章 / 共 76 章 · 预计 30 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">reactive 用 Proxy，ref 呢？答案是：ref 压根没用 Proxy——它用的是最朴素的对象 getter/setter。这一章拆 RefImpl 类、讲 toReactive、isRef/unref 的实现思路，以及模板里 ref 为什么能"自动解包"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="031_第31章_触发更新trigger与调度.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="033_第33章_computed实现脏检查.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">32.1 为什么 ref 不用 Proxy</a></li>
+    <li><a href="#sec3">32.2 RefImpl 的内部结构</a></li>
+    <li><a href="#sec4">32.3 toReactive：对象值自动转 reactive</a></li>
+    <li><a href="#sec5">32.4 isRef / unref / toRaw 的实现</a></li>
+    <li><a href="#sec6">32.5 模板里的 ref 自动解包</a></li>
+    <li><a href="#sec7">32.6 本章常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 <strong>ref 为什么用 getter/setter 而不是 Proxy</strong>：原始值（string/number）没法被 Proxy 包裹；</li>
+    <li>能拆出 <code>RefImpl</code> 类的三个成员：<code>_value</code>、<code>dep</code>、<code>get value</code> / <code>set value</code>；</li>
+    <li>理解 <strong>toReactive</strong>：ref 包对象时，读出来的是 reactive 代理；</li>
+    <li>看懂 <code>isRef</code> / <code>unref</code> / <code>toRaw</code> 的极简实现；</li>
+    <li>知道模板里 ref 自动解包是<strong>编译器做的</strong>，不是运行时魔法。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 29–31 章 Proxy / track / trigger；第三篇 ref 的基本使用（第 20 章）。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">32.1</span> 为什么 ref 不用 Proxy</h2>
+  <p class="lead">Proxy 只能代理<strong>对象</strong>。当你写 <code>ref(0)</code> 或 <code>ref('vue')</code>，原始值（string/number/boolean）根本不是对象——你没法 <code>new Proxy(0, ...)</code>，会直接抛错。</p>
+  <p>所以 Vue 换了一个思路：<strong>造一个对象把原始值包起来，在这个对象的 <code>value</code> 属性上用 getter/setter 拦截</strong>。</p>
+<pre class="code" data-lang="js"><code>const count = ref(0)
+
+// ref(0) 内部大致长这样：
+{
+  _value: 0,                       // 真实值存在 _value 上
+  get value() {                    // 读 .value 时进这里
+    track(this, 'value')
+    return this._value
+  },
+  set value(newVal) {              // 写 .value 时进这里
+    if (newVal !== this._value) {
+      this._value = newVal
+      trigger(this, 'value')
+    }
+  }
+}
+
+count.value     // 0 —— 走 get value
+count.value = 1 //  —— 走 set value</code></pre>
+  <p>也就是说：<strong>ref 是一个"对象属性级"的拦截，不是"整个对象级"的 Proxy</strong>。它和 Vue2 的 defineProperty 思路同源——只是把它用在一个自己造的包装对象上。</p>
+
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>ref</th><th>reactive</th></tr></thead>
+    <tbody>
+      <tr><td>拦截手段</td><td>对象自身的 getter/setter（value 属性）</td><td>new Proxy 整个目标对象</td></tr>
+      <tr><td>能包什么</td><td>任何值，包括原始值</td><td>只能对象</td></tr>
+      <tr><td>依赖 key</td><td>固定 <code>'value'</code></td><td>每个属性一个 key</td></tr>
+      <tr><td>赋值方式</td><td><code>r.value = x</code></td><td><code>obj.key = x</code></td></tr>
+      <tr><td>整体替换</td><td>直接 <code>r.value = newObj</code> 即可</td><td>不能整体替换代理（第三篇讲过）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">ref 和 reactive 不是两套响应式，是<strong>同一套 track/trigger 引擎的两种入口</strong>：一个拦在 value 属性上，一个拦在 Proxy 的 get/set 上。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">32.2</span> RefImpl 的内部结构</h2>
+  <p>真实源码里 ref 是一个类（简化版）：</p>
+<pre class="code" data-lang="js"><code>class RefImpl {
+  constructor(rawValue) {
+    // 注意：__v_isRef 是个标识位，供 isRef 判断
+    this.__v_isRef = true
+    // 存一份原始值 + 一份响应式化后的值（对象才会响应式化）
+    this._rawValue = rawValue
+    this._value = toReactive(rawValue)
+    this.dep = undefined    // 这个 ref 的依赖集合，第一次 track 时才建
+  }
+
+  get value() {
+    track(this, 'value')        // ← 读 .value 时收集当前 effect
+    return this._value
+  }
+
+  set value(newVal) {
+    // 比较用 _rawValue（没响应式化的原始值），避免代理对象误判
+    if (hasChanged(newVal, this._rawValue)) {
+      this._rawValue = newVal
+      this._value = toReactive(newVal)
+      trigger(this, 'value')     // ← 写 .value 时通知
+    }
+  }
+}
+
+function ref(value) {
+  return new RefImpl(value)
+}</code></pre>
+
+  <h3>三个细节</h3>
+  <ol>
+    <li><strong>track 的 target 就是这个 ref 实例本身</strong>，key 固定是 <code>'value'</code>。和 reactive 的 targetMap 是同一个全局表——所以 ref 和 reactive 的 effect 收集是统一的；</li>
+    <li><strong>dep 懒建</strong>：第一次 <code>track(this, 'value')</code> 时才在 targetMap 里建这一项，没被读过的 ref 不占依赖表空间；</li>
+    <li><strong>比较用 _rawValue 而不是 _value</strong>：set 时新旧值比较，必须用"没响应式化"的原始值，否则两个不同的对象只要内容长得像，代理层比较可能出错（对象引用比较本来就该用原始引用）。</li>
+  </ol>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="RefImpl 结构示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">ref(0) 的内部：一个带 getter/setter 的包装对象</text>
+      <rect x="250" y="50" width="300" height="140" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="76" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">RefImpl 实例（你的 count）</text>
+      <text x="280" y="102" font-size="11.5" fill="#4f6348">_rawValue: 0（原始值）</text>
+      <text x="280" y="124" font-size="11.5" fill="#4f6348">_value:     0（对象时为 reactive 代理）</text>
+      <text x="280" y="146" font-size="11.5" fill="#4f6348">dep:        Set（第一次 track 时建）</text>
+      <text x="280" y="168" font-size="11.5" fill="#4f6348">get value / set value —— 唯一的拦截点</text>
+      <line x1="560" y1="110" x2="620" y2="90" stroke="#d97706" stroke-width="1.5"/>
+      <text x="690" y="86" text-anchor="middle" font-size="11" fill="#b45309">读 .value</text>
+      <text x="690" y="104" text-anchor="middle" font-size="10.5" fill="#7a8a70">track → 返回 _value</text>
+      <line x1="560" y1="150" x2="620" y2="170" stroke="#047857" stroke-width="1.5"/>
+      <text x="690" y="166" text-anchor="middle" font-size="11" fill="#047857">写 .value = x</text>
+      <text x="690" y="184" text-anchor="middle" font-size="10.5" fill="#7a8a70">比较 → 更新 → trigger</text>
+    </svg>
+    <p class="diagram-caption">图 32-1 ref 内部结构与 value 属性的拦截（示意）</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">32.3</span> toReactive：对象值自动转 reactive</h2>
+  <p>有一个常被问的问题：<code>const user = ref({ name: 'vue' })</code>，那 <code>user.value.name</code> 的修改能不能触发更新？</p>
+<pre class="code" data-lang="js"><code>const user = ref({ name: 'vue' })
+
+user.value.name = 'new'     // 能触发吗？</code></pre>
+  <p>答案是<strong>能</strong>。原因在 <code>toReactive</code>：</p>
+<pre class="code" data-lang="js"><code>function toReactive(value) {
+  // 对象才走 reactive；原始值原样返回
+  return isObject(value) ? reactive(value) : value
+}
+
+// 所以：
+ref(0)._value            // 0 —— 原始值，不代理
+ref({ name: 'vue' })._value  // Proxy —— 对象，套一层 reactive</code></pre>
+  <p>链路是：</p>
+  <ol>
+    <li>读 <code>user.value</code> → 进 get value → track(this, 'value') → 返回 <code>reactive({name:'vue'})</code> 这个代理；</li>
+    <li>再读代理的 <code>.name</code> → 进 Proxy get 陷阱 → track 到代理上（而不是 ref 上）；</li>
+    <li>写 <code>user.value.name = 'new'</code> → 触发的是<strong>这个 Proxy 上 name 的 dep</strong>，而不是 ref.value 的 dep。</li>
+  </ol>
+
+  <table>
+    <colgroup><col style="width:36%"><col style="width:32%"><col style="width:32%"></colgroup>
+    <thead><tr><th>操作</th><th>触发哪个 dep</th><th>谁会被通知</th></tr></thead>
+    <tbody>
+      <tr><td><code>user.value = newObj</code></td><td>ref 的 <code>'value'</code></td><td>读 .value 的 effect</td></tr>
+      <tr><td><code>user.value.name = 'x'</code></td><td>内层 Proxy 的 <code>'name'</code></td><td>读 .value.name 的 effect</td></tr>
+      <tr><td><code>watch(user, cb)</code></td><td>ref 的 <code>'value'</code></td><td>cb（拿到整个新对象）</td></tr>
+      <tr><td><code>watch(() =&gt; user.value.name, cb)</code></td><td>内层 Proxy 的 <code>'name'</code></td><td>cb</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">提醒</span>正因为对象值会自动转 reactive，<strong>ref 和 reactive 在对象场景下行为几乎一致</strong>。选择哪种主要看"是否需要整体替换"——ref 可以直接 <code>.value = newObj</code>，reactive 不行。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">32.4</span> isRef / unref / toRaw 的实现</h2>
+<pre class="code" data-lang="js"><code>// isRef：看 __v_isRef 标识位
+function isRef(r) {
+  return !!(r && r.__v_isRef === true)
+}
+
+// unref：是 ref 就 .value，否则原样返回
+function unref(r) {
+  return isRef(r) ? r.value : r
+}
+
+// toRaw：ref 也要能拆到原始值
+function toRaw(observed) {
+  // ref：先 .value 拆包，再递归 toRaw；reactive：直接反查原始对象
+  const real = observed.__v_raw ?? observed
+  return real.__v_raw ?? real
+}</code></pre>
+  <p>这三个函数都是为了写工具库 / 组合式函数时<strong>判断"这东西到底是不是 ref"</strong>。典型场景：</p>
+<pre class="code" data-lang="js"><code>// 写一个接受"可能是 ref 也可能是普通值"的参数
+function useX(maybeRef) {
+  // unref 之后拿到的永远是"解开的"值
+  const value = unref(maybeRef)
+  // 如果要在 effect 里用，最好用 toValue 兼容 getter
+  console.log(value)
+}</code></pre>
+  <p class="note"><strong>扩展</strong>：Vue 3.3 起还有 <code>toValue(source)</code>，能统一处理"普通值 / ref / getter 函数"三种入参，是写组合式函数时最稳的解包工具。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">32.5</span> 模板里的 ref 自动解包</h2>
+  <p>你写的模板：</p>
+<pre class="code" data-lang="vue"><code>&lt;template&gt;
+  &lt;p&gt;{{ count }}&lt;/p&gt;   &lt;!-- 注意：不是 count.value --&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref } from 'vue'
+const count = ref(0)
+&lt;/script&gt;</code></pre>
+  <p>为什么模板里写 <code>{{ count }}</code> 而不是 <code>{{ count.value }}</code>？两个原因：</p>
+  <ol>
+    <li><strong>编译器层面的自动解包</strong>：<code>&lt;script setup&gt;</code> 编译时，模板里的顶层 ref 引用会被自动加 <code>.value</code>。<code>{{ count }}</code> 编译后约等于 <code>{{ count.value }}</code>——这是编译期做的语法糖，不是运行时魔法；</li>
+    <li><strong>组件实例代理</strong>：选项式 API 里 <code>setup()</code> 返回的对象，在模板里访问时经过一层代理，自动解包顶层 ref（<code>setupState</code> proxy）。</li>
+  </ol>
+
+  <h3>什么时候不会自动解包</h3>
+  <ul>
+    <li><strong>嵌套在响应式对象里的 ref</strong>：<code>const state = reactive({ count: ref(0) })</code>，模板里 <code>{{ state.count }}</code> 会自动解包（这是 reactive 的代理做的）；但<strong>在 JS 里</strong>访问 <code>state.count</code> 也是自动解包的（reactive 内部对 ref 做了 unwrap）；</li>
+    <li><strong>ref 作为数组元素</strong>：<code>const list = [ref(1), ref(2)]</code>，模板里 <code>{{ list[0] }}</code> <strong>不会自动解包</strong>，要写 <code>list[0].value</code>。</li>
+  </ul>
+
+  <table>
+    <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
+    <thead><tr><th>写法</th><th>是否自动解包</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>模板里顶层 ref（<code>count</code>）</td><td>是</td><td>编译器加 .value</td></tr>
+      <tr><td>reactive 对象的 ref 字段（<code>state.count</code>）</td><td>是</td><td>reactive 代理 unwrap</td></tr>
+      <tr><td>数组里的 ref（<code>list[0]</code>）</td><td>否</td><td>必须写 .value</td></tr>
+      <tr><td>JS 代码里的 ref</td><td>否</td><td>必须 .value</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">"模板里能省 .value，JS 里不能省"——这是最容易记混的一条。JS 里永远要写 <code>.value</code>。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">32.6</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>JS 代码里漏写 .value</strong>：拿到的是 ref 对象本身，不是值。模板里能省，script 里不能省。</li>
+    <li><span class="tag-pit">坑 2</span><strong>把 ref 解构出来</strong>：<code>const { count } = state</code>（state 是 reactive）——解构出来的 count 还是 ref（reactive 字段解包只在属性访问时发生），要 <code>storeToRefs</code> 或自己 <code>.value</code>。</li>
+    <li><span class="tag-pit">坑 3</span><strong>以为 ref({}) 和 reactive({}) 完全等价</strong>：行为接近，但 ref 可以整体 <code>.value = newObj</code> 替换，reactive 不能整体替换。</li>
+    <li><span class="tag-pit">坑 4</span><strong>用 Object.keys 或 JSON.stringify 序列化 ref</strong>：得到的是 <code>{ _value: 0, dep: ... }</code> 这些内部字段，不是干净的 <code>0</code>。要先 <code>.value</code> 或用 <code>toRaw</code>。</li>
+    <li><span class="tag-pit">坑 5</span><strong>给 ref 赋一个新对象以为内层 Proxy 会复用</strong>：set value 时会重新 toReactive(newVal)，旧代理废弃、新代理建立——读旧代理的 effect 可能没被通知到（设计如此，业务里注意）。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>ref 不用 Proxy</td><td>原始值没法代理，改用包装对象的 value getter/setter</td></tr>
+      <tr><td>RefImpl</td><td>_rawValue 存原始、_value 存响应式、value 属性拦截读/写</td></tr>
+      <tr><td>统一引擎</td><td>ref 和 reactive 共用 targetMap / track / trigger</td></tr>
+      <tr><td>toReactive</td><td>ref 包对象时自动转 reactive，所以 .value.name 也能响应</td></tr>
+      <tr><td>解包工具</td><td>isRef 看标识位，unref 自动拆，toValue 兼容 getter</td></tr>
+      <tr><td>模板解包</td><td>编译器给顶层 ref 加 .value；JS 里永远要手写</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为什么 <code>ref(0)</code> 不能直接用 Proxy 实现？从"Proxy 只能代理对象"和"原始值类型"两个角度解释。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>手写一个最小 RefImpl：包含 <code>_value</code>、<code>get value</code>（track）、<code>set value</code>（比较 + trigger）。配合第 30 章写好的 track/trigger，验证：读 .value 触发 track、写 .value 触发 effect 重跑。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>解释：为什么 <code>const state = reactive({ count: ref(0) })</code> 里 <code>state.count</code> 在 JS 里访问出来就是 0 而不是 ref 对象？这个自动解包是在哪一层做的（ref 自己？reactive 代理？编译器？）。</div>
+  <p class="note">参考答案见附录 C。下一章讲 computed：它既是被观察者又是观察者，靠 dirty 标志做缓存。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="031_第31章_触发更新trigger与调度.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="033_第33章_computed实现脏检查.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 32 章 ref 的实现 get 与 set 拦截</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

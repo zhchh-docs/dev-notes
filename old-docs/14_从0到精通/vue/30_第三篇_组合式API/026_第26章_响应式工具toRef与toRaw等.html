@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 26 章 响应式工具 toRef 与 toRaw 等｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第三篇 组合式 API</p>
+    <h1>第 26 章 响应式工具 toRef 与 toRaw 等</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 26 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">响应式工具箱：toRef/toRefs、isRef/unref、toRaw/markRaw、shallow 系列、customRef。本章给一张选用表，让你在性能与便利之间做正确取舍。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="025_第25章_模板引用与expose.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="027_第27章_组合式API下的生命周期.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">26.1 toRef / toRefs：解构响应性</a></li>
+    <li><a href="#sec3">26.2 判定与解包：isRef / unref</a></li>
+    <li><a href="#sec4">26.3 toRaw / markRaw：绕过代理</a></li>
+    <li><a href="#sec5">26.4 shallow 系列与 triggerRef</a></li>
+    <li><a href="#sec6">26.5 customRef：手写防抖 ref</a></li>
+    <li><a href="#sec7">26.6 工具选用一览与常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>系统掌握 <strong>toRef / toRefs</strong> 的使用时机（第 21 章已初见）；</li>
+    <li>会用 <strong>isRef / isReactive / isProxy / unref</strong> 做运行时判定；</li>
+    <li>理解 <strong>toRaw / markRaw</strong> 的性能场景：哪些对象不该被代理；</li>
+    <li>会用 <strong>shallowRef / shallowReactive / triggerRef</strong> 处理大对象性能；</li>
+    <li>能用 <strong>customRef</strong> 手写一个防抖 ref。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 20/21 章 ref/reactive 基础。本章是"响应式工具箱"，平时不常用，但一旦遇到性能问题或边界场景，这些就是解药。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">26.1</span> toRef / toRefs：解构响应性</h2>
+  <p>第 21 章讲过：解构 reactive 会丢响应。<code>toRefs</code> 把整个 reactive 对象的字段转成 ref，<code>toRef</code> 转单个字段。复习一下它们的关键性质——<strong>与原属性双向同步</strong>：</p>
+<pre class="code" data-lang="js"><code>import { reactive, toRefs, toRef } from 'vue'
+
+const state = reactive({ name: '张三', age: 18 })
+
+// toRefs：批量转 ref
+const { name, age } = toRefs(state)
+name.value = '李四'      // state.name 同步变
+state.age = 20           // age.value 同步变
+
+// toRef：单个字段
+const ageRef = toRef(state, 'age')</code></pre>
+  <p>它最常见的工程用途是<strong>组合式函数 return reactive 对象</strong>：调用方解构后仍是响应式的。第 23 章的 useUser 就是这个模式。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">26.2</span> 判定与解包：isRef / unref</h2>
+  <p>写组合式函数时，经常要判断"传进来的到底是不是 ref"：</p>
+<pre class="code" data-lang="js"><code>import { isRef, isReactive, isProxy, unref, ref } from 'vue'
+
+const count = ref(0)
+isRef(count)         // true
+isReactive(count)    // false
+isProxy(count)       // true（ref 内部也是代理包装）
+
+// unref：如果是 ref 就取 .value，不是就原样返回——写工具函数极常用
+unref(count)         // 0
+unref(123)           // 123
+
+// 等价于：val = isRef(x) ? x.value : x</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:40%"><col style="width:36%"></colgroup>
+    <thead><tr><th>API</th><th>判断什么</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>isRef(x)</code></td><td>x 是不是 ref 对象</td><td>工具函数参数归一化</td></tr>
+      <tr><td><code>isReactive(x)</code></td><td>x 是不是 reactive 代理</td><td>区分普通对象与响应式对象</td></tr>
+      <tr><td><code>isProxy(x)</code></td><td>x 是不是任何一种 Vue 代理（reactive/readonly）</td><td>边界判断</td></tr>
+      <tr><td><code>unref(x)</code></td><td>ref 取 .value，否则原样</td><td>统一取值</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">26.3</span> toRaw / markRaw：绕过代理</h2>
+  <p>Vue 的响应式是有成本的：每个对象都要被 Proxy 代理，深层属性都是响应式的。某些场景你<strong>就是不希望它被代理</strong>：</p>
+<pre class="code" data-lang="js"><code>import { reactive, toRaw, markRaw } from 'vue'
+
+const state = reactive({ user: { name: '张三' } })
+
+// toRaw：拿到代理背后的原始对象（只读、不追踪）
+const rawUser = toRaw(state.user)
+
+// markRaw：标记一个对象"永远不要被代理"
+import { markRaw, ref } from 'vue'
+class BigData { /* 大型表格数据实例，带方法 */ }
+const big = ref(markRaw(new BigData()))
+// big.value 不是响应式代理——它不会被 Vue 追踪读写
+// 适合：第三方类实例、大型数据结构、只渲染一次不更新的对象</code></pre>
+  <p class="key-sentence"><strong>markRaw 的典型场景：表格行数据、第三方类实例、canvas/WebGL 对象</strong>——你不需要它们的属性变化触发更新，代理纯属浪费。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="响应式工具代理深度对比示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">代理深度：ref 深追 vs shallow 只追表层 vs markRaw 不代理</text>
+      <rect x="40" y="50" width="220" height="130" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="150" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">普通 ref / reactive</text>
+      <text x="150" y="100" text-anchor="middle" font-size="11.5" fill="#4f6348">深层嵌套全追踪</text>
+      <text x="150" y="122" text-anchor="middle" font-size="11.5" fill="#4f6348">开销随对象规模增长</text>
+      <text x="150" y="150" text-anchor="middle" font-size="11" fill="#7a8a70">默认选择</text>
+      <rect x="290" y="50" width="220" height="130" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">shallowRef</text>
+      <text x="400" y="100" text-anchor="middle" font-size="11.5" fill="#4f6348">只追 .value 整体替换</text>
+      <text x="400" y="122" text-anchor="middle" font-size="11.5" fill="#4f6348">深层改动需 triggerRef</text>
+      <text x="400" y="150" text-anchor="middle" font-size="11" fill="#7a8a70">大列表性能优化</text>
+      <rect x="540" y="50" width="220" height="130" rx="10" fill="#f0fdf4" stroke="#047857"/>
+      <text x="650" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">markRaw</text>
+      <text x="650" y="100" text-anchor="middle" font-size="11.5" fill="#4f6348">永不被代理</text>
+      <text x="650" y="122" text-anchor="middle" font-size="11.5" fill="#4f6348">第三方实例 / 大对象</text>
+      <text x="650" y="150" text-anchor="middle" font-size="11" fill="#7a8a70">渲染一次不更新</text>
+    </svg>
+    <p class="diagram-caption">图 26-1 三种代理深度的适用场景（示意）</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">26.4</span> shallow 系列与 triggerRef</h2>
+  <p><code>shallowRef</code> 只追踪 <code>.value</code> 整体替换，不深入内部；<code>shallowReactive</code> 只代理第一层属性：</p>
+<pre class="code" data-lang="js"><code>import { shallowRef, triggerRef } from 'vue'
+
+// shallowRef：大对象整体替换才更新
+const list = shallowRef([])
+
+// 直接改 list.value.push(x) —— shallowRef 不会触发更新！
+list.value.push({ name: 'A' })
+
+// 必须手动 triggerRef 通知，或整体替换
+list.value = [...list.value, { name: 'B' }]   // ✅ 触发更新
+triggerRef(list)                              // ✅ 手动触发</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>API</th><th>代理深度</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>shallowRef(x)</code></td><td>只追踪 .value 整体</td><td>大型列表数据：整体替换才更新</td></tr>
+      <tr><td><code>shallowReactive(obj)</code></td><td>只代理第一层属性</td><td>顶层字段响应、嵌套对象不追踪</td></tr>
+      <tr><td><code>shallowReadonly(obj)</code></td><td>只读 + 只浅层</td><td>只读视图、避免深层冻结</td></tr>
+      <tr><td><code>triggerRef(ref)</code></td><td>手动触发 shallowRef 更新</td><td>不得不改 .value 内部时</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">26.5</span> customRef：手写防抖 ref</h2>
+  <p><code>customRef</code> 让你自己控制 ref 的 track/trigger 时机。最经典的用途是<strong>防抖 ref</strong>：</p>
+<pre class="code" data-lang="js"><code>import { customRef } from 'vue'
+
+// 防抖 ref：赋值后延迟 delay ms 才真正更新视图
+function useDebouncedRef(initial, delay = 300) {
+  let timer = null
+  return customRef((track, trigger) =&gt; ({
+    get() {
+      track()               // 读：收集依赖
+      return initial
+    },
+    set(newVal) {
+      clearTimeout(timer)
+      timer = setTimeout(() =&gt; {
+        initial = newVal
+        trigger()           // 写：延迟后才触发更新
+      }, delay)
+    }
+  }))
+}
+
+// 组件里
+const keyword = useDebouncedRef('', 300)
+// 输入框 v-model 它：输入后 300ms 才触发搜索</code></pre>
+  <p>这个例子把 ref 的本质又讲了一遍：<strong>track = "记录谁在用我"，trigger = "通知他们我变了"</strong>。customRef 就是让你插在这两步之间做手脚（防抖、节流、日志、校验）。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">26.6</span> 工具选用一览与常见坑</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>需求</th><th>用什么</th><th>别用什么</th></tr></thead>
+    <tbody>
+      <tr><td>解构 reactive 不丢响应</td><td><code>toRefs</code> / <code>toRef</code></td><td>直接解构</td></tr>
+      <tr><td>判断参数是否 ref</td><td><code>isRef</code> / <code>unref</code></td><td>手动 typeof</td></tr>
+      <tr><td>大对象不需要响应式</td><td><code>markRaw</code></td><td>普通 ref（白白代理）</td></tr>
+      <tr><td>大列表整体替换才更新</td><td><code>shallowRef</code></td><td>深 ref（深层追踪浪费）</td></tr>
+      <tr><td>防抖输入</td><td><code>customRef</code> 或 VueUse <code>useDebounce</code></td><td>自己写 setTimeout 队列</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>toRaw 拿到的对象改了不更新视图</strong>：它是原始对象，不被追踪。改完要手动重新赋值或用 reactive。</li>
+    <li><span class="tag-pit">坑 2</span><strong>markRaw 之后又放进 reactive</strong>：markRaw 是永久标记，之后放进 reactive 也不会被代理。</li>
+    <li><span class="tag-pit">坑 3</span><strong>shallowRef 改 .value 内部却不 trigger</strong>：视图不更新。要么整体替换，要么 <code>triggerRef</code>。</li>
+    <li><span class="tag-pit">坑 4</span><strong>过度使用 shallow</strong>：日常业务数据普通 ref 即可，shallow 是性能优化手段，不是默认选择。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>toRef/toRefs</td><td>把 reactive 字段转双向绑定的 ref，解构不丢响应</td></tr>
+      <tr><td>isRef/unref</td><td>运行时判定与归一化取值，写组合式函数常备</td></tr>
+      <tr><td>toRaw/markRaw</td><td>绕过代理：markRaw 标记永不代理的大对象</td></tr>
+      <tr><td>shallowRef/triggerRef</td><td>只追踪 .value 整体；深层改完手动 trigger</td></tr>
+      <tr><td>customRef</td><td>自定义 track/trigger 时机，手写防抖 ref 的标准方案</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一个 <code>reactive({ a: 1, b: 2 })</code>，用 <code>toRefs</code> 解构后改 <code>a.value</code>，验证原对象同步变；再用 <code>isRef</code> 与 <code>unref</code> 打印结果。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 <code>customRef</code> 实现一个 <code>useDebouncedRef(init, 300)</code>：输入框 v-model 它，输入后 300ms 才更新下面的显示；打印每次 trigger 触发的时机。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>造一个"万行表格"场景：用 <code>shallowRef</code> 装 10000 行数据，整体替换时页面流畅；再用普通深 ref 对比一次深层修改的开销。总结：什么规模的数据值得上 shallow/markRaw？</div>
+  <p class="note">参考答案见附录 C。下一章讲组合式 API 下的生命周期：onXxx 钩子与选项式的完整映射。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="025_第25章_模板引用与expose.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="027_第27章_组合式API下的生命周期.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 26 章 响应式工具 toRef 与 toRaw 等</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

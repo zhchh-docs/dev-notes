@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 68 章 静态提升与 patchFlag｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第八篇 原理深潜与性能</p>
+    <h1>第 68 章 静态提升与 patchFlag</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 68 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">Vue 编译期三大优化：hoistStatic 静态提升、patchFlag 精确标记、block tree 只追动态节点。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="067_第67章_模板编译与优化.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="069_第69章_patch过程更新如何落地.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">68.1 静态提升</a></li>
+    <li><a href="#sec3">68.2 patchFlag</a></li>
+    <li><a href="#sec4">68.3 cacheHandlers 与 block</a></li>
+    <li><a href="#sec5">68.4 block 边界与 fragment</a></li>
+    <li><a href="#sec6">68.5 观察编译产物</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <strong>hoistStatic 静态提升</strong>：不变节点只创建一次；</li>
+    <li>认识 <strong>patchFlag</strong> 各类型与动态 props 追踪；</li>
+    <li>知道 <strong>cacheHandlers</strong> 事件缓存的作用；</li>
+    <li>理解 <strong>block tree 与 dynamicChildren</strong>；</li>
+    <li>用示例对比这些优化如何减少 diff 工作量。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：已学第 66 章 diff、第 67 章编译产物。</div>
+</section>
+<section id="sec2" class="card">
+  <h2><span class="num">68.1</span> 静态提升 hoistStatic</h2>
+  <p class="lead">模板里有大量<strong>永远不变</strong>的节点（如纯文字标题、静态图标）。每次 render 都新建 VNode 是浪费。静态提升把它们提到 render 函数外，只创建一次、反复复用。</p>
+<pre class="code" data-lang="js"><code>// 模板里：&lt;div&gt;&lt;span&gt;静态标题&lt;/span&gt; {{ msg }}&lt;/div&gt;
+
+// 未提升：每次 render 都新建 span 的 VNode
+// 提升后（编译产物简化）：
+const _hoisted_1 = /*#__PURE__*/_createElementVNode("span", null, "静态标题", -1)
+export function render(_ctx) {
+  return (_openBlock(), _createElementBlock("div", null, [
+    _hoisted_1,                 // 直接复用，不再新建
+    _toDisplayString(_ctx.msg)  // 动态部分
+  ]))
+}</code></pre>
+  <p>那个 <code>-1</code> 表示这个节点是静态的，diff 时可以直接跳过。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">68.2</span> patchFlag：标记哪里是动态的</h2>
+  <p>静态节点跳过了，动态节点也要精确知道"哪一部分动了"。patchFlag 是编译期打上的位标记，运行时只比较标记出的那部分 props。</p>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:72%"></colgroup>
+    <thead><tr><th>patchFlag</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>TEXT</code></td><td>只有文本内容是动态的</td></tr>
+      <tr><td><code>CLASS</code></td><td>只有 class 动态</td></tr>
+      <tr><td><code>STYLE</code></td><td>只有 style 动态</td></tr>
+      <tr><td><code>PROPS</code></td><td>某些属性动态（且会记录具体是哪几个）</td></tr>
+      <tr><td><code>FULL_PROPS</code></td><td>动态属性名（如带动态 key），无法静态追踪</td></tr>
+      <tr><td><code>KEYED_FRAGMENT / UNKEYED_FRAGMENT</code></td><td>v-for 列表是否带 key</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="js"><code>// &lt;div :class="box"&gt;{{ msg }}&lt;/div&gt;
+// 编译产物：只有 class 与 text 是动态
+_createElementVNode("div", { class: _ctx.box }, _toDisplayString(_ctx.msg),
+  1 /* CLASS */ + 8 /* TEXT */)
+// 运行时 diff：知道只需比对 class 和 text，不用全 props 扫描</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">68.3</span> cacheHandlers 与 block tree</h2>
+  <ul>
+    <li><strong>cacheHandlers</strong>：事件处理函数在模板里会被缓存（<code>_cache[0]</code>），避免每次 render 新建函数造成不必要的 props 更新；</li>
+    <li><strong>block tree</strong>：block 是"收集动态节点"的容器。render 返回 block，block 只记录<strong>动态子节点</strong>（dynamicChildren），diff 时跳过所有静态子树，直接遍历动态节点。</li>
+  </ul>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="block tree 只追踪动态节点">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">block 收集动态节点，静态子树整棵跳过</text>
+      <rect x="320" y="55" width="160" height="44" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="400" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">block(根)</text>
+      <rect x="120" y="120" width="150" height="44" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="195" y="147" text-anchor="middle" font-size="12" fill="#2d6a3f">静态子树(跳过)</text>
+      <rect x="330" y="120" width="150" height="44" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="405" y="147" text-anchor="middle" font-size="12" fill="#b45309">动态节点①</text>
+      <rect x="540" y="120" width="150" height="44" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="615" y="147" text-anchor="middle" font-size="12" fill="#b45309">动态节点②</text>
+    </svg>
+    <p class="diagram-caption">图 68-1 block tree 的动态收集（示意）</p>
+  </div>
+  <p class="key-sentence">这三项优化合起来的效果：<strong>静态节点不建、动态节点精确定位、事件函数不重复</strong>，diff 的工作量被压到最小。</p>
+<pre class="code" data-lang="js"><code>// 对比：没有优化时，每次 render 都重新创建所有 VNode
+// 优化后：静态 span 复用 _hoisted_1，动态 div 带 patchFlag(8=TEXT)
+_createElementVNode("span", null, "静态标题", -1)   // -1=静态
+_createElementVNode("div", null, _toDisplayString(msg), 8) // 8=TEXT</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>使用 <code>v-if / v-for</code> 这类结构性指令会让节点变成 fragment，动态追踪范围变大——这也是为什么列表一定要写稳定 key。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">68.4</span> block tree 与 dynamic children 的边界</h2>
+  <p class="lead">block 的设计是"收集整棵子树里的动态节点"，让 diff 不必遍历静态子树。但 <code>v-if / v-for</code> 这类结构性指令会改变树的形态，编译器会把这些位置标记出来，避免 block 漏追踪。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>模板写法</th><th>对 block 的影响</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr><td>纯静态 <code>&lt;p&gt;a&lt;/p&gt;</code></td><td>整棵提升，diff 跳过</td><td>无动态绑定</td></tr>
+      <tr><td><code>{{ msg }}</code> 插值</td><td>该节点打 TEXT 标记</td><td>只追踪文本</td></tr>
+      <tr><td><code>v-if</code> / <code>v-else</code></td><td>生成 block fragment，两端都纳入追踪</td><td>结构会增删</td></tr>
+      <tr><td><code>v-for</code> 列表</td><td>整块 KEYED_FRAGMENT，按 key 复用</td><td>顺序变化时靠 key 识别身份</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="js"><code>// v-for 编译后带 KEYED_FRAGMENT(=12)
+// &lt;div v-for="u in list" :key="u.id"&gt;{{ u.name }}&lt;/div&gt;
+_createElementBlock(_Fragment, null,
+  (openBlock(true), createElementBlock(_Fragment, null, renderList(list, u =&gt;
+    (openBlock(), createBlock("div", { key: u.id }, toDisplayString(u.name), 1 /* TEXT */))
+  ), 12 /* KEYED_FRAGMENT */))</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">68.5</span> 如何观察编译产物与验证优化效果</h2>
+  <p class="lead">优化是否真的生效？不要靠猜，直接看构建产物里的 render 函数。Vite 构建时会把 SFC 编译成 render，产物落在 dist/assets 的 js 里。</p>
+<pre class="code" data-lang="bash"><code># 构建并查看编译产物里的 render 函数
+npm run build
+# 在 dist/assets/*.js 里搜：_createElementBlock / _hoisted_1 / patchFlag
+grep -o "_hoisted_[0-9]*" dist/assets/*.js | head     # 静态提升的数量
+grep -o "TEXT\|CLASS\|STYLE\|PROPS" dist/assets/*.js | head  # patchFlag 标记</code></pre>
+  <p class="key-sentence">验证优化的标准动作：构建后搜 <code>_hoisted_</code>（静态提升）与 <code>patchFlag</code> 数字（动态标记）是否出现。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>现象</th><th>说明</th><th>处理</th></tr></thead>
+    <tbody>
+      <tr><td>产物里有 _hoisted_N</td><td>静态提升生效</td><td>正常</td></tr>
+      <tr><td>节点带 patchFlag 数字</td><td>动态追踪生效</td><td>正常</td></tr>
+      <tr><td>该静态的没提升</td><td>节点里混了插值/事件</td><td>拆分静态子树</td></tr>
+      <tr><td>事件函数反复新建</td><td>cacheHandlers 未命中</td><td>检查是否内联箭头函数</td></tr>
+    </tbody>
+  </table>
+  <p>block tree 只收集动态节点，静态子树整棵跳过。但 v-if/v-for 这类结构性指令会改变树形态，编译器把它们标成 fragment，纳入动态追踪——这也是列表必须写稳定 key 的原因。验证优化是否生效：构建后搜 _hoisted_ 与 patchFlag。</p>
+  <pre class="code" data-lang="js"><code>// block 边界：v-for 编译后带 KEYED_FRAGMENT(=12)
+// &lt;div v-for="u in list" :key="u.id"&gt;{{ u.name }}&lt;/div&gt;
+createBlock(_Fragment, null, renderList(list, u =&gt;
+  (openBlock(), createBlock('div', { key: u.id }, toDisplayString(u.name), 1 /* TEXT */))
+), 12 /* KEYED_FRAGMENT */)</code></pre>
+  <div class="note"><strong>验证</strong>产物里有 _hoisted_N = 静态提升生效；节点带 patchFlag 数字 = 动态追踪生效。</div>
+  <p>block tree 只收集动态节点，静态子树整棵跳过。v-if/v-for 这类结构指令会变 fragment，编译器把它们纳入动态追踪——这也是列表必须写稳定 key 的原因。</p>
+  <pre class="code" data-lang="js"><code>// v-for 编译后带 KEYED_FRAGMENT(=12)
+// <div v-for="u in list" :key="u.id">{{u.name}}</div>
+createBlock(_Fragment,null,renderList(list,u=&gt;
+  (openBlock(),createBlock('div',{key:u.id},toDisplayString(u.name),1))
+),12)</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>静态提升</td><td>hoistStatic 只建一次</td></tr>
+      <tr><td>patchFlag</td><td>精确标记动态部分</td></tr>
+      <tr><td>block</td><td>只追动态节点</td></tr>
+    </tbody>
+  </table>
+  <p>block tree 只收集动态子节点，静态子树整棵跳过。v-if/v-for 会变 fragment，编译器纳入动态追踪——这也是列表必须写稳定 key 的根因。</p>
+  <pre class="code" data-lang="js"><code>// v-for 编译后带 KEYED_FRAGMENT(=12)
+// <div v-for='u in list' :key='u.id'>{{u.name}}</div>
+createBlock(_Fragment,null,renderList(list,u=>
+  (openBlock(),createBlock('div',{key:u.id},toDisplayString(u.name),1))
+),12)</code></pre>
+  <div class="note"><strong>要点</strong>静态不建、动态精确定位、事件不重复。</div>
+  <p>block tree 只收动态子节点，静态子树整棵跳过。v-if/v-for 变 fragment，编译器纳入动态追踪——列表必须写稳定 key 的根因。</p>
+  <pre class="code" data-lang="js"><code>// v-for 编译后带 KEYED_FRAGMENT(=12)
+createBlock(_Fragment,null,renderList(list,u=>
+  (openBlock(),createBlock('div',{key:u.id},toDisplayString(u.name),1))
+),12)</code></pre>
+  <div class="note"><strong>要点</strong>静态不建、动态精确定位。</div>
+  <p>验证优化效果：build 产物搜 _hoisted_ 看提升了几个静态节点，搜 patchFlag 数字看动态标记。若该提升没提升，多半是静态节点里混了插值或事件。</p>
+  <pre class="code" data-lang="js"><code>// 验证（工程骨架）
+// grep _hoisted_N → 提升数
+// grep 'openBlock' → block 数</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>hoistStatic</td><td>静态只建一次</td></tr>
+      <tr><td>patchFlag</td><td>精确定位动态</td></tr>
+      <tr><td>cacheHandlers</td><td>事件缓存</td></tr>
+    </tbody>
+  </table>
+  <p>block tree 只收集动态子节点，静态子树整棵跳过。v-if/v-for 变 fragment，编译器纳入动态追踪——列表写稳定 key 的根因。验证看产物里 _hoisted_ 数量。</p>
+  <pre class="code" data-lang="js"><code>// 验证（工程骨架）
+// grep _hoisted_N → 静态提升数</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>hoistStatic</td><td>静态只建一次</td></tr>
+      <tr><td>patchFlag</td><td>精确定位</td></tr>
+      <tr><td>block</td><td>只追动态</td></tr>
+    </tbody>
+  </table>
+</section><section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table><colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>hoistStatic</td><td>静态节点提到 render 外，只创建一次，diff 直接跳过</td></tr>
+      <tr><td>patchFlag</td><td>用位标记精确指出动态的是 TEXT/CLASS/STYLE/PROPS</td></tr>
+      <tr><td>cacheHandlers</td><td>缓存事件函数，避免 props 无谓更新</td></tr>
+      <tr><td>block tree</td><td>block 收集 dynamicChildren，v-if/v-for 纳入 fragment 追踪</td></tr>
+      <tr><td>验证</td><td>构建后搜 _hoisted_ 与 patchFlag 确认优化生效</td></tr>
+    </tbody>
+  </table>
+</section><section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写一段含静态文字与动态插值的模板，查看编译产物中静态节点是否被 hoist。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>解释 patchFlag 为什么能减少 diff 时的 props 比对工作量。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>v-if/v-for 为什么会让节点变为 fragment、使动态追踪范围变大？这对列表 key 提出了什么要求？</div>
+  <p class="note">参考答案见附录 C。下一章看 patch 过程具体怎么把更新落地到 DOM。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="067_第67章_模板编译与优化.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="069_第69章_patch过程更新如何落地.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 68 章 静态提升与 patchFlag</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

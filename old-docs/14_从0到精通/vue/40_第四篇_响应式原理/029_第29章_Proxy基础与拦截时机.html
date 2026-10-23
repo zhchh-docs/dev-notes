@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 29 章 Proxy 基础与拦截时机｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第四篇 响应式原理</p>
+    <h1>第 29 章 Proxy 基础与拦截时机</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 29 章 / 共 76 章 · 预计 35 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">从这一章开始，我们钻进 Vue3 最核心的零件——响应式系统。先从底层地基讲起：为什么 Vue3 用 Proxy 重写响应式、Proxy 与 Reflect 怎么配合、每一个拦截器在什么时机被触发、惰性代理又为什么是性能关键。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../30_第三篇_组合式API/028_第28章_实战把选项式重构为组合式.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="030_第30章_依赖收集track的过程.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">29.1 为什么用 Proxy 替换 defineProperty</a></li>
+    <li><a href="#sec3">29.2 Proxy 与 Reflect 的基本配合</a></li>
+    <li><a href="#sec4">29.3 各拦截器的触发时机与场景</a></li>
+    <li><a href="#sec5">29.4 代理对象与原始对象</a></li>
+    <li><a href="#sec6">29.5 惰性代理与嵌套代理</a></li>
+    <li><a href="#sec7">29.6 本章常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>能说清 <strong>Vue2 的 defineProperty 有哪三个根本短板</strong>，以及 Proxy 为什么补上了它们；</li>
+    <li>手写一个最小可用的 <code>reactive</code> 雏形，理解 <strong>get / set 拦截</strong> 各做一件什么事；</li>
+    <li>掌握 <strong>Reflect 的配套作用</strong>，知道为什么 Vue 源码里每次拦截都调 <code>Reflect.get/set</code>；</li>
+    <li>知道 <code>has / deleteProperty / ownKeys</code> 分别在什么时机被触发、对哪些 API 有意义；</li>
+    <li>理解 <strong>惰性代理</strong>：为什么嵌套对象不在 <code>reactive()</code> 时一次性全代理。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第三篇的 <code>reactive</code> / <code>ref</code> 使用经验（第 20、21 章）、ES6 Proxy 与 Reflect 的基本概念。本章不要求读过 Vue 源码。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">29.1</span> 为什么用 Proxy 替换 defineProperty</h2>
+  <p class="lead">Vue2 的响应式建立在 <code>Object.defineProperty</code> 之上：在初始化时遍历对象的每一个属性，把它们改成 getter/setter。这套方案能用，但有三个绕不过去的短板。</p>
+
+  <h3>三个根本性短板</h3>
+  <ul>
+    <li><strong>① 新增属性感知不到</strong>：defineProperty 劫持的是"初始化时已经存在"的属性。后加的 <code>obj.newKey = 1</code> 不会触发更新——这就是 Vue2 里必须用 <code>this.$set(obj, key, val)</code> 的原因。</li>
+    <li><strong>② 数组下标与 length 感知不到</strong>：<code>arr[0] = 1</code> 直接赋值、<code>arr.length = 0</code> 都不劫持。Vue2 只能靠<b>重写 7 个数组变异方法</b>（push/pop/shift/unshift/splice/sort/reverse）来兜底，这是一个补丁式方案。</li>
+    <li><strong>③ 必须递归遍历</strong>：初始化时要把对象整棵树的属性都 defineProperty 一遍，深层大对象的初始化成本高，且天生没法拦截"整个对象被替换"这类操作。</li>
+  </ul>
+
+  <h3>Proxy 怎么补上</h3>
+<pre class="code" data-lang="js"><code>// defineProperty：劫持"属性"，初始化时一次性埋点
+Object.defineProperty(obj, 'count', {
+  get() { /* ... */ },
+  set(v) { /* ... */ }
+})
+
+// Proxy：劫持"整个对象"，任何对它的读取/写入/枚举都会先过一遍陷阱
+const proxy = new Proxy(obj, {
+  get(target, key, receiver) { /* 读任何 key 都进来，包括后来新增的 */ },
+  set(target, key, value, receiver) { /* 写任何 key 都进来，包括 arr[0] */ }
+})</code></pre>
+  <p>关键差别：<strong>defineProperty 管的是"属性"，Proxy 管的是"对象"这一层"访问动作"</strong>。新增属性、数组下标、for...in、<code>in</code> 操作、<code>delete</code> 操作——这些统统不需要 <code>$set</code>，因为它们都是"对对象的操作"，天然被拦截。</p>
+
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>Vue2 defineProperty</th><th>Vue3 Proxy</th></tr></thead>
+    <tbody>
+      <tr><td>拦截粒度</td><td>逐个属性的 getter/setter</td><td>整对象的 13 种拦截陷阱</td></tr>
+      <tr><td>新增属性</td><td>感知不到，需 <code>$set</code></td><td><code>set</code> 陷阱天然拦截</td></tr>
+      <tr><td>数组下标/length</td><td>需重写 7 个变异方法兜底</td><td><code>set</code> 陷阱按 key 区分处理</td></tr>
+      <tr><td>初始化成本</td><td>递归遍历整棵树</td><td>惰性：访问到嵌套层才代理</td></tr>
+      <tr><td>对象整体替换</td><td>难以感知</td><td>代理引用不变，天然支持</td></tr>
+      <tr><td>浏览器兼容</td><td>IE8+</td><td>IE 全系不支持（Vue3 放弃 IE）</td></tr>
+    </tbody>
+  </table>
+  <p class="key-sentence">defineProperty 是"给每个属性装门铃"，Proxy 是"给整栋楼装门禁"——前者门牌号变了要重新登记，后者谁进门都得过门禁。</p>
+  <div class="warn-box"><span class="tag-pit">提醒</span>Proxy <strong>无法被 polyfill</strong>。这就是 Vue3 放弃 IE 的根本原因：IE 没有 Proxy，任何转译工具都补不上这个底层能力。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">29.2</span> Proxy 与 Reflect 的基本配合</h2>
+  <p>一个能用的最小响应式雏形长这样：</p>
+<pre class="code" data-lang="js"><code>function reactive(target) {
+  return new Proxy(target, {
+    get(target, key, receiver) {
+      track(target, key)                 // 依赖收集（下一章细讲）
+      const res = Reflect.get(target, key, receiver)
+      if (isObject(res)) return reactive(res)   // 惰性代理嵌套对象
+      return res
+    },
+    set(target, key, value, receiver) {
+      const oldValue = target[key]
+      const success = Reflect.set(target, key, value, receiver)
+      if (hasChange(oldValue, value)) trigger(target, key)  // 触发更新
+      return success
+    }
+  })
+}</code></pre>
+  <p>这里有两个新手最容易问的问题。</p>
+
+  <h3>为什么不直接写 target[key]，而要用 Reflect.get / Reflect.set？</h3>
+  <ul>
+    <li><strong>返回值与异常行为一致</strong>：<code>Reflect.set</code> 会返回布尔值表示"是否写成功"（比如对象被 <code>Object.freeze</code> 时严格模式会抛错），而赋值语句没有返回值可拿。set 陷阱要求你<strong>返回 true/false</strong>，否则在严格模式抛错。</li>
+    <li><strong>receiver 参数</strong>：第三个参数 <code>receiver</code> 指向"最初被访问的那个代理对象"。当属性的 getter 定义在原型链上时，直接 <code>target[key]</code> 会让 getter 里的 <code>this</code> 指向原始对象而非代理，导致响应式断裂。<code>Reflect.get(target, key, receiver)</code> 会把 <code>this</code> 修正为 receiver。</li>
+  </ul>
+
+  <h3>receiver 是干嘛的——一个原型链陷阱案例</h3>
+<pre class="code" data-lang="js"><code>const proto = {
+  get name() { return this._name }   // 注意 this
+}
+const obj = Object.create(proto)
+obj._name = 'vue'
+
+const p = new Proxy(obj, {
+  get(target, key, receiver) {
+    // 写法一：直接 target[key] —— getter 内部 this 指向原始 obj
+    // 写法二：Reflect.get(target, key, receiver) —— this 指向 receiver（代理 p）
+    return Reflect.get(target, key, receiver)
+  }
+})</code></pre>
+  <p>真实场景：组件继承、<code>reactive</code> 嵌套代理、class 实例做响应式时，这个细节决定依赖收集会不会丢。Vue 源码里所有拦截器都用 Reflect，就是为了把 receiver 正确传下去。</p>
+  <p class="key-sentence">记住一个规则：<strong>只要写了 Proxy 陷阱，内部对原始对象的读写一律走 Reflect，并把 receiver 原样传进去</strong>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">29.3</span> 各拦截器的触发时机与场景</h2>
+  <p>Proxy 一共 13 个陷阱。Vue 响应式里真正用到的只有 6 个左右，其余是给框架调试、沙箱、拦截器库准备的。下表是 Vue3 当前用到的几个核心陷阱：</p>
+
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>拦截器</th><th>触发时机</th><th>在 Vue 里的用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>get</code></td><td>读取属性 <code>obj.a</code>、<code>obj['a']</code></td><td>依赖收集 track；返回嵌套代理</td></tr>
+      <tr><td><code>set</code></td><td>写属性 <code>obj.a = 1</code>、<code>arr[0]=1</code>、<code>arr.length=0</code></td><td>触发更新 trigger；区分"新增"与"修改"</td></tr>
+      <tr><td><code>has</code></td><td><code>'a' in obj</code>、<code>with(obj)</code> 内的标识符检索</td><td><code>v-if</code> / <code>hasOwnProperty</code> 等隐式判断的收集（少数场景）</td></tr>
+      <tr><td><code>deleteProperty</code></td><td><code>delete obj.a</code></td><td>删除属性后触发更新</td></tr>
+      <tr><td><code>ownKeys</code></td><td><code>Object.keys</code>、<code>for...in</code>、<code>Object.getOwnPropertyNames</code></td><td>动态枚举的依赖收集（v-for 列表）</td></tr>
+      <tr><td><code>getOwnPropertyDescriptor</code></td><td><code>Object.getOwnPropertyDescriptor</code></td><td>边缘场景，极少用</td></tr>
+    </tbody>
+  </table>
+
+  <h3>set 陷阱内部要区分"新增"还是"修改"</h3>
+<pre class="code" data-lang="js"><code>set(target, key, value, receiver) {
+  const hadKey = Object.prototype.hasOwnProperty.call(target, key)
+  const oldValue = target[key]
+
+  // 已经是响应式的新值就直接写
+  const result = Reflect.set(target, key, value, receiver)
+
+  if (!hadKey) {
+    trigger(target, key, 'ADD')      // 新增：还需要触发 for...in 相关的 ownKeys 收集
+  } else if (hasChanged(value, oldValue)) {
+    trigger(target, key, 'SET')      // 修改：只通知 key 本身
+  }
+  return result
+}</code></pre>
+  <p>这个区分不是吹毛求疵：<code>v-for="item in list"</code> 这种依赖"键的集合"的渲染，只有在 <code>ADD</code>（或 <code>DELETE</code>）时才需要重跑；普通修改一个值，只通知关心这个 key 的副作用即可。</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="Proxy 拦截时机示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">一次 obj.user.name = 'Tom' 的完整拦截路径</text>
+      <rect x="60" y="50" width="150" height="60" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="135" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">代码：赋值</text>
+      <text x="135" y="96" text-anchor="middle" font-size="11" fill="#4f6348">obj.user.name = 'Tom'</text>
+      <rect x="325" y="50" width="150" height="60" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">第 1 跳 get(user)</text>
+      <text x="400" y="96" text-anchor="middle" font-size="11" fill="#4f6348">track(user) + 返回嵌套代理</text>
+      <rect x="590" y="50" width="150" height="60" rx="8" fill="#f0fdf4" stroke="#047857"/>
+      <text x="665" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">第 2 跳 set(name)</text>
+      <text x="665" y="96" text-anchor="middle" font-size="11" fill="#4f6348">track 已在 get 完成；set 触发 trigger(name)</text>
+      <line x1="210" y1="80" x2="325" y2="80" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="475" y1="80" x2="590" y2="80" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#arr)"/>
+      <rect x="200" y="150" width="400" height="60" rx="8" fill="#f8faf0" stroke="#c2cfb4"/>
+      <text x="400" y="176" text-anchor="middle" font-size="12" fill="#1f2e1f">注意：赋值语句是"先读 obj.user，再对返回值 set name"</text>
+      <text x="400" y="196" text-anchor="middle" font-size="12" fill="#4f6348">所以一次连续赋值会依次经过 get(user) → set(name) 两个拦截器</text>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3d7a4f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 29-1 嵌套赋值的两段拦截路径（示意）</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">29.4</span> 代理对象与原始对象</h2>
+  <p>Proxy 最反直觉的一个事实：<strong>代理对象和原始对象不是同一个引用</strong>。</p>
+<pre class="code" data-lang="js"><code>const raw = { name: 'vue' }
+const proxy = reactive(raw)
+
+console.log(proxy === raw)          // false —— 不是同一个对象
+console.log(proxy.name)             // 'vue'
+console.log(raw.name)              // 'vue' —— 数据是共享的
+
+raw.name = 'new'
+console.log(proxy.name)            // 'new' —— 改原始对象会反映到代理
+
+proxy.name = 'again'
+console.log(raw.name)              // 'again' —— 改代理也会改原始</code></pre>
+  <ul>
+    <li><strong>数据共享</strong>：代理只是在原始对象外面套了一层"拦截壳"，读/写最终都落到原始对象上；</li>
+    <li><strong>引用不同</strong>：所以 <code>reactive(raw) === reactive(raw)</code> 也是 false——Vue 内部用一个 <code>WeakMap</code>（raw → proxy 缓存）保证同一个原始对象每次 reactive 都返回同一个代理，这个缓存叫 <code>reactiveMap</code>；</li>
+    <li><strong>解构丢响应式</strong>：const { name } = proxy 拿到的是原始值 <code>'vue'</code>，不是代理——这就是第三篇反复强调"reactive 不能解构赋值"的原因（第 21 章）。</li>
+  </ul>
+
+  <h3>toRaw：拿回原始对象</h3>
+<pre class="code" data-lang="js"><code>import { toRaw, reactive } from 'vue'
+
+const raw = { name: 'vue' }
+const proxy = reactive(raw)
+console.log(toRaw(proxy) === raw)   // true —— 拿回没有代理壳的原始对象</code></pre>
+  <p>什么时候要用 <code>toRaw</code>？① <strong>把响应式对象存入大列表/Map 做查找</strong>（绕过代理，省内存）；② <strong>做不需要响应式的深比较</strong>；③ 持久化时去掉代理壳再序列化。下一章讲 <code>markRaw</code> 时还会再碰到。</p>
+
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>操作</th><th>是否触发响应式</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>proxy.name = 1</code></td><td>是</td><td>走 set 陷阱</td></tr>
+      <tr><td><code>raw.name = 1</code></td><td>否（不触发副作用）</td><td>原始对象没有拦截壳；数据会变，但界面不知道</td></tr>
+      <tr><td><code>reactive(raw)</code> 再次调用</td><td>—</td><td>命中缓存，返回同一个代理</td></tr>
+      <tr><td><code>toRaw(proxy)</code></td><td>—</td><td>拿回原始对象，之后的写入不再触发更新</td></tr>
+      <tr><td><code>const { name } = proxy</code></td><td>—</td><td>拿到原始值，不是响应式</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence">新手坑：以为"改了 raw 对象页面也会更新"。数据确实共享，但只有经过代理壳的 set 才会通知副作用——直接改 raw 是个静默的坑。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">29.5</span> 惰性代理与嵌套代理</h2>
+  <p class="lead">回想 29.2 节的 get 拦截里有一行：<code>if (isObject(res)) return reactive(res)</code>。这就是"惰性"的关键——嵌套对象是<strong>访问到的时候才代理</strong>，不是 reactive() 时一次性代理整棵树。</p>
+
+  <h3>为什么要惰性</h3>
+<pre class="code" data-lang="js"><code>const state = reactive({
+  user: { name: 'vue', profile: { age: 3 } },
+  list: new Array(10000).fill(0).map((_, i) =&gt; ({ id: i }))
+})
+// 此时：user、user.profile、list、list[0..9999] —— 全都还没被代理！
+// 只有当你 state.user 时，才对 user 套代理；state.user.profile 时才再套一层</code></pre>
+  <ul>
+    <li><strong>省初始化成本</strong>：深层大对象如果一次性递归代理，首次 <code>reactive()</code> 会卡顿；惰性把代理成本摊到"实际访问"时；</li>
+    <li><strong>省内存</strong>：从没被访问过的嵌套分支，根本不需要代理壳；</li>
+    <li><strong>配合缓存</strong>：同一个 raw 嵌套对象第一次访问时建代理、写进 reactiveMap，之后再访问直接命中缓存。</li>
+  </ul>
+
+  <h3>惰性带来的两个推论</h3>
+  <ol>
+    <li><strong>嵌套得越深，首次访问越慢一点</strong>：每次 <code>obj.a.b.c</code> 都要在每一层 get 陷阱里查缓存、必要时建新代理。这是真实的开销，所以大对象上"链状深层访问"在热路径里要谨慎；</li>
+    <li><strong>没有被 get 过的嵌套对象不参与依赖收集</strong>：如果模板里从没写过 <code>state.user.profile.age</code>，那 age 的修改不会触发任何更新——这不是 bug，是"访问才收集"的自然结果（下一章展开）。</li>
+  </ol>
+
+  <h3>markRaw：告诉 Vue"这个对象别代理"</h3>
+<pre class="code" data-lang="js"><code>import { markRaw, reactive } from 'vue'
+
+class Editor {
+  constructor() { this.plugins = [] }
+}
+
+const state = reactive({
+  editor: markRaw(new Editor())   // 这个对象永远不被代理
+})
+// state.editor 拿到的就是原始 Editor 实例</code></pre>
+  <p>适合场景：第三方库实例（地图、图表、编辑器、大型类实例）、不需要响应式的大对象、只读常量表。<code>markRaw</code> 和它的产物会进一个 <code>rawToReactive</code> 的"反查缓存"，之后对它的访问直接返回原值，不套壳。</p>
+
+  <div class="note"><strong>设计哲学</strong>：Vue 的响应式不是"数据变了就更新"，而是"<strong>被读过的数据变了才更新</strong>"。Proxy 只是拦截层，真正决定"谁该更新"的是下一章的依赖收集。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">29.6</span> 本章常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>set 陷阱里忘了返回 true</strong>：严格模式下会抛 <code>TypeError: 'set' on proxy: trap returned falsish</code>。必须 <code>return Reflect.set(...)</code> 的结果。</li>
+    <li><span class="tag-pit">坑 2</span><strong>get 陷阱里直接 <code>target[key]</code> 而不是 Reflect.get</strong>：属性在原型链上时 this 指错，依赖收集丢失。</li>
+    <li><span class="tag-pit">坑 3</span><strong>把 raw 存到组件 state 里又指望它更新</strong>：raw 没有拦截壳，改它页面不动。要么用代理，要么改完手动 trigger。</li>
+    <li><span class="tag-pit">坑 4</span><strong>对 class 实例做 reactive 后把它换出</strong>：如果对象整体被替换成新实例，要确保新实例也走 reactive（或在 get 陷阱里惰性建代理）。</li>
+    <li><span class="tag-pit">坑 5</span><strong>误以为 Proxy 是为了性能</strong>：恰恰相反，Proxy 每次访问都过陷阱，比裸对象慢。它的价值是"能力完整"，性能靠惰性 + 缓存控制。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>为什么换 Proxy</td><td>补上 defineProperty 无法感知新增属性、数组下标、必须递归遍历三个短板</td></tr>
+      <tr><td>Reflect 配套</td><td>拿到 set 返回值 + 正确传递 receiver，避免原型链 this 错绑</td></tr>
+      <tr><td>核心陷阱</td><td>get 收集、set 触发、has/deleteProperty/ownKeys 处理枚举类操作</td></tr>
+      <tr><td>set 内部</td><td>区分 ADD（新增）与 SET（修改），决定是否通知键集合的依赖</td></tr>
+      <tr><td>代理 vs 原始</td><td>数据共享但引用不同；toRaw 拿回原始对象；reactiveMap 做缓存</td></tr>
+      <tr><td>惰性代理</td><td>嵌套对象访问到时才代理，配合 markRaw 显式跳过</td></tr>
+      <tr><td>本质</td><td>Proxy 只是拦截层，"谁该更新"由依赖收集决定</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话说：Vue2 里的 <code>this.$set(obj, 'newKey', 1)</code> 在 Vue3 里为什么不需要了？从 Proxy 的 set 陷阱角度解释。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>手写一个 <code>reactive</code> 雏形（只需 get/set + track/trigger 两个空函数占位），在控制台验证：<code>proxy === raw</code> 的结果、<code>toRaw(proxy) === raw</code> 的结果、以及"直接改 raw.name 后 proxy.name 是否变化"。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>构造一个原型链上带 getter 的对象（参考 29.2 节的 proto 例子），分别用"直接 target[key]"和"Reflect.get(target,key,receiver)"两种 get 陷阱实现，观察 getter 内部 <code>this</code> 指向谁，并解释为什么 receiver 能修正它。</div>
+  <p class="note">参考答案见附录 C。下一章进入响应式系统的心脏：依赖收集 track——它决定"谁该被通知"。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../30_第三篇_组合式API/028_第28章_实战把选项式重构为组合式.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="030_第30章_依赖收集track的过程.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 29 章 Proxy 基础与拦截时机</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

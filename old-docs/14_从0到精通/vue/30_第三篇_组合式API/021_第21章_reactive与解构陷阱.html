@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 21 章 reactive 与解构陷阱｜Vue 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#ffffff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.badge.deep{background:var(--danger-soft);color:var(--danger);border:1px solid #fca5a5}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+nav.toc li{counter-increment:toc;font-size:14px}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px;letter-spacing:-.02em}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+section.card ul ul>li::marker,section.card ol ol>li::marker{color:var(--accent-2)}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;max-width:100%;display:inline;overflow:hidden}
+p,li,h1,h2,h3,h4,h5,h6{overflow-wrap:break-word;word-wrap:break-word}
+pre{max-width:100%;overflow-x:auto}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono)}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff;max-width:100%}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;color:var(--ink);line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+code[class*=language-],pre[class*=language-]{color:#f8f8f2;background:0 0;text-shadow:0 1px rgba(0,0,0,.3);font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;tab-size:4;hyphens:none}
+pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto;border-radius:.3em}
+:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em}
+.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#8292a2}.token.punctuation{color:#f8f8f2}.token.namespace{opacity:.7}.token.constant,.token.deleted,.token.property,.token.symbol,.token.tag{color:#f92672}.token.boolean,.token.number{color:#ae81ff}.token.attr-name,.token.builtin,.token.char,.token.inserted,.token.selector,.token.string{color:#a6e22e}.language-css .token.string,.style .token.string,.token.entity,.token.operator,.token.url,.token.variable{color:#f8f8f2}.token.atrule,.token.attr-value,.token.class-name,.token.function{color:#e6db74}.token.keyword{color:#66d9ef}.token.important,.token.regex{color:#fd971f}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}
+pre.code code[class*=language-]{background:transparent;text-shadow:none;font-family:var(--mono);font-size:inherit;padding:0;line-height:inherit;color:inherit;white-space:inherit}
+@media(min-width:1024px){nav.toc{position:fixed!important;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;background:#fff;border:1px solid #d8e2cc;border-radius:12px;padding:16px;z-index:60;box-shadow:0 2px 8px rgba(0,0,0,.06)}nav.toc h2{font-size:14px!important;color:#22331f;margin:0 0 12px 0!important;padding:0 0 8px 0!important;border-bottom:1px solid #d8e2cc!important;font-weight:600!important;background:transparent!important;border-radius:0!important;width:auto!important;height:auto!important;line-height:normal!important}nav.toc ol{list-style:none!important;padding:0!important;margin:0!important;display:block!important;columns:1!important;column-count:1!important}nav.toc ol li{margin:6px 0!important;break-inside:avoid!important}nav.toc ol li a{display:block!important;padding:6px 10px!important;color:#7a8a70!important;text-decoration:none!important;font-size:13px!important;line-height:1.4!important;border-radius:6px!important;transition:all .15s!important;background:transparent!important;border:none!important;font-weight:normal!important}nav.toc ol li a:hover{background:#f0f5e6!important;color:#2d6a3f!important}.container{margin-left:280px!important;max-width:calc(100% - 300px)!important}}
+@media(max-width:1023px){nav.toc{position:static!important;width:auto!important}}
+@media(max-width:760px){.container{padding:0 12px!important;margin:0!important;max-width:100%!important}.hero{padding:20px 16px}.hero h1{font-size:22px}.hero-desc{font-size:14px;line-height:1.7}.breadcrumb{font-size:12px}nav.toc{margin:0 0 16px 0!important;padding:14px!important;border-radius:10px!important}nav.toc h2{font-size:14px!important;margin-bottom:10px!important}nav.toc ol li a{font-size:13px!important;padding:5px 8px!important}section.card{padding:18px 16px!important;margin:16px 0!important;border-radius:10px}section.card h2{font-size:19px!important;margin-bottom:16px!important}section.card h2 .num{min-width:26px!important;height:26px!important;line-height:26px!important;font-size:13px!important}section.card h3{font-size:16px!important;margin:24px 0 10px!important}section.card h4{font-size:15px!important;margin:16px 0 8px!important}section.card p{font-size:14.5px!important;line-height:1.75!important}section.card li{font-size:14.5px!important;line-height:1.7!important}pre.code{font-size:12px!important;padding:10px 12px!important}.code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}#backTop{right:16px;bottom:20px}.doc-nav-btn{font-size:12px!important;padding:6px 10px!important}.key-sentence,.pit-sentence{padding:8px 10px!important;margin:10px 0!important;font-size:14px}.lead{padding:8px 10px!important;font-size:13.5px!important;margin:10px 0!important}.diagram{margin:12px 0!important}.doc-nav.bottom{flex-wrap:wrap;padding:12px}}
+@media(max-width:640px){.doc-nav{gap:6px;padding-left:14px;padding-right:14px}}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Vue 从 0 到精通》 · 第三篇 组合式 API</p>
+    <h1>第 21 章 reactive 与解构陷阱</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 21 章 / 共 76 章 · 预计 30 分钟 · 示例可直接运行</span>
+    </div>
+    <p class="hero-desc">reactive 是 Vue3 响应式的另一半：它接管整个对象，但也带来了最经典的陷阱——解构就失效。本章讲透解构为什么丢响应、toRefs/toRef 怎么救、什么时候别用 reactive。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="020_第20章_setup与ref为什么包一层.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="022_第22章_组合式写法下的computed与watch.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">21.1 reactive：接管整个对象</a></li>
+    <li><a href="#sec3">21.2 解构陷阱：一行代码失去响应</a></li>
+    <li><a href="#sec4">21.3 toRefs 与 toRef：把解构救回来</a></li>
+    <li><a href="#sec5">21.4 整体替换：reactive 对象被重新赋值</a></li>
+    <li><a href="#sec6">21.5 readonly 与 reactive 的边界</a></li>
+    <li><a href="#sec7">21.6 常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 <strong>reactive 到底代理了什么</strong>：对象、数组、Map/Set 的哪些操作被拦截；</li>
+    <li>亲手复现并彻底理解<strong>解构丢失响应</strong>这个最经典的陷阱；</li>
+    <li>掌握 <code>toRefs</code> / <code>toRef</code> 两件救援工具；</li>
+    <li>理解<strong>整体替换 reactive 对象为什么失效</strong>；</li>
+    <li>建立 <code>readonly</code> 的使用场景与 reactive 的能力边界。</li>
+  </ul>
+  <div class="note"><strong>前置要求</strong>：第 20 章 ref 的容器模型。本章与 ref 是一对——理解它们各自的"保命边界"，组合式 API 的日常开发就不会再被响应式突然失效搞懵。</div>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">21.1</span> reactive：接管整个对象</h2>
+  <p><code>reactive(obj)</code> 返回原对象的<strong>响应式代理</strong>：之后对这个代理的任何属性读写，都会被 Vue 拦截并追踪。它适合"一个对象装着一组相关状态"的场景——最典型就是表单：</p>
+<pre class="code" data-lang="vue"><code>&lt;script setup&gt;
+import { reactive } from 'vue'
+
+const form = reactive({
+  username: '',
+  email: '',
+  age: 18
+})
+
+// 直接改属性，页面自动更新——不需要 .value
+function submit() {
+  console.log(form.username, form.email)
+}
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;input v-model="form.username" placeholder="用户名" /&gt;
+  &lt;input v-model="form.email" placeholder="邮箱" /&gt;
+  &lt;button @click="submit"&gt;提交&lt;/button&gt;
+&lt;/template&gt;</code></pre>
+  <p>与 ref 对比，它有两个"爽点"和一个"坑"：</p>
+  <ul>
+    <li><strong>爽点 1</strong>：没有 <code>.value</code>，<code>form.username</code> 就是直观的属性访问；</li>
+    <li><strong>爽点 2</strong>：直接 <code>form.xxx = yyy</code> 即可，和写普通对象一模一样；</li>
+    <li><strong>坑</strong>：这个代理有严格的"保命边界"，跨过边界就失效——下两节就是边界现场。</li>
+  </ul>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>输入</th><th>是否响应式</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>reactive({ a: 1 })</code></td><td>是</td><td>普通对象代理</td></tr>
+      <tr><td><code>reactive([1, 2])</code></td><td>是</td><td>数组也代理，按下标读写被追踪</td></tr>
+      <tr><td><code>reactive(new Map())</code></td><td>是</td><td>Map / Set 的 get/set/has/forEach 都被支持</td></tr>
+      <tr><td><code>reactive(123)</code></td><td><strong>否（运行告警）</strong></td><td>原始类型不能用 reactive，只能 ref</td></tr>
+      <tr><td>同一对象二次 reactive</td><td>返回同一代理</td><td>幂等，不会重复包装</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">21.2</span> 解构陷阱：一行代码失去响应</h2>
+  <p>这是组合式 API 新手遇到的第一个"玄学 bug"：</p>
+<pre class="code" data-lang="js"><code>import { reactive } from 'vue'
+
+const form = reactive({ username: '张三', age: 18 })
+
+// 看起来很爽：解构出来直接用
+const { username, age } = form
+
+age = 20            // 页面里 age 还是 18？！
+console.log(form.age)   // 20 了
+console.log(age)        // 20 了——但页面没更新</code></pre>
+  <p>为什么？看图。<code>form</code> 是<strong>代理对象</strong>，<code>username</code> 和 <code>age</code> 是通过代理读出来的<strong>普通值</strong>（这里是原始类型）。解构那一刻，你拿到的是值的快照，而不是"通往代理的引用"：</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="reactive 解构丢失响应性示意图">
+      <text x="400" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">解构的瞬间：值被"复印"出来，不再走代理</text>
+      <rect x="60" y="50" width="280" height="140" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="200" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">form（reactive 代理）</text>
+      <text x="200" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">form.username = '张三'  ← 被拦截、被追踪</text>
+      <text x="200" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">form.age = 20         ← 被拦截、触发更新</text>
+      <text x="200" y="156" text-anchor="middle" font-size="11" fill="#7a8a70">每次读写都经过 Proxy 拦截器</text>
+      <line x1="345" y1="120" x2="430" y2="120" stroke="#b45309" stroke-width="2" stroke-dasharray="5,4"/>
+      <text x="387" y="108" text-anchor="middle" font-size="11" fill="#b45309">解构 = 复印</text>
+      <rect x="435" y="50" width="300" height="140" rx="10" fill="#fefce8" stroke="#d97706"/>
+      <text x="585" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">{ username, age } 解构结果</text>
+      <text x="585" y="102" text-anchor="middle" font-size="11.5" fill="#4f6348">username = '张三'（普通字符串快照）</text>
+      <text x="585" y="126" text-anchor="middle" font-size="11.5" fill="#4f6348">age = 20（普通数字快照）</text>
+      <text x="585" y="156" text-anchor="middle" font-size="11" fill="#7a8a70">与代理再无连接，改它不触发任何更新</text>
+    </svg>
+    <p class="diagram-caption">图 21-1 解构把响应式值复印成普通值（示意）</p>
+  </div>
+  <p>本质：<strong>响应性挂在"代理对象的属性访问"这条通道上，不挂在值本身</strong>。一旦你把值从通道里取出来单独放着，它就是个孤儿普通变量。</p>
+  <p class="key-sentence">记住这个直觉：<strong>reactive 对象本身别拆，拆出来就不是响应式的了</strong>。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">21.3</span> toRefs 与 toRef：把解构救回来</h2>
+  <p>Vue 提供了救援工具。<code>toRefs(reactiveObj)</code> 会把代理对象的每个字段转成一个 ref——<strong>这个 ref 和原属性是双向绑定的</strong>：</p>
+<pre class="code" data-lang="js"><code>import { reactive, toRefs, ref } from 'vue'
+
+const form = reactive({ username: '张三', age: 18 })
+
+// toRefs：每个字段变成 ref，且与 form 双向同步
+const { username, age } = toRefs(form)
+
+age.value = 20            // 改 ref
+console.log(form.age)      // 20 ✅ 同步回 reactive
+form.age = 25             // 改 reactive
+console.log(age.value)     // 25 ✅ 反向也同步
+
+// 解构出来的 username 是个 ref，模板里照样自动解包
+// &lt;p&gt;{{ username }}&lt;/p&gt;  → 正常显示、正常更新</code></pre>
+<pre class="code" data-lang="js"><code>// toRef：给 reactive 对象的某一个字段单独做一个 ref
+const ageRef = toRef(form, 'age')
+ageRef.value = 30          // 与 form.age 双向同步
+
+// toRef 也能给普通值做一个"常量 ref"（用于组合式函数返回值统一）
+const staticRef = toRef(100)
+staticRef.value            // 100，不可变常量容器</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>工具</th><th>做什么</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>toRefs(obj)</code></td><td>把 reactive 对象所有字段批量转 ref</td><td>组合式函数 return 一个 reactive，组件解构使用时</td></tr>
+      <tr><td><code>toRef(obj, key)</code></td><td>把单个字段转 ref</td><td>只需要其中一两个字段</td></tr>
+      <tr><td><code>toRef(value)</code></td><td>把普通值包成常量 ref</td><td>统一返回值形态（ref 与 reactive 混用处）</td></tr>
+    </tbody>
+  </table>
+  <p class="warn-box"><span class="tag-pit">提醒</span>用 <code>toRefs</code> 是<strong>为了解构安全</strong>，不是为了解构好看。如果你直接 <code>form.username</code> 用，就别 toRefs——多一层 ref 包装徒增心智负担。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">21.4</span> 整体替换：reactive 对象被重新赋值</h2>
+  <p>第二个经典事故：</p>
+<pre class="code" data-lang="js"><code>import { reactive } from 'vue'
+
+let state = reactive({ list: [1, 2, 3] })
+
+async function loadData() {
+  const res = await fetch('/api/list').then(r =&gt; r.json())
+  state = reactive({ list: res })   // ❌ 组件里原来持有的还是旧代理！
+}</code></pre>
+  <p>问题出在：你重新赋值的是 <code>state</code> 这个变量本身，<strong>模板和渲染函数在 setup 阶段已经绑定了"旧代理对象"那个引用</strong>，你换变量指向新代理，旧引用纹丝不动。</p>
+  <p>正确姿势有两种：</p>
+<pre class="code" data-lang="js">// 姿势一：改属性，不换对象
+state.list = res
+
+// 姿势二：展开替换
+Object.assign(state, { list: res })
+
+// 姿势三：用 ref 装整个对象，直接换 .value
+const state = ref({ list: [] })
+state.value = { list: res }   // ✅ ref 替换不丢响应</code></pre>
+  <p class="pit-sentence">这正是第 20 章"ref 适合整体替换"的理由：<strong>reactive 是代理原对象，换不动；ref 是容器，<code>.value</code> 里爱装啥装啥</strong>。要整体替换的状态，天生该用 ref。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">21.5</span> readonly 与 reactive 的边界</h2>
+  <p>第 18 章用过 <code>readonly</code>：祖先 provide 出去的数据，包一层 readonly 防止后代直接改。这里把它和 reactive 放一起看：</p>
+<pre class="code" data-lang="js"><code>import { reactive, readonly } from 'vue'
+
+const state = reactive({ count: 0 })
+const copy = readonly(state)
+
+copy.count = 1      // ❌ 开发环境下告警，不生效
+state.count = 1     // ✅ 正常改，copy 自动同步更新</code></pre>
+  <p>边界一句话：<strong>readonly 是"同一个响应式对象的只读视图"</strong>，它本身也是响应式的（会随原对象更新），但写操作被拒绝。</p>
+  <ul>
+    <li>reactive：能改，追踪所有读写；</li>
+    <li>readonly：能读（追踪读），不能写；</li>
+    <li>reactive 的局限再强调：<strong>原始类型不行</strong>（<code>reactive(0)</code> 会告警）、深层对象自动代理（嵌套对象访问时也是响应式的）、Map/Set 全支持但 WeakMap/WeakSet 不支持。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">21.6</span> 常见坑</h2>
+  <ul>
+    <li><span class="tag-pit">坑 1</span><strong>解构 reactive 直接用</strong>：<code>const { a, b } = state</code> 之后改 <code>a</code> 页面不更新。要么不解构（直接 <code>state.a</code>），要么 <code>toRefs(state)</code> 之后解构。</li>
+    <li><span class="tag-pit">坑 2</span><strong>整体替换 reactive 对象</strong>：<code>state = reactive(newData)</code> 绑不住。用 <code>Object.assign</code> 或改用 <code>ref</code>。</li>
+    <li><span class="tag-pit">坑 3</span><strong>把 reactive 当 props 直接解构</strong>：props 是 shallow 响应式对象，解构 props 也会丢响应，要 <code>toRefs(props)</code>（第 11 章 props 已讲过）。</li>
+    <li><span class="tag-pit">坑 4</span><strong>解构后给变量重新赋值想触发更新</strong>：<code>age = 20</code> 只是普通赋值，页面无反应。改 <code>form.age = 20</code> 或 <code>ageRef.value = 20</code>。</li>
+    <li><span class="tag-pit">坑 5</span><strong>以为 readonly 是深拷贝</strong>：它是"视图"，原对象改了它照样变。想隔离就复制，不是 readonly。</li>
+    <li><span class="tag-pit">坑 6</span><strong>用 reactive 装数组后做整体重置</strong>：<code>list = []</code> 无效；<code>list.length = 0</code> 或 <code>list.splice(0)</code> 才正确。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>reactive</td><td>代理整个对象/数组/Map；属性读写被拦截追踪，无需 .value</td></tr>
+      <tr><td>解构陷阱</td><td>解构取出的是值快照，与代理断开，改它不触发更新</td></tr>
+      <tr><td>toRefs</td><td>把 reactive 各字段转双向绑定的 ref，解构也不丢响应</td></tr>
+      <tr><td>整体替换</td><td>换对象本身无效；改属性/Object.assign，或直接用 ref</td></tr>
+      <tr><td>readonly</td><td>同一响应式对象的只读视图；写拒绝、读同步</td></tr>
+      <tr><td>边界</td><td>原始类型不能 reactive；Map/Set 支持；嵌套对象自动代理</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复现解构 bug：写一个 <code>reactive({ count: 0 })</code>，解构出 <code>count</code>，在按钮事件里 <code>count++</code> 并在模板显示；观察页面是否更新。然后用 <code>toRefs</code> 修复，再验证。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个 <code>useUser()</code> 组合式函数：内部 <code>reactive({ name, age, email })</code>，return 出去。组件里用解构拿到三个字段并渲染，要求改任意字段页面同步更新（提示：return 时用 <code>toRefs</code>）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个"用户资料"页面：初始 <code>reactive(用户对象)</code>，点击"重新加载"时模拟异步请求后把整个对象换成新数据。要求：① 直接赋值 <code>user = reactive(newObj)</code> 复现失效；② 用两种方式修复（Object.assign / ref），并对比哪种更适合这种"整页数据"场景。</div>
+  <p class="note">参考答案见附录 C。下一章讲组合式写法下的 computed 与 watch：可写 computed、多源 watch、watchEffect 自动追踪依赖。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="020_第20章_setup与ref为什么包一层.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="022_第22章_组合式写法下的computed与watch.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Vue 从 0 到精通》 · 第 21 章 reactive 与解构陷阱</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script src="../_prism.js"></script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>
