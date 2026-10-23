@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 91 章 全局异常处理与统一响应｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十篇 SpringBoot 与 Web</p>
+    <h1>第 91 章 全局异常处理与统一响应</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 91 章 / 共 112 章 · 预计 40 分钟 · 第十篇：Web 实战</span>
+    </div>
+    <p class="hero-desc">业务异常、校验异常、404、500 如果各自返回一套格式，前端就要写一堆分支。本章落地统一响应体 Result、业务异常 BizException 与错误码枚举，用 @RestControllerAdvice 把所有异常映射成同一份 JSON，最后补上三个高频陷阱。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="090_第90章_参数校验Validation.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="092_第92章_MyBatis整合与Mapper.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">91.1 统一响应体 Result</a></li>
+    <li><a href="#sec3">91.2 业务异常与错误码枚举</a></li>
+    <li><a href="#sec4">91.3 @RestControllerAdvice 处理体系</a></li>
+    <li><a href="#sec5">91.4 常见异常映射表</a></li>
+    <li><a href="#sec6">91.5 处理顺序与响应细节</a></li>
+    <li><a href="#sec7">91.6 常见坑排查</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>设计字段稳定的 <code>Result&lt;T&gt;</code> 响应体，区分成功码与业务错误码；</li>
+    <li>用 <code>BizException</code> 携带错误码抛出业务异常，错误码集中在枚举中管理；</li>
+    <li>使用 <code>@RestControllerAdvice</code> + <code>@ExceptionHandler</code> 集中接管控制器层异常；</li>
+    <li>把参数校验、404、405、500 等异常映射为统一 JSON 并配合 HTTP 状态码；</li>
+    <li>避开异常被 catch 吞掉、响应结构不一致、advice 不生效三类实战坑。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">91.1</span> 统一响应体 Result</h2>
+  <p class="lead"><strong>一句话定位</strong>：响应结构固定为 <code>code / message / data</code>：code=0 表示成功，非 0 表示业务失败；HTTP 状态码表达传输层结果，body 内 code 表达业务结果，两者分工不同。</p>
+  <pre class="code" data-lang="java"><code>package com.example.demo.common;
+
+/** 统一响应体，泛型承载业务数据 */
+public record Result&lt;T&gt;(Integer code, String message, T data) {
+
+    public static &lt;T&gt; Result&lt;T&gt; ok(T data) {
+        return new Result&lt;&gt;(0, "success", data);
+    }
+
+    public static &lt;T&gt; Result&lt;T&gt; fail(ErrorCode errorCode) {
+        return new Result&lt;&gt;(errorCode.getCode(), errorCode.getMessage(), null);
+    }
+
+    public static &lt;T&gt; Result&lt;T&gt; fail(Integer code, String message) {
+        return new Result&lt;&gt;(code, message, null);
+    }
+}</code></pre>
+  <pre class="code" data-lang="http"><code># 成功：HTTP 200，code=0
+{ "code": 0, "message": "success", "data": { "id": 123, "name": "张三" } }
+
+# 业务失败：HTTP 200 或对应状态码，code 非 0
+{ "code": 10002, "message": "用户不存在", "data": null }
+
+# 参数校验失败：HTTP 400，code 非 0，message 聚合字段错误
+{ "code": 10001, "message": "name: 姓名不能为空；email: 邮箱格式不正确", "data": null }</code></pre>
+  <div class="key-sentence"><span class="tag-key">前端约定</span>前端拦截器只判 <code>response.status</code> 是否可达、再判 <code>body.code</code> 是否为 0；字段名长期稳定，不因接口不同而变，这是统一响应体最大的价值。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">91.2</span> 业务异常与错误码枚举</h2>
+  <p class="lead"><strong>一句话定位</strong>：业务代码不返回错误字符串，而是抛出携带错误码的 <code>BizException</code>；错误码集中在枚举中分段管理，便于前端对照、日志检索与国际化扩展。</p>
+  <pre class="code" data-lang="java"><code>package com.example.demo.common;
+
+import lombok.Getter;
+
+@Getter
+public enum ErrorCode {
+
+    SUCCESS(0, "success"),
+    PARAM_INVALID(10001, "参数校验失败"),
+    USER_NOT_FOUND(10002, "用户不存在"),
+    ORDER_NOT_FOUND(10003, "订单不存在"),
+    STATUS_CONFLICT(10004, "当前状态不允许该操作"),
+    UNAUTHORIZED(10005, "未登录或登录已过期"),
+    FORBIDDEN(10006, "无权限执行该操作"),
+    SYSTEM_ERROR(99999, "系统繁忙，请稍后重试");
+
+    private final Integer code;
+    private final String message;
+
+    ErrorCode(Integer code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>package com.example.demo.common;
+
+/** 业务异常：由 Service / Controller 主动抛出，携带错误码 */
+public class BizException extends RuntimeException {
+
+    private final ErrorCode errorCode;
+
+    public BizException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+
+    public BizException(ErrorCode errorCode, String detail) {
+        super(errorCode.getMessage() + "：" + detail);
+        this.errorCode = errorCode;
+    }
+
+    public ErrorCode getErrorCode() { return errorCode; }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// Service 层抛出业务异常，不关心 HTTP 与响应格式
+@Service
+public class UserService {
+
+    public UserVO getById(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BizException(ErrorCode.USER_NOT_FOUND);
+        }
+        return UserVO.from(user);
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>码段</th><th>含义</th><th>示例</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>成功</td><td>SUCCESS</td></tr>
+      <tr><td>10001–19999</td><td>参数与校验类错误</td><td>PARAM_INVALID</td></tr>
+      <tr><td>20001–29999</td><td>资源不存在 / 状态冲突类业务错误</td><td>USER_NOT_FOUND、STATUS_CONFLICT</td></tr>
+      <tr><td>30001–39999</td><td>权限与认证类错误</td><td>UNAUTHORIZED、FORBIDDEN</td></tr>
+      <tr><td>99999</td><td>兜底系统错误，不向前端暴露堆栈</td><td>SYSTEM_ERROR</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">91.3</span> @RestControllerAdvice 处理体系</h2>
+  <p class="lead"><strong>一句话定位</strong>：<code>@RestControllerAdvice</code> 标注的类会被 Spring MVC 识别为全局控制器增强；类内每个 <code>@ExceptionHandler(异常类型)</code> 方法负责把对应异常转成 <code>Result</code> 返回，逻辑上像一张全局 catch 表。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="异常分发链路">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">全局异常处理器的分发链路</text>
+      <rect x="30" y="56" width="170" height="120" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="115" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">控制器 / Service 抛出</text>
+      <text x="115" y="110" text-anchor="middle" font-size="11" fill="#4f6348">BizException</text>
+      <text x="115" y="132" text-anchor="middle" font-size="11" fill="#4f6348">MethodArgumentNotValidException</text>
+      <text x="115" y="154" text-anchor="middle" font-size="11" fill="#4f6348">NoHandlerFoundException / 其他</text>
+      <rect x="290" y="56" width="200" height="120" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="390" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">@RestControllerAdvice</text>
+      <text x="390" y="110" text-anchor="middle" font-size="11" fill="#4f6348">按异常类型匹配 @ExceptionHandler</text>
+      <text x="390" y="132" text-anchor="middle" font-size="11" fill="#4f6348">提取错误码 / 聚合字段信息</text>
+      <text x="390" y="154" text-anchor="middle" font-size="11" fill="#4f6348">兜底处理器捕获未列明异常</text>
+      <rect x="580" y="56" width="190" height="120" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="675" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">统一 Result JSON</text>
+      <text x="675" y="110" text-anchor="middle" font-size="11" fill="#4f6348">HTTP 状态码 + body 结构一致</text>
+      <text x="675" y="132" text-anchor="middle" font-size="11" fill="#4f6348">堆栈只写服务端日志，不外抛</text>
+      <line x1="200" y1="116" x2="290" y2="116" stroke="#2d6a3f" stroke-width="2" marker-end="url(#ar5)"/>
+      <line x1="490" y1="116" x2="580" y2="116" stroke="#2d6a3f" stroke-width="2" marker-end="url(#ar5)"/>
+      <defs><marker id="ar5" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+      <text x="400" y="210" text-anchor="middle" font-size="12" fill="#7a8a70">图 91-1 异常在控制器层被集中拦截，业务代码只抛异常、不拼响应</text>
+    </svg>
+    <p class="diagram-caption">图 91-1 全局异常分发链路</p>
+  </div>
+  <pre class="code" data-lang="java"><code>package com.example.demo.common;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /** 业务异常：使用枚举中的错误码 */
+    @ExceptionHandler(BizException.class)
+    public Result&lt;Void&gt; handleBiz(BizException ex) {
+        log.warn("业务异常：{}", ex.getMessage());
+        return Result.fail(ex.getErrorCode());
+    }
+
+    /** 参数校验失败：聚合字段错误信息 */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;Result&lt;Void&gt;&gt; handleValid(MethodArgumentNotValidException ex) {
+        String msg = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getField)
+                .collect(Collectors.joining("；"));
+        String detail = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -&gt; e.getField() + ": " + e.getDefaultMessage())
+                .collect(Collectors.joining("；"));
+        log.warn("参数校验失败：{}", detail);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Result.fail(ErrorCode.PARAM_INVALID.getCode(), detail));
+    }
+
+    /** 兜底：未列明的异常统一包装，不向客户端暴露堆栈 */
+    @ExceptionHandler(Exception.class)
+    public Result&lt;Void&gt; handleOther(Exception ex) {
+        log.error("系统异常", ex);
+        return Result.fail(ErrorCode.SYSTEM_ERROR);
+    }
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">91.4</span> 常见异常映射表</h2>
+  <p class="lead"><strong>一句话定位</strong>：下表列出 Spring MVC 在接口层最常抛出的异常类型、触发场景、建议 HTTP 状态码与响应 code，可直接作为处理器清单落地。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:28%"><col style="width:16%"><col style="width:26%"></colgroup>
+    <thead><tr><th>异常类型</th><th>触发场景</th><th>HTTP 状态码</th><th>响应 code 建议</th></tr></thead>
+    <tbody>
+      <tr><td>BizException</td><td>Service 主动抛出的业务规则失败</td><td>200 或 409/404 按语义</td><td>枚举对应业务码</td></tr>
+      <tr><td>MethodArgumentNotValidException</td><td>@RequestBody @Valid 校验失败</td><td>400</td><td>10001 参数校验失败</td></tr>
+      <tr><td>ConstraintViolationException</td><td>@Validated 分组 / 参数级校验失败</td><td>400</td><td>10001 参数校验失败</td></tr>
+      <tr><td>MissingServletRequestParameterException</td><td>@RequestParam 必填参数缺失</td><td>400</td><td>10001 参数校验失败</td></tr>
+      <tr><td>MethodArgumentTypeMismatchException</td><td>路径变量 / 参数类型转换失败（如 id 传字符串）</td><td>400</td><td>10001 参数校验失败</td></tr>
+      <tr><td>HttpMessageNotReadableException</td><td>请求体缺失、JSON 格式错误</td><td>400</td><td>10001 参数校验失败</td></tr>
+      <tr><td>NoHandlerFoundException</td><td>路径不存在（需开启 throw-exception-if-no-handler-found）</td><td>404</td><td>10002 资源不存在</td></tr>
+      <tr><td>HttpRequestMethodNotSupportedException</td><td>HTTP 方法不被允许（如用 GET 调 POST 路径）</td><td>405</td><td>10004 状态冲突</td></tr>
+      <tr><td>Exception（兜底）</td><td>未预判的服务端异常</td><td>500</td><td>99999 系统繁忙</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">91.5</span> 处理顺序与响应细节</h2>
+  <ul>
+    <li><strong>最具体优先</strong>：Spring 按异常类型继承关系选择最匹配的 <code>@ExceptionHandler</code>；<code>Exception</code> 兜底处理器放最后，只接住前面都没匹配上的异常；</li>
+    <li><strong>多 advice 排序</strong>：项目存在多个全局处理器时，用 <code>@Order</code> 或 <code>@Priority</code> 指定顺序，避免同类型异常被抢先兜底；</li>
+    <li><strong>HTTP 状态码与 body 分工</strong>：需要语义化状态码时返回 <code>ResponseEntity</code> 携带 status；业务异常若团队约定全部 200 + body.code，也可直接返回 <code>Result</code>，但要前后端统一口径；</li>
+    <li><strong>日志分级</strong>：业务异常 warn，校验异常 warn，兜底异常 error 并打印完整堆栈；响应体只返回脱敏后的友好提示；</li>
+    <li><strong>静态资源与页面 404</strong>：接口 advice 不处理视图解析异常；前后端分离项目把 SPA 路由与静态资源交给服务器配置。</li>
+  </ul>
+  <pre class="code" data-lang="java"><code>// 补充：路径不存在抛出 NoHandlerFoundException 的配置（application.yml）
+spring:
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false          # 接口工程不启用默认静态资源映射，404 才抛异常</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">91.6</span> 常见坑排查</h2>
+  <p class="pit-sentence"><span class="tag-pit">坑：异常被 catch 吞掉</span>Service 里写了 <code>try { ... } catch (Exception e) { log.error(e); }</code> 却不抛出，控制器拿到 null，前端收到 200 + null data，既无错误码也无日志线索。catch 后要么转换为 BizException 重抛，要么确认确实属于可降级场景。</p>
+  <p class="pit-sentence"><span class="tag-pit">坑：响应结构不一致</span>部分控制器手动返回 Map、部分返回 Result、部分直接抛异常走默认错误页；前端要写三套解析逻辑。纪律：控制器方法返回值统一 <code>Result&lt;T&gt;</code>，错误路径全部交给全局 advice。</p>
+  <p class="pit-sentence"><span class="tag-pit">坑：advice 不生效</span>常见原因：① 全局类没被组件扫描到（启动类包位置问题，呼应第 87 章）；② 异常在控制器之外（如过滤器、拦截器内抛出），<code>@RestControllerAdvice</code> 管不到，需注册 <code>HandlerExceptionResolver</code> 或在过滤器内直接写响应；③ 自定义异常继承了错误的父类，匹配不到对应处理器。</p>
+  <div class="warn-box"><span class="tag-pit">安全纪律</span>兜底处理器绝不能把 <code>ex.getMessage()</code> 与堆栈直接塞进响应体；SQL 错误、类名、内部路径会随异常消息泄露给前端。统一返回 SYSTEM_ERROR 的友好文案，细节只进服务端日志。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>统一响应体</td><td>code/message/data 固定结构，0 为成功，非 0 为业务失败</td></tr>
+      <tr><td>业务异常</td><td>BizException 携带 ErrorCode 枚举，Service 抛出，不拼响应</td></tr>
+      <tr><td>全局处理器</td><td>@RestControllerAdvice + @ExceptionHandler 按类型集中映射异常</td></tr>
+      <tr><td>异常清单</td><td>校验失败 400、资源不存在 404、方法不允许 405、兜底 500 统一包装</td></tr>
+      <tr><td>顺序与安全</td><td>具体异常优先、兜底最后；堆栈只进日志，不向前端泄露</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复述：Result 三个字段含义；BizException 为什么携带错误码枚举；@RestControllerAdvice 与 @ExceptionHandler 如何配合？advice 管不到哪一层抛出的异常？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把前几章的用户接口接入本章体系：Service 抛 BizException，全局处理器覆盖业务异常、校验异常、参数缺失、类型转换与兜底五种；分别构造请求验证 HTTP 状态码与响应体字段。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为错误码增加国际化消息源（按 Accept-Language 返回中/英文提示），全局处理器读取 MessageSource 解析枚举对应文案；再补一个全局 CORS 配置类，并说明它与 @CrossOrigin 的优先级关系。</div>
+  <p class="note">下一章：MyBatis 整合与 Mapper——starter 配置、XML 映射、动态 SQL、#{} 与 ${} 的防注入边界，以及 Mapper 接口的 JDK 动态代理原理。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="090_第90章_参数校验Validation.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="092_第92章_MyBatis整合与Mapper.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 91 章 全局异常处理与统一响应</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 // 自动生成的书房清单（由 _build_library.py 生成，请勿手动编辑）
 window.KB_MANIFEST = {
-  "generated": "2026-10-22",
+  "generated": "2026-10-23",
   "groups": [
     {
       "key": "tutorial",
@@ -1250,7 +1250,7 @@ window.KB_MANIFEST = {
       "group": "tutorial",
       "name": "《Java 从 0 到精通》",
       "icon": "☕",
-      "desc": "12 篇 · 规划 112 章 · 撰写中",
+      "desc": "12 篇 · 112 章完稿 · 全书完",
       "color": "#B4552D",
       "chapters": [
         {
@@ -1812,73 +1812,304 @@ window.KB_MANIFEST = {
           "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/079_第79章_依赖注入三种方式与选择.html",
           "d": "std",
           "n": 79
+        },
+        {
+          "t": "第 80 章 Bean 作用域与懒加载｜Java 从 0 到精通",
+          "f": "080_第80章_Bean作用域与懒加载.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/080_第80章_Bean作用域与懒加载.html",
+          "d": "std",
+          "n": 80
+        },
+        {
+          "t": "第 81 章 AOP 概念与动态代理回顾｜Java 从 0 到精通",
+          "f": "081_第81章_AOP概念与动态代理回顾.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/081_第81章_AOP概念与动态代理回顾.html",
+          "d": "std",
+          "n": 81
+        },
+        {
+          "t": "第 82 章 切面实战日志与耗时统计｜Java 从 0 到精通",
+          "f": "082_第82章_切面实战日志与耗时统计.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/082_第82章_切面实战日志与耗时统计.html",
+          "d": "std",
+          "n": 82
+        },
+        {
+          "t": "第 83 章 声明式事务与传播行为｜Java 从 0 到精通",
+          "f": "083_第83章_声明式事务与传播行为.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/083_第83章_声明式事务与传播行为.html",
+          "d": "std",
+          "n": 83
+        },
+        {
+          "t": "第 84 章 事件机制与监听器｜Java 从 0 到精通",
+          "f": "084_第84章_事件机制与监听器.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/084_第84章_事件机制与监听器.html",
+          "d": "std",
+          "n": 84
+        },
+        {
+          "t": "第 85 章 循环依赖与三级缓存｜Java 从 0 到精通",
+          "f": "085_第85章_循环依赖与三级缓存.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/085_第85章_循环依赖与三级缓存.html",
+          "d": "std",
+          "n": 85
+        },
+        {
+          "t": "第 86 章 自动装配原理前奏｜Java 从 0 到精通",
+          "f": "086_第86章_自动装配原理前奏.html",
+          "u": "old-docs/14_从0到精通/java/90_第九篇_Spring核心/086_第86章_自动装配原理前奏.html",
+          "d": "std",
+          "n": 86
+        },
+        {
+          "t": "第 87 章 SpringBoot 入门与启动流程｜Java 从 0 到精通",
+          "f": "087_第87章_SpringBoot入门与启动流程.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/087_第87章_SpringBoot入门与启动流程.html",
+          "d": "std",
+          "n": 87
+        },
+        {
+          "t": "第 88 章 配置体系与多环境｜Java 从 0 到精通",
+          "f": "088_第88章_配置体系与多环境.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/088_第88章_配置体系与多环境.html",
+          "d": "std",
+          "n": 88
+        },
+        {
+          "t": "第 89 章 Web 开发与 RESTful 接口｜Java 从 0 到精通",
+          "f": "089_第89章_Web开发与RESTful接口.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/089_第89章_Web开发与RESTful接口.html",
+          "d": "std",
+          "n": 89
+        },
+        {
+          "t": "第 90 章 参数校验 Validation｜Java 从 0 到精通",
+          "f": "090_第90章_参数校验Validation.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/090_第90章_参数校验Validation.html",
+          "d": "std",
+          "n": 90
+        },
+        {
+          "t": "第 91 章 全局异常处理与统一响应｜Java 从 0 到精通",
+          "f": "091_第91章_全局异常处理与统一响应.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/091_第91章_全局异常处理与统一响应.html",
+          "d": "std",
+          "n": 91
+        },
+        {
+          "t": "第 92 章 MyBatis 整合与 Mapper｜Java 从 0 到精通",
+          "f": "092_第92章_MyBatis整合与Mapper.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/092_第92章_MyBatis整合与Mapper.html",
+          "d": "std",
+          "n": 92
+        },
+        {
+          "t": "第 93 章 分页与通用查询｜Java 从 0 到精通",
+          "f": "093_第93章_分页与通用查询.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/093_第93章_分页与通用查询.html",
+          "d": "std",
+          "n": 93
+        },
+        {
+          "t": "第 94 章 JWT 登录实战｜Java 从 0 到精通",
+          "f": "094_第94章_JWT登录实战.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/094_第94章_JWT登录实战.html",
+          "d": "std",
+          "n": 94
+        },
+        {
+          "t": "第 95 章 文件上传与静态资源｜Java 从 0 到精通",
+          "f": "095_第95章_文件上传与静态资源.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/095_第95章_文件上传与静态资源.html",
+          "d": "std",
+          "n": 95
+        },
+        {
+          "t": "第 96 章 定时任务与异步处理｜Java 从 0 到精通",
+          "f": "096_第96章_定时任务与异步处理.html",
+          "u": "old-docs/14_从0到精通/java/100_第十篇_SpringBoot与Web/096_第96章_定时任务与异步处理.html",
+          "d": "std",
+          "n": 96
+        },
+        {
+          "t": "第 97 章 Maven 依赖与生命周期｜Java 从 0 到精通",
+          "f": "097_第97章_Maven依赖与生命周期.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/097_第97章_Maven依赖与生命周期.html",
+          "d": "std",
+          "n": 97
+        },
+        {
+          "t": "第 98 章 多模块项目组织｜Java 从 0 到精通",
+          "f": "098_第98章_多模块项目组织.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/098_第98章_多模块项目组织.html",
+          "d": "std",
+          "n": 98
+        },
+        {
+          "t": "第 99 章 单元测试 JUnit5 与 Mockito｜Java 从 0 到精通",
+          "f": "099_第99章_单元测试JUnit5与Mockito.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/099_第99章_单元测试JUnit5与Mockito.html",
+          "d": "std",
+          "n": 99
+        },
+        {
+          "t": "第 100 章 日志体系 Logback 与链路｜Java 从 0 到精通",
+          "f": "100_第100章_日志体系Logback与链路.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/100_第100章_日志体系Logback与链路.html",
+          "d": "std",
+          "n": 100
+        },
+        {
+          "t": "第 101 章 代码规范 Checkstyle 与评审｜Java 从 0 到精通",
+          "f": "101_第101章_代码规范Checkstyle与评审.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/101_第101章_代码规范Checkstyle与评审.html",
+          "d": "std",
+          "n": 101
+        },
+        {
+          "t": "第 102 章 打包与部署 jar 镜像｜Java 从 0 到精通",
+          "f": "102_第102章_打包与部署jar镜像.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/102_第102章_打包与部署jar镜像.html",
+          "d": "std",
+          "n": 102
+        },
+        {
+          "t": "第 103 章 Docker 化 SpringBoot 应用｜Java 从 0 到精通",
+          "f": "103_第103章_Docker化SpringBoot应用.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/103_第103章_Docker化SpringBoot应用.html",
+          "d": "std",
+          "n": 103
+        },
+        {
+          "t": "第 104 章 性能优化入门：接口耗时分析｜Java 从 0 到精通",
+          "f": "104_第104章_性能优化入门接口耗时分析.html",
+          "u": "old-docs/14_从0到精通/java/110_第十一篇_工程化与测试/104_第104章_性能优化入门接口耗时分析.html",
+          "d": "std",
+          "n": 104
+        },
+        {
+          "t": "第 105 章 综合项目：需求管理系统设计｜Java 从 0 到精通",
+          "f": "105_第105章_综合项目需求管理系统设计.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/105_第105章_综合项目需求管理系统设计.html",
+          "d": "std",
+          "n": 105
+        },
+        {
+          "t": "第 106 章 后端实现：接口与分层｜Java 从 0 到精通",
+          "f": "106_第106章_后端实现接口与分层.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/106_第106章_后端实现接口与分层.html",
+          "d": "std",
+          "n": 106
+        },
+        {
+          "t": "第 107 章 前后端联调与跨域｜Java 从 0 到精通",
+          "f": "107_第107章_前后端联调与跨域.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/107_第107章_前后端联调与跨域.html",
+          "d": "std",
+          "n": 107
+        },
+        {
+          "t": "第 108 章 缓存接入：Redis 模板｜Java 从 0 到精通",
+          "f": "108_第108章_缓存接入Redis模板.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/108_第108章_缓存接入Redis模板.html",
+          "d": "std",
+          "n": 108
+        },
+        {
+          "t": "第 109 章 消息队列接入与异步解耦｜Java 从 0 到精通",
+          "f": "109_第109章_消息队列接入与异步解耦.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/109_第109章_消息队列接入与异步解耦.html",
+          "d": "std",
+          "n": 109
+        },
+        {
+          "t": "第 110 章 压测与调优闭环｜Java 从 0 到精通",
+          "f": "110_第110章_压测与调优闭环.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/110_第110章_压测与调优闭环.html",
+          "d": "std",
+          "n": 110
+        },
+        {
+          "t": "第 111 章 面试知识体系梳理｜Java 从 0 到精通",
+          "f": "111_第111章_面试知识体系梳理.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/111_第111章_面试知识体系梳理.html",
+          "d": "std",
+          "n": 111
+        },
+        {
+          "t": "第 112 章 进阶路线：微服务与云原生｜Java 从 0 到精通",
+          "f": "112_第112章_进阶路线微服务与云原生.html",
+          "u": "old-docs/14_从0到精通/java/120_第十二篇_综合项目收官/112_第112章_进阶路线微服务与云原生.html",
+          "d": "std",
+          "n": 112
         }
       ],
       "planned": 112,
-      "status": "plan",
+      "status": "done",
       "parts": [
         {
           "name": "第一篇 入门与语法",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第二篇 面向对象",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第三篇 核心 API 与集合",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第四篇 异常与 IO",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第五篇 反射注解与函数式",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第六篇 并发编程",
           "chapters": 12,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第七篇 JVM",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第八篇 数据库与 JDBC",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第九篇 Spring 核心",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第十篇 SpringBoot 与 Web",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第十一篇 工程化与测试",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第十二篇 综合项目收官",
           "chapters": 8,
-          "state": "plan"
+          "state": "done"
         }
       ],
-      "done": 79
+      "done": 112
     },
     {
       "key": "14_从0到精通/mysql",
@@ -4550,5 +4781,5 @@ window.KB_MANIFEST = {
       ]
     }
   ],
-  "total": 552
+  "total": 585
 };

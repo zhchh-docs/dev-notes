@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 106 章 后端实现：接口与分层｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十二篇 综合项目收官</p>
+    <h1>第 106 章 后端实现：接口与分层</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 106 章 / 共 112 章 · 预计 40 分钟 · 第十二篇：项目实战</span>
+    </div>
+    <p class="hero-desc">本章把 105 章的设计落成可运行的后端骨架：统一响应与全局异常、登录鉴权、需求 CRUD、审批状态机依次实现，并把事务边界与分层混用这两类高频坑显式讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="105_第105章_综合项目需求管理系统设计.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="107_第107章_前后端联调与跨域.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">106.1 项目骨架与包结构</a></li>
+    <li><a href="#sec3">106.2 分层职责与对象分类</a></li>
+    <li><a href="#sec4">106.3 统一响应与全局异常</a></li>
+    <li><a href="#sec5">106.4 登录接口与 JWT 签发</a></li>
+    <li><a href="#sec6">106.5 需求 CRUD 实现</a></li>
+    <li><a href="#sec7">106.6 审批流转状态机</a></li>
+    <li><a href="#sec8">106.7 事务边界与常见坑</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>搭出项目骨架，说清 <strong>controller / service / mapper</strong> 三层与 <strong>entity / dto / vo</strong> 三类对象的边界；</li>
+    <li>实现 <strong>统一响应体</strong> 与 <strong>全局异常处理</strong>，让接口错误格式一致（呼应第 91 章）；</li>
+    <li>写出 <strong>登录签发 JWT</strong>、需求 <strong>CRUD</strong> 与审批状态流转的核心代码；</li>
+    <li>掌握 <strong>事务注解</strong> 的放置位置与粒度判断，避开 DTO 与实体混用等常见坑。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">106.1</span> 项目骨架与包结构</h2>
+  <p class="lead">启动类放在根包 <code>com.example.reqmanage</code>，Spring 组件扫描从根包向下覆盖；各层按业务子域再分包，避免一个 controller 包塞几十个类。</p>
+  <pre class="code" data-lang="text"><code>com.example.reqmanage
+├── ReqManageApplication.java              // 启动类：@SpringBootApplication
+├── common
+│   ├── result/R.java                      // 统一响应体
+│   ├── result/PageResult.java             // 分页响应体
+│   ├── exception/BizException.java       // 业务异常（带错误码）
+│   ├── exception/ErrorCode.java            // 错误码枚举
+│   └── handler/GlobalExceptionHandler.java // @RestControllerAdvice
+├── config
+│   ├── SecurityConfig.java                 // Spring Security 过滤链
+│   ├── MybatisPlusConfig.java              // 分页插件、自动填充
+│   └── JwtAuthenticationFilter.java       // 请求级 JWT 校验过滤器
+├── controller
+│   ├── AuthController.java
+│   ├── UserController.java
+│   ├── RequirementController.java
+│   └── ApprovalController.java
+├── service
+│   ├── AuthService.java                    // 接口先行，便于单测替换
+│   ├── RequirementService.java
+│   ├── ApprovalService.java
+│   └── impl/
+│       ├── AuthServiceImpl.java
+│       ├── RequirementServiceImpl.java
+│       └── ApprovalServiceImpl.java
+├── mapper
+│   ├── UserMapper.java
+│   ├── RequirementMapper.java
+│   └── ApprovalRecordMapper.java
+├── entity                                 // 数据库实体，与表一一对应
+│   ├── SysUser.java
+│   ├── Requirement.java
+│   └── ApprovalRecord.java
+├── dto                                    // 入参：接收前端 JSON
+│   ├── LoginDTO.java
+│   ├── RequirementCreateDTO.java
+│   └── RequirementQueryDTO.java
+├── vo                                     // 出参：返回前端的视图对象
+│   ├── LoginVO.java
+│   ├── UserVO.java
+│   └── RequirementVO.java
+└── enums
+    ├── RequirementStatus.java
+    └── Role.java</code></pre>
+  <div class="key-sentence"><span class="tag-point">结构原则</span>包结构反映业务边界而不是技术层级的简单复制：先按 <code>controller/service/mapper</code> 分层，再在每一层内按业务模块分文件；业务复杂后可进一步演进为按模块分包（每个模块内部自带 controller/service/entity）。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">106.2</span> 分层职责与对象分类</h2>
+  <p class="lead">分层不是形式主义的目录切分，而是<strong>让变化各归其位</strong>：HTTP 协议细节留在 controller，业务规则留在 service，SQL 细节留在 mapper。</p>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:42%"><col style="width:42%"></colgroup>
+    <thead><tr><th>层</th><th>职责</th><th>不允许做的事</th></tr></thead>
+    <tbody>
+      <tr><td>Controller</td><td>接收请求、校验入参、鉴权上下文取值、调用 service、组装 VO、返回 R</td><td>写业务判断、直接操作 Mapper、拼装 SQL 条件</td></tr>
+      <tr><td>Service 接口</td><td>声明业务能力与事务语义，供 controller 与其他 service 依赖</td><td>注入 Mapper 之外的 Web 对象</td></tr>
+      <tr><td>Service 实现</td><td>业务规则、状态流转、事务边界、组合多个 Mapper、调用基础设施</td><td>处理 HttpServletRequest 细节、返回 entity 给上层</td></tr>
+      <tr><td>Mapper</td><td>数据库读写、条件构造、关联查询，方法名表达数据语义</td><td>出现审批、通知等业务动词与分支判断</td></tr>
+    </tbody>
+  </table>
+  <h3>106.2.1 entity / dto / vo 为什么必须分开</h3>
+  <table>
+    <colgroup><col style="width:14%"><col style="width:30%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>对象</th><th>用途</th><th>字段特征</th><th>流向</th></tr></thead>
+    <tbody>
+      <tr><td>entity</td><td>与数据库表映射，MyBatis-Plus 操作的载体</td><td>含自增主键、create_time、update_time 等表字段</td><td>mapper ↔ service，不越出后端</td></tr>
+      <tr><td>dto</td><td>接收前端入参，承载校验注解</td><td>只含表单需要的字段，可按接口拆分多个</td><td>前端 → controller → service</td></tr>
+      <tr><td>vo</td><td>返回前端的视图模型</td><td>可关联展示字段（如提交人姓名），剔除敏感字段（password）</td><td>service → controller → 前端</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 200" role="img" aria-label="请求调用链与对象流向">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">一次请求的分层调用链与对象流向</text>
+      <rect x="30" y="52" width="150" height="110" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="105" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">Controller</text>
+      <text x="105" y="106" text-anchor="middle" font-size="11" fill="#4f6348">DTO 入参校验</text>
+      <text x="105" y="128" text-anchor="middle" font-size="11" fill="#4f6348">组装 VO 返回</text>
+      <rect x="290" y="52" width="180" height="110" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="380" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Service 实现</text>
+      <text x="380" y="106" text-anchor="middle" font-size="11" fill="#4f6348">业务规则 / 状态机</text>
+      <text x="380" y="128" text-anchor="middle" font-size="11" fill="#4f6348">事务边界</text>
+      <rect x="590" y="52" width="180" height="110" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="680" y="80" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b45309">Mapper</text>
+      <text x="680" y="106" text-anchor="middle" font-size="11" fill="#4f6348">entity 读写</text>
+      <text x="680" y="128" text-anchor="middle" font-size="11" fill="#4f6348">条件构造 / SQL</text>
+      <line x1="180" y1="107" x2="290" y2="107" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a3)"/>
+      <line x1="470" y1="107" x2="590" y2="107" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a3)"/>
+      <line x1="590" y1="137" x2="470" y2="137" stroke="#4f8a63" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#a3)"/>
+      <line x1="290" y1="137" x2="180" y2="137" stroke="#4f8a63" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#a3)"/>
+      <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2d6a3f"/></marker></defs>
+      <text x="235" y="100" text-anchor="middle" font-size="10.5" fill="#4f6348">DTO</text>
+      <text x="530" y="100" text-anchor="middle" font-size="10.5" fill="#4f6348">entity</text>
+      <text x="235" y="156" text-anchor="middle" font-size="10.5" fill="#4f6348">VO</text>
+      <text x="400" y="188" text-anchor="middle" font-size="12" fill="#7a8a70">图 106-1 实线为调用方向，虚线为返回方向；entity 不出 Service 层</text>
+    </svg>
+    <p class="diagram-caption">图 106-1 分层调用链与对象流向</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">106.3</span> 统一响应与全局异常</h2>
+  <p class="lead">前端最恨的不是报错，而是每次报错格式都不一样：有时返回 HTML 错误页，有时字段名变了。统一 <code>R&lt;T&gt;</code> 与 <code>@RestControllerAdvice</code> 把所有出口收拢成一种格式（第 91 章异常体系的落地）。</p>
+  <pre class="code" data-lang="java"><code>// common/result/R.java —— 统一响应体
+public class R&lt;T&gt; {
+    private int code;          // 0 成功；非 0 为业务错误码
+    private String message;
+    private T data;
+
+    public static &lt;T&gt; R&lt;T&gt; ok(T data) {
+        R&lt;T&gt; r = new R&lt;&gt;();
+        r.code = 0; r.message = "success"; r.data = data;
+        return r;
+    }
+    public static &lt;T&gt; R&lt;T&gt; fail(ErrorCode ec) {
+        R&lt;T&gt; r = new R&lt;&gt;();
+        r.code = ec.getCode(); r.message = ec.getMessage();
+        return r;
+    }
+    // getter / setter 省略
+}
+
+// common/exception/ErrorCode.java —— 错误码分段：1xxxx 鉴权，2xxxx 需求，3xxxx 审批
+public enum ErrorCode {
+    USERNAME_OR_PASSWORD_WRONG(10001, "用户名或密码错误"),
+    TOKEN_INVALID(10002, "登录已过期，请重新登录"),
+    REQUIREMENT_NOT_FOUND(20001, "需求不存在"),
+    REQUIREMENT_NOT_EDITABLE(20002, "当前状态不可编辑"),
+    STATUS_TRANSITION_ILLEGAL(30001, "状态流转不合法"),
+    NO_PERMISSION(30002, "无操作权限");
+
+    private final int code;
+    private final String message;
+    ErrorCode(int code, String message) { this.code = code; this.message = message; }
+    public int getCode() { return code; }
+    public String getMessage() { return message; }
+}
+
+// common/exception/BizException.java —— 业务异常携带错误码
+public class BizException extends RuntimeException {
+    private final ErrorCode errorCode;
+    public BizException(ErrorCode ec) { super(ec.getMessage()); this.errorCode = ec; }
+    public ErrorCode getErrorCode() { return errorCode; }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// common/handler/GlobalExceptionHandler.java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    // 业务异常：按错误码返回 R.fail，HTTP 状态码仍为 200，由前端按 code 判断
+    @ExceptionHandler(BizException.class)
+    public R&lt;Void&gt; handleBiz(BizException e) {
+        return R.fail(e.getErrorCode());
+    }
+
+    // 参数校验异常（@Valid 失败）：提取第一条字段错误信息
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public R&lt;Void&gt; handleValid(MethodArgumentNotValidException e) {
+        String msg = e.getBindingResult().getFieldErrors().stream()
+                .map(f -&gt; f.getField() + " " + f.getDefaultMessage())
+                .findFirst().orElse("参数校验失败");
+        R&lt;Void&gt; r = R.fail(ErrorCode.PARAM_INVALID);
+        // 覆盖 message 为具体字段提示
+        return r;
+    }
+
+    // 兜底异常：不把堆栈暴露给前端，记录日志后返回系统错误
+    @ExceptionHandler(Exception.class)
+    public R&lt;Void&gt; handleOther(Exception e) {
+        log.error("未处理异常", e);
+        return R.fail(ErrorCode.SYSTEM_ERROR);
+    }
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">设计提醒</span>教学项目里业务失败也返回 HTTP 200、靠 <code>code</code> 区分；正式项目可对鉴权失败返回 401、权限不足返回 403。无论选哪种，<strong>前端必须只认一种约定</strong>，不要一半接口用状态码、一半用 code。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">106.4</span> 登录接口与 JWT 签发</h2>
+  <p class="lead">登录链路：校验账号口令（BCrypt 比对）→ 生成 JWT（用户 id、角色、过期时间）→ 返回 token 与用户视图；后续请求由过滤器解析令牌、把当前用户放进上下文。</p>
+  <pre class="code" data-lang="java"><code>// dto/LoginDTO.java —— 入参带 Bean Validation 注解
+public class LoginDTO {
+    @NotBlank(message = "登录名不能为空")
+    private String username;
+    @NotBlank(message = "口令不能为空")
+    private String password;
+    // getter / setter 省略
+}
+
+// vo/LoginVO.java
+public class LoginVO {
+    private String token;
+    private UserVO user;
+    // getter / setter 省略
+}
+
+// controller/AuthController.java
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+    private final AuthService authService;
+    public AuthController(AuthService authService) { this.authService = authService; }
+
+    @PostMapping("/login")
+    public R&lt;LoginVO&gt; login(@Valid @RequestBody LoginDTO dto) {
+        return R.ok(authService.login(dto));
+    }
+
+    @PostMapping("/logout")
+    public R&lt;Void&gt; logout() {
+        authService.logout();
+        return R.ok(null);
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// service/impl/AuthServiceImpl.java
+@Service
+public class AuthServiceImpl implements AuthService {
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider tokenProvider;
+
+    public AuthServiceImpl(UserMapper userMapper,
+                           PasswordEncoder passwordEncoder,
+                           JwtTokenProvider tokenProvider) {
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenProvider = tokenProvider;
+    }
+
+    @Override
+    public LoginVO login(LoginDTO dto) {
+        SysUser user = userMapper.selectByUsername(dto.getUsername());
+        if (user == null
+                || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new BizException(ErrorCode.USERNAME_OR_PASSWORD_WRONG);
+        }
+        if (user.getStatus() == 0) {
+            throw new BizException(ErrorCode.USER_DISABLED);
+        }
+        String token = tokenProvider.generate(user.getId(), user.getRole());
+        LoginVO vo = new LoginVO();
+        vo.setToken(token);
+        vo.setUser(UserVO.from(user));
+        return vo;
+    }
+
+    @Override
+    public void logout() {
+        // 教学版：无状态 JWT 不做服务端会话；演示中可把 token 加入 Redis 黑名单
+    }
+}</code></pre>
+  <p>JWT 工具类只负责三件事：<strong>生成令牌</strong>（签名 + 过期时间）、<strong>解析令牌</strong>（验签 + 取声明）、<strong>校验有效期</strong>；密码使用 <code>BCryptPasswordEncoder</code> 单向散列，数据库不存明文。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">106.5</span> 需求 CRUD 实现</h2>
+  <p class="lead">以"新建需求"和"分页列表"为例：controller 只做参数接收与 VO 组装，service 完成归属判断与状态初始化，mapper 借助 MyBatis-Plus 条件构造器完成查询。</p>
+  <pre class="code" data-lang="java"><code>// dto/RequirementCreateDTO.java
+public class RequirementCreateDTO {
+    @NotBlank(message = "标题不能为空")
+    @Size(max = 120, message = "标题最长 120 字")
+    private String title;
+    private String description;
+    private String priority;          // P0 / P1 / P2
+    private LocalDate expectDate;
+    // getter / setter 省略
+}
+
+// controller/RequirementController.java
+@RestController
+@RequestMapping("/api/requirements")
+public class RequirementController {
+    private final RequirementService requirementService;
+    public RequirementController(RequirementService s) { this.requirementService = s; }
+
+    @PostMapping
+    public R&lt;Long&gt; create(@Valid @RequestBody RequirementCreateDTO dto) {
+        Long id = requirementService.create(dto, CurrentUser.getUserId());
+        return R.ok(id);
+    }
+
+    @GetMapping
+    public R&lt;PageResult&lt;RequirementVO&gt;&gt; page(RequirementQueryDTO query) {
+        return R.ok(requirementService.page(query));
+    }
+
+    @GetMapping("/{id}")
+    public R&lt;RequirementVO&gt; detail(@PathVariable Long id) {
+        return R.ok(requirementService.detail(id));
+    }
+
+    @PostMapping("/{id}/submit")
+    public R&lt;Void&gt; submit(@PathVariable Long id) {
+        requirementService.submit(id, CurrentUser.getUserId());
+        return R.ok(null);
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// service/impl/RequirementServiceImpl.java（节选）
+@Service
+public class RequirementServiceImpl implements RequirementService {
+    private final RequirementMapper requirementMapper;
+    private final ApprovalRecordMapper recordMapper;
+
+    public RequirementServiceImpl(RequirementMapper m, ApprovalRecordMapper r) {
+        this.requirementMapper = m; this.recordMapper = r;
+    }
+
+    @Override
+    public Long create(RequirementCreateDTO dto, Long userId) {
+        Requirement entity = new Requirement();
+        entity.setTitle(dto.getTitle());
+        entity.setDescription(dto.getDescription());
+        entity.setPriority(dto.getPriority() == null ? "P1" : dto.getPriority());
+        entity.setExpectDate(dto.getExpectDate());
+        entity.setCreatorId(userId);
+        entity.setStatus(RequirementStatus.DRAFT.name());   // 新建即草稿
+        requirementMapper.insert(entity);
+        return entity.getId();
+    }
+
+    @Override
+    public void submit(Long id, Long userId) {
+        Requirement req = requireById(id);
+        if (!req.getCreatorId().equals(userId)) {
+            throw new BizException(ErrorCode.NO_PERMISSION);
+        }
+        // 仅草稿可提交，否则由状态机抛流转非法（见 106.6）
+        RequirementStatus.from(req.getStatus())
+                .transition(RequirementStatus.PENDING);
+        req.setStatus(RequirementStatus.PENDING.name());
+        requirementMapper.updateById(req);
+    }
+
+    private Requirement requireById(Long id) {
+        Requirement req = requirementMapper.selectById(id);
+        if (req == null) throw new BizException(ErrorCode.REQUIREMENT_NOT_FOUND);
+        return req;
+    }
+}</code></pre>
+  <p>分页列表使用 MyBatis-Plus 的 <code>Page</code> 对象与条件构造器：状态、优先级为精确匹配，标题为模糊匹配，按创建时间倒序；返回 <code>PageResult</code> 携带当前页、总条数与记录列表。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">106.6</span> 审批流转状态机</h2>
+  <p class="lead">状态机的核心是一张<strong>合法流转表</strong>：当前状态 → 允许到达的下一状态。代码里用枚举内置这张表，任何流转先查表再落库，杜绝前端传什么状态就写什么状态。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>当前状态</th><th>允许流转到</th><th>触发动作 / 操作者</th></tr></thead>
+    <tbody>
+      <tr><td>DRAFT 草稿</td><td>PENDING 待审批；（删除草稿）</td><td>提交人本人</td></tr>
+      <tr><td>PENDING 待审批</td><td>APPROVED 已立项；REJECTED 已驳回</td><td>审批人</td></tr>
+      <tr><td>REJECTED 已驳回</td><td>PENDING 待审批；DRAFT（放弃）</td><td>提交人本人修改后重提</td></tr>
+      <tr><td>APPROVED 已立项</td><td>IN_PROGRESS 进行中；CLOSED 已关闭</td><td>项目经理</td></tr>
+      <tr><td>IN_PROGRESS 进行中</td><td>CLOSED 已关闭</td><td>项目经理</td></tr>
+      <tr><td>CLOSED 已关闭</td><td>终态，不可流转</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>// enums/RequirementStatus.java
+public enum RequirementStatus {
+    DRAFT, PENDING, APPROVED, REJECTED, IN_PROGRESS, CLOSED;
+
+    private static final Map&lt;RequirementStatus, Set&lt;RequirementStatus&gt;&gt; NEXT = Map.of(
+        DRAFT,       EnumSet.of(PENDING),
+        PENDING,     EnumSet.of(APPROVED, REJECTED),
+        REJECTED,    EnumSet.of(PENDING, DRAFT),
+        APPROVED,    EnumSet.of(IN_PROGRESS, CLOSED),
+        IN_PROGRESS, EnumSet.of(CLOSED),
+        CLOSED,      EnumSet.noneOf(RequirementStatus.class)
+    );
+
+    public static RequirementStatus from(String code) {
+        return RequirementStatus.valueOf(code);
+    }
+
+    public void transition(RequirementStatus target) {
+        if (!NEXT.get(this).contains(target)) {
+            throw new BizException(ErrorCode.STATUS_TRANSITION_ILLEGAL);
+        }
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// service/impl/ApprovalServiceImpl.java（审批动作，事务见 106.7）
+@Service
+public class ApprovalServiceImpl implements ApprovalService {
+    private final RequirementMapper requirementMapper;
+    private final ApprovalRecordMapper recordMapper;
+
+    public ApprovalServiceImpl(RequirementMapper r, ApprovalRecordMapper a) {
+        this.requirementMapper = r; this.recordMapper = a;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approve(Long requirementId, Long approverId, String comment) {
+        Requirement req = requirementMapper.selectById(requirementId);
+        if (req == null) throw new BizException(ErrorCode.REQUIREMENT_NOT_FOUND);
+
+        RequirementStatus current = RequirementStatus.from(req.getStatus());
+        current.transition(RequirementStatus.APPROVED);   // 先校验合法流转
+
+        req.setStatus(RequirementStatus.APPROVED.name());
+        requirementMapper.updateById(req);
+
+        ApprovalRecord record = new ApprovalRecord();
+        record.setRequirementId(requirementId);
+        record.setApproverId(approverId);
+        record.setAction("APPROVE");
+        record.setComment(comment);
+        recordMapper.insert(record);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reject(Long requirementId, Long approverId, String comment) {
+        // 与 approve 对称：状态置为 REJECTED，追加一条 REJECT 记录
+        Requirement req = requirementMapper.selectById(requirementId);
+        if (req == null) throw new BizException(ErrorCode.REQUIREMENT_NOT_FOUND);
+        RequirementStatus.from(req.getStatus())
+                .transition(RequirementStatus.REJECTED);
+        req.setStatus(RequirementStatus.REJECTED.name());
+        requirementMapper.updateById(req);
+
+        ApprovalRecord record = new ApprovalRecord();
+        record.setRequirementId(requirementId);
+        record.setApproverId(approverId);
+        record.setAction("REJECT");
+        record.setComment(comment);
+        recordMapper.insert(record);
+    }
+}</code></pre>
+  <div class="key-sentence"><span class="tag-key">状态机价值</span>流转合法性收敛在一处：以后新增"撤回"动作，只改枚举表与对应 service 方法，不会在十几个接口里散落字符串判断。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">106.7</span> 事务边界与常见坑</h2>
+  <p class="lead">审批动作同时改需求状态、写审批记录，必须在一个事务里：状态改了但记录没落库，就会出现"系统显示通过、历史里查不到审批人"的脏数据。</p>
+  <h3>106.7.1 事务注解放哪里</h3>
+  <ul>
+    <li><strong>放在 service 实现类的公开方法上</strong>（或接口方法上），一个方法 = 一个事务边界；controller 层不加事务——请求级别事务粒度过粗，会把只读查询也裹进事务；</li>
+    <li><code>@Transactional(rollbackFor = Exception.class)</code> 显式指定回滚异常，因为默认只对 <code>RuntimeException</code> 与 <code>Error</code> 回滚；受检异常不回滚是新代码最常踩的坑；</li>
+    <li>事务内不要混入 RPC、消息发送、长耗时循环：一旦事务边界过大，数据库连接被占住，并发上来先打满连接池。</li>
+  </ul>
+  <h3>106.7.2 本项目高频坑清单</h3>
+  <div class="warn-box"><span class="tag-pit">坑一：DTO 与实体混用</span>图省事把 <code>Requirement</code> 实体直接作为 <code>@RequestBody</code> 入参：前端能伪造 <code>id</code>、<code>createTime</code>、<code>status</code> 等字段绕过校验。<strong>入参一律用 DTO</strong>，字段由 service 显式拷贝。</div>
+  <div class="warn-box"><span class="tag-pit">坑二：把 entity 直接返回前端</span>实体含 <code>password</code>、<code>updateTime</code> 等内部字段，直接返回会泄露敏感信息并把表结构暴露给前端；<strong>出参一律转 VO</strong>，在 VO 上用静态工厂方法 <code>UserVO.from(entity)</code> 做映射。</div>
+  <div class="warn-box"><span class="tag-pit">坑三：事务粒度过粗</span>把一个 <code>@Transactional</code> 方法写成"先查列表、再循环逐条改、最后发通知"，单条失败回滚整批；正确做法是按业务单元拆方法，批量场景用分批事务并记录失败明细。</div>
+  <div class="pit-sentence"><span class="tag-pit">自检口诀</span>事务只包"必须同生共死"的一组写操作；查询、远程调用、发消息都放到事务之外——109 章接入消息队列时，异步通知要在事务提交之后再发。</div>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>骨架分层</td><td>controller 接请求、service 写规则、mapper 碰数据库；entity/dto/vo 三类对象分开</td></tr>
+      <tr><td>统一出口</td><td>R&lt;T&gt; 统一响应 + @RestControllerAdvice 兜底，错误码分段管理，前端只认一套格式</td></tr>
+      <tr><td>登录鉴权</td><td>BCrypt 比对口令，JWT 携带用户 id 与角色，过滤器解析后写入登录上下文</td></tr>
+      <tr><td>状态机</td><td>枚举内置合法流转表，先查表再落库；终态不可回退，流转规则收敛在一处</td></tr>
+      <tr><td>事务纪律</td><td>事务放 service 写方法、rollbackFor 指定异常；不裹查询与远程调用，DTO/entity/vo 不混用</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说明 controller、service、mapper 三层各自允许做什么、禁止做什么，并解释 entity、dto、vo 的流向区别。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为"编辑草稿"补全 controller 方法、service 校验（仅 DRAFT 状态且本人可改）与 DTO/VO 转换，写出完整代码并通过 Postman 验证。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给状态机增加"提交人撤回"动作（PENDING → DRAFT），修改枚举流转表、补充审批记录动作，并写一个单测覆盖非法流转抛异常的场景。</div>
+  <p class="note">下一章：后端跑起来之后，前端如何访问它——同源策略、CORS 配置与开发代理联调实战。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="105_第105章_综合项目需求管理系统设计.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="107_第107章_前后端联调与跨域.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 106 章 后端实现：接口与分层</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

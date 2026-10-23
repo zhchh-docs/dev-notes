@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 85 章 循环依赖与三级缓存｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第九篇 Spring 核心</p>
+    <h1>第 85 章 循环依赖与三级缓存</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 85 章 / 共 112 章 · 预计 40 分钟 · 第九篇：容器装配深挖</span>
+    </div>
+    <p class="hero-desc">A 依赖 B，B 又依赖 A，容器该先创建谁？本章从循环依赖的三种形态讲起：为什么构造器注入无解，字段与 setter 注入能被三级缓存解开；逐级拆解 singletonObjects、earlySingletonObjects、singletonFactories 的分工，回答"为什么必须是三级而不是两级"，并给出 @Lazy、@DependsOn 与重构等工程替代方案。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="084_第84章_事件机制与监听器.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="086_第86章_自动装配原理前奏.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">85.1 什么是循环依赖</a></li>
+    <li><a href="#sec3">85.2 构造器注入为什么无解</a></li>
+    <li><a href="#sec4">85.3 三级缓存结构与创建流程</a></li>
+    <li><a href="#sec5">85.4 为什么是三级而不是两级</a></li>
+    <li><a href="#sec5b">85.5 替代方案：@Lazy 与 @DependsOn</a></li>
+    <li><a href="#sec6">85.6 报错定位与工程纪律</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>识别<strong>构造器、字段、setter</strong>三种循环依赖形态及其可解性差异；</li>
+    <li>说清 Spring 容器中<strong>三级缓存</strong>各自的职责与对象流转顺序；</li>
+    <li>解释引入<strong>第三级 singletonFactories</strong> 的根本原因（AOP 代理的早期暴露）；</li>
+    <li>掌握 <code>@Lazy</code>、<code>@DependsOn</code> 替代方案，能读懂并定位 <code>BeanCurrentlyInCreationException</code>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">85.1</span> 什么是循环依赖</h2>
+  <p class="lead"><strong>一句话定位</strong>：两个或多个 Bean 之间形成依赖闭环——A 需要 B，B 又需要 A，容器创建 A 时被要求先给 B，创建 B 时又回头要 A。</p>
+  <pre class="code" data-lang="java"><code>// 形态一：字段注入循环（Spring 可解，单例 + setter/字段）
+@Service
+public class OrderService {
+    @Autowired
+    private PaymentService paymentService;
+}
+
+@Service
+public class PaymentService {
+    @Autowired
+    private OrderService orderService;
+}
+
+// 形态二：构造器注入循环（Spring 无法解决，启动直接报错）
+@Service
+public class OrderService {
+    private final PaymentService paymentService;
+    public OrderService(PaymentService paymentService) { this.paymentService = paymentService; }
+}
+
+@Service
+public class PaymentService {
+    private final OrderService orderService;
+    public PaymentService(OrderService orderService) { this.orderService = orderService; }
+}
+
+// 形态三：三方以上环：A → B → C → A；原理与双方环相同，只是链路更长</code></pre>
+  <div class="warn-box"><span class="tag-pit">版本提醒</span>：Spring Boot 2.6 起默认<strong>禁止循环依赖</strong>（<code>spring.main.allow-circular-references=false</code>），即使是字段/setter 循环也会启动失败；需要显式在配置中开启该开关才能沿用旧行为。新项目的正确做法是重构解耦，而不是打开开关掩盖设计问题。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">85.2</span> 构造器注入为什么无解</h2>
+  <p class="lead"><strong>一句话定位</strong>：构造器注入要求对象在<strong>诞生那一刻</strong>依赖就必须到位；而循环双方都还没诞生，谁也拿不出一个完整对象交给对方——逻辑上不存在"先有鸡还是先有蛋"的出路。</p>
+  <pre class="code" data-lang="java"><code>// 容器视角推演构造器循环：
+// 1. 要创建 OrderService → 调用构造器，参数需要 PaymentService
+// 2. 去创建 PaymentService → 调用构造器，参数需要 OrderService
+// 3. OrderService 尚在创建中，连实例都还没 new 出来，无法作为参数传入
+// 4. 死锁式等待：双方都卡在构造器参数上，容器抛出
+//    BeanCurrentlyInCreationException: Error creating bean ...
+
+// 对比字段注入：
+// 1. 先 new OrderService()（无参构造，对象先诞生，字段暂为 null）
+// 2. 把"半成品 OrderService"登记起来，再去注入它的字段
+// 3. 创建 PaymentService，注入字段时拿到那个半成品 OrderService 引用
+// 4. PaymentService 完成；回到 OrderService 注入 PaymentService，闭环解除
+// 关键区别：对象创建与依赖装配被拆成两步，中间允许"半成品"先被引用</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>注入方式</th><th>创建与装配的关系</th><th>循环依赖可解性</th></tr></thead>
+    <tbody>
+      <tr><td>构造器注入</td><td>对象诞生即完成装配，二者不可分割</td><td>不可解，启动期报错</td></tr>
+      <tr><td>setter 注入</td><td>先创建对象，再调 setter 装配</td><td>单例场景可被三级缓存解开</td></tr>
+      <tr><td>字段注入</td><td>先创建对象，反射填字段</td><td>同上可解（但不推荐作为解法依赖）</td></tr>
+      <tr><td>prototype 作用域</td><td>容器不缓存实例，无早期暴露机制</td><td>不可解，启动报错</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence"><span class="tag-key">金句</span>：构造器注入"循环依赖直接报错"其实是<strong>优点</strong>——它在启动期就暴露设计耦合；字段注入能被缓存掩盖问题，不代表循环依赖是合理的。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">85.3</span> 三级缓存结构与创建流程</h2>
+  <p class="lead"><strong>一句话定位</strong>：Spring 用三个 Map 分层存放"成品 Bean、早期暴露对象、对象工厂"，让循环双方在对象尚未装配完成时就能拿到一个合法引用。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:30%"><col style="width:44%"></colgroup>
+    <thead><tr><th>缓存（Map）</th><th>别名</th><th>存放内容</th></tr></thead>
+    <tbody>
+      <tr><td><code>singletonObjects</code></td><td>一级缓存（成品池）</td><td>装配完成、可对外使用的单例 Bean；正常 getBean 先查这里</td></tr>
+      <tr><td><code>earlySingletonObjects</code></td><td>二级缓存（早期对象池）</td><td>已创建但尚未装配完成的 Bean 引用；循环依赖中被提前引用过的对象在此停留</td></tr>
+      <tr><td><code>singletonFactories</code></td><td>三级缓存（对象工厂池）</td><td>生成早期引用的 ObjectFactory；需要时调用其 getObject() 产出早期对象（可能是代理）</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 260" role="img" aria-label="三级缓存流转流程">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">单例 Bean 创建与三级缓存流转（A、B 字段循环）</text>
+      <rect x="40" y="50" width="200" height="56" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="140" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">① new A（半成品）</text>
+      <text x="140" y="96" text-anchor="middle" font-size="11" fill="#4f6348">A 未装配，字段为 null</text>
+      <rect x="300" y="50" width="220" height="56" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="410" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">② A 工厂放入三级缓存</text>
+      <text x="410" y="96" text-anchor="middle" font-size="11" fill="#4f6348">singletonFactories.put("A", factory)</text>
+      <rect x="580" y="50" width="180" height="56" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="670" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">③ 装配 A 字段 → 需要 B</text>
+      <text x="670" y="96" text-anchor="middle" font-size="11" fill="#4f6348">转去创建 B</text>
+      <rect x="40" y="130" width="200" height="56" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="140" y="154" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">④ new B，工厂入三级缓存</text>
+      <text x="140" y="176" text-anchor="middle" font-size="11" fill="#4f6348">装配 B 字段 → 需要 A</text>
+      <rect x="300" y="130" width="220" height="56" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="410" y="154" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">⑤ 查 A：一级无 → 三级有</text>
+      <text x="410" y="176" text-anchor="middle" font-size="11" fill="#4f6348">factory.getObject() 产出早期 A，入二级缓存</text>
+      <rect x="580" y="130" width="180" height="56" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="670" y="154" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">⑥ B 注入早期 A，装配完成</text>
+      <text x="670" y="176" text-anchor="middle" font-size="11" fill="#4f6348">B 成品入一级缓存</text>
+      <rect x="220" y="200" width="360" height="40" rx="10" fill="#eef3e8" stroke="#7a8a70"/>
+      <text x="400" y="225" text-anchor="middle" font-size="11.5" fill="#4f6348">⑦ 回到 A 注入成品 B → A 装配完成入一级缓存；循环解除</text>
+    </svg>
+    <p class="diagram-caption">图 85-1 三级缓存协作：半成品先入工厂池，被循环方引用时提升到早期对象池，最终入成品池</p>
+  </div>
+  <pre class="code" data-lang="java"><code>// 三级缓存查找顺序（容器 getBean 的简化逻辑）：
+Object getSingleton(String beanName) {
+    Object bean = singletonObjects.get(beanName);          // ① 先查成品
+    if (bean == null) {
+        bean = earlySingletonObjects.get(beanName);        // ② 再查早期对象
+        if (bean == null) {
+            ObjectFactory&lt;?&gt; factory = singletonFactories.get(beanName);
+            if (factory != null) {
+                bean = factory.getObject();                // ③ 工厂产出早期引用
+                earlySingletonObjects.put(beanName, bean); // 提升到二级缓存
+                singletonFactories.remove(beanName);
+            }
+        }
+    }
+    return bean;
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">85.4</span> 为什么是三级而不是两级</h2>
+  <p class="lead"><strong>一句话定位</strong>：如果所有 Bean 都不需要代理，两级缓存（成品池 + 早期对象池）就够了；正因为 AOP 可能为 Bean 生成代理，必须先缓存一个"工厂"，等到真正需要早期引用时才决定暴露原始对象还是代理对象，保证全程引用一致。</p>
+  <h3>85.4.1 两级缓存的设想与缺口</h3>
+  <p>假设只有一级成品池和二级早期对象池：A 刚 new 出来就直接放进二级缓存。若 A 需要被 AOP 增强（例如带事务、日志切面），真正对外暴露的应该是 <strong>A 的代理对象</strong>，而不是原始 A。问题在于：代理通常在 Bean 初始化完成后的后置处理器阶段才创建——循环引用发生时，A 还没走到那一步，此时放进二级缓存的到底是原始对象还是代理？</p>
+  <h3>85.4.2 三级缓存的解法</h3>
+  <pre class="code" data-lang="java"><code>// 三级缓存存的是 ObjectFactory（lambda 形式）：
+// 第一次被循环方需要时才执行 getObject()，在其中调用 BeanPostProcessor
+// 完成 AOP 代理创建；结果（代理或原始对象）放入二级缓存，之后所有引用拿到同一个。
+//
+// 时序保证：
+// 1. A 无代理需求 → factory.getObject() 返回原始 A，二级缓存存原始对象；
+// 2. A 有代理需求  → factory.getObject() 返回代理对象，二级缓存存代理；
+// 3. 无论哪种，B 注入的早期引用与 A 最终成品对外暴露的引用是同一个，
+//    不会出现"B 拿着原始 A、容器里却是代理 A"的错乱。
+//
+// 一句话：第三级缓存把"是否需要代理"的决策推迟到第一次被引用时，
+// 并用二级缓存锁定结果，保证代理只创建一次、引用全程一致。</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>层级</th><th>解决什么</th><th>没有它会怎样</th></tr></thead>
+    <tbody>
+      <tr><td>一级 singletonObjects</td><td>成品复用，正常取用路径</td><td>每次返回新对象，单例语义破坏</td></tr>
+      <tr><td>二级 earlySingletonObjects</td><td>缓存已暴露的早期引用，避免重复创建代理</td><td>同一 Bean 可能被创建出多个代理对象，引用不一致</td></tr>
+      <tr><td>三级 singletonFactories</td><td>延迟决策暴露原始对象还是代理对象</td><td>循环发生时被迫提前创建代理，时序与普通 Bean 不一致</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">85.5</span> 替代方案：@Lazy 与 @DependsOn</h2>
+  <p class="lead"><strong>一句话定位</strong>：遇到循环依赖，工程上优先用 @Lazy 推迟一方的注入时机；@DependsOn 只用于强制初始化顺序，不解决循环本身。</p>
+  <pre class="code" data-lang="java"><code>// 方案一：@Lazy 标注注入点，注入代理占位，首次方法调用时才解析真实 Bean
+@Service
+public class OrderService {
+    @Lazy
+    @Autowired
+    private PaymentService paymentService;
+}
+// 容器创建 OrderService 时不立即创建 PaymentService，闭环在启动期被打破；
+// 运行期首次调用 paymentService 方法时才完成真实装配。
+
+// 方案二：@DependsOn 只控制初始化先后，不解除依赖关系
+@Service
+@DependsOn("paymentService")
+public class OrderService { /* ... */ }
+// 语义：先初始化 PaymentService 再初始化 OrderService；
+// 对真正的双向循环无效，仅用于单方向上的启动顺序约束。
+
+// 方案三（推荐）：抽取公共逻辑到第三个 Bean，打断环
+@Service
+public class OrderService {
+    private final CommonBizService common;     // 双方都依赖第三方，互不直接依赖
+}
+@Service
+public class PaymentService {
+    private final CommonBizService common;
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>：@Lazy 只是把循环依赖<strong>推迟到运行期</strong>，耦合关系依然存在；真正健康的设计是把环拆开——提取公共服务、引入事件机制（第 84 章）、或用回调接口解耦。循环依赖通常是职责划分不清的信号，而不是需要用框架机制去"修好"的技术问题。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">85.6</span> 报错定位与工程纪律</h2>
+  <p class="lead"><strong>一句话定位</strong>：启动期循环依赖报错会给出 Bean 创建链，顺着"正在创建的 Bean → 被要求注入的 Bean"逐层向上找，即可定位闭环。</p>
+  <pre class="code" data-lang="text"><code>// 典型启动报错（构造器循环 / Boot 2.6+ 字段循环）：
+// BeanCurrentlyInCreationException: Error creating bean with name
+// 'orderService': Requested bean is currently in creation: Is there an
+// unresolvable circular reference?
+//
+// 另一条常见链：
+// UnsatisfiedDependencyException: Error creating bean with name 'orderService':
+//   Bean instantiation via constructor failed;
+//   nested: BeanCurrentlyInCreationException ...
+//
+// 定位步骤：
+// 1. 看最外层异常对应的 Bean 是谁；
+// 2. 沿 nested / Caused by 逐层查看被注入的下一个 Bean；
+// 3. 形成 "A → B → … → A" 的链路即闭环；
+// 4. 判断注入方式：构造器 → 无法靠缓存解开；字段/setter → 重构或临时 @Lazy。</code></pre>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>纪律</th><th>做法</th><th>原因</th></tr></thead>
+    <tbody>
+      <tr><td>优先构造器注入</td><td>循环依赖在启动期直接暴露，不被缓存掩盖</td><td>早失败优于运行期隐患</td></tr>
+      <tr><td>不要打开开关掩盖设计</td><td>spring.main.allow-circular-references 仅遗留项目临时使用</td><td>耦合不会因配置开关消失</td></tr>
+      <tr><td>闭环即重构信号</td><td>抽公共 Bean、用事件回调、接口回调打断环</td><td>保持依赖关系无环、单向</td></tr>
+      <tr><td>prototype 不参与缓存</td><td>原型 Bean 之间或原型依赖单例的循环直接报错</td><td>容器不缓存原型，无早期暴露机制</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>循环依赖</td><td>Bean 间依赖形成闭环；构造器注入不可解，字段/setter 单例场景可被缓存解开</td></tr>
+      <tr><td>三级缓存</td><td>一级成品、二级早期对象、三级对象工厂；查找顺序一→二→三</td></tr>
+      <tr><td>三级必要性</td><td>推迟"暴露原始对象还是代理对象"的决策，保证 AOP 代理唯一且引用一致</td></tr>
+      <tr><td>替代方案</td><td>@Lazy 推迟闭环；@DependsOn 只管顺序；抽公共 Bean / 事件机制才是解耦正道</td></tr>
+      <tr><td>工程纪律</td><td>Boot 2.6+ 默认禁止循环依赖；报错沿创建链定位闭环；循环是设计信号不是技术补丁问题</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>按顺序写出三级缓存的名称、内容与查找顺序；解释构造器循环依赖为什么无法被缓存机制解开。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一对字段注入循环的 Service，在 Spring Boot 2.6+ 默认配置下复现启动报错；再分别用 @Lazy 与 allow-circular-references=true 两种方式让应用启动，对比两种处理的本质区别。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为其中一个 Service 添加 @Transactional 使其被代理，推演三级缓存中工厂 getObject() 返回原始对象还是代理对象；再把三方循环 A→B→C→A 重构为抽取公共组件 D 的无环结构，画出重构前后的依赖图。</div>
+  <p class="note">下一章：把装配视角转回注入动作本身——@Autowired 按类型到按名称的解析流程、多实现冲突处理与 ObjectProvider，为 SpringBoot 自动配置铺垫。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="084_第84章_事件机制与监听器.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="086_第86章_自动装配原理前奏.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 85 章 循环依赖与三级缓存</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

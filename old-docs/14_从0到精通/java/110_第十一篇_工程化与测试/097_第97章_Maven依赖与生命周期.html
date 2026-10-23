@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 97 章 Maven 依赖与生命周期｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十一篇 工程化与测试</p>
+    <h1>第 97 章 Maven 依赖与生命周期</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 97 章 / 共 112 章 · 预计 40 分钟 · 第十一篇开篇</span>
+    </div>
+    <p class="hero-desc">Maven 是 Java 的构建与依赖管理工具：本章讲清 pom.xml 坐标、依赖 scope、传递冲突仲裁、三套生命周期与常用插件，为多模块工程化打下地基。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../100_第十篇_SpringBoot与Web/096_第96章_定时任务与异步处理.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="098_第98章_多模块项目组织.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">97.1 Maven：从手动导包到构建工具</a></li>
+    <li><a href="#sec3">97.2 坐标与 pom.xml 结构</a></li>
+    <li><a href="#sec4">97.3 依赖 scope 五档</a></li>
+    <li><a href="#sec5">97.4 依赖传递与冲突仲裁</a></li>
+    <li><a href="#sec6">97.5 三套生命周期与常用命令</a></li>
+    <li><a href="#sec6b">97.6 常用插件与构建配置</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出 Maven 的定位：<strong>依赖管理</strong>与构建生命周期驱动，理解约定优于配置；</li>
+    <li>掌握坐标 <strong>groupId / artifactId / version</strong> 与五种依赖 scope 的可见性差异；</li>
+    <li>理解依赖传递与<strong>冲突仲裁</strong>规则，会用 dependency:tree 与 exclusions 处理冲突；</li>
+    <li>记住 clean / default / site 三套生命周期与常用命令，认识 compiler、surefire、spring-boot 插件分工。</li>
+  </ul>
+</section>
+
+
+<section id="sec2" class="card">
+  <h2><span class="num">97.1</span> Maven：从手动导包到构建工具</h2>
+  <p class="lead"><strong>一句话定位</strong>：Maven 是 Java 世界的项目管理与构建工具——用一份声明式配置（pom.xml）描述依赖、构建步骤与产物，工具自动完成下载、编译、测试、打包。</p>
+  <p>在没有构建工具的年代，Java 项目要把第三方 jar 一个个手动拖进 <code>WEB-INF/lib</code>，版本冲突靠肉眼比对，打包靠 IDE 导出。前端同学对这套痛点不陌生：<code>package.json</code> 与 <code>node_modules</code> 解决的就是同类问题，Maven 在后端扮演的角色可粗略对照如下：</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>概念</th><th>前端对照（npm / vite）</th><th>Maven 对应物</th></tr></thead>
+    <tbody>
+      <tr><td>依赖清单文件</td><td>package.json 的 dependencies</td><td>pom.xml 的 dependencies</td></tr>
+      <tr><td>本地缓存目录</td><td>node_modules（项目内）</td><td>~/.m2/repository（本机全局）</td></tr>
+      <tr><td>公共仓库</td><td>npm registry（npmjs.com）</td><td>Maven Central（中央仓库）+ 私服</td></tr>
+      <tr><td>构建脚本</td><td>npm run build / vite build</td><td>生命周期阶段 + 插件目标</td></tr>
+      <tr><td>锁版本文件</td><td>package-lock.json</td><td>依赖树由 pom 版本与仲裁规则确定</td></tr>
+    </tbody>
+  </table>
+  <p>Maven 的核心哲学是<strong>约定优于配置</strong>（Convention over Configuration）：源码固定放在 <code>src/main/java</code>、测试放在 <code>src/test/java</code>、资源放在 <code>src/main/resources</code>，目录结构不用声明，工具按约定找文件。基线环境：<strong>Java 17、Maven 3.9.x、Spring Boot 3.x</strong>。</p>
+  <div class="key-sentence"><span class="tag-key">核心概念</span>Maven 做两件事：<strong>管依赖</strong>（下载、解析、仲裁、打包进产物）与<strong>管构建</strong>（按生命周期顺序调用插件完成编译、测试、打包、安装、部署）。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">97.2</span> 坐标与 pom.xml 结构</h2>
+  <p class="lead"><strong>一句话定位</strong>：每个项目、每个依赖都用三元坐标 <code>groupId:artifactId:version</code> 唯一标识；pom.xml 是项目的"说明书 + 组装图纸"。</p>
+  <pre class="code" data-lang="xml"><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+  &lt;!-- ① 项目坐标：本项目在仓库中的唯一身份证 --&gt;
+  &lt;groupId&gt;com.example.bookstore&lt;/groupId&gt;
+  &lt;artifactId&gt;order-service&lt;/artifactId&gt;
+  &lt;version&gt;1.0.0-SNAPSHOT&lt;/version&gt;
+  &lt;packaging&gt;jar&lt;/packaging&gt;   &lt;!-- jar / war / pom，默认 jar --&gt;
+
+  &lt;!-- ② 统一版本变量，集中管理便于升级 --&gt;
+  &lt;properties&gt;
+    &lt;java.version&gt;17&lt;/java.version&gt;
+    &lt;maven.compiler.release&gt;17&lt;/maven.compiler.release&gt;
+    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+  &lt;/properties&gt;
+
+  &lt;!-- ③ 依赖清单 --&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;com.h2database&lt;/groupId&gt;
+      &lt;artifactId&gt;h2&lt;/artifactId&gt;
+      &lt;scope&gt;test&lt;/scope&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/project&gt;</code></pre>
+  <ul>
+    <li><strong>groupId</strong>：组织或项目域，通常是倒置域名 <code>com.example.bookstore</code>；</li>
+    <li><strong>artifactId</strong>：模块名，一个 groupId 下区分具体产物；</li>
+    <li><strong>version</strong>：版本号；<code>-SNAPSHOT</code> 表示开发中快照，Maven 会定期拉取最新快照；<code>1.0.0</code> 是正式发布版，发布后不可变；</li>
+    <li><strong>packaging</strong>：产物类型，<code>jar</code>（默认，普通后端服务）、<code>war</code>（传统 Servlet 容器部署）、<code>pom</code>（聚合父工程，见第 98 章）。</li>
+  </ul>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="Maven 仓库解析流程">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Maven 依赖解析与仓库层次</text>
+      <rect x="40" y="50" width="200" height="150" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="140" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">本地仓库 ~/.m2</text>
+      <text x="140" y="106" text-anchor="middle" font-size="11.5" fill="#4f6348">本机已下载的 jar 缓存</text>
+      <text x="140" y="132" text-anchor="middle" font-size="11.5" fill="#4f6348">解析坐标 → 先查本地</text>
+      <text x="140" y="158" text-anchor="middle" font-size="11.5" fill="#4f6348">未命中再走远程仓库</text>
+      <rect x="300" y="50" width="200" height="150" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="400" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">私服（可选）</text>
+      <text x="400" y="106" text-anchor="middle" font-size="11.5" fill="#4f6348">公司内部 Nexus / Artifactory</text>
+      <text x="400" y="132" text-anchor="middle" font-size="11.5" fill="#4f6348">代理中央仓库 + 托管内部包</text>
+      <text x="400" y="158" text-anchor="middle" font-size="11.5" fill="#4f6348">加速下载、稳定构建</text>
+      <rect x="560" y="50" width="200" height="150" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="660" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">Maven Central</text>
+      <text x="660" y="106" text-anchor="middle" font-size="11.5" fill="#4f6348">公共中央仓库（全球）</text>
+      <text x="660" y="132" text-anchor="middle" font-size="11.5" fill="#4f6348">下载后存入本地仓库</text>
+      <text x="660" y="158" text-anchor="middle" font-size="11.5" fill="#4f6348">后续构建直接走本地</text>
+      <line x1="240" y1="125" x2="300" y2="125" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="500" y1="125" x2="560" y2="125" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="560" y1="165" x2="240" y2="165" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arr)"/>
+      <text x="400" y="218" text-anchor="middle" font-size="12" fill="#7a8a70">图 97-1 解析顺序：本地仓库 → 私服 → 中央仓库；下载结果回写本地缓存</text>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2d6a3f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 97-1 Maven 仓库层次与解析顺序</p>
+  </div>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>坐标写错（groupId 或 artifactId 多一个连字符、版本号拼错）会直接报 <code>Could not resolve dependencies</code>；报错信息里的坐标就是排查入口，可去 Central 仓库网站按坐标核对。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">97.3</span> 依赖 scope 五档</h2>
+  <p class="lead"><strong>一句话定位</strong>：<code>&lt;scope&gt;</code> 决定依赖参与哪个 classpath（编译、测试、运行）以及是否随包传递，默认 <code>compile</code>。</p>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:30%"><col style="width:28%"><col style="width:26%"></colgroup>
+    <thead><tr><th>scope</th><th>可见性（编译/测试/运行）</th><th>传递性</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td><strong>compile</strong>（默认）</td><td>编译 ✓ 测试 ✓ 运行 ✓</td><td>随 compile 传递</td><td>业务库、Spring starter、工具类</td></tr>
+      <tr><td><strong>provided</strong></td><td>编译 ✓ 测试 ✓ 运行 ✗</td><td>不传递</td><td>Servlet API、JDK 自带或部署环境提供的包</td></tr>
+      <tr><td><strong>runtime</strong></td><td>编译 ✗ 测试 ✓ 运行 ✓</td><td>随 runtime 传递</td><td>JDBC 驱动实现、日志实现、JSON 运行时库</td></tr>
+      <tr><td><strong>test</strong></td><td>编译 ✗ 测试 ✓ 运行 ✗</td><td>不传递</td><td>JUnit、Mockito、H2 测试库、断言库</td></tr>
+      <tr><td><strong>system</strong></td><td>同 provided，jar 用 systemPath 指定本地路径</td><td>不传递</td><td>遗留特殊场景，<strong>不推荐</strong>，构建不可移植</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="xml"><code>&lt;dependencies&gt;
+  &lt;!-- compile：默认，三方业务库直接进入产物 --&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+  &lt;/dependency&gt;
+
+  &lt;!-- provided：编译期需要 Servlet 注解，运行时由 Tomcat 提供，不再打包进 jar --&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;jakarta.servlet&lt;/groupId&gt;
+    &lt;artifactId&gt;jakarta.servlet-api&lt;/artifactId&gt;
+    &lt;scope&gt;provided&lt;/scope&gt;
+  &lt;/dependency&gt;
+
+  &lt;!-- runtime：代码里只面向 java.sql 接口，MySQL 驱动实现运行时加载即可 --&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;com.mysql&lt;/groupId&gt;
+    &lt;artifactId&gt;mysql-connector-j&lt;/artifactId&gt;
+    &lt;scope&gt;runtime&lt;/scope&gt;
+  &lt;/dependency&gt;
+
+  &lt;!-- test：只在 src/test 下可见，不会进最终产物 --&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;org.junit.jupiter&lt;/groupId&gt;
+    &lt;artifactId&gt;junit-jupiter&lt;/artifactId&gt;
+    &lt;scope&gt;test&lt;/scope&gt;
+  &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+  <div class="key-sentence"><span class="tag-point">记忆法</span>对照前端 <code>devDependencies</code> 理解 <code>test</code>（构建/测试需要、产物不需要）；<code>provided</code> 像 <code>peerDependencies</code>——由宿主环境提供；<code>runtime</code> 是"编译期只看接口、运行期才换实现"的策略。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">97.4</span> 依赖传递与冲突仲裁</h2>
+  <p class="lead"><strong>一句话定位</strong>：A 依赖 B、B 依赖 C，A 会间接拿到 C；当多条路径引入同一构件的不同版本时，Maven 按<strong>最近路径优先、同路径先声明先赢</strong>两条规则仲裁。</p>
+  <p>假设项目直接依赖 <code>spring-boot-starter-web</code>，它又依赖 <code>spring-web</code>，<code>spring-web</code> 再依赖 <code>spring-core</code>——你不需要手写 spring-core，Maven 沿依赖树把 compile 范围的传递依赖全部解析到本项目 classpath。运行下面命令可以看清整棵树：</p>
+  <pre class="code" data-lang="bash"><code># 打印完整依赖树，重点看 "omitted for conflict with" 与 "omitted for duplicate"
+mvn dependency:tree
+
+# 列出被仲裁省略的版本，定位冲突来源
+mvn dependency:tree -Dincludes=org.apache.logging.log4j:*
+
+# 分析哪些依赖实际没被代码使用（声明了却没用到）
+mvn dependency:analyze</code></pre>
+  <p>仲裁规则按顺序生效：</p>
+  <ul>
+    <li><strong>最短路径优先</strong>：项目 → A → C:1.1（路径 2 层）与项目 → B → D → C:1.2（路径 3 层），选择路径更短的 C:1.1；</li>
+    <li><strong>路径相同，先声明先赢</strong>：两条路径深度一致时，pom.xml 中靠前声明的依赖所带版本胜出；</li>
+    <li><strong>dependencyManagement 锁定</strong>：父工程在 <code>dependencyManagement</code> 中指定的版本对全模块生效，子模块声明时可不写版本（第 98 章细讲）；</li>
+    <li><strong>exclusions 显式排除</strong>：对某个传递依赖不满意，可以在引入处把它整棵剪掉。</li>
+  </ul>
+  <pre class="code" data-lang="xml"><code>&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+  &lt;!-- 排除旧日志实现，避免与 Logback 重复（示例：显式剔除某传递构件） --&gt;
+  &lt;exclusions&gt;
+    &lt;exclusion&gt;
+      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-boot-starter-tomcat&lt;/artifactId&gt;
+    &lt;/exclusion&gt;
+  &lt;/exclusions&gt;
+&lt;/dependency&gt;</code></pre>
+  <div class="warn-box"><strong>版本冲突的识别信号</strong>：类找不到（<code>NoClassDefFoundError</code>）、方法找不到（<code>NoSuchMethodError</code>）、日志框架被压成黑方块或双实现告警，先用 <code>dependency:tree</code> 定位引入路径，再决定升级、排除还是在父 pom 统一锁定版本。</div>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>本地仓库被污染（下载中断留下残缺 jar，或旧 SNAPSHOT 缓存了过期版本）会表现为诡异的编译错误。处理方式：删除 <code>~/.m2/repository</code> 下对应构件目录，加 <code>-U</code> 强制刷新快照：<code>mvn clean compile -U</code>。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">97.5</span> 三套生命周期与常用命令</h2>
+  <p class="lead"><strong>一句话定位</strong>：Maven 把构建过程切成三套互不重叠的生命周期，每套由若干阶段（phase）组成；执行某个阶段会按顺序执行它之前的所有阶段。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="生命周期阶段流水线">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">default 生命周期阶段流水线（节选）</text>
+      <g font-size="11" fill="#1f2e1f" text-anchor="middle">
+        <rect x="30" y="60" width="100" height="54" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/><text x="80" y="84">validate</text><text x="80" y="104" font-size="10" fill="#4f6348">校验配置</text>
+        <rect x="150" y="60" width="100" height="54" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/><text x="200" y="84">compile</text><text x="200" y="104" font-size="10" fill="#4f6348">编译主源码</text>
+        <rect x="270" y="60" width="100" height="54" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/><text x="320" y="84">test-compile</text><text x="320" y="104" font-size="10" fill="#4f6348">编译测试源码</text>
+        <rect x="390" y="60" width="100" height="54" rx="8" fill="#d1fae5" stroke="#047857"/><text x="440" y="84">test</text><text x="440" y="104" font-size="10" fill="#4f6348">运行单元测试</text>
+        <rect x="510" y="60" width="100" height="54" rx="8" fill="#d1fae5" stroke="#047857"/><text x="560" y="84">package</text><text x="560" y="104" font-size="10" fill="#4f6348">打成 jar/war</text>
+        <rect x="630" y="60" width="70" height="54" rx="8" fill="#fee2e2" stroke="#b91c1c"/><text x="665" y="84">install</text><text x="665" y="104" font-size="10" fill="#4f6348">装入本地仓</text>
+        <rect x="710" y="60" width="60" height="54" rx="8" fill="#fee2e2" stroke="#b91c1c"/><text x="740" y="84">deploy</text><text x="740" y="104" font-size="10" fill="#4f6348">发布远程仓</text>
+      </g>
+      <line x1="130" y1="87" x2="150" y2="87" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="250" y1="87" x2="270" y2="87" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="370" y1="87" x2="390" y2="87" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="490" y1="87" x2="510" y2="87" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="610" y1="87" x2="630" y2="87" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="700" y1="87" x2="710" y2="87" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="400" y="155" text-anchor="middle" font-size="12" fill="#4f6348">三套生命周期：<tspan font-weight="700">clean</tspan>（清理产物）· <tspan font-weight="700">default</tspan>（构建主线）· <tspan font-weight="700">site</tspan>（生成项目文档站点）</text>
+      <text x="400" y="192" text-anchor="middle" font-size="12" fill="#7a8a70">图 97-2 执行 package 会自动跑完 validate → compile → test-compile → test → package</text>
+      <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2d6a3f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 97-2 default 生命周期阶段流水线</p>
+  </div>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:44%"><col style="width:38%"></colgroup>
+    <thead><tr><th>生命周期 / 阶段</th><th>职责</th><th>常用命令示例</th></tr></thead>
+    <tbody>
+      <tr><td>clean</td><td>删除 target 目录及全部构建产物</td><td><code>mvn clean</code></td></tr>
+      <tr><td>validate</td><td>校验 pom 配置、依赖完整性</td><td>随其他阶段自动执行</td></tr>
+      <tr><td>compile</td><td>编译 src/main/java 到 target/classes</td><td><code>mvn compile</code></td></tr>
+      <tr><td>test</td><td>surefire 插件执行 src/test 下单元测试</td><td><code>mvn test</code></td></tr>
+      <tr><td>package</td><td>按 packaging 打成 jar/war 放入 target</td><td><code>mvn clean package</code></td></tr>
+      <tr><td>install</td><td>把产物装入本地仓库，供本机其他模块引用</td><td><code>mvn clean install</code></td></tr>
+      <tr><td>deploy</td><td>把产物发布到远程仓库/私服，供团队共享</td><td><code>mvn deploy</code>（CI 环境使用）</td></tr>
+      <tr><td>site</td><td>生成项目报告文档站点（较少使用）</td><td><code>mvn site</code></td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># 清理后打包；-DskipTests 跳过测试执行（仍编译测试代码）；-Dmaven.test.skip=true 连测试编译一起跳过
+mvn clean package -DskipTests
+
+# 多模块工程中只构建当前模块及其依赖模块（第 98 章展开）
+mvn clean install -pl order-service -am
+
+# 离线模式：只走本地仓库，排查网络与仓库问题
+mvn clean compile -o</code></pre>
+  <div class="key-sentence"><span class="tag-key">关键理解</span>阶段是<strong>顺序执行</strong>的：<code>mvn package</code> 不会只打包，它会先把前面的 validate、compile、test 全部跑一遍；想跳过测试要显式加参数，而不是删掉 test 阶段。</div>
+</section>
+
+<section id="sec6b" class="card">
+  <h2><span class="num">97.6</span> 常用插件与构建配置</h2>
+  <p class="lead"><strong>一句话定位</strong>生命周期阶段本身只定义"该做什么"，真正干活的是绑定到阶段上的<strong>插件目标</strong>；Spring Boot 工程靠三个插件完成编译、测试与可执行打包。</p>
+  <pre class="code" data-lang="xml"><code>&lt;build&gt;
+  &lt;plugins&gt;
+    &lt;!-- ① 编译插件：指定 Java 版本与编码 --&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+      &lt;artifactId&gt;maven-compiler-plugin&lt;/artifactId&gt;
+      &lt;configuration&gt;
+        &lt;release&gt;17&lt;/release&gt;
+        &lt;encoding&gt;UTF-8&lt;/encoding&gt;
+      &lt;/configuration&gt;
+    &lt;/plugin&gt;
+
+    &lt;!-- ② 测试插件：绑定 test 阶段，发现并执行 JUnit5 测试 --&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+      &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;
+      &lt;configuration&gt;
+        &lt;!-- 测试失败即中断构建；报告输出到 target/surefire-reports --&gt;
+        &lt;testFailureIgnore&gt;false&lt;/testFailureIgnore&gt;
+      &lt;/configuration&gt;
+    &lt;/plugin&gt;
+
+    &lt;!-- ③ Spring Boot 打包插件：把普通 jar 重打成可执行 fat jar --&gt;
+    &lt;plugin&gt;
+      &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+      &lt;configuration&gt;
+        &lt;excludes&gt;
+          &lt;exclude&gt;
+            &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;
+            &lt;artifactId&gt;lombok&lt;/artifactId&gt;
+          &lt;/exclude&gt;
+        &lt;/excludes&gt;
+      &lt;/configuration&gt;
+    &lt;/plugin&gt;
+  &lt;/plugins&gt;
+&lt;/build&gt;</code></pre>
+  <ul>
+    <li><strong>maven-compiler-plugin</strong>：绑定 compile 阶段，<code>&lt;release&gt;17&lt;/release&gt;</code> 同时约束源码与目标字节码版本；</li>
+    <li><strong>maven-surefire-plugin</strong>：绑定 test 阶段，默认匹配 <code>*Test</code>、<code>*Tests</code>、<code>Test*</code> 命名的测试类；JUnit5 需要 starter 自动适配；</li>
+    <li><strong>spring-boot-maven-plugin</strong>：在 package 阶段执行 <code>repackage</code>，把依赖 jar 一并塞进产物（第 102 章详解内部结构）。</li>
+  </ul>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>Spring Boot 父工程（spring-boot-starter-parent）已经统一管理了插件版本与默认配置，业务 pom 里一般只覆盖参数、不要重复写版本号；脱离父工程时才需要显式声明插件版本。</p>
+</section>
+
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>Maven 定位</td><td>声明式管理依赖 + 按生命周期驱动插件完成构建，约定优于配置</td></tr>
+      <tr><td>坐标</td><td>groupId:artifactId:version 唯一标识构件，packaging 决定产物类型</td></tr>
+      <tr><td>scope</td><td>compile 默认全参与；provided 运行期由容器提供；runtime 编译期不可见；test 仅测试期</td></tr>
+      <tr><td>冲突仲裁</td><td>最近路径优先，同路径先声明先赢；dependencyManagement 锁版本，exclusions 剪枝</td></tr>
+      <tr><td>生命周期</td><td>clean / default / site 三套；执行某阶段会顺序跑完其前序阶段</td></tr>
+      <tr><td>插件</td><td>compiler 编译、surefire 测试、spring-boot repackage 打包，绑定到对应阶段</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复述 compile、provided、runtime、test 四种 scope 在编译期、测试期、运行期的可见性差异，各举一个典型依赖。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>新建一个 Maven 工程引入 spring-boot-starter-web，执行 mvn dependency:tree，找出 spring-core 经过哪条路径引入、最终版本是多少。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>人为在 pom 中引入两个不同版本的同一构件（如 logback-classic），用依赖树观察仲裁结果；再用 exclusions 排除其中一条路径，对比前后变化。</div>
+  <p class="note">下一章：当项目长大到需要拆成多个模块——多模块项目组织与父工程统一管理。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../100_第十篇_SpringBoot与Web/096_第96章_定时任务与异步处理.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="098_第98章_多模块项目组织.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 97 章 Maven 依赖与生命周期</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 81 章 AOP 概念与动态代理回顾｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第九篇 Spring 核心</p>
+    <h1>第 81 章 AOP 概念与动态代理回顾</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 81 章 / 共 112 章 · 预计 40 分钟 · 第九篇：切面与事务实战</span>
+    </div>
+    <p class="hero-desc">日志、计时、权限、事务、异常统计——这些代码散落在每个方法前后，与业务逻辑纠缠不清。AOP 把它们抽成"横切"的独立模块。本章先回顾第 42 章的静态代理与动态代理，再讲清 AOP 的六个术语、Spring AOP 的代理选择规则，以及它与 AspectJ 的分工。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="080_第80章_Bean作用域与懒加载.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="082_第82章_切面实战日志与耗时统计.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">81.1 横切关注点：业务里的公共碎片</a></li>
+    <li><a href="#sec3">81.2 AOP 核心术语六讲</a></li>
+    <li><a href="#sec4">81.3 静态代理回顾（第 42 章衔接）</a></li>
+    <li><a href="#sec5">81.4 动态代理：JDK 与 CGLIB 对比</a></li>
+    <li><a href="#sec5b">81.5 Spring AOP 织入时机与 AspectJ 简述</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>识别代码中的<strong>横切关注点</strong>，说出 AOP 要解决的"代码分散与混乱"两大问题；</li>
+    <li>准确使用<strong>切面、切点、通知、连接点、织入、目标对象</strong>六个术语；</li>
+    <li>回顾静态代理、<strong>JDK 动态代理与 CGLIB 代理</strong>的实现原理与适用边界；</li>
+    <li>说清 Spring AOP 的<strong>织入时机</strong>、代理选择规则，以及与 AspectJ 的分工。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">81.1</span> 横切关注点：业务里的公共碎片</h2>
+  <p class="lead"><strong>一句话定位</strong>：关注点（Concern）是程序中一类特定功能；散落在多个业务模块、与核心业务无关的关注点，叫做<strong>横切关注点（Cross-cutting Concern）</strong>。</p>
+  <pre class="code" data-lang="java"><code>@Service
+public class OrderService {
+    public Order createOrder(OrderRequest req) {
+        long t0 = System.currentTimeMillis();        // ① 日志：谁调用了什么参数
+        log.info("createOrder 入参={}", req);
+        try {
+            Order order = doCreate(req);
+            auditLog.record("订单创建", currentUser()); // ② 审计：操作留痕
+            log.info("createOrder 成功，耗时={}ms",
+                     System.currentTimeMillis() - t0); // ③ 计时
+            return order;
+        } catch (Exception e) {
+            log.error("createOrder 失败", e);          // ④ 异常记录
+            metrics.increment("order.fail");           // ⑤ 指标埋点
+            throw e;
+        }
+    }
+    private Order doCreate(OrderRequest req) { /* 真正业务 */ return null; }
+}</code></pre>
+  <ul>
+    <li><strong>代码分散（Scattering）</strong>：日志、权限、事务、埋点同样的代码复制到几十个 Service；</li>
+    <li><strong>代码混乱（Tangling）</strong>：业务方法里混着非业务逻辑，读代码时主线被打断；</li>
+    <li><strong>修改成本高</strong>：日志格式调整要改几十个文件，漏改一处就是隐患。</li>
+  </ul>
+  <div class="key-sentence"><span class="tag-key">金句</span>：AOP 的目标不是替代面向对象，而是把<strong>"贯穿所有对象、不属于某一个对象"的逻辑</strong>从业务类里剥离出来，集中维护；业务代码只保留"做什么"，"前后做什么"交给切面。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">81.2</span> AOP 核心术语六讲</h2>
+  <p class="lead"><strong>一句话定位</strong>：AOP 术语不多，但每个通知注解（下一章的 @Before、@Around…）都要落到这些概念上，先把名词固定下来。</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+    <thead><tr><th>术语</th><th>含义（本书用语 + 英文）</th></tr></thead>
+    <tbody>
+      <tr><td>切面 Aspect</td><td>横切逻辑本身的模块化单元，对应一个带 <code>@Aspect</code> 的类；日志切面、事务切面都是切面。</td></tr>
+      <tr><td>连接点 Join Point</td><td>程序执行中可以插入切面的<strong>时机点</strong>；Spring AOP 中只支持方法执行（调用前/后/抛出异常等）。</td></tr>
+      <tr><td>切点 Pointcut</td><td>用表达式圈定"哪些连接点需要被通知"，例如"所有 <code>com.demo.service</code> 包下 public 方法"。</td></tr>
+      <tr><td>通知 Advice</td><td>切面在切点处执行的动作本身，分前置、后置、返回后、异常后、环绕五种；对应 @Before 等注解。</td></tr>
+      <tr><td>目标对象 Target Object</td><td>被代理、被织入通知的原始业务对象；切面逻辑围绕它执行。</td></tr>
+      <tr><td>织入 Weaving</td><td>把切面应用到目标对象、创建代理对象的过程；分编译期、类加载期、运行期三种时机。</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="AOP 概念关系图">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">切面、切点、通知与目标对象的关系</text>
+      <rect x="60" y="52" width="220" height="150" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="170" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">切面 Aspect</text>
+      <text x="170" y="108" text-anchor="middle" font-size="11.5" fill="#4f6348">切点 Pointcut：表达式圈定目标方法</text>
+      <text x="170" y="134" text-anchor="middle" font-size="11.5" fill="#4f6348">通知 Advice：@Before / @Around …</text>
+      <text x="170" y="160" text-anchor="middle" font-size="11.5" fill="#4f6348">一组横切规则的集合体</text>
+      <line x1="280" y1="127" x2="380" y2="127" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="390" y="72" width="170" height="110" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="475" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">代理对象</text>
+      <text x="475" y="130" text-anchor="middle" font-size="11.5" fill="#4f6348">调用先进入代理</text>
+      <text x="475" y="154" text-anchor="middle" font-size="11.5" fill="#4f6348">通知逻辑 + 转发目标方法</text>
+      <line x1="560" y1="127" x2="660" y2="127" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="670" y="72" width="110" height="110" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="725" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#b91c1c">目标对象</text>
+      <text x="725" y="130" text-anchor="middle" font-size="11.5" fill="#4f6348">原始业务类</text>
+      <text x="725" y="154" text-anchor="middle" font-size="11.5" fill="#4f6348">不感知切面存在</text>
+      <defs>
+        <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#2d6a3f"/>
+        </marker>
+      </defs>
+      <text x="400" y="232" text-anchor="middle" font-size="12" fill="#7a8a70">织入 Weaving：容器在运行期为目标对象生成代理，通知挂接到被圈定的方法上</text>
+    </svg>
+    <p class="diagram-caption">图 81-1 AOP 概念关系：切面圈定方法，通知包裹目标，代理在中间转发</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">81.3</span> 静态代理回顾（第 42 章衔接）</h2>
+  <p class="lead"><strong>一句话定位</strong>：代理模式在调用方与真实对象之间插入一个同接口的代理类，由它<strong>前后增强、转发调用</strong>；静态代理为每个目标接口手写一个代理类。</p>
+  <pre class="code" data-lang="java"><code>// 目标接口
+public interface OrderService {
+    Order createOrder(OrderRequest req);
+}
+
+// 真实对象：只写业务
+public class OrderServiceImpl implements OrderService {
+    public Order createOrder(OrderRequest req) {
+        System.out.println("执行业务：创建订单");
+        return new Order();
+    }
+}
+
+// 静态代理：同接口，持有真实对象，前后加日志
+public class OrderServiceLogProxy implements OrderService {
+    private final OrderServiceImpl target;
+    public OrderServiceLogProxy(OrderServiceImpl target) { this.target = target; }
+
+    public Order createOrder(OrderRequest req) {
+        System.out.println("[代理] 前置日志：方法入参=" + req);
+        Order result = target.createOrder(req);     // 转发真实调用
+        System.out.println("[代理] 后置日志：返回=" + result);
+        return result;
+    }
+}
+
+// 使用：调用方拿到的是代理，不是原始实现
+// OrderService svc = new OrderServiceLogProxy(new OrderServiceImpl());</code></pre>
+  <ul>
+    <li><strong>优点</strong>：实现直观、编译期绑定、调试路径清晰；</li>
+    <li><strong>硬伤</strong>：一个接口就要写一个代理类；接口新增方法，代理必须同步修改；想给 100 个 Service 加日志，就要手写 100 个代理——这正是动态代理要消灭的重复劳动。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">81.4</span> 动态代理：JDK 与 CGLIB 对比</h2>
+  <p class="lead"><strong>一句话定位</strong>：动态代理在运行期<strong>自动生成</strong>代理类，无需手写；Java 生态有两套实现——基于接口的 JDK 动态代理，基于继承的 CGLIB 代理。</p>
+  <h3>81.4.1 JDK 动态代理（基于接口）</h3>
+  <pre class="code" data-lang="java"><code>import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+public class LogInvocationHandler implements InvocationHandler {
+    private final Object target;
+    public LogInvocationHandler(Object target) { this.target = target; }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        System.out.println("[JDK 代理] 前置：" + method.getName());
+        Object result = method.invoke(target, args);   // 反射转发真实方法
+        System.out.println("[JDK 代理] 后置：" + method.getName());
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static &lt;T&gt; T wrap(T target, Class&lt;T&gt; iface) {
+        InvocationHandler h = new LogInvocationHandler(target);
+        return (T) Proxy.newProxyInstance(
+            iface.getClassLoader(),
+            new Class&lt;?&gt;[]{ iface },                 // 必须提供接口
+            h);
+    }
+}
+// OrderService proxy = LogInvocationHandler.wrap(impl, OrderService.class);
+// 代理对象与真实对象都实现 OrderService 接口；代理类在运行期生成于 jdk.proxy 包</code></pre>
+  <h3>81.4.2 CGLIB 代理（基于继承）</h3>
+  <pre class="code" data-lang="java"><code>// CGLIB 不要求接口：在运行期生成目标类的子类，覆写方法织入逻辑
+import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.cglib.proxy.MethodProxy;
+
+public class CglibLogProxy {
+    @SuppressWarnings("unchecked")
+    public static &lt;T&gt; T wrap(T target) {
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(target.getClass());   // 父类 = 目标类
+        enhancer.setCallback((MethodInterceptor) (obj, method, args, proxy) -&gt; {
+            System.out.println("[CGLIB 代理] 前置：" + method.getName());
+            Object result = proxy.invokeSuper(obj, args); // 调用父类原始方法
+            System.out.println("[CGLIB 代理] 后置：" + method.getName());
+            return result;
+        });
+        return (T) enhancer.create();
+    }
+}
+// 注意：final 类不能被继承 → CGLIB 无法代理；目标方法若 final/private 也无法被覆写拦截</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>JDK 动态代理</th><th>CGLIB 代理</th></tr></thead>
+    <tbody>
+      <tr><td>代理依据</td><td>实现目标接口</td><td>继承目标类，生成子类</td></tr>
+      <tr><td>接口要求</td><td>必须至少有一个接口</td><td>不需要接口</td></tr>
+      <tr><td>受限条件</td><td>无接口的类不能被代理</td><td>final 类、final/private 方法不能被代理</td></tr>
+      <tr><td>性能特点</td><td>生成快；方法调用经反射，单次略慢</td><td>生成略慢；调用期直接走子类，后续更快</td></tr>
+      <tr><td>Spring 默认规则</td><td>Bean 实现了接口 → 默认用 JDK 代理</td><td>无接口或强制 proxyTargetClass=true → 用 CGLIB</td></tr>
+      <tr><td>内存与缓存</td><td>代理类缓存于 JVM，不重复生成</td><td>字节码在运行期由 ASM 框架生成并缓存</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">注意</span>：Spring Boot 2.x 之后默认 <code>proxyTargetClass=true</code>，即<strong>统一使用 CGLIB</strong>；但无论哪种代理，被代理对象的方法内部自调用（this.method()）都不会经过代理——第 82 章把这条坑展开排查。</div>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">81.5</span> Spring AOP 织入时机与 AspectJ 简述</h2>
+  <p class="lead"><strong>一句话定位</strong>：Spring AOP 是<strong>运行期织入</strong>的代理型 AOP 框架，只支持方法级连接点；AspectJ 是功能完整的原生 AOP 实现，可在编译期/类加载期织入，支持字段、构造器等更丰富的连接点。</p>
+  <ul>
+    <li><strong>编译期织入</strong>：AspectJ 编译器（ajc）在源码编译阶段把切面代码织入类字节码；性能最好、能力最全，但需要特殊编译流程；</li>
+    <li><strong>类加载期织入（LTW）</strong>：类加载进 JVM 时由织入代理修改字节码；需要配置加载时织入器；</li>
+    <li><strong>运行期织入（Spring AOP）</strong>：容器为 Bean 创建代理对象，调用时在代理内部执行通知；<strong>不修改原类字节码</strong>，与 IoC 容器天然结合，配置成本最低。</li>
+  </ul>
+  <pre class="code" data-lang="java"><code>// Spring AOP 能力边界（面试常考）：
+// ✅ 支持：方法执行前后、返回后、异常后、环绕；Spring 容器内 Bean 之间的调用拦截
+// ❌ 不支持：拦截字段读写、构造器调用、静态方法、类内部 this 自调用
+// 超出这些需求（如字段注入时做校验、拦截 new 对象）→ 需要 AspectJ
+
+// 两类实现的依赖关系：Spring AOP 采用 AspectJ 的注解体系
+//（@Aspect、@Pointcut、@Before …），但底层代理机制是 Spring 自己的
+// 即：用 AspectJ 的"语法注解"，跑 Spring AOP 的"运行期代理"。</code></pre>
+  <div class="key-sentence"><span class="tag-key">金句</span>：日常业务里的日志、计时、权限、事务，<strong>Spring AOP 已经够用</strong>；只有当连接点超出方法执行（字段、构造器）或追求极致织入性能时，才需要引入 AspectJ。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>横切关注点</td><td>日志/事务/权限/埋点等贯穿多模块、与业务无关的公共逻辑</td></tr>
+      <tr><td>六术语</td><td>切面是模块，切点圈方法，通知是动作，连接点是时机，目标是原始对象，织入是生成代理</td></tr>
+      <tr><td>静态代理</td><td>同接口手写代理类，直观但重复劳动大，无法规模化覆盖</td></tr>
+      <tr><td>双动态代理</td><td>JDK 靠接口反射，CGLIB 靠继承子类；Boot 默认 CGLIB（proxyTargetClass=true）</td></tr>
+      <tr><td>Spring AOP 边界</td><td>运行期代理织入，仅方法级；字段/构造器拦截需 AspectJ</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话定义切面、切点、通知、连接点四个概念，并各举一个生活类比。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>手写一个 JDK 动态代理（接口 + InvocationHandler），为任意 Service 方法打印入参与耗时；再把目标类改成无接口实现类，观察 JDK 代理抛出的异常。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给同一个 Service 分别实现 JDK 代理与 CGLIB 代理，对比代理对象的 <code>getClass()</code> 名称、创建耗时（循环 1 万次取平均），整理成一张对比表；再回答：为什么 final 方法在两种代理下都拦截不到？</div>
+  <p class="note">下一章：把概念落成代码——@Aspect 切面实战，完成一个日志切面与一个耗时统计切面，并排查自调用失效等高频问题。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="080_第80章_Bean作用域与懒加载.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="082_第82章_切面实战日志与耗时统计.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 81 章 AOP 概念与动态代理回顾</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

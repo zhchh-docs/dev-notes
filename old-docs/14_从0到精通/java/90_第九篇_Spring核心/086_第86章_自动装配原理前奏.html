@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 86 章 自动装配原理前奏｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第九篇 Spring 核心</p>
+    <h1>第 86 章 自动装配原理前奏</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 86 章 / 共 112 章 · 预计 40 分钟 · 第九篇收尾</span>
+    </div>
+    <p class="hero-desc">从第 77 章到第 85 章，我们一直在用容器注入对象，本章把"容器怎么找到并选中这个 Bean"讲透：@Autowired 按类型到按名称的解析顺序、required=false 的缺失语义、@Qualifier 与 @Primary 如何裁决多实现、ObjectProvider 延迟获取，以及 @Resource 与单构造器注入的规则——为下一篇 SpringBoot 自动配置打下底层基础。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="085_第85章_循环依赖与三级缓存.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../100_第十篇_SpringBoot与Web/087_第87章_SpringBoot入门与启动流程.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">86.1 @Autowired 解析流程：byType → byName</a></li>
+    <li><a href="#sec3">86.2 required=false 与缺失处理</a></li>
+    <li><a href="#sec4">86.3 多实现冲突：@Qualifier 与 @Primary</a></li>
+    <li><a href="#sec5">86.4 ObjectProvider 延迟获取与集合注入</a></li>
+    <li><a href="#sec5b">86.5 @Resource 对比与单构造器注入</a></li>
+    <li><a href="#sec6">86.6 装配规则小结与 Boot 铺垫</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>复述 <code>@Autowired</code> 从 <strong>byType 到 byName</strong> 的完整解析流程与异常条件；</li>
+    <li>使用 <code>required = false</code> 表达可选依赖，理解缺失时的 null 语义；</li>
+    <li>用 <code>@Qualifier</code>、<code>@Primary</code> 裁决同一类型多实现冲突；</li>
+    <li>掌握 <code>ObjectProvider&lt;T&gt;</code> 延迟获取、<code>@Resource</code> 与 <code>@Autowired</code> 的差异、单构造器自动注入规则。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">86.1</span> @Autowired 解析流程：byType → byName</h2>
+  <p class="lead"><strong>一句话定位</strong>：容器先按注入点类型在容器中查找候选 Bean；命中唯一直接注入；命中多个时再按字段名/参数名作为 Bean 名二次筛选；仍无法唯一确定则抛异常。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="自动装配解析流程">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">@Autowired 候选 Bean 解析决策流程</text>
+      <rect x="300" y="44" width="200" height="44" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="400" y="72" text-anchor="middle" font-size="12" fill="#2d6a3f">① 按注入点类型查找候选</text>
+      <line x1="400" y1="88" x2="400" y2="108" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#arr4)"/>
+      <rect x="80" y="112" width="200" height="46" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="180" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">候选 = 0 个</text>
+      <text x="180" y="150" text-anchor="middle" font-size="11" fill="#4f6348">required=true 抛 NoSuchBeanDefinition</text>
+      <rect x="300" y="112" width="200" height="46" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="400" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">候选 = 1 个</text>
+      <text x="400" y="150" text-anchor="middle" font-size="11" fill="#4f6348">直接注入该 Bean</text>
+      <rect x="520" y="112" width="200" height="46" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="620" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">候选 &gt; 1 个</text>
+      <text x="620" y="150" text-anchor="middle" font-size="11" fill="#4f6348">② 按字段/参数名匹配 Bean 名</text>
+      <line x1="620" y1="158" x2="620" y2="182" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#arr4)"/>
+      <rect x="500" y="186" width="240" height="46" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="620" y="206" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">名称匹配唯一 → 注入</text>
+      <text x="620" y="226" text-anchor="middle" font-size="11" fill="#4f6348">仍冲突 → NoUniqueBeanDefinitionException</text>
+      <defs>
+        <marker id="arr4" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#2d6a3f"/>
+        </marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 86-1 容器装配决策：先类型、后名称，冲突时交由 @Qualifier / @Primary 裁决</p>
+  </div>
+  <pre class="code" data-lang="java"><code>import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderService {
+
+    // byType：容器中恰好一个 PaymentClient 类型 Bean → 直接注入
+    private final PaymentClient paymentClient;
+
+    // 构造器注入同样走 byType → byName 解析；单构造器可省略 @Autowired（见 86.5）
+    public OrderService(PaymentClient paymentClient) {
+        this.paymentClient = paymentClient;
+    }
+}
+
+// 多候选时的名称匹配示例：
+// 接口 PaymentClient 有两个实现：alipayClient、wechatPayClient
+// 注入点字段名为 alipayClient → byName 命中 alipayClient
+@Service
+public class ReportService {
+    @Autowired
+    private PaymentClient alipayClient;   // 名称与 Bean 名一致，二次筛选成功
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>：字段名与 Bean 名不一致是多实现场景下最常见的启动报错来源。重命名字段时要同步检查 Bean 名，或直接用 <code>@Qualifier</code> 显式点名（86.3），不要依赖字段名隐式匹配。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">86.2</span> required=false 与缺失处理</h2>
+  <p class="lead"><strong>一句话定位</strong>：默认 <code>required = true</code>，找不到匹配 Bean 启动即失败；设为 false 后找不到则注入 null，不阻断容器启动。</p>
+  <pre class="code" data-lang="java"><code>import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReportService {
+
+    // 可选依赖：环境中存在 MailSender 才注入，不存在保持 null
+    @Autowired(required = false)
+    private MailSender mailSender;
+
+    public void report() {
+        if (mailSender != null) {            // 使用前必须判空
+            mailSender.send("report@example.com", "日报已生成");
+        } else {
+            System.out.println("未配置邮件通道，跳过发送");
+        }
+    }
+}
+
+// 构造器参数上的 required=false：Spring 4.3+ 单构造器场景需配合 ObjectProvider
+// 或 setter 注入表达可选依赖；构造器参数无法直接写 required=false 语义
+@Service
+public class LegacyReportService {
+    private MailSender mailSender;
+
+    @Autowired(required = false)
+    public void setMailSender(MailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>场景</th><th>required = true（默认）</th><th>required = false</th></tr></thead>
+    <tbody>
+      <tr><td>无匹配 Bean</td><td>启动抛 NoSuchBeanDefinitionException</td><td>注入 null，容器正常启动</td></tr>
+      <tr><td>多实现冲突</td><td>抛 NoUniqueBeanDefinitionException</td><td>同样抛异常（缺失与冲突是两类问题）</td></tr>
+      <tr><td>使用纪律</td><td>必填依赖早失败、早暴露</td><td>使用前判空；null 分支必须有兜底逻辑</td></tr>
+      <tr><td>推荐位置</td><td>构造器参数（必填优先）</td><td>setter 注入表达可选依赖</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">86.3</span> 多实现冲突：@Qualifier 与 @Primary</h2>
+  <p class="lead"><strong>一句话定位</strong>：同一接口多个实现时，<code>@Primary</code> 声明"默认选我"，<code>@Qualifier</code> 在注入点显式点名某一个；两者可叠加，Qualifier 优先级高于 Primary。</p>
+  <pre class="code" data-lang="java"><code>import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+
+public interface NotifyChannel {
+    void send(String to, String msg);
+}
+
+// 实现一：标注 @Primary，作为无点名时的默认候选
+@Component
+@Primary
+public class MailNotifyChannel implements NotifyChannel {
+    public void send(String to, String msg) { /* 邮件发送 */ }
+}
+
+// 实现二：Bean 名 wechatNotifyChannel
+@Component
+public class WechatNotifyChannel implements NotifyChannel {
+    public void send(String to, String msg) { /* 微信发送 */ }
+}
+
+@Service
+public class CustomerNotifyService {
+
+    private final NotifyChannel defaultChannel;
+    private final NotifyChannel wechatChannel;
+
+    // ① 第一个参数不点名：命中 @Primary 的 MailNotifyChannel
+    // ② 第二个参数 @Qualifier 显式点名 wechatNotifyChannel，覆盖 Primary 默认
+    public CustomerNotifyService(
+            NotifyChannel defaultChannel,
+            @Qualifier("wechatNotifyChannel") NotifyChannel wechatChannel) {
+        this.defaultChannel = defaultChannel;
+        this.wechatChannel = wechatChannel;
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// 自定义 @Qualifier 注解：把"渠道标签"做成可复用的限定符
+import org.springframework.beans.factory.annotation.Qualifier;
+import java.lang.annotation.*;
+
+@Target({ElementType.FIELD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+@Qualifier
+public @interface Channel {
+    String value();
+}
+
+// 实现上标注标签，注入点按标签选择，避免依赖 Bean 名
+@Component
+@Channel("wechat")
+public class WechatNotifyChannel implements NotifyChannel { /* ... */ }
+
+@Service
+public class NotifyService {
+    public NotifyService(@Channel("wechat") NotifyChannel channel) { /* ... */ }
+}</code></pre>
+  <div class="key-sentence"><span class="tag-key">金句</span>：<strong>@Primary 解决"默认实现"问题，@Qualifier 解决"按需点名"问题</strong>；策略集合需要全部实现时不要二选一，用 List/Map 集合注入（86.4）。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">86.4</span> ObjectProvider 延迟获取与集合注入</h2>
+  <p class="lead"><strong>一句话定位</strong>：<code>ObjectProvider&lt;T&gt;</code> 是容器提供的延迟查找句柄，需要时才向容器索取 Bean；注入 <code>List&lt;T&gt;</code>、<code>Map&lt;String, T&gt;</code> 则一次性收拢该类型全部实现。</p>
+  <pre class="code" data-lang="java"><code>import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class ChannelRouter {
+
+    // 集合注入：容器把 NotifyChannel 全部实现收拢为 Map，key = Bean 名
+    private final Map&lt;String, NotifyChannel&gt; channels;
+
+    // ObjectProvider：不立即持有实例，调用 getObject() 时才解析
+    private final ObjectProvider&lt;ReportExporter&gt; exporterProvider;
+
+    public ChannelRouter(Map&lt;String, NotifyChannel&gt; channels,
+                         ObjectProvider&lt;ReportExporter&gt; exporterProvider) {
+        this.channels = channels;
+        this.exporterProvider = exporterProvider;
+    }
+
+    public void notify(String channelName, String to, String msg) {
+        NotifyChannel channel = channels.get(channelName);
+        if (channel == null) throw new IllegalArgumentException("未知渠道");
+        channel.send(to, msg);
+    }
+
+    public void exportReport() {
+        ReportExporter exporter = exporterProvider.getIfAvailable(); // 不存在返回 null
+        if (exporter != null) exporter.export();
+    }
+}
+
+// List 注入同样成立：List&lt;NotifyChannel&gt; 按顺序收拢全部实现；
+// ObjectProvider 还支持 getIfUnique()：唯一实现返回实例，多个或缺失返回 null</code></pre>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>注入形态</th><th>行为</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td>ObjectProvider&lt;T&gt;</td><td>延迟解析；getObject() 现取，getIfAvailable() 容错</td><td>prototype 每次新实例、可选重资源、打破启动期循环</td></tr>
+      <tr><td>List&lt;T&gt;</td><td>收拢同类型全部 Bean，按注册顺序排列</td><td>策略集合、责任链、批量处理器</td></tr>
+      <tr><td>Map&lt;String, T&gt;</td><td>key 为 Bean 名，value 为实例</td><td>按名称路由策略（如渠道、支付方式选择）</td></tr>
+      <tr><td>数组 T[]</td><td>与 List 等价的全部实现收拢</td><td>偏好数组语义的老代码</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">86.5</span> @Resource 对比与单构造器注入</h2>
+  <p class="lead"><strong>一句话定位</strong>：<code>@Resource</code> 是 JSR-250 规范注解，先按名称后按类型；<code>@Autowired</code> 是 Spring 注解，先按类型后按名称。Spring 4.3+ 单构造器可省略注入注解。</p>
+  <pre class="code" data-lang="java"><code>import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AccountService {
+
+    // @Resource：默认按 Bean 名找 accountDao；找不到再按类型兜底
+    // name 属性显式指定 Bean 名，不再回退类型匹配
+    @Resource(name = "accountDaoJdbc")
+    private AccountDao accountDao;
+
+    // @Autowired：先按类型 AccountDao，多候选时再按字段名 accountDao 匹配
+    @Autowired
+    private AccountDao backupDao;
+}
+
+// 单构造器自动注入（Spring 4.3+）：类只有一个构造器，构造器参数自动装配，
+// 无需书写 @Autowired；这是本书一直推荐的构造器注入写法的底层规则
+@Service
+public class OrderService {
+    private final OrderDao orderDao;
+    private final PaymentClient paymentClient;
+
+    // 构造器上没有 @Autowired，容器依然按类型装配两个参数
+    public OrderService(OrderDao orderDao, PaymentClient paymentClient) {
+        this.orderDao = orderDao;
+        this.paymentClient = paymentClient;
+    }
+}
+// 注意：存在多个构造器时容器不会猜，必须在某个构造器上显式标注 @Autowired</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>@Autowired（Spring）</th><th>@Resource（JSR-250）</th></tr></thead>
+    <tbody>
+      <tr><td>解析顺序</td><td>先 byType，多候选再 byName</td><td>先 byName，找不到再 byType</td></tr>
+      <tr><td>限定符</td><td>配合 @Qualifier 点名</td><td>name 属性直接指定 Bean 名</td></tr>
+      <tr><td>可选依赖</td><td>required = false</td><td>无 required 语义；依赖缺失启动报错</td></tr>
+      <tr><td>可标注位置</td><td>构造器、方法、参数、字段</td><td>字段、setter 方法（不支持构造器参数）</td></tr>
+      <tr><td>跨框架</td><td>Spring 专有</td><td>Java EE / Jakarta 规范，可迁移到其他容器</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">86.6</span> 装配规则小结与 Boot 铺垫</h2>
+  <p class="lead"><strong>一句话定位</strong>：本章讲的"按类型找候选、按名称/限定符裁决、集合收拢全部"正是 Spring 容器装配的通用规则；SpringBoot 自动配置只是把这套规则搬到"类路径条件 + 配置类 + 默认 Bean"的自动化场景。</p>
+  <ul>
+    <li><strong>基础装配规则</strong>：容器持有全部 Bean 定义，注入点按类型检索候选，唯一即注入，多个由 Primary、Qualifier、名称依次裁决；</li>
+    <li><strong>集合与延迟</strong>：List/Map 收拢全部实现是策略模式的标准落点；ObjectProvider 把获取时机推迟到使用时刻；</li>
+    <li><strong>规范边界</strong>：Spring 项目内以 @Autowired 构造器注入为主；需要标准注解兼容时用 @Resource；</li>
+    <li><strong>Boot 自动配置预告</strong>：下一篇会看到 <code>@EnableAutoConfiguration</code> 根据类路径上存在的类自动注册 DataSource、DispatcherServlet 等 Bean；"条件判断 + 类型装配"的底层思路与本章候选解析一脉相承。</li>
+  </ul>
+  <pre class="code" data-lang="java"><code>// 预告：SpringBoot 自动配置的核心句式（第 88 章附近展开，此处先建立印象）
+// 容器启动时读取 META-INF/spring/...AutoConfiguration.imports 中的配置类；
+// 配置类上的条件注解判断类路径、Bean 是否存在，再用 @Bean 注册默认实现：
+//
+// @ConditionalOnClass(DataSource.class)        // 类路径有 DataSource 才生效
+// @ConditionalOnMissingBean(DataSource.class)   // 用户没自定义才用默认实现
+// @Configuration
+// public class DataSourceAutoConfiguration {
+//     @Bean
+//     @ConditionalOnMissingBean
+//     public DataSource dataSource(DataSourceProperties props) { ... }
+// }
+// 这套"候选已存在就跳过、不存在才兜底"的规则，正是本章装配流程的框架化升级。</code></pre>
+  <div class="note">第九篇 Spring 核心到此收官：IoC 概念（77）→ Bean 生命周期（78）→ 依赖注入（79）→ 作用域与懒加载（80）→ AOP 概念（81）→ 切面实战（82）→ 声明式事务（83）→ 事件机制（84）→ 循环依赖（85）→ 装配规则（86）。下一篇进入 SpringBoot 与 Web 开发。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>解析顺序</td><td>@Autowired 先 byType，唯一注入；多个再 byName；仍冲突抛 NoUniqueBeanDefinitionException</td></tr>
+      <tr><td>可选依赖</td><td>required=false 缺失时注入 null，使用前判空；多候选冲突不受 required 豁免</td></tr>
+      <tr><td>冲突裁决</td><td>@Primary 定默认，@Qualifier 点名优先；自定义注解式 Qualifier 支持标签路由</td></tr>
+      <tr><td>延迟与集合</td><td>ObjectProvider 按需现取；List/Map 收拢全部实现供策略与责任链使用</td></tr>
+      <tr><td>规范与铺垫</td><td>@Resource 先名后类型、JSR-250 标准；单构造器免注解；Boot 自动配置是条件化候选装配的升级</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复述 @Autowired 的解析流程：候选为 0、为 1、大于 1 分别如何处理；写出 NoUniqueBeanDefinitionException 的两种修复注解。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>定义一个 PaymentChannel 接口及 Alipay、Wechat、Card 三个实现，用 Map 注入实现按渠道名路由；再为其中一个实现加 @Primary，验证不点名注入时的默认选择。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写一组构造器注入的 Service，分别制造"无匹配 Bean 启动失败""多实现未裁决启动失败"两个现场，读取异常信息并修复；再把其中可选依赖改写为 ObjectProvider 方案，对比 required=false 与 ObjectProvider 在构造器场景下的可行性差异。</div>
+  <p class="note">下一章：告别手工 XML 与配置类拼装——SpringBoot 入门与启动流程，看自动配置如何让一个 main 方法拉起整个 Web 应用。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="085_第85章_循环依赖与三级缓存.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../100_第十篇_SpringBoot与Web/087_第87章_SpringBoot入门与启动流程.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 86 章 自动装配原理前奏</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

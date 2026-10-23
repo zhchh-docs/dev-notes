@@ -128,155 +128,172 @@ code{font-size:13px}
   <h2>本章地图</h2>
   <ol>
     <li><a href="#sec1">本章目标</a></li>
-    <li><a href="#sec2">2.1 分清 JDK / JRE / JVM 与发行版</a></li>
-    <li><a href="#sec3">2.2 安装与环境变量</a></li>
-    <li><a href="#sec4">2.3 验证安装</a></li>
-    <li><a href="#sec5">2.4 IDEA 安装与新建项目</a></li>
-    <li><a href="#sec6">2.5 JShell：不建项目先玩语法</a></li>
-    <li><a href="#sec7">常见坑清单</a></li>
-    <li><a href="#sec8">本章小结与习题</a></li>
+    <li><a href="#sec2">2.1 装 JDK：选版本与验证</a></li>
+    <li><a href="#sec3">2.2 配置 JAVA_HOME 与 Path</a></li>
+    <li><a href="#sec4">2.3 IDEA 安装与关键设置</a></li>
+    <li><a href="#sec5">2.4 新建项目并跑通第一个类</a></li>
+    <li><a href="#sec6">2.5 常见安装事故排查表</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
   </ol>
 </nav>
 <main>
-
 <section id="sec1" class="card">
   <h2><span class="num">◆</span>本章目标</h2>
+  <p class="lead">本章只有一个验收标准：<b>终端里 <code>java -version</code> 正确输出，IDEA 里能新建项目并运行代码。</b>过程中遇到任何报错，直接翻 2.5 节排查表。</p>
   <ul>
-    <li>分清 <strong>JDK、JRE、JVM</strong> 三个缩写的关系，知道自己装的到底是哪个；</li>
-    <li>完成 JDK 安装并配置 <code>JAVA_HOME</code>，终端能输出正确版本；</li>
-    <li>用 IDEA 社区版新建第一个 Java 项目并跑通；</li>
-    <li>会用 <strong>JShell</strong> 做零成本的语法实验。</li>
+    <li>下载并安装一个 LTS 版本的 <strong>JDK</strong>，会用命令行验证安装结果；</li>
+    <li>理解 <code>JAVA_HOME</code> 与 <code>Path</code> 两个环境变量各管什么，出问题知道查哪个；</li>
+    <li>装好 <strong>IntelliJ IDEA Community</strong> 并完成三个关键设置；</li>
+    <li>新建项目、创建类、运行 main 方法，看到控制台输出；</li>
+    <li>拿到一张"安装事故排查表"，能独立解决 90% 的环境问题。</li>
   </ul>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">2.1</span> 分清 JDK / JRE / JVM，并选一个发行版</h2>
-  <p>三者是包含关系：<strong>JDK ⊃ JRE ⊃ JVM</strong>。</p>
+  <h2><span class="num">2.1</span> 装 JDK：选版本与验证</h2>
+  <p class="lead">先明确一件事：<b>装的是 JDK，不是"Java"。</b>JDK = 编译器 + 运行环境 + 工具箱（见 1.2 节的包含关系）。</p>
+  <h3>选哪个发行版</h3>
+  <p>JDK 有多个"品牌"（发行版），字节码层面彼此兼容：</p>
   <table>
-    <colgroup><col style="width:16%"><col style="width:50%"><col style="width:34%"></colgroup>
-    <thead><tr><th>缩写</th><th>全称与含义</th><th>给谁用</th></tr></thead>
+    <thead><tr><th style="width:22%">发行版</th><th>说明</th></tr></thead>
     <tbody>
-      <tr><td>JVM</td><td>Java Virtual Machine：执行字节码的虚拟机</td><td>所有人（隐含）</td></tr>
-      <tr><td>JRE</td><td>Java Runtime Environment：JVM + 核心类库，只能"跑"不能"编"</td><td>只运行程序的用户</td></tr>
-      <tr><td>JDK</td><td>Java Development Kit：JRE + 编译器 javac + 调试诊断工具</td><td><strong>开发者（你）</strong></td></tr>
+      <tr><td>Oracle JDK</td><td>官方出品，生产环境商用需注意授权条款</td></tr>
+      <tr><td>Eclipse Temurin（推荐）</td><td>Adoptium 项目出品，免费、开源、更新稳定，学习与生产皆宜</td></tr>
+      <tr><td>Amazon Corretto / 阿里 Dragonwell</td><td>云厂商维护的免费发行版，常用于对应云平台</td></tr>
     </tbody>
   </table>
-  <div class="warn-box"><span class="tag-pit">常见坑</span>只装了"Java 运行环境"就想写代码，运行 <code>javac</code> 会报"不是内部或外部命令"。写 Java 必须装 <strong>JDK</strong>。</div>
-  <h4>下载哪个 JDK</h4>
-  <p>Java 11 起官方开源，出现多个"发行版"——同一份标准，不同厂商打包：</p>
-  <table>
-    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
-    <thead><tr><th>发行版</th><th>说明</th><th>适合</th></tr></thead>
-    <tbody>
-      <tr><td>Oracle JDK</td><td>官方出品，商用需注意许可条款</td><td>需要官方支持的企业</td></tr>
-      <tr><td>OpenJDK</td><td>开源参考实现，各发行版的源头</td><td>通用</td></tr>
-      <tr><td>Temurin（Adoptium）</td><td>Eclipse 维护的开源发行版，口碑好</td><td><strong>推荐初学者</strong></td></tr>
-      <tr><td>国内镜像版</td><td>清华 / 阿里镜像站，下载快</td><td>网络受限时</td></tr>
-    </tbody>
-  </table>
-  <div class="note">版本选 <strong>17</strong>（LTS）。注意操作系统与架构：Windows 选 x64；macOS 若是 M 系列芯片选 aarch64 版。</div>
+  <div class="key-sentence">学习阶段选择：Eclipse Temurin 的 Java 17（LTS）。不要纠结发行版——它们实现同一个规范，将来切换成本几乎为零。</div>
+  <h3>安装与验证</h3>
+  <p>Windows 下载 <code>.msi</code> 安装包一路下一步；macOS 用 <code>.pkg</code> 或 <code>brew install temurin@17</code>。安装完成后打开<strong>新</strong>终端（不是装之前就开着的窗口）验证：</p>
+<pre class="code" data-lang="shell"><code>java -version
+# 输出示例：
+# openjdk version "17.0.10" 2024-01-16
+# OpenJDK Runtime Environment Temurin-17.0.10+7
+# OpenJDK 64-Bit Server VM Temurin-17.0.10+7 (mixed mode)
+
+javac -version
+# 输出示例：javac 17.0.10</code></pre>
+  <ul>
+    <li>两条命令都有输出 → 安装成功；</li>
+    <li><code>java</code> 有输出但 <code>javac</code> 提示"不是内部或外部命令" → 装的大概率是 JRE，或 PATH 没配好，看 2.2 节；</li>
+    <li>版本号不对（比如想装 17 却输出 1.8） → 机器上有多个 JDK，看 2.5 节第 2 条。</li>
+  </ul>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>验证命令一定要在<b>新开的终端</b>里执行。环境变量是进程启动时读取的，老窗口感知不到新配置——这是"我明明装好了却找不到命令"的头号原因。</div>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">2.2</span> 安装与环境变量</h2>
-  <h4>Windows</h4>
-  <ol>
-    <li>运行 <code>.msi</code> 安装包，安装路径<strong>不要含中文和空格</strong>，例如 <code>C:\Java\jdk-17</code>；</li>
-    <li>打开"系统环境变量"，新建 <code>JAVA_HOME = C:\Java\jdk-17</code>；</li>
-    <li>编辑 <code>Path</code>，新增 <code>%JAVA_HOME%\bin</code>，并<strong>移到列表顶部</strong>（防止旧 Java 残留抢先）；</li>
-    <li>一路确定后<strong>重新打开</strong>终端——老终端不会读到新变量。</li>
-  </ol>
-  <h4>macOS / Linux</h4>
-  <p>macOS 用 Homebrew：<code>brew install --cask temurin@17</code>；Linux 用包管理器安装或解压 tar 包后配置 PATH。多数安装方式会自动注册路径，无需手动设置。</p>
-<pre class="code" data-lang="bash"><code># macOS/Linux 检查与手动配置（如需）
-echo $JAVA_HOME
-export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
+  <h2><span class="num">2.2</span> 配置 JAVA_HOME 与 Path</h2>
+  <p class="lead">两个环境变量、两种职责：Path 决定"命令找不找得到"，JAVA_HOME 决定"其他工具去哪找 JDK"。</p>
+  <table>
+    <thead><tr><th style="width:20%">环境变量</th><th>作用</th><th style="width:34%">谁在用它</th></tr></thead>
+    <tbody>
+      <tr><td><code>Path</code></td><td>命令行搜索可执行程序的目录列表</td><td>终端里的 java / javac 命令</td></tr>
+      <tr><td><code>JAVA_HOME</code></td><td>指向 JDK 安装根目录</td><td>Maven、Gradle、Tomcat、IDEA 等工具</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Windows 推荐配置姿势</strong>（系统设置 → 高级系统设置 → 环境变量）：</p>
+<pre class="code" data-lang="text"><code>新建系统变量 JAVA_HOME = C:\Program Files\Eclipse Adoptium\jdk-17.0.10.7-hotspot
+
+编辑 Path，新增一条（用引用写法，升级 JDK 只改一处）：
+%JAVA_HOME%\bin</code></pre>
+  <p><strong>macOS / Linux</strong> 通常包管理器会自动配好；手动配置写在 <code>~/.zshrc</code> 或 <code>~/.bashrc</code>：</p>
+<pre class="code" data-lang="shell"><code>export JAVA_HOME=$(/usr/libexec/java_home -v 17)   # macOS
 export PATH=$JAVA_HOME/bin:$PATH</code></pre>
-  <p class="key-sentence">环境变量的作用只有一个：让终端在任何目录都能找到 java 和 javac 命令。理解这一点，配置出错时你就知道该查哪里。</p>
+  <div class="key-sentence">Path 里写 <code>%JAVA_HOME%\bin</code> 而不是写死完整路径：将来升级 JDK 只改 JAVA_HOME 一处，Path 不动。这是"单一事实来源"思想在你机器上的第一次应用。</div>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>①Path 里可能残留 <code>C:\Program Files\Common Files\Oracle\Java\javapath</code> 这类历史项，它<strong>优先于</strong>你新加的目录，导致版本"改不动"——删掉或下移它。②变量值末尾多打了分号或空格，会让整个目录失效。③改完必须重开终端。</div>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">2.3</span> 验证安装</h2>
-<pre class="code" data-lang="bash"><code>java -version
-# openjdk version "17.0.10" 2024-01-16
-
-javac -version
-# javac 17.0.10
-
-echo %JAVA_HOME%      # Windows cmd
-echo $JAVA_HOME       # macOS/Linux</code></pre>
-  <p>三条都要有正常输出。逐个排查思路：</p>
-  <ul>
-    <li><code>java</code> 有输出而 <code>javac</code> 没有 → 装成了 JRE，换装 JDK；</li>
-    <li>提示"不是内部或外部命令" → PATH 没配对，检查条目拼写与是否在列；</li>
-    <li>版本号不对（期望 17 却输出 1.8）→ PATH 里旧 Java 排在前面，把新条目上移。</li>
-  </ul>
+  <h2><span class="num">2.3</span> IDEA 安装与关键设置</h2>
+  <p class="lead">IDEA 分两个版本：<b>Community 免费版</b>够用完整个前八篇；<b>Ultimate 付费版</b>多的是 Web/框架支持（第九、十篇再考虑）。</p>
+  <p>从 JetBrains 官网下载 Community 版安装后，先做三个设置（File → Settings，macOS 是 Preferences）：</p>
+  <ol>
+    <li><strong>确认 JDK</strong>：File → Project Structure → SDK，选中刚装的 17。IDEA 能自动探测本机 JDK 列表；</li>
+    <li><strong>设置编码</strong>：Settings → Editor → File Encodings，三处全部选 <code>UTF-8</code>。编码不一致是中文乱码的根源；</li>
+    <li><strong>调整字体</strong>：Settings → Editor → Font，选带中文等宽支持的字体方案，避免代码注释里的中文变成方块。</li>
+  </ol>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>不要为了"显得专业"上来就配 Maven 镜像、装十几款插件。初学阶段插件越多越容易互相干扰，一个干净的 IDEA + 一个正确的 JDK 就是最佳起点。</div>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">2.4</span> IDEA 安装与新建项目</h2>
-  <p>IntelliJ IDEA 是主流 Java IDE。<strong>Community 社区版免费</strong>，前十二篇完全够用；Ultimate 的框架增强到 Spring 阶段再考虑。</p>
-  <ol>
-    <li>新建项目：<strong>New Project → Java</strong>，JDK 下拉框选中刚装的 17；</li>
-    <li>Build system 先选 <strong>IntelliJ</strong>（最简单）；Maven 到第十一篇再讲；</li>
-    <li>在 <code>src</code> 目录右键 <strong>New → Java Class</strong>，命名 <code>Hello</code>；</li>
-    <li>类体内输入 <code>main</code> 按 Tab，IDEA 自动生成主方法骨架；</li>
-    <li>点 <code>main</code> 左侧绿色三角运行，底部 Run 窗口出现输出即成功。</li>
-  </ol>
+  <h2><span class="num">2.4</span> 新建项目并跑通第一个类</h2>
+  <p class="lead">用最小步骤验证整条工具链：New Project → src 下建类 → 点绿色三角运行。</p>
+  <p>步骤：File → New → Project，语言选 Java，构建系统选 <strong>IntelliJ</strong>（暂时不要选 Maven，第三篇再引入），JDK 选 17，项目名随意。然后在 <code>src</code> 目录右键 → New → Java Class，输入类名 <code>Hello</code>：</p>
 <pre class="code" data-lang="java"><code>public class Hello {
     public static void main(String[] args) {
-        System.out.println("环境搭建成功！");
+        System.out.println("环境就绪！");
     }
-}</code></pre>
-  <div class="note"><strong>推荐设置</strong>：Settings → Editor → Font 调大字号；Editor → General → Auto Import 勾选 Add unambiguous imports；Plugins 可装中文语言包。</div>
+}
+// 点击 main 左侧绿色三角 → Run，控制台输出：环境就绪！</code></pre>
+  <p>这一行输出意味着<strong>整条链路</strong>都通了：IDEA 找到了 JDK → javac 把 .java 编译成 .class（在项目 out 目录里）→ JVM 执行字节码 → 输出回显到控制台。</p>
+  <p>两个值得现在就养成的小习惯：</p>
+  <ul>
+    <li>类名与文件名必须一致（<code>Hello</code> 必须住在 <code>Hello.java</code> 里），public 类更是强制；</li>
+    <li>用 IDEA 底部的 Terminal 标签页敲一次 <code>java -version</code>——IDE 内置终端同样走环境变量，顺便再验证一次配置。</li>
+  </ul>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">2.5</span> JShell：不建项目先玩语法</h2>
-  <p>JDK 9 起自带 <strong>JShell</strong>——交互式 REPL，输一行立刻出结果，适合验证小语法：</p>
-<pre class="code" data-lang="bash"><code>jshell
-jshell&gt; 1 + 2
-$1 ==&gt; 3
-jshell&gt; "abc".toUpperCase()
-$2 ==&gt; "ABC"
-jshell&gt; /exit</code></pre>
-  <p>本书前几篇的语法片段都可以丢进 JShell 快速试。注意它会自动省略完整程序的仪式感（如 public 类、编译报错的严格性），<strong>正式代码仍要写进 IDEA 项目</strong>。</p>
+  <h2><span class="num">2.5</span> 常见安装事故排查表</h2>
+  <p class="lead">报错不可怕，可怕的是不知道从哪查。对照下表按序排查，90% 的环境问题都能就地解决。</p>
+  <table>
+    <thead><tr><th style="width:38%">症状</th><th>原因与处理</th></tr></thead>
+    <tbody>
+      <tr><td><code>java 不是内部或外部命令</code></td><td>Path 没生效：确认配了 <code>%JAVA_HOME%\bin</code>，并<b>重开终端</b>再试</td></tr>
+      <tr><td>版本输出不对（如显示 1.8）</td><td>多 JDK 冲突：Path 里旧目录优先级更高，删旧项或把新项上移</td></tr>
+      <tr><td><code>错误: 找不到或无法加载主类</code></td><td>在错误目录执行了命令，或类名/文件名大小写不一致</td></tr>
+      <tr><td>中文乱码</td><td>IDEA 编码三处未统一为 UTF-8（见 2.3 节）；Windows 老终端可先执行 <code>chcp 65001</code></td></tr>
+      <tr><td>IDEA 提示 "Project JDK is not defined"</td><td>Project Structure → SDK 未选择，或误选了 JRE 目录</td></tr>
+      <tr><td>Maven/Gradle 报 "JAVA_HOME is not set"</td><td>JAVA_HOME 未配置或值写错（应指向 JDK 根目录，不是 bin 子目录）</td></tr>
+      <tr><td>装了 32 位 JDK 出现诡异崩溃</td><td>统一换 64 位 JDK，别在位数上省事</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">环境问题排查三板斧：①<code>java -version</code>、<code>javac -version</code>、<code>echo %JAVA_HOME%</code> 三连问；②重开终端再验证一次；③打开 Path 逐条检查优先级。</div>
+</section>
+
+<section id="sec6b" class="card">
+  <h2><span class="num">2.6</span> 进阶：多版本 JDK 共存</h2>
+  <p class="lead">真实工作里常常"老项目要 Java 8，新项目要 17"。从现在起就养成"项目级指定 JDK"的习惯，别依赖全局默认。</p>
+  <ul>
+    <li><strong>IDEA 层面</strong>：每个项目在 Project Structure 里独立指定 SDK，互不影响——这是最常用的切换方式；</li>
+    <li><strong>命令行层面</strong>：Windows 可用 <code>set JAVA_HOME=...</code> 临时切换当前窗口；macOS/Linux 用 <code>export JAVA_HOME=$(/usr/libexec/java_home -v 8)</code>；</li>
+    <li><strong>版本管理工具</strong>：SDKMAN!（macOS/Linux）或 jenv 可以一条命令全局/局部切换，团队协作时配合 <code>.sdkmanrc</code> 固定版本。</li>
+  </ul>
+<pre class="code" data-lang="shell"><code># macOS/Linux 用 SDKMAN! 管理多版本
+sdk list java                 # 查看可安装的所有发行版与版本
+sdk install java 17.0.10-tem  # 安装 Temurin 17
+sdk use java 8-tem            # 当前窗口切到 8（use 只影响当前会话）
+sdk default java 17.0.10-tem  # 设置默认版本</code></pre>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>不要试图把所有项目"统一升级到同一个 JDK"来解决冲突——老项目的依赖可能根本不支持新版本。<b>正确的思路是"每个项目锁定自己的 JDK"，而不是"全局唯一"。</b></div>
+  <p>一个仪式感建议：装好环境后，把 <code>java -version</code>、<code>javac -version</code>、<code>echo %JAVA_HOME%</code> 三条命令的输出贴进你的学习笔记第一页。三周后遇到环境问题时，这就是你的"出厂快照"。</p>
 </section>
 
 <section id="sec7" class="card">
-  <h2><span class="num">⚠</span> 常见坑清单</h2>
-  <ul>
-    <li><span class="tag-pit">坑 1</span><strong>路径含中文/空格</strong>：个别命令行工具处理路径会出错，JDK 与项目目录都用纯英文；</li>
-    <li><span class="tag-pit">坑 2</span><strong>多版本打架</strong>：装过多个 JDK 时，实际生效的由 PATH 顺序决定，不是"最新装的那个"；</li>
-    <li><span class="tag-pit">坑 3</span><strong>终端没重开</strong>：改完环境变量必须新开终端窗口，老窗口读的还是旧值；</li>
-    <li><span class="tag-pit">坑 4</span><strong>PowerShell 与 cmd 语法不同</strong>：cmd 用 <code>echo %JAVA_HOME%</code>，PowerShell 用 <code>echo $env:JAVA_HOME</code>，查资料注意区分；</li>
-    <li><span class="tag-pit">坑 5</span><strong>IDEA 找不到 JDK</strong>：New Project 的 SDK 下拉框为空时，点 Add SDK → JDK 手动选择安装目录。</li>
-  </ul>
-  <p class="pit-sentence">环境问题 90% 出在 PATH 与 JAVA_HOME。排查口诀：<b>先看命令能不能找到（PATH），再看找到的是不是你要的版本（顺序）</b>。</p>
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <thead><tr><th style="width:32%">要点</th><th>一句话总结</th></tr></thead>
+    <tbody>
+      <tr><td>装 JDK</td><td>选 Temurin 的 Java 17 LTS，java 与 javac 两条命令验证</td></tr>
+      <tr><td>JAVA_HOME</td><td>指向 JDK 根目录，给 Maven/Gradle/IDEA 等工具用</td></tr>
+      <tr><td>Path</td><td>命令搜索路径，用 %JAVA_HOME%\bin 引用式配置</td></tr>
+      <tr><td>IDEA 三设置</td><td>选对 SDK、编码统一 UTF-8、字体支持中文</td></tr>
+      <tr><td>跑通链路</td><td>控制台输出 = IDEA→javac→JVM 全链路打通的证明</td></tr>
+      <tr><td>排查三板斧</td><td>三条命令 + 重开终端 + 检查 Path 优先级</td></tr>
+    </tbody>
+  </table>
 </section>
 
 <section id="sec8" class="card">
-  <h2><span class="num">✓</span> 本章小结</h2>
-  <table>
-    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
-    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
-    <tbody>
-      <tr><td>三者关系</td><td>JDK ⊃ JRE ⊃ JVM；开发装 JDK</td></tr>
-      <tr><td>发行版</td><td>标准一套、打包多家；初学选 Temurin 17</td></tr>
-      <tr><td>环境变量</td><td>JAVA_HOME 指向安装目录，PATH 引用其 bin</td></tr>
-      <tr><td>验证三连</td><td>java -version / javac -version / echo JAVA_HOME</td></tr>
-      <tr><td>IDEA 要点</td><td>社区版够用；src 下建类，main + Tab 生成骨架</td></tr>
-      <tr><td>JShell</td><td>交互式试语法，正式代码仍进项目</td></tr>
-    </tbody>
-  </table>
-  <h3>本章习题</h3>
-  <div class="ex-box"><span class="ex-tag">A 基础</span>完成安装后，在终端记录三条验证命令的输出并存档——以后遇到"我明明装了"类问题时，这是第一证据。</div>
-  <div class="ex-box"><span class="ex-tag">B 进阶</span>在 IDEA 新建项目写出 Hello 并运行成功；再用 JShell 计算 <code>123456789 * 987654321</code>，观察结果有没有"异常"。</div>
-  <div class="ex-box"><span class="ex-tag">C 挑战</span>故意把 PATH 里的 <code>%JAVA_HOME%\bin</code> 删掉，重现"不是内部或外部命令"报错，再修复它——把排错过程内化成肌肉记忆。</div>
-  <p class="note">参考答案见附录 C（撰写中）。下一章正式写第一个程序，并亲手经历一次"编译 → 运行"。</p>
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>在你机器上执行 <code>java -version</code> 与 <code>echo %JAVA_HOME%</code>（macOS 用 <code>echo $JAVA_HOME</code>），确认两条命令与变量三者版本一致。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>机器上若装了多个 JDK，调整 Path 中 <code>%JAVA_HOME%\bin</code> 的位置，观察命令行版本变化后再恢复——亲手制造并修复一次"多 JDK 冲突"。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>不依赖 IDEA，用记事本写 Hello.java，并在终端手动完成编译运行（具体命令第 3 章展开，试着先凭直觉走通）。</div>
+  <p class="note">参考答案见附录 C（撰写中）。下一章把 main 方法逐词拆开，并离开 IDE 的保护伞，用命令行亲手走一遍 javac → java 的完整流程——那是你以后排障的底牌。</p>
 </section>
-
 </main>
+
+
 </div>
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>

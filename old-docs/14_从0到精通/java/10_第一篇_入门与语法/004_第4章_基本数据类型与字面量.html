@@ -128,151 +128,195 @@ code{font-size:13px}
   <h2>本章地图</h2>
   <ol>
     <li><a href="#sec1">本章目标</a></li>
-    <li><a href="#sec2">4.1 变量与强类型</a></li>
-    <li><a href="#sec3">4.2 八种基本类型总表</a></li>
-    <li><a href="#sec4">4.3 字面量的各种写法</a></li>
-    <li><a href="#sec5">4.4 常量 final 与 var</a></li>
-    <li><a href="#sec6">4.5 三大经典坑</a></li>
+    <li><a href="#sec2">4.1 静态类型：变量一生的约定</a></li>
+    <li><a href="#sec3">4.2 八种基本类型体检表</a></li>
+    <li><a href="#sec4">4.3 字面量的正确写法</a></li>
+    <li><a href="#sec5">4.4 浮点误差与 long 溢出</a></li>
+    <li><a href="#sec6">4.5 var 与类型安全的选择</a></li>
     <li><a href="#sec7">本章小结</a></li>
     <li><a href="#sec8">本章习题</a></li>
   </ol>
 </nav>
 <main>
-
 <section id="sec1" class="card">
   <h2><span class="num">◆</span>本章目标</h2>
+  <p class="lead">Java 是静态类型语言：<b>每个变量出生时就登记了类型，且终身不变。</b>本章把八种基本类型这张"体检表"记熟，并把两组经典坑排掉。</p>
   <ul>
-    <li>记住八种基本类型各自的用途与大致范围，知道<strong>何时选哪种</strong>；</li>
-    <li>掌握整型、浮点、字符、布尔字面量的全部常用写法（进制、后缀、转义）；</li>
-    <li>理解浮点误差的来源，知道钱为什么不能存 double；</li>
-    <li>会用 <code>final</code> 定义常量，会用 <code>var</code> 简化局部变量声明。</li>
+    <li>理解静态类型的含义：声明即约定，编译器据此把关；</li>
+    <li>记住八种基本类型的字节数与适用场景，分清基本类型与引用类型；</li>
+    <li>掌握整型/浮点/字符/布尔/字符串字面量的正确写法；</li>
+    <li>亲手制造并理解<strong>浮点误差</strong>与 <strong>int/long 溢出</strong>两个必考坑；</li>
+    <li>会用 <code>var</code> 局部变量类型推断，同时知道什么时候不该用它。</li>
   </ul>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">4.1</span> 变量与强类型</h2>
-  <p><strong>变量</strong>是内存里一块有名字的存储空间。<strong>强类型</strong>意味着：声明时必须写类型，之后只能装这个类型的数据。</p>
-<pre class="code" data-lang="java"><code>int age = 25;          // 声明 + 初始化
-double price;          // 只声明，未初始化
-price = 9.9;           // 之后赋值（首次使用前必须赋值）
-
-age = "二十五";         // 编译错误！int 不能装 String
-age = 26;              // 可以再赋新值（同类型）</code></pre>
-  <ul>
-    <li><strong>声明</strong>：<code>类型 变量名 = 初始值;</code></li>
-    <li><strong>局部变量必须先初始化再用</strong>——否则编译错误 <code>variable might not have been initialized</code>；</li>
-    <li>类型错误在<strong>编译期</strong>就被拦下，这是静态语言送你的第一份保险。</li>
-  </ul>
-  <div class="key-sentence">数据类型分两大阵营：<b>基本类型（primitive）</b>直接存值，<b>引用类型（reference）</b>存对象的地址。本章讲基本类型；String 等引用类型第 9 章起展开。</div>
+  <h2><span class="num">4.1</span> 静态类型：变量一生的约定</h2>
+  <p class="lead">声明变量的完整语法是"类型 + 名字 + 赋值"。这个看似啰嗦的格式，正是编译器替你把关的依据。</p>
+<pre class="code" data-lang="java"><code>int age = 25;          // 声明：age 从此是 int，终身不变
+age = 26;              // OK：可以换值，但不能换类型
+// age = "二十六";      // 编译错误：不兼容的类型
+double price;          // 只声明不赋值也合法
+price = 9.9;           // 局部变量使用前必须赋值</code></pre>
+  <p>Java 的类型分两大族，本篇聚焦<strong>基本类型</strong>（primitive），引用类型从第 11 章展开：</p>
+  <table>
+    <thead><tr><th style="width:22%">族</th><th>成员</th><th>变量里存的是什么</th></tr></thead>
+    <tbody>
+      <tr><td>基本类型（8 种）</td><td>byte/short/int/long、float/double、char、boolean</td><td>值本身</td></tr>
+      <tr><td>引用类型（无数种）</td><td>String、数组、一切类与接口</td><td>对象的"地址"（引用）</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">"变量里存的是值本身还是地址"是贯穿全书的一根主线：第 7 章的参数传递、第 8 章的数组别名、第 20 章的 equals 对比，都是这条主线的不同站点。</div>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">4.2</span> 八种基本类型总表</h2>
+  <h2><span class="num">4.2</span> 八种基本类型体检表</h2>
+  <p class="lead">八种类型按"存什么"分四组：整数、浮点、字符、布尔。记字节数不是为了背诵，是为了判断"够不够用、会不会溢出"。</p>
   <table>
-    <colgroup><col style="width:14%"><col style="width:16%"><col style="width:26%"><col style="width:22%"><col style="width:22%"></colgroup>
-    <thead><tr><th>类型</th><th>字节</th><th>范围</th><th>默认值(字段)</th><th>典型用途</th></tr></thead>
+    <thead><tr><th style="width:14%">类型</th><th style="width:12%">字节</th><th style="width:32%">范围（约）</th><th>典型用途</th></tr></thead>
     <tbody>
-      <tr><td>byte</td><td>1</td><td>-128 ~ 127</td><td>0</td><td>二进制数据、IO</td></tr>
-      <tr><td>short</td><td>2</td><td>约 ±3.2 万</td><td>0</td><td>少见，兼容历史</td></tr>
-      <tr><td>int</td><td>4</td><td>约 ±21 亿</td><td>0</td><td><strong>整数的默认选择</strong></td></tr>
-      <tr><td>long</td><td>8</td><td>约 ±922 亿亿</td><td>0L</td><td>时间戳、大编号</td></tr>
-      <tr><td>float</td><td>4</td><td>约 7 位有效数字</td><td>0.0f</td><td>省内存的浮点</td></tr>
-      <tr><td>double</td><td>8</td><td>约 15 位有效数字</td><td>0.0d</td><td><strong>浮点的默认选择</strong></td></tr>
-      <tr><td>char</td><td>2</td><td>0 ~ 65535（一个字符）</td><td>'\u0000'</td><td>单个字符</td></tr>
-      <tr><td>boolean</td><td>—</td><td>true / false</td><td>false</td><td>逻辑判断</td></tr>
+      <tr><td><code>byte</code></td><td>1</td><td>-128 ~ 127</td><td>二进制数据、节省内存的场景</td></tr>
+      <tr><td><code>short</code></td><td>2</td><td>±3.2 万</td><td>少见，历史兼容</td></tr>
+      <tr><td><code>int</code></td><td>4</td><td>±21 亿</td><td><strong>默认整数类型</strong>，日常首选</td></tr>
+      <tr><td><code>long</code></td><td>8</td><td>±922 亿亿</td><td>时间戳、ID、大数计数</td></tr>
+      <tr><td><code>float</code></td><td>4</td><td>约 6~7 位有效数字</td><td>少见，需加 f 后缀</td></tr>
+      <tr><td><code>double</code></td><td>8</td><td>约 15 位有效数字</td><td><strong>默认浮点类型</strong>（但别用于钱！）</td></tr>
+      <tr><td><code>char</code></td><td>2</td><td>一个 UTF-16 代码单元</td><td>单个字符，单引号</td></tr>
+      <tr><td><code>boolean</code></td><td>—</td><td>true / false</td><td>逻辑判断，只此二值</td></tr>
     </tbody>
   </table>
-  <p>实践建议很简单：<strong>整数默认 int，大了换 long；小数默认 double；逻辑用 boolean</strong>。byte/short 只在明确要省内存或对接二进制协议时用。</p>
-<pre class="code" data-lang="java"><code>int count = 42;
-long totalBytes = 8_589_934_592L;   // 超过 int 范围必须加 L
-double ratio = 0.618;
-boolean isVip = true;
-char grade = 'A';</code></pre>
+  <p>三条实用规则：</p>
+  <ul>
+    <li>整数没有特别理由就用 <code>int</code>，超范围用 <code>long</code>；byte/short 只在省内存或对接二进制协议时用；</li>
+    <li>浮点默认 <code>double</code>；<code>float f = 3.14f</code> 必须带 f 后缀（见 4.3 节）；</li>
+    <li>整数字面量默认是 int 类型——这一句正是下面溢出坑的伏笔。</li>
+  </ul>
+  <div class="key-sentence">金额计算一律不用 float/double：用 <code>BigDecimal</code>（字符串构造）或以"分"为单位的 long。浮点误差对金额是事故级 bug。</div>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">4.3</span> 字面量的各种写法</h2>
-  <p><strong>字面量（literal）</strong>就是代码里直接写出来的值。Java 的写法比多数教程说的丰富：</p>
-<pre class="code" data-lang="java"><code>// 整型：四种进制 + 下划线分隔
-int dec  = 1_000_000;     // 十进制，下划线增强可读性
-int hex  = 0xFF;          // 十六进制 = 255
-int oct  = 010;           // 八进制 = 8（前缀 0，慎用！）
-int bin  = 0b1010;        // 二进制 = 10
-long big = 9_223_372_036_854_775_807L;  // long 后缀 L
+  <h2><span class="num">4.3</span> 字面量的正确写法</h2>
+  <p class="lead">字面量（literal）是直接写在代码里的"字面值"。每种类型有自己的书写规则，写错编译器会立即拦截。</p>
+<pre class="code" data-lang="java"><code>// 整数：四种进制 + 下划线分隔（下划线纯为人读友好，编译期忽略）
+int dec  = 1_000_000;      // 十进制，一百万
+int hex  = 0xFF;           // 十六进制，255
+int oct  = 010;            // 八进制，8（前导 0 就是八进制，易误读！）
+int bin  = 0b1010;         // 二进制，10
 
-// 浮点：f/d 后缀与科学计数法
-float  f = 3.14f;         // float 必须加 f
-double d1 = 3.14;
-double d2 = 1.2e3;        // 科学计数法 = 1200.0
+// 浮点：默认 double，float 必须带 f
+double d = 3.14;
+float  f = 3.14f;
+double sci = 1.2e3;        // 科学计数法 = 1200.0
 
-// 字符与转义
-char a = 'A';
-char cn = '中';
-char nl = '\n';           // 换行
-char tab = '\t';          // 制表符
-char quote = '\'';        // 单引号本身
-char uni = '\u4e2d';      // Unicode 写法，等于 '中'
+// 字符：单引号 + 单字符；转义序列
+char c1 = 'A';
+char c2 = '中';
+char nl = '\n';            // 换行
+char u   = '\u0041';       // Unicode 写法，也是 'A'
 
-// 布尔
-boolean ok = true, fail = false;</code></pre>
-  <div class="warn-box"><span class="tag-pit">常见坑</span><code>int x = 010;</code> 是 <strong>8</strong> 不是 10——以 0 开头的整数是八进制。别让前导零悄悄进你的代码。</div>
+// 布尔与字符串
+boolean ok = true;
+String s = "双引号才是字符串";</code></pre>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>①<code>long big = 10000000000;</code> 编译报错——整数字面量默认 int，100 亿超了 int 范围。正确写法 <code>10000000000L</code>。<b>L 后缀让字面量自身是 long。</b>②八进制 <code>010</code> 是 8 不是 10：日常代码尽量别写前导零。③单引号双引号天差地别：<code>'A'</code> 是 char（数字 65），<code>"A"</code> 是 String 对象。</div>
+  <p>char 本质上是"存字符编码的无符号整数"，可以参与算术——这正是第 5 章 'A'+1=66 的伏笔：</p>
+<pre class="code" data-lang="java"><code>char c = 'A';
+System.out.println((int) c);  // 65：'A' 的编码值
+c++;                          // char 可以自增
+System.out.println(c);        // B</code></pre>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">4.4</span> 常量 final 与 var</h2>
-  <p>用 <code>final</code> 修饰的变量只能赋值一次，习惯上常量名全大写：</p>
-<pre class="code" data-lang="java"><code>final double TAX_RATE = 0.13;
-final int MAX_RETRY = 3;
-TAX_RATE = 0.2;   // 编译错误：不能给 final 变量重新赋值</code></pre>
-  <p>Java 10 起局部变量可用 <code>var</code> 让编译器推断类型，右侧是什么类型它就是什么类型：</p>
-<pre class="code" data-lang="java"><code>var name = "张三";        // 推断为 String
-var scores = new int[10]; // 推断为 int[]
-var x;                    // 编译错误：没有初始值无法推断</code></pre>
-  <div class="note">var 只能用于<strong>有初始值的局部变量</strong>，不能用于字段、方法参数、返回值。用或不用是风格问题：类型名太长时（如泛型嵌套）用 var 更清爽。</div>
+  <h2><span class="num">4.4</span> 浮点误差与 long 溢出</h2>
+  <p class="lead">两个必考坑：一个来自二进制小数的先天缺陷，一个来自定长整数的边界。面试和事故现场都常见。</p>
+  <h3>坑一：0.1 + 0.2 为什么不等于 0.3</h3>
+<pre class="code" data-lang="java"><code>System.out.println(0.1 + 0.2 == 0.3);   // false！
+System.out.println(0.1 + 0.2);          // 0.30000000000000004</code></pre>
+  <p>原因：二进制无法精确表示十分之一（就像十进制写不尽 1/3），0.1 存进去的是"最接近的二进制近似值"。两个近似值相加，误差浮出水面。</p>
+  <ul>
+    <li><strong>比较浮点</strong>：不用 ==，用"差值小于极小数"：<code>Math.abs(a - b) &lt; 1e-9</code>；</li>
+    <li><strong>金额计算</strong>：用 <code>BigDecimal</code> 且必须用字符串构造：<code>new BigDecimal("0.1")</code>（用 double 构造会把误差一起带进去）；</li>
+    <li><strong>展示层面</strong>：格式化输出 <code>String.format("%.2f", 0.1 + 0.2)</code> 得 0.30。</li>
+  </ul>
+  <h3>坑二：int 溢出——悄悄变成负数</h3>
+<pre class="code" data-lang="java"><code>int max = Integer.MAX_VALUE;      // 2147483647
+System.out.println(max + 1);      // -2147483648：绕回起点，编译器不报错！
+
+// 更隐蔽的形态：先溢出再赋值给 long，为时已晚
+long wrong = Integer.MAX_VALUE + 1;            // 结果仍是 -2147483648
+long right = Integer.MAX_VALUE + 1L;           // 2147483648：先变 long 再算
+
+// 最经典的形态：计算"天数 * 毫秒"时溢出
+int days = 25;
+long bad = days * 24 * 60 * 60 * 1000;         // 25 天起溢出为负！
+long good = days * 24L * 60 * 60 * 1000;       // 在链路早期把任一项变 long</code></pre>
+  <div class="key-sentence">溢出防范口诀：<b>让链路中最早可能越界的那个值先升位（加 L）。</b>表达式从左到右逐项运算，每一步临时结果的类型在当时就定了。</div>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>溢出不会抛异常、不会警告，<strong>静默发生</strong>。凡涉及时间戳（毫秒级 13 位）、文件字节数、大额积分的表达式，都要主动检查"乘起来会不会很大"。</div>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">4.5</span> 三大经典坑</h2>
-  <h4>坑一：浮点误差</h4>
-<pre class="code" data-lang="java"><code>System.out.println(0.1 + 0.2);
-// 输出 0.30000000000000004，不是 0.3！</code></pre>
-  <p>二进制无法精确表示 0.1、0.2 这类十进制小数，误差在累加中暴露。<strong>结论：金额计算用 BigDecimal</strong>（第 21 章介绍），展示时先格式化。</p>
-  <h4>坑二：整型溢出</h4>
-<pre class="code" data-lang="java"><code>int max = Integer.MAX_VALUE;
-System.out.println(max + 1);
-// 输出 -2147483648——溢出后绕回最小值，不报错！</code></pre>
-  <h4>坑三：char 参与算术</h4>
-<pre class="code" data-lang="java"><code>char c = 'A';
-System.out.println(c + 1);   // 输出 66（int）！不是 'B'
-System.out.println((char)(c + 1)); // 强转后才是 'B'</code></pre>
-  <p>char 本质是无符号整数（Unicode 码点），参与运算时自动提升为 int。</p>
-  <p class="pit-sentence">一句话防坑：<b>钱不用 double，大数不指望 int，char 运算记得强转</b>。</p>
+  <h2><span class="num">4.5</span> var 与类型安全的选择</h2>
+  <p class="lead">Java 10 引入 <code>var</code>：局部变量的类型推断。它不是动态类型——类型仍在编译期锁定，只是让你少写一遍。</p>
+<pre class="code" data-lang="java"><code>var count = 10;                        // 推断为 int，之后仍只能赋 int
+var names = new ArrayList&lt;String&gt;();   // 推断为 ArrayList&lt;String&gt;
+// count = "abc";                      // 依然编译错误：var 不是 JS 的 var
+
+// var 的价值在长类型名场景，可读性反而更好
+var map = new HashMap&lt;String, List&lt;Integer&gt;&gt;();</code></pre>
+  <ul>
+    <li><strong>只能用于有初始化值的局部变量</strong>：字段、方法参数、返回值都不能用 var；</li>
+    <li><strong>右值一目了然时用 var</strong>（new 表达式）；右值看不出类型时写显式类型，读者不需要跳转定义；</li>
+    <li>var 是"书写便利"不是"类型放松"——编译期检查与显式声明完全一致。</li>
+  </ul>
+</section>
+
+<section id="sec6b" class="card">
+  <h2><span class="num">4.6</span> 初见包装类：为什么 int 不是一切</h2>
+  <p class="lead">集合、泛型这些"只收对象"的容器容不下基本类型——于是每种基本类型都有一个对应的"包装类"。现在只需建立概念，细节在第三篇展开。</p>
+  <table>
+    <thead><tr><th style="width:20%">基本类型</th><th style="width:20%">包装类</th><th>一句话说明</th></tr></thead>
+    <tbody>
+      <tr><td>byte / short / int</td><td>Byte / Short / Integer</td><td>Integer 最常用，带 MAX_VALUE 等常量</td></tr>
+      <tr><td>long / float / double</td><td>Long / Float / Double</td><td>Double.parseDouble 解析字符串</td></tr>
+      <tr><td>char / boolean</td><td>Character / Boolean</td><td>Character.isDigit 等判断工具</td></tr>
+    </tbody>
+  </table>
+<pre class="code" data-lang="java"><code>// 装箱：基本类型 → 对象；拆箱：对象 → 基本类型
+Integer boxed = 42;             // 自动装箱（编译器插入 Integer.valueOf）
+int plain = boxed;              // 自动拆箱（插入 intValue()）
+
+// 包装类上的实用工具
+int max = Integer.MAX_VALUE;    // 2147483647，第 4.4 节的主角
+int n = Integer.parseInt("123");// 字符串转数字，第 3 章习题用过</code></pre>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>拆箱一个 <code>null</code> 的包装类会抛 NullPointerException：<code>Integer x = null; int y = x;</code> 编译不报错、运行炸裂。<b>"包装类可能为 null"是它在业务代码里与基本类型最大的行为差异。</b></div>
+  <p>记一个规则即可收尾：<strong>领域内的字段与方法参数优先用基本类型</strong>（不可能是 null、没有装箱开销）；<strong>需要"没有值"这个状态、或要放进集合时才用包装类</strong>。第三篇讲到泛型约束时会回扣这条规则。</p>
 </section>
 
 <section id="sec7" class="card">
   <h2><span class="num">✓</span> 本章小结</h2>
   <table>
-    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
-    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <thead><tr><th style="width:32%">要点</th><th>一句话总结</th></tr></thead>
     <tbody>
-      <tr><td>两大阵营</td><td>基本类型存值；引用类型存地址（后续章节）</td></tr>
-      <tr><td>八种类型</td><td>整型默认 int、浮点默认 double、逻辑 boolean</td></tr>
-      <tr><td>字面量</td><td>进制前缀 0x/0b/0、long 加 L、float 加 f、char 用单引号</td></tr>
-      <tr><td>final / var</td><td>final 一次性赋值；var 局部类型推断</td></tr>
-      <tr><td>三大坑</td><td>浮点误差、整型溢出静默绕回、char 提升为 int</td></tr>
+      <tr><td>静态类型</td><td>变量出生定类型终身不变，编译器据此把关</td></tr>
+      <tr><td>两大类型族</td><td>基本类型存值本身，引用类型存对象地址</td></tr>
+      <tr><td>类型选择</td><td>整数默认 int、超了用 long；浮点默认 double 但不碰钱</td></tr>
+      <tr><td>字面量</td><td>long 加 L、float 加 f、前导 0 是八进制、单引号是 char</td></tr>
+      <tr><td>浮点误差</td><td>二进制表示的先天缺陷：比较用极小差值，金额用 BigDecimal</td></tr>
+      <tr><td>溢出</td><td>静默发生不报错；让链路最早的越界值先升位</td></tr>
+      <tr><td>var</td><td>局部变量类型推断，静态本质不变，右值清晰时才用</td></tr>
     </tbody>
   </table>
 </section>
 
 <section id="sec8" class="card">
   <h2><span class="num">✎</span> 本章习题</h2>
-  <div class="ex-box"><span class="ex-tag">A 基础</span>用 JShell 验证：0.1+0.2 的输出、<code>Integer.MAX_VALUE + 1</code> 的输出、<code>'A' + 1</code> 的类型与值。</div>
-  <div class="ex-box"><span class="ex-tag">B 进阶</span>声明一组变量描述一本书（书名、价格、页数、是否在售），选择最合适的类型并说明理由。</div>
-  <div class="ex-box"><span class="ex-tag">C 挑战</span>不查资料，先推断 <code>0b1111</code>、<code>0x1F</code>、<code>1_0e1</code> 的值各是多少，再用代码验证。错一个就回看对应小节。</div>
-  <p class="note">参考答案见附录 C（撰写中）。下一章把"数据 + 类型"放进运算符里，重点讲类型转换的规则。</p>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出下列声明的错误并改正：<code>float rate = 0.5;</code>、<code>long total = 3000000000;</code>、<code>char s = "A";</code></div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写程序验证：分别用 <code>double</code> 累加 0.1 一千次、用 <code>BigDecimal("0.1")</code> 累加一千次，比较最终结果与 100 的差距，用一句话解释差异来源。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个"安全乘法"工具方法：接收两个 int，若乘积超出 int 范围返回 -1 而不是让溢出静默发生。提示：先用 long 算，再判断范围。</div>
+  <p class="note">参考答案见附录 C（撰写中）。类型与值的地基打好后，下一章让这些值动起来：运算符与类型转换——1/2 为什么等于 0、'A'+1 为什么是 66，都在第 5 章揭底。</p>
 </section>
-
 </main>
+
+
 </div>
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>

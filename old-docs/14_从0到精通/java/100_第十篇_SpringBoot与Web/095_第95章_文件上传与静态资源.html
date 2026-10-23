@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 95 章 文件上传与静态资源｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十篇 SpringBoot 与 Web</p>
+    <h1>第 95 章 文件上传与静态资源</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 95 章 / 共 112 章 · 预计 40 分钟 · 第十篇：Web 实战</span>
+    </div>
+    <p class="hero-desc">头像、附件、导出报表都绕不开文件收发。本章讲 MultipartFile 接收与大小限制，落实本地存储的类型白名单、路径穿越防护与重命名规则，配置静态资源映射与下载响应，并简介 OSS 对象存储方案与上线后三个高频问题。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="094_第94章_JWT登录实战.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="096_第96章_定时任务与异步处理.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">95.1 MultipartFile 接收文件</a></li>
+    <li><a href="#sec3">95.2 上传大小与请求限制</a></li>
+    <li><a href="#sec4">95.3 本地存储策略与安全边界</a></li>
+    <li><a href="#sec5">95.4 静态资源映射</a></li>
+    <li><a href="#sec6">95.5 文件下载与 OSS 简介</a></li>
+    <li><a href="#sec7">95.6 常见坑排查</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>用 <code>MultipartFile</code> 接收单文件与多文件上传，读懂其核心 API；</li>
+    <li>配置单文件与单次请求大小限制，知道超限异常类型；</li>
+    <li>落实类型白名单、文件名重命名与路径穿越防护；</li>
+    <li>配置静态资源映射，用 <code>ResponseEntity</code> 实现受控下载；</li>
+    <li>说出本地存储与 OSS 对象存储的分工，避开临时目录、中文文件名、大小超限三类坑。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">95.1</span> MultipartFile 接收文件</h2>
+  <p class="lead"><strong>一句话定位</strong>：表单 <code>multipart/form-data</code> 上传的文件由 Spring 封装为 <code>MultipartFile</code>，控制器方法参数按表单字段名接收；对象、字节流、原始文件名、大小、内容类型都可从该对象读取。</p>
+  <pre class="code" data-lang="java"><code>package com.example.demo.controller;
+
+import com.example.demo.common.Result;
+import com.example.demo.service.FileStorageService;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/files")
+public class FileController {
+
+    private final FileStorageService storageService;
+
+    public FileController(FileStorageService storageService) {
+        this.storageService = storageService;
+    }
+
+    /** 单文件上传：表单字段名 file */
+    @PostMapping("/upload")
+    public Result&lt;String&gt; upload(@RequestParam("file") MultipartFile file) {
+        String url = storageService.store(file);
+        return Result.ok(url);
+    }
+
+    /** 多文件上传：同一字段多个文件 */
+    @PostMapping("/upload-batch")
+    public Result&lt;List&lt;String&gt;&gt; uploadBatch(@RequestParam("files") List&lt;MultipartFile&gt; files) {
+        List&lt;String&gt; urls = files.stream().map(storageService::store).toList();
+        return Result.ok(urls);
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>MultipartFile 方法</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td>getOriginalFilename()</td><td>客户端提交的原始文件名（不可直接信任，需清洗）</td></tr>
+      <tr><td>getContentType()</td><td>浏览器声明的 MIME 类型（可伪造，仅作辅助判断）</td></tr>
+      <tr><td>getSize()</td><td>文件字节大小</td></tr>
+      <tr><td>getBytes() / getInputStream()</td><td>读取文件内容；大文件优先流式处理</td></tr>
+      <tr><td>isEmpty()</td><td>是否为空文件（未选择或零字节）</td></tr>
+      <tr><td>transferTo(File)</td><td>写入指定磁盘位置</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="http"><code># 前端表单提交示例（axios FormData）
+POST /api/files/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="avatar.png"
+Content-Type: image/png
+
+（二进制内容）
+------WebKitFormBoundary--</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">95.2</span> 上传大小与请求限制</h2>
+  <p class="lead"><strong>一句话定位</strong>：Boot 默认对单文件与整个 multipart 请求设上限，超出抛 <code>MaxUploadSizeExceededException</code>；在配置中按业务调大阈值，并把异常纳入第 91 章全局异常处理。</p>
+  <pre class="code" data-lang="yaml"><code># application.yml
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB          # 单个文件上限
+      max-request-size: 20MB       # 单次 multipart 请求总上限
+      file-size-threshold: 2KB     # 超过该阈值写入临时磁盘，否则留内存
+      location:                    # 临时目录留空使用系统默认
+      resolve-lazily: false        # 关闭延迟解析，大小超限尽早抛异常</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>配置项</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>max-file-size</td><td>单个上传文件大小上限，超限抛 MaxUploadSizeExceededException</td></tr>
+      <tr><td>max-request-size</td><td>一次 multipart 请求整体大小上限，含多文件与表单字段</td></tr>
+      <tr><td>file-size-threshold</td><td>内存缓冲阈值，超出后写入临时文件，防止大文件撑爆堆内存</td></tr>
+      <tr><td>location</td><td>临时文件目录；留空使用系统临时目录（95.6 讲清理问题）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">95.3</span> 本地存储策略与安全边界</h2>
+  <p class="lead"><strong>一句话定位</strong>：落盘前必须做三件事——校验类型白名单、生成新文件名、把目标路径约束在存储根目录之内；原始文件名只用于展示，绝不直接拼进磁盘路径。</p>
+  <pre class="code" data-lang="java"><code>package com.example.demo.service;
+
+import com.example.demo.common.BizException;
+import com.example.demo.common.ErrorCode;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+public class FileStorageService {
+
+    private static final Set&lt;String&gt; ALLOWED_EXT =
+            Set.of("png", "jpg", "jpeg", "gif", "pdf");
+
+    private final Path rootDir;
+
+    public FileStorageService(@Value("${file.upload-dir:./uploads}") String uploadDir)
+            throws IOException {
+        this.rootDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Files.createDirectories(rootDir);
+    }
+
+    public String store(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "上传文件为空");
+        }
+        String original = StringUtils.cleanPath(
+                file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
+        String ext = getExtension(original);
+        if (!ALLOWED_EXT.contains(ext)) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "文件类型不允许");
+        }
+        // 重命名：UUID 防重名与覆盖，扩展名取自白名单校验结果
+        String storedName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+
+        Path target = rootDir.resolve(storedName).normalize();
+        // 路径穿越校验：解析后必须仍在根目录之内
+        if (!target.startsWith(rootDir)) {
+            throw new BizException(ErrorCode.PARAM_INVALID, "非法文件路径");
+        }
+        try {
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new BizException(ErrorCode.SYSTEM_ERROR, "文件保存失败");
+        }
+        return "/static/" + storedName;
+    }
+
+    private String getExtension(String filename) {
+        int dot = filename.lastIndexOf('.');
+        if (dot &lt; 0 || dot == filename.length() - 1) return "";
+        return filename.substring(dot + 1).toLowerCase();
+    }
+}</code></pre>
+  <div class="danger-box"><span class="tag-pit">安全红线：路径穿越</span>攻击者提交 <code>filename="../../etc/cron.d/evil"</code>，若直接拼接 <code>rootDir + "/" + filename</code> 会写出根目录。必须 <code>normalize()</code> 后用 <code>startsWith(rootDir)</code> 约束，文件名最终以系统生成的 UUID 为准。</div>
+  <div class="warn-box"><span class="tag-point">双重校验</span>扩展名白名单之外，图片类上传建议读取文件头魔数（magic number）二次确认真实类型；仅信任 <code>contentType</code> 可被伪造绕过。可执行脚本（jsp/html/svg）绝不允许存入可执行目录。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">95.4</span> 静态资源映射</h2>
+  <p class="lead"><strong>一句话定位</strong>：本地落盘的文件需要通过 HTTP 访问；注册资源处理器，把 URL 路径前缀映射到磁盘目录，浏览器或前端即可直接加载图片与附件。</p>
+  <pre class="code" data-lang="java"><code>package com.example.demo.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebResourceConfig implements WebMvcConfigurer {
+
+    @Value("${file.upload-dir:./uploads}")
+    private String uploadDir;
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/static/**")
+                .addLocations("file:" + uploadDir + "/");
+    }
+}</code></pre>
+  <pre class="code" data-lang="yaml"><code># application.yml：自定义上传目录与对外前缀
+file:
+  upload-dir: ./uploads
+spring:
+  web:
+    resources:
+      static-locations: classpath:/static/,classpath:/public/</code></pre>
+  <ul>
+    <li><strong>classpath 静态资源</strong>：默认从 <code>/static/</code>、<code>/public/</code>、<code>/resources/</code>、<code>/META-INF/resources/</code> 提供内置资源；</li>
+    <li><strong>磁盘目录映射</strong>：<code>addResourceHandler</code> 的 URL 前缀与 <code>addLocations</code> 的磁盘目录一一对应；</li>
+    <li><strong>权限分离</strong>：静态资源路径通常不经过 JWT 拦截器（在第 94 章配置中排除），受保护附件下载改走后端受控接口（95.5）。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">95.5</span> 文件下载与 OSS 简介</h2>
+  <p class="lead"><strong>一句话定位</strong>：受控下载不能直接暴露磁盘路径，由接口读取文件流写入 <code>ResponseEntity</code>，设置 <code>Content-Disposition</code> 决定浏览器内联预览还是附件下载；生产环境大文件优先走对象存储 CDN。</p>
+  <pre class="code" data-lang="java"><code>@GetMapping("/download/{filename}")
+public ResponseEntity&lt;Resource&gt; download(@PathVariable String filename) throws IOException {
+    Path file = rootDir.resolve(filename).normalize();
+    if (!file.startsWith(rootDir) || !Files.exists(file)) {
+        throw new BizException(ErrorCode.USER_NOT_FOUND, "文件不存在");
+    }
+    Resource resource = new UrlResource(file.toUri());
+
+    String encoded = java.net.URLEncoder.encode(filename, StandardCharsets.UTF_8)
+            .replace("+", "%20");
+    return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" + encoded + "\"; filename*=UTF-8''" + encoded)
+            .contentLength(resource.contentLength())
+            .body(resource);
+}</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="本地存储与 OSS 分工">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">上传存储两条路线对比</text>
+      <rect x="50" y="52" width="320" height="120" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="210" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">本地磁盘存储</text>
+      <text x="210" y="110" text-anchor="middle" font-size="11" fill="#4f6348">简单起步：文件落在应用服务器目录</text>
+      <text x="210" y="134" text-anchor="middle" font-size="11" fill="#4f6348">多实例无法共享，扩容需同步磁盘</text>
+      <text x="210" y="158" text-anchor="middle" font-size="11" fill="#4f6348">备份、扩容、带宽都受单机限制</text>
+      <rect x="430" y="52" width="320" height="120" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="590" y="82" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">OSS 对象存储（云服务）</text>
+      <text x="590" y="110" text-anchor="middle" font-size="11" fill="#4f6348">服务端生成预签名 URL，直传直取</text>
+      <text x="590" y="134" text-anchor="middle" font-size="11" fill="#4f6348">与应用实例解耦，天然支持多副本</text>
+      <text x="590" y="158" text-anchor="middle" font-size="11" fill="#4f6348">配合 CDN 分发静态资源，弹性扩容</text>
+      <text x="400" y="196" text-anchor="middle" font-size="12" fill="#7a8a70">图 95-1 本地存储适合单机起步；生产图文附件通常迁移到 OSS + CDN</text>
+    </svg>
+    <p class="diagram-caption">图 95-1 本地存储与对象存储分工</p>
+  </div>
+  <p>主流方案（阿里云 OSS、腾讯云 COS、MinIO 自建）的常见模式：后端校验身份后生成<strong>预签名上传 URL</strong>，前端直传 OSS，回调落地文件 key；下载同样签发限时签名 URL，不经过应用服务器带宽。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">95.6</span> 常见坑排查</h2>
+  <p class="pit-sentence"><span class="tag-pit">坑：临时目录清理</span>大文件先写系统临时目录，进程异常退出可能残留碎片；长时间运行需关注临时目录空间，或显式配置 <code>spring.servlet.multipart.location</code> 并纳入磁盘清理策略。</p>
+  <p class="pit-sentence"><span class="tag-pit">坑：中文文件名乱码</span>下载响应头直接写中文文件名，不同浏览器解析结果不一致；必须按 RFC 5987 同时提供 <code>filename</code> 与 <code>filename*=UTF-8''</code> 编码形式（95.5 代码已落地）。</p>
+  <p class="pit-sentence"><span class="tag-pit">坑：大小超限返回 500</span>未处理 <code>MaxUploadSizeExceededException</code>，前端收到 500 与系统错误文案；应在全局处理器中映射为 400 并返回"文件大小超出限制"。</p>
+  <p class="pit-sentence"><span class="tag-pit">坑：原始文件名直接落盘</span>同名覆盖、特殊字符、路径穿越、文件名乱码全部由此引发；落盘名使用 UUID 或雪花 id，原始名单独存数据库供展示。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>接收方式</td><td>MultipartFile 按表单字段名接收，单文件与多文件列表两种签名</td></tr>
+      <tr><td>大小限制</td><td>max-file-size 单文件、max-request-size 请求总量，超限抛 MaxUploadSizeExceededException</td></tr>
+      <tr><td>安全落盘</td><td>扩展名白名单 + UUID 重命名 + normalize 路径约束，拒绝原始名直接拼路径</td></tr>
+      <tr><td>静态资源</td><td>ResourceHandler 把 URL 前缀映射到磁盘目录；内置资源走 classpath 默认位置</td></tr>
+      <tr><td>下载与 OSS</td><td>ResponseEntity + Content-Disposition 受控下载；生产环境 OSS 预签名 + CDN</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复述：MultipartFile 五个常用方法；max-file-size 与 max-request-size 区别；为什么落盘必须重命名？路径穿越防护的两个步骤是什么？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现头像上传接口：白名单 png/jpg/jpeg，限制 5MB，UUID 重命名后存入本地目录并配置静态映射；补充下载接口，处理中文文件名编码；把大小超限异常接入全局异常处理器返回 400。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>接入 MinIO 或某云 OSS SDK：后端校验身份后返回预签名上传 URL，前端直传；再写一个预签名下载 URL 生成接口。对比本地存储方案在多实例部署时的共享磁盘需求，写出迁移 OSS 后上传、下载两条链路的时序说明。</div>
+  <p class="note">下一章：定时任务与异步处理——@Scheduled 三种触发方式、cron 表达式、@Async 线程池配置、异步异常处理与分布式定时任务简述。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="094_第94章_JWT登录实战.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="096_第96章_定时任务与异步处理.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 95 章 文件上传与静态资源</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

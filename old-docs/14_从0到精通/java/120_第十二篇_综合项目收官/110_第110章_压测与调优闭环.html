@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 110 章 压测与调优闭环｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十二篇 综合项目收官</p>
+    <h1>第 110 章 压测与调优闭环</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 110 章 / 共 112 章 · 预计 40 分钟 · 第十二篇：项目实战</span>
+    </div>
+    <p class="hero-desc">系统功能跑通不等于能扛量。本章用 JMeter 对需求列表与详情接口施压：先定义 QPS、RT、TP99、错误率指标，按流程隔离环境、预热压测，再从 CPU、内存、IO、锁、SQL 定位瓶颈，调优后复测对比，形成可重复执行的优化闭环。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="109_第109章_消息队列接入与异步解耦.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="111_第111章_面试知识体系梳理.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">110.1 压测目标与核心指标</a></li>
+    <li><a href="#sec3">110.2 JMeter 使用与结果解读</a></li>
+    <li><a href="#sec4">110.3 压测流程与环境纪律</a></li>
+    <li><a href="#sec5">110.4 瓶颈定位五个方向</a></li>
+    <li><a href="#sec6">110.5 调优动作与复测闭环</a></li>
+    <li><a href="#sec7">110.6 压测高频坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <strong>QPS、平均 RT、TP99、错误率</strong>等指标的含义与选取理由；</li>
+    <li>能用 JMeter 配置线程组、HTTP 请求与聚合报告，读懂结果列含义；</li>
+    <li>遵守环境隔离、数据准备、预热等<strong>压测流程纪律</strong>；</li>
+    <li>按 CPU、内存、IO、锁、SQL 五个方向<strong>定位瓶颈</strong>；</li>
+    <li>完成"调优 → 复测 → 对比"闭环，记录可复查的前后指标。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">110.1</span> 压测目标与核心指标</h2>
+  <p class="lead">压测不是"把并发调大看崩不崩"，而是带着目标施压：在约定的业务量级下，接口要达到什么吞吐、响应多快、错误率多低。指标先写进测试计划，压测结果才好判断达标与否。</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:38%"><col style="width:26%"><col style="width:18%"></colgroup>
+    <thead><tr><th>指标</th><th>含义</th><th>本项目目标（示例）</th><th>为什么重要</th></tr></thead>
+    <tbody>
+      <tr><td>QPS / TPS</td><td>每秒成功处理的请求数（接口吞吐）</td><td>需求列表 ≥ 300 QPS</td><td>衡量系统处理能力上限</td></tr>
+      <tr><td>平均 RT</td><td>全部请求响应时间的算术平均</td><td>&lt; 120ms</td><td>反映整体体验，但会被少数快请求掩盖长尾</td></tr>
+      <tr><td>TP99 / P99</td><td>99% 请求的响应时间上限（长尾）</td><td>&lt; 400ms</td><td>比平均值更接近真实用户最差体验</td></tr>
+      <tr><td>TP95</td><td>95% 请求的响应时间上限</td><td>&lt; 250ms</td><td>常用服务等级约定口径</td></tr>
+      <tr><td>错误率</td><td>失败请求数 / 总请求数（5xx、超时、断言失败）</td><td>&lt; 0.1%</td><td>压测期间吞吐再高，错误率失控也不达标</td></tr>
+      <tr><td>并发数</td><td>同时在途的请求线程 / 用户数</td><td>200 线程阶梯加压</td><td>施压手段，不是服务能力本身</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence"><span class="tag-point">指标纪律</span>对外承诺性能时用 <strong>TP99 而不是平均值</strong>：平均 RT 好看可能是大量缓存命中请求把长尾平均掉了；压测报告要同时给出吞吐、分位时延、错误率三组数字，缺一不可。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">110.2</span> JMeter 使用与结果解读</h2>
+  <p class="lead">JMeter 是 Java 桌面压测工具，本项目对登录、需求列表、详情三个接口施压。核心组件：线程组（并发与节奏）→ HTTP 请求默认值 → 采样器（具体接口）→ 监听器（聚合报告、查看结果树）。</p>
+  <h3>110.2.1 线程组与采样器配置</h3>
+  <pre class="code" data-lang="text"><code># 测试计划结构（GUI 左侧树）
+Test Plan
+├── HTTP Request Defaults
+│     Server Name or IP: localhost
+│     Port Number: 8080
+│     Protocol: http
+├── CSV Data Set Config            # 参数化：1000 个需求 id 循环取值
+│     Filename: requirement_ids.csv
+│     Sharing mode: All threads
+├── User Defined Variables
+│     token = ${__P(token,)}       # 压测前先登录取令牌，命令行传入
+├── Thread Group：需求列表接口
+│     Number of Threads (users): 200
+│     Ramp-Up Period (seconds): 30
+│     Loop Count: 10
+│     Scheduler：持续 5 分钟
+├── HTTP Request：GET /api/requirements
+│     Parameters: status=PENDING&amp;pageNum=1&amp;pageSize=20
+│     Header: Authorization = Bearer ${token}
+├── HTTP Request：GET /api/requirements/${id}
+│     Body 无需；id 来自 CSV
+└── Listener
+      ├── Aggregate Report          # 聚合报告：核心指标表
+      ├── View Results Tree         # 调试期看请求与响应
+      └── Response Time Graph       # 时延曲线</code></pre>
+  <h3>110.2.2 聚合报告列怎么读</h3>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:48%"><col style="width:30%"></colgroup>
+    <thead><tr><th>列名</th><th>含义</th><th>关注点</th></tr></thead>
+    <tbody>
+      <tr><td>Label</td><td>采样器名称，按接口分组统计</td><td>一个接口一行，不要多个接口混在同一采样器</td></tr>
+      <tr><td># Samples</td><td>发出的请求总数</td><td>与预期样本量核对，排除中途退出</td></tr>
+      <tr><td>Average</td><td>平均响应时间（ms）</td><td>整体参考，配合分位值看</td></tr>
+      <tr><td>90% Line / 99% Line</td><td>TP90 / TP99 响应时间上限</td><td>长尾指标，主要调优依据</td></tr>
+      <tr><td>Throughput</td><td>吞吐量，约等于 QPS</td><td>随并发上升到拐点后不再增长即瓶颈初现</td></tr>
+      <tr><td>Error %</td><td>错误请求占比</td><td>压测中优先清零错误，再谈时延</td></tr>
+    </tbody>
+  </table>
+  <p>命令行非 GUI 模式适合正式压测（GUI 本身消耗内存，结果偏小）：先在 GUI 调好脚本保存为 <code>req-test.jmx</code>，再用命令行运行并导出报告。</p>
+  <pre class="code" data-lang="bash"><code># 非 GUI 压测并生成 HTML 报告（压测机执行）
+jmeter -n -t req-test.jmx ^
+  -Jtoken=eyJhbGciOiJIUzI1NiJ9... ^
+  -l result/result.jtl ^
+  -e -o result/report</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">110.3</span> 压测流程与环境纪律</h2>
+  <p class="lead">压测结论可信的前提是环境可控：共享环境上压测，别人的干扰会让你的数据毫无参考价值。按"准备 → 预热 → 阶梯加压 → 采集 → 复测"的顺序执行。</p>
+  <ol>
+    <li><strong>环境隔离</strong>：专用压测环境，数据库独立，数据量与生产同量级（如 10 万条需求记录）；不要在共享开发库上跑压测；</li>
+    <li><strong>数据准备</strong>：账号提前登录取令牌；列表筛选条件覆盖真实分布；详情接口参数化读取真实存在的 id，避免大面积 404 干扰统计；</li>
+    <li><strong>预热</strong>：先跑 1–2 分钟让 JIT 编译完成、缓存填充、连接池建立，正式统计从稳定阶段开始；冷启动数据不纳入报告；</li>
+    <li><strong>阶梯加压</strong>：50 → 100 → 200 → 300 线程逐级提升，每级观察吞吐拐点与时延突变点，而不是一步拉满；</li>
+    <li><strong>同步采集</strong>：压测期间采集服务器 CPU、内存、GC、线程数、数据库慢查询与连接池状态，事后才能把现象对应到资源；</li>
+    <li><strong>复测留档</strong>：每次调优后在相同环境、相同脚本、相同数据上复测，指标前后可比。</li>
+  </ol>
+  <div class="warn-box"><span class="tag-pit">环境纪律</span>压测机与被压对象分开部署，避免 JMeter 进程和应用争抢同一台机器的 CPU；压测机带宽与连接数也要留出余量，否则瓶颈在客户端而不在服务端。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">110.4</span> 瓶颈定位五个方向</h2>
+  <p class="lead">RT 升高、吞吐上不去时，按"外部观测 → 资源指标 → 代码链路"逐层收窄：先确认瓶颈在服务端还是数据库，再定位到具体资源与方法。</p>
+  <table>
+    <colgroup><col style="width:14%"><col style="width:36%"><col style="width:30%"><col style="width:20%"></colgroup>
+    <thead><tr><th>方向</th><th>典型现象</th><th>排查手段</th><th>常见根因</th></tr></thead>
+    <tbody>
+      <tr><td>CPU</td><td>CPU 使用率打满、上下文切换高</td><td>top / htop 看进程；jstack 抓线程栈；看是否有死循环、正则回溯、频繁序列化</td><td>热点方法、日志过载、循环内对象创建</td></tr>
+      <tr><td>内存 / GC</td><td>RT 周期性毛刺、频繁 Full GC</td><td>jstat 看 GC 频率与耗时；jmap 导出堆直方图；VisualVM / JConsole 观察</td><td>大对象缓存、内存泄漏、无界集合</td></tr>
+      <tr><td>IO / 数据库</td><td>CPU 不高但 RT 高，连接池等待</td><td>数据库慢查询日志、EXPLAIN 执行计划；看锁等待与索引命中</td><td>缺索引、联表过多、N+1 查询、大事务</td></tr>
+      <tr><td>锁 / 并发</td><td>线程长时间 BLOCKED / WAITING，吞吐卡在某个并发数</td><td>jstack 看锁竞争栈；线程池队列长度；synchronized / Lock 竞争点</td><td>锁粒度太粗、共享状态竞争、线程池过小</td></tr>
+      <tr><td>下游 / 连接</td><td>外部调用超时拉高整体 RT</td><td>接口耗时拆分日志；连接池监控；网络与 DNS 解析耗时</td><td>未设超时、连接耗尽、重试风暴</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 排查慢查询：需求列表按状态 + 优先级 + 时间倒序，先看执行计划
+EXPLAIN SELECT id, title, status, priority, creator_id, view_count, create_time
+FROM requirement
+WHERE status = 'PENDING'
+  AND priority = 'P1'
+ORDER BY create_time DESC
+LIMIT 20;
+
+-- 若 type 为 ALL（全表扫描），补联合索引覆盖过滤 + 排序
+CREATE INDEX idx_status_priority_time
+    ON requirement (status, priority, create_time);</code></pre>
+  <pre class="code" data-lang="yaml"><code># 线程池与连接池基线配置（application.yml，调优时按压测结果调整）
+server:
+  tomcat:
+    threads:
+      max: 200              # 最大工作线程数
+      min-spare: 20
+    accept-count: 100       # 等待队列长度
+
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 30   # 连接池上限，不是越大越好
+      minimum-idle: 10
+      connection-timeout: 3000</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">110.5</span> 调优动作与复测闭环</h2>
+  <p class="lead">定位到瓶颈后只改一个变量再复测，才能归因清楚：这次时延下降到底是索引生效、缓存命中还是线程池扩容带来的。以下是本项目一轮典型调优记录。</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:30%"><col style="width:25%"><col style="width:25%"></colgroup>
+    <thead><tr><th>接口</th><th>调优动作</th><th>调优前（基线）</th><th>复测结果</th></tr></thead>
+    <tbody>
+      <tr><td>GET /api/requirements</td><td>补联合索引；列表热点数据接入 108 章缓存；去掉循环内逐条查用户名</td><td>280 线程下 QPS 96，TP99 860ms，错误率 0.3%</td><td>QPS 342，TP99 310ms，错误率 0.02%</td></tr>
+      <tr><td>GET /api/requirements/{id}</td><td>详情缓存 15 分钟；互斥回源防击穿；慢 SQL 加主键索引（已有）</td><td>QPS 180，TP99 520ms</td><td>QPS 410，TP99 180ms</td></tr>
+      <tr><td>POST /api/auth/login</td><td>BCrypt 强度保留；密码校验结果走缓存；令牌签发不含重计算</td><td>QPS 70，TP99 640ms</td><td>QPS 96，TP99 420ms（哈希成本上限）</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="压测调优闭环">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">压测调优闭环：不达标的指标回到定位阶段重新迭代</text>
+
+      <rect x="30" y="60" width="130" height="56" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="95" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">① 定义目标</text>
+      <text x="95" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">QPS / TP99 / 错误率</text>
+
+      <rect x="200" y="60" width="130" height="56" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="265" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">② 阶梯压测</text>
+      <text x="265" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">JMeter 同步采集指标</text>
+
+      <rect x="370" y="60" width="130" height="56" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="435" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">③ 定位瓶颈</text>
+      <text x="435" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">CPU/内存/IO/锁/SQL</text>
+
+      <rect x="540" y="60" width="130" height="56" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="605" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">④ 调优变更</text>
+      <text x="605" y="104" text-anchor="middle" font-size="10.5" fill="#4f6348">一次只改一个变量</text>
+
+      <rect x="370" y="150" width="130" height="56" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="435" y="174" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">⑤ 复测对比</text>
+      <text x="435" y="194" text-anchor="middle" font-size="10.5" fill="#4f6348">同环境同脚本留档</text>
+
+      <line x1="160" y1="88" x2="200" y2="88" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a8)"/>
+      <line x1="330" y1="88" x2="370" y2="88" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a8)"/>
+      <line x1="500" y1="88" x2="540" y2="88" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a8)"/>
+      <line x1="605" y1="116" x2="500" y2="150" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a8)"/>
+      <line x1="370" y1="178" x2="265" y2="116" stroke="#b45309" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#a8)"/>
+      <text x="318" y="150" text-anchor="middle" font-size="10.5" fill="#b45309">未达标 → 回到压测/定位继续迭代</text>
+
+      <defs><marker id="a8" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2d6a3f"/></marker></defs>
+      <text x="670" y="180" text-anchor="middle" font-size="10.5" fill="#047857">达标 → 固化配置与报告</text>
+      <text x="400" y="212" text-anchor="middle" font-size="12" fill="#7a8a70">图 110-1 压测调优闭环：目标 → 施压 → 定位 → 调优 → 复测，循环到达标为止</text>
+    </svg>
+    <p class="diagram-caption">图 110-1 压测调优闭环流程</p>
+  </div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">110.6</span> 压测高频坑</h2>
+  <div class="warn-box"><span class="tag-pit">坑一：压测环境失真</span>本机 IDE 启动 + 开发库 + 没预热，测出来的是"冷启动单机演示值"，不能作为上线容量依据。正式结论必须在隔离环境、生产同规格配置、同量级数据上得出。</div>
+  <div class="warn-box"><span class="tag-pit">坑二：GC 干扰与测量错位</span>预热不足时 JIT 未编译、缓存未填充，前几轮请求 RT 畸高被计入平均；一次调多组变量（索引 + 缓存 + 线程池同时改），事后无法归因；报告只贴平均 RT 不贴 TP99 与错误率。</div>
+  <div class="warn-box"><span class="tag-pit">坑三：长连接与连接池误配</span>Tomcat 线程数、Hikari 连接数拍脑袋调大：数据库连接数超过 MySQL <code>max_connections</code> 反而互相等待；长事务占住连接不释放，并发上来连接池先耗尽。容量参数要与数据库最大连接、下游超时一起核算。</div>
+  <div class="pit-sentence"><span class="tag-pit">复盘要求</span>每轮调优留下三件证据：压测脚本（jmx）、结果报告（jtl / HTML）、变更记录（改了什么、为什么改、指标前后对比）。面试讲项目时，这就是最有说服力的性能故事素材。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>指标体系</td><td>QPS 看吞吐、TP99 看长尾体验、错误率看稳定性；三者一起达标才算通过</td></tr>
+      <tr><td>JMeter 流程</td><td>线程组施压、采样器定义接口、聚合报告读数；正式压测用命令行非 GUI 模式</td></tr>
+      <tr><td>环境纪律</td><td>隔离环境、同量数据、先预热后统计、压测机与服务端分离、阶梯加压</td></tr>
+      <tr><td>瓶颈定位</td><td>按 CPU、内存 GC、IO 数据库、锁、下游连接五个方向逐层收窄，证据先行</td></tr>
+      <tr><td>调优闭环</td><td>一次一个变量，复测同环境对比；脚本、报告、变更记录留档，循环到达标</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复述 QPS、平均 RT、TP99、错误率的含义；说明为什么性能承诺要以 TP99 为准而不是平均值。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为需求列表接口编写 JMeter 脚本：100 线程、30 秒爬坡、循环 5 次，读取 CSV 中的状态参数，导出聚合报告并记录 QPS、TP99、错误率三项基线数字。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>故意构造一个慢查询（缺失索引的列表接口），用 EXPLAIN 定位全表扫描，补索引后复测，写出"基线 → 现象 → 定位证据 → 变更 → 复测对比"的完整调优报告。</div>
+  <p class="note">下一章：把全书知识与本项目沉淀成面试弹药——知识体系地图、高频面试题、STAR 项目表达与系统设计套路。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="109_第109章_消息队列接入与异步解耦.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="111_第111章_面试知识体系梳理.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 110 章 压测与调优闭环</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

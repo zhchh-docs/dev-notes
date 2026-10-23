@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 108 章 缓存接入：Redis 模板｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十二篇 综合项目收官</p>
+    <h1>第 108 章 缓存接入：Redis 模板</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 108 章 / 共 112 章 · 预计 40 分钟 · 第十二篇：项目实战</span>
+    </div>
+    <p class="hero-desc">本章为需求管理系统接入 Redis：先配好连接与 JSON 序列化，再用 Cache-Aside 模式缓存热门需求列表；随后讲清缓存一致性、穿透、击穿、雪崩四类经典问题的成因与应对，并标注序列化乱码、缓存与事务边界两个高频坑。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="107_第107章_前后端联调与跨域.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="109_第109章_消息队列接入与异步解耦.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">108.1 starter 引入与连接配置</a></li>
+    <li><a href="#sec3">108.2 模板对象与 JSON 序列化</a></li>
+    <li><a href="#sec4">108.3 Cache-Aside 旁路缓存策略</a></li>
+    <li><a href="#sec5">108.4 缓存一致性与延迟双删</a></li>
+    <li><a href="#sec6">108.5 穿透、击穿、雪崩与应对</a></li>
+    <li><a href="#sec7">108.6 注解缓存与高频坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>完成 <code>spring-boot-starter-data-redis</code> 的引入、连接配置与序列化定制；</li>
+    <li>掌握 <code>RedisTemplate</code> 与 <code>StringRedisTemplate</code> 的分工，能写出可运行的缓存读写代码；</li>
+    <li>落地 <strong>Cache-Aside 旁路缓存</strong>模式，理解读路径与写路径的标准动作；</li>
+    <li>说清<strong>缓存一致性</strong>策略，能识别并应对穿透、击穿、雪崩三类问题；</li>
+    <li>避开序列化乱码、缓存与事务边界错位两类高频坑。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">108.1</span> starter 引入与连接配置</h2>
+  <p class="lead">Spring Boot 通过 <code>spring-boot-starter-data-redis</code> 自动装配 Lettuce 连接池与 <code>RedisTemplate</code>；配置集中在 <code>spring.data.redis</code> 节点下，本地开发指向本机 6379。</p>
+  <pre class="code" data-lang="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-data-redis&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;!-- Lettuce 连接池需要 commons-pool2 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-pool2&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+  <pre class="code" data-lang="yaml"><code># application-dev.yml
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""              # 本地无口令；生产通过配置中心注入
+      database: 0               # 逻辑库编号，教学项目统一用 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 20        # 最大连接数
+          max-idle: 10
+          min-idle: 2
+          max-wait: 2000ms
+
+# 本项目缓存键前缀约定：模块:业务:标识
+# 例：req:hot:list、req:detail:1001、user:token:101</code></pre>
+  <div class="key-sentence"><span class="tag-key">键命名约定</span>项目内所有缓存键统一 <code>模块:业务:标识</code> 三段式，便于排查、批量清理与后续按前缀统计；不要在代码里散落 <code>user101</code>、<code>hotList</code> 这类无前缀键名。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">108.2</span> 模板对象与 JSON 序列化</h2>
+  <p class="lead">自动装配提供两个模板：<code>StringRedisTemplate</code> 专管字符串键值；<code>RedisTemplate&lt;Object, Object&gt;</code> 可存对象，但默认 JDK 序列化会产生不可读的二进制乱码，必须自定义为 JSON 序列化。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>模板</th><th>适用内容</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>StringRedisTemplate</td><td>字符串、计数器、验证码、token 黑名单</td><td>键值均为 String，无需额外序列化配置</td></tr>
+      <tr><td>RedisTemplate&lt;String, Object&gt;</td><td>缓存 VO、列表、对象集合</td><td>需配置 key 用 String、value 用 Jackson JSON 序列化</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>// config/RedisConfig.java
+@Configuration
+public class RedisConfig {
+
+    @Bean
+    public RedisTemplate&lt;String, Object&gt; redisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate&lt;String, Object&gt; template = new RedisTemplate&lt;&gt;();
+        template.setConnectionFactory(factory);
+
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer&lt;Object&gt; jsonSerializer =
+                new Jackson2JsonRedisSerializer&lt;&gt;(Object.class);
+
+        ObjectMapper mapper = new ObjectMapper();
+        // 反序列化时保留类型信息，否则 List&lt;RequirementVO&gt; 会变成 LinkedHashMap
+        mapper.activateDefaultTyping(
+                mapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL);
+        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        jsonSerializer.setObjectMapper(mapper);
+
+        template.setKeySerializer(stringSerializer);          // 键：字符串
+        template.setHashKeySerializer(stringSerializer);
+        template.setValueSerializer(jsonSerializer);          // 值：JSON
+        template.setHashValueSerializer(jsonSerializer);
+        template.afterPropertiesSet();
+        return template;
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// 注入使用：热门需求列表缓存（service 层）
+@Service
+public class RequirementCacheService {
+    private static final String HOT_KEY = "req:hot:list";
+    private static final Duration HOT_TTL = Duration.ofMinutes(10);
+
+    private final RedisTemplate&lt;String, Object&gt; redisTemplate;
+    public RequirementCacheService(RedisTemplate&lt;String, Object&gt; t) { this.redisTemplate = t; }
+
+    public void saveHotList(List&lt;RequirementVO&gt; list) {
+        redisTemplate.opsForValue().set(HOT_KEY, list, HOT_TTL);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List&lt;RequirementVO&gt; getHotList() {
+        Object cached = redisTemplate.opsForValue().get(HOT_KEY);
+        return cached == null ? null : (List&lt;RequirementVO&gt;) cached;
+    }
+
+    public void evictHotList() {
+        redisTemplate.delete(HOT_KEY);
+    }
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">序列化坑</span>不配置 JSON 序列化直接存对象，<code>redis-cli</code> 里看到的是带 <code>\xac\xed</code> 的二进制；反过来只配 value 序列化、忘了配 key 序列化，键名同样乱码。改配置后旧缓存要清空再测，避免新旧格式混存。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">108.3</span> Cache-Aside 旁路缓存策略</h2>
+  <p class="lead">项目最常用的是 <strong>Cache-Aside（旁路缓存）</strong>：缓存由业务代码旁路维护，不依赖缓存层自动联动。读路径先查缓存、未命中再查库并回填；写路径先更新数据库、再删除缓存。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="Cache-Aside 读写流程">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">Cache-Aside 旁路缓存：读路径与写路径</text>
+
+      <rect x="30" y="50" width="150" height="56" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="105" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">读请求</text>
+      <text x="105" y="94" text-anchor="middle" font-size="11" fill="#4f6348">先查 Redis</text>
+
+      <rect x="300" y="50" width="180" height="56" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="390" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">命中？返回缓存</text>
+      <text x="390" y="94" text-anchor="middle" font-size="11" fill="#4f6348">未命中 → 查 MySQL</text>
+
+      <rect x="590" y="50" width="180" height="56" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="680" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">回填缓存（带 TTL）</text>
+      <text x="680" y="94" text-anchor="middle" font-size="11" fill="#4f6348">再返回给调用方</text>
+
+      <line x1="180" y1="78" x2="300" y2="78" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a5)"/>
+      <line x1="480" y1="78" x2="590" y2="78" stroke="#b45309" stroke-width="1.5" marker-end="url(#a5)"/>
+
+      <rect x="30" y="150" width="150" height="56" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="105" y="174" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">写请求</text>
+      <text x="105" y="194" text-anchor="middle" font-size="11" fill="#4f6348">先更新 MySQL</text>
+
+      <rect x="300" y="150" width="180" height="56" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="390" y="174" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">删除对应缓存</text>
+      <text x="390" y="194" text-anchor="middle" font-size="11" fill="#4f6348">下次读时重新回填</text>
+
+      <line x1="180" y1="178" x2="300" y2="178" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a5)"/>
+      <defs><marker id="a5" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2d6a3f"/></marker></defs>
+      <text x="400" y="228" text-anchor="middle" font-size="12" fill="#7a8a70">图 108-1 读：缓存未命中回源回填；写：先库后删缓存，不更新缓存值</text>
+    </svg>
+    <p class="diagram-caption">图 108-1 Cache-Aside 标准读写流程</p>
+  </div>
+  <pre class="code" data-lang="java"><code>// service/impl/RequirementServiceImpl.java —— 详情接口接入缓存
+@Override
+public RequirementVO detail(Long id) {
+    String key = "req:detail:" + id;
+    Object cached = redisTemplate.opsForValue().get(key);
+    if (cached instanceof RequirementVO vo) {
+        return vo;                                   // 命中直接返回
+    }
+    Requirement req = requirementMapper.selectById(id);
+    if (req == null) {
+        // 空值也缓存一小段时间，防穿透（见 108.5）
+        redisTemplate.opsForValue().set(key, EMPTY_MARK, Duration.ofMinutes(2));
+        throw new BizException(ErrorCode.REQUIREMENT_NOT_FOUND);
+    }
+    RequirementVO vo = RequirementVO.from(req);
+    redisTemplate.opsForValue().set(key, vo, Duration.ofMinutes(15));  // 回填带 TTL
+    return vo;
+}
+
+// 更新草稿：先更库，再删缓存（顺序见 108.4）
+@Override
+@Transactional(rollbackFor = Exception.class)
+public void updateDraft(Long id, RequirementUpdateDTO dto, Long userId) {
+    Requirement req = requireById(id);
+    if (!req.getCreatorId().equals(userId)) throw new BizException(ErrorCode.NO_PERMISSION);
+    RequirementStatus.from(req.getStatus())
+            .transition(RequirementStatus.DRAFT);   // 状态校验
+    req.setTitle(dto.getTitle());
+    req.setDescription(dto.getDescription());
+    requirementMapper.updateById(req);
+    redisTemplate.delete("req:detail:" + id);       // 删除旧缓存，而非覆盖写入
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">108.4</span> 缓存一致性与延迟双删</h2>
+  <p class="lead">缓存与数据库不可能强一致：两次写并发、缓存过期回源都可能读到旧值。工程上追求<strong>最终一致 + 窗口期可控</strong>，而不是追求毫秒级一致。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>策略</th><th>动作顺序</th><th>问题与适用</th></tr></thead>
+    <tbody>
+      <tr><td>先更库后删缓存（默认）</td><td>更新数据库 → 删除缓存 → 下次读回填</td><td>实现简单；并发读在删缓存前可能读到旧值，窗口很短；本项目默认方案</td></tr>
+      <tr><td>先删缓存后更库</td><td>删除缓存 → 更新数据库</td><td>删缓存后、更库前有读请求回源并回填旧值，脏数据留存到过期，不推荐</td></tr>
+      <tr><td>延迟双删</td><td>更库 → 删缓存 → 延迟数百毫秒 → 再删一次缓存</td><td>压低并发回填旧值概率；需异步任务或延时队列，强一致场景才上</td></tr>
+      <tr><td>订阅 binlog / 消息队列</td><td>数据库变更经 MQ 通知缓存删除方</td><td>解耦与最终一致的进阶做法，109 章消息队列可承接</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>// 延迟双删示意：第二次删除用线程池异步延时执行（教学版）
+private final ScheduledExecutorService scheduler =
+        Executors.newScheduledThreadPool(2, new NamedThreadFactory("cache-del"));
+
+private void updateWithDoubleDelete(Long id, RequirementUpdateDTO dto, Long userId) {
+    Requirement req = requireById(id);
+    // ① 先更新数据库
+    req.setTitle(dto.getTitle());
+    requirementMapper.updateById(req);
+    // ② 第一次删缓存
+    redisTemplate.delete("req:detail:" + id);
+    // ③ 延迟 500ms 再删一次，覆盖并发读回填旧值的窗口
+    scheduler.schedule(() -&gt; redisTemplate.delete("req:detail:" + id),
+            500, TimeUnit.MILLISECONDS);
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">缓存与事务的边界</span>删除缓存不要放在 <code>@Transactional</code> 方法中间：事务未提交时删缓存，并发读会从库中读到未提交前的旧值并回填。正确做法：<strong>事务提交之后再删缓存</strong>（方法返回后删除，或注册 <code>TransactionSynchronization.afterCommit</code> 回调）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">108.5</span> 穿透、击穿、雪崩与应对</h2>
+  <p class="lead">三类问题都表现为"缓存没挡住、压力打到数据库"，但成因不同，应对手段也不同；面试与排查时先分清属于哪一类。</p>
+  <table>
+    <colgroup><col style="width:14%"><col style="width:30%"><col style="width:28%"><col style="width:28%"></colgroup>
+    <thead><tr><th>问题</th><th>成因</th><th>应对手段</th><th>本项目落地</th></tr></thead>
+    <tbody>
+      <tr><td>穿透</td><td>查询根本不存在的数据（如不存在的 id、恶意构造参数），缓存挡不住，每次直达数据库</td><td>空值短 TTL 缓存；布隆过滤器前置拦截；入参合法性校验</td><td>详情接口缓存空值标记 2 分钟（见 108.3）</td></tr>
+      <tr><td>击穿</td><td>单个热点键过期瞬间，大量并发同时回源同一把钥匙，数据库瞬时压力尖峰</td><td>热点键永不过期（后台异步刷新）；分布式锁/互斥回源；随机偏移 TTL</td><td>热门列表不设短 TTL，由定时任务刷新</td></tr>
+      <tr><td>雪崩</td><td>大批缓存键同时过期，或 Redis 整体宕机，请求集中压垮数据库</td><td>TTL 加随机偏移；多级缓存；服务降级兜底；Redis 集群高可用；限流</td><td>各键 TTL 在基准值上随机 ±20%，列表接口预留空兜底</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>// 互斥回源示意：热点键未命中时，先抢分布式锁再查库，避免并发穿透
+public RequirementVO detailWithLock(Long id) {
+    String key = "req:detail:" + id;
+    Object cached = redisTemplate.opsForValue().get(key);
+    if (cached instanceof RequirementVO vo) return vo;
+
+    String lockKey = "lock:req:" + id;
+    Boolean locked = redisTemplate.opsForValue()
+            .setIfAbsent(lockKey, "1", Duration.ofSeconds(5));
+    try {
+        if (Boolean.TRUE.equals(locked)) {
+            // 抢到锁：查库并回填；双重检查，防止前一个线程刚回填完
+            cached = redisTemplate.opsForValue().get(key);
+            if (cached instanceof RequirementVO vo2) return vo2;
+            // ... 查库、回填逻辑
+        } else {
+            // 没抢到锁：短暂自旋后重读缓存
+            Thread.sleep(50);
+            return detail(id);
+        }
+    } finally {
+        if (Boolean.TRUE.equals(locked)) redisTemplate.delete(lockKey);
+    }
+    return null;
+}</code></pre>
+  <div class="key-sentence"><span class="tag-point">记忆线索</span><strong>穿透是"查不存在"，击穿是"一个热点过期"，雪崩是"一片同时过期或缓存宕机"</strong>——按请求特征（是否存在、数量多少）区分，再套对应方案。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">108.6</span> 注解缓存与高频坑</h2>
+  <p class="lead">Spring Cache 注解（<code>@Cacheable</code>、<code>@CachePut</code>、<code>@CacheEvict</code>）在方法级声明缓存行为，底层仍由 Redis 承载；简单查询可以用，复杂一致性与互斥回源仍需手写模板代码。</p>
+  <pre class="code" data-lang="java"><code>// 开启注解缓存：启动类或配置类上
+@EnableCaching
+@Configuration
+public class CacheConfig { }
+
+// 方法级声明：第一次调用查库并缓存，后续命中缓存
+@Cacheable(cacheNames = "req:hot", key = "'list'", sync = true)
+public List&lt;RequirementVO&gt; hotList() {
+    return requirementMapper.selectHotList(PageRequest.of(0, 10));
+}
+
+// 变更后清空缓存集合
+@CacheEvict(cacheNames = "req:hot", allEntries = true)
+public void refreshHotList() { }
+
+// 注意：@Cacheable 同类内部方法调用不生效（代理自调用问题，见第 78 章），
+// 且缓存对象需要可序列化；复杂 TTL 策略需自定义 CacheManager</code></pre>
+  <h3>108.6.1 本章两个高频坑回顾</h3>
+  <div class="warn-box"><span class="tag-pit">坑一：序列化乱码</span>键或值用默认 JDK 序列化，<code>redis-cli</code> 肉眼不可读、跨语言无法消费；务必显式配置 String 键序列化 + Jackson 值序列化，并处理泛型类型信息。</div>
+  <div class="warn-box"><span class="tag-pit">坑二：缓存删除混在事务内</span>事务提交前删缓存会让并发请求回填旧值；把删缓存动作放到事务提交后（afterCommit 回调或方法外层），是 106 章事务边界在缓存场景的延伸。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>接入配置</td><td>starter-data-redis 自动装配；StringRedisTemplate 管字符串，RedisTemplate 配 JSON 序列化存对象</td></tr>
+      <tr><td>Cache-Aside</td><td>读：先缓存未命中回源回填；写：先更库后删缓存，不直接覆盖缓存值</td></tr>
+      <tr><td>一致性</td><td>追求最终一致；先库后删为默认，延迟双删应对并发回填；删缓存放在事务提交之后</td></tr>
+      <tr><td>三大问题</td><td>穿透缓存空值/布隆，击穿互斥回源/热点不过期，雪崩 TTL 随机 + 降级兜底</td></tr>
+      <tr><td>注解缓存</td><td>@Cacheable 适合简单查询；注意代理自调用失效与序列化要求</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>复述穿透、击穿、雪崩的成因与区别，分别对应一条本项目可落地的应对措施；说明 Cache-Aside 读路径与写路径的动作顺序。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为"我的需求列表"接入 Redis 缓存，配置合理 TTL 与键命名；在编辑、提交、审批动作完成后删除对应缓存，并用 redis-cli 验证键的写入与清理。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现热点详情的互斥回源：未命中时用 Redis 分布式锁串行回源，叠加 TTL 随机偏移；写一个压测脚本模拟并发查询同一不存在 id，观察数据库访问次数对比空值缓存前后的变化。</div>
+  <p class="note">下一章：把慢、重、不需要同步等待的动作交给消息队列——RabbitMQ 接入、收发消息与消费可靠性。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="107_第107章_前后端联调与跨域.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="109_第109章_消息队列接入与异步解耦.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 108 章 缓存接入：Redis 模板</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

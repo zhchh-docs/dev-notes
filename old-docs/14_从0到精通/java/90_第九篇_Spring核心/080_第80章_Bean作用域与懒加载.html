@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 80 章 Bean 作用域与懒加载｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第九篇 Spring 核心</p>
+    <h1>第 80 章 Bean 作用域与懒加载</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 80 章 / 共 112 章 · 预计 40 分钟 · 第九篇续章</span>
+    </div>
+    <p class="hero-desc">上一章我们默认"容器里每个 Bean 只有一份"，这其实只是默认约定。本章把作用域讲透：单例、原型、请求、会话、应用五种存活范围，以及懒加载如何让 Bean 在首次使用时才诞生；并拆解单例注入原型这个最经典的作用域陷阱。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="079_第79章_依赖注入三种方式与选择.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="081_第81章_AOP概念与动态代理回顾.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">80.1 作用域总览：singleton 与 prototype</a></li>
+    <li><a href="#sec3">80.2 @Scope 与 Web 作用域</a></li>
+    <li><a href="#sec4">80.3 @Lazy 懒加载与代理占位</a></li>
+    <li><a href="#sec5">80.4 单例注入原型的经典坑与解法</a></li>
+    <li><a href="#sec5b">80.5 作用域选型表</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出 Spring 五种内置<strong>作用域</strong>各自的存活边界；</li>
+    <li>使用 <code>@Scope</code>、<code>@RequestScope</code>、<code>@SessionScope</code>、<code>@ApplicationScope</code> 声明作用域；</li>
+    <li>理解 <strong>@Lazy 懒加载</strong>在普通 Bean 与注入点上的两种语义及代理占位原理；</li>
+    <li>诊断并修复"<strong>单例注入原型只生效一次</strong>"的经典问题，掌握 ObjectProvider、@Lookup 与 scoped-proxy 三种解法。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">80.1</span> 作用域总览：singleton 与 prototype</h2>
+  <p class="lead"><strong>一句话定位</strong>：作用域（Scope）定义了 Bean 在容器中的<strong>存活时长与复用规则</strong>——是整个容器一份，还是每次取用都新建一份。</p>
+  <p>前面章节我们默认"容器里每个 Bean 只有一份"，这就是 Spring 容器默认的 <code>singleton</code> 作用域：容器启动时创建、整个应用生命周期内<strong>全局唯一</strong>，每次注入或 <code>getBean</code> 返回同一个实例。另一个非 Web 环境下常用的是 <code>prototype</code>：容器不持有实例，每次取用都创建一个全新对象，用完即弃，容器也不负责后续清理。</p>
+  <pre class="code" data-lang="java"><code>import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.ScopedProxyMode;
+
+// 单例：不显式声明就是这个作用域，全局唯一
+@Component
+public class CounterService {
+    private int count = 0;
+    public void hit() { count++; }
+    public int get() { return count; }
+}
+
+// 原型：每次 getBean / 注入都返回新实例
+@Component
+@Scope("prototype")
+public class PrototypeCart {
+    private final java.util.List&lt;String&gt; items = new java.util.ArrayList&lt;&gt;();
+    public void add(String item) { items.add(item); }
+    public java.util.List&lt;String&gt; getItems() { return items; }
+}
+
+// 启动演示：两次获取比较实例地址
+// AnnotationConfigApplicationContext ctx = ...;
+// CounterService a = ctx.getBean(CounterService.class);
+// CounterService b = ctx.getBean(CounterService.class);
+// System.out.println(a == b);                 // true  —— 单例同一对象
+// PrototypeCart c1 = ctx.getBean(PrototypeCart.class);
+// PrototypeCart c2 = ctx.getBean(PrototypeCart.class);
+// System.out.println(c1 == c2);                // false —— 原型两个新对象</code></pre>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:34%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <thead><tr><th>作用域</th><th>存活边界</th><th>实例数量</th><th>容器是否持有</th></tr></thead>
+    <tbody>
+      <tr><td><code>singleton</code></td><td>容器生命周期，全局一份</td><td>1</td><td>是，缓存于一级缓存</td></tr>
+      <tr><td><code>prototype</code></td><td>每次取用新建，交给调用方管理</td><td>N</td><td>否，不缓存实例</td></tr>
+      <tr><td><code>request</code></td><td>单个 HTTP 请求周期</td><td>每请求 1 份</td><td>由 Web 上下文代理持有</td></tr>
+      <tr><td><code>session</code></td><td>单个用户会话周期</td><td>每会话 1 份</td><td>绑定 Session</td></tr>
+      <tr><td><code>application</code></td><td>ServletContext 生命周期</td><td>每应用 1 份</td><td>绑定全局上下文</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence"><span class="tag-key">金句</span>：绝大多数业务 Service、DAO、配置类都是 <strong>singleton</strong>；prototype 适合<strong>有状态、不能共享</strong>的临时对象（购物车、请求上下文、工具会话）。给无状态的 Bean 加 prototype，只会白白浪费内存与创建时间。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">80.2</span> @Scope 与 Web 作用域</h2>
+  <p class="lead"><strong>一句话定位</strong>：Web 作用域把 Bean 的存活边界绑定到 HTTP 生命周期上——请求一份、会话一份、应用一份，它们只能在 Web 应用上下文中使用。</p>
+  <pre class="code" data-lang="java"><code>import org.springframework.web.context.annotation.RequestScope;
+import org.springframework.web.context.annotation.SessionScope;
+import org.springframework.web.context.annotation.ApplicationScope;
+import org.springframework.stereotype.Component;
+
+// 每个 HTTP 请求一个实例：存放本次请求的跟踪信息
+@Component
+@RequestScope
+public class RequestTrace {
+    private String traceId;
+    private long startAt = System.currentTimeMillis();
+    // getter / setter 省略
+}
+
+// 每个浏览器会话一个实例：用户登录态、购物车的常见落点
+@Component
+@SessionScope
+public class UserSession {
+    private Long userId;
+    private String nickname;
+    // getter / setter 省略
+}
+
+// 整个 Web 应用一份：和 singleton 类似，但语义上绑定 ServletContext
+@Component
+@ApplicationScope
+public class GlobalCounter {
+    private long visits = 0;
+    public void inc() { visits++; }
+}</code></pre>
+  <p>三个注解本质上就是 <code>@Scope("request"/"session"/"application")</code> 的语义化写法，便于一眼看出存活范围。它们依赖 Web 环境（DispatcherServlet 所在的上下文），在普通单元测试中直接注入会抛 <code>ScopeNotActiveException</code>——测试 Web 组件时要用 <code>@WebMvcTest</code> 或 <code>RequestContextHolder</code> 模拟请求上下文。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="五种作用域存活边界">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">五种作用域的存活边界对比</text>
+      <rect x="40" y="46" width="720" height="34" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="56" y="68" font-size="12.5" font-weight="700" fill="#047857">singleton</text>
+      <text x="180" y="68" font-size="11.5" fill="#4f6348">启动 → 应用关闭：整段生命周期一份实例</text>
+      <rect x="40" y="88" width="720" height="34" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="56" y="110" font-size="12.5" font-weight="700" fill="#b91c1c">prototype</text>
+      <text x="180" y="110" font-size="11.5" fill="#4f6348">每次取用新建：容器不缓存，调用方持有即可</text>
+      <rect x="40" y="130" width="230" height="34" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="52" y="152" font-size="12" font-weight="700" fill="#2d6a3f">request</text>
+      <text x="120" y="152" font-size="11" fill="#4f6348">单请求内有效</text>
+      <rect x="290" y="130" width="230" height="34" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="302" y="152" font-size="12" font-weight="700" fill="#2d6a3f">session</text>
+      <text x="370" y="152" font-size="11" fill="#4f6348">单用户会话内有效</text>
+      <rect x="540" y="130" width="220" height="34" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="552" y="152" font-size="12" font-weight="700" fill="#2d6a3f">application</text>
+      <text x="640" y="152" font-size="11" fill="#4f6348">整 Web 应用一份</text>
+      <text x="400" y="196" text-anchor="middle" font-size="12" fill="#7a8a70">Web 作用域由请求/会话/应用上下文决定实例数量，脱离 Web 环境不可用</text>
+      <text x="400" y="220" text-anchor="middle" font-size="12" fill="#7a8a70">五种作用域：存活边界从"全局一份"到"每取新建"</text>
+    </svg>
+    <p class="diagram-caption">图 80-1 作用域存活边界一览</p>
+  </div>
+  <div class="warn-box"><span class="tag-pit">注意</span>：request/session 作用域的 Bean <strong>不能直接注入</strong>给 singleton Bean（启动时请求与会话尚不存在）。这正是下一节 scoped-proxy 要解决的问题。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">80.3</span> @Lazy 懒加载与代理占位</h2>
+  <p class="lead"><strong>一句话定位</strong>：默认情况下 singleton 在容器启动时完成实例化与注入；加了 <code>@Lazy</code> 后，实例推迟到<strong>第一次被真正使用</strong>时才创建。</p>
+  <h3>80.3.1 标注在 Bean 定义上</h3>
+  <pre class="code" data-lang="java"><code>import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Component;
+
+// 启动时不创建；首次注入或 getBean 时才实例化
+@Lazy
+@Component
+public class ReportGenerator {
+    public ReportGenerator() {
+        System.out.println("ReportGenerator 实例化（首次使用时才发生）");
+    }
+    public String render(String data) { return "report:" + data; }
+}</code></pre>
+  <h3>80.3.2 标注在注入点上：代理占位</h3>
+  <p>当 <code>@Lazy</code> 写在依赖的注入点时，行为更值得琢磨：容器<strong>不会立即去解析真实 Bean</strong>，而是往字段里塞一个轻量代理对象；代理内部持有"将来该解析哪个 Bean"的信息，<strong>等到第一次调用代理的方法时</strong>，才向容器取得真实 Bean 并转发调用。</p>
+  <pre class="code" data-lang="java"><code>@Service
+public class DashboardService {
+    private final ReportGenerator generator;
+
+    // @Lazy 加在构造器参数上：注入点拿到的是代理，真实 Bean 延后解析
+    public DashboardService(@Lazy ReportGenerator generator) {
+        this.generator = generator;
+    }
+
+    public String show(String data) {
+        // 代理方法调用时才触发 ReportGenerator 的真实创建
+        return generator.render(data);
+    }
+}</code></pre>
+  <ul>
+    <li><strong>启动加速</strong>：重量级 Bean（报表引擎、第三方 SDK 封装、定时任务）推迟初始化，缩短应用启动时间；</li>
+    <li><strong>打破初始化链</strong>：两个 Bean 互相独立但初始化顺序耦合时，注入点 @Lazy 可错开启动期的创建顺序；</li>
+    <li><strong>循环依赖预警</strong>：@Lazy 能掩盖一部分循环依赖（第 85 章展开），但只是把问题推迟，不是设计上的解药。</li>
+  </ul>
+  <div class="pit-sentence"><span class="tag-pit">常见坑</span>：@Lazy 不会让单例变成多例。<strong>真实 Bean 一旦创建，仍然只此一份</strong>；@Lazy 改变的是"创建时机"，不是"创建份数"。需要每取新建，请用 prototype 或 ObjectProvider。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">80.4</span> 单例注入原型的经典坑与解法</h2>
+  <p class="lead"><strong>一句话定位</strong>：单例 Bean 在启动时被创建一次，它注入的 prototype Bean 也只在那一刻被注入一次——之后单例一直握着那同一个原型实例，原型的"每次新建"承诺就此失效。</p>
+  <h3>80.4.1 复现问题</h3>
+  <pre class="code" data-lang="java"><code>@Component
+@Scope("prototype")
+public class TaskContext {
+    private final long seq = System.nanoTime();
+    public long seq() { return seq; }
+}
+
+@Service
+public class TaskRunner {
+    private final TaskContext ctx;
+    // 单例创建时注入一次 prototype —— 此后 ctx 永远是同一个对象
+    public TaskRunner(TaskContext ctx) { this.ctx = ctx; }
+
+    public void run() {
+        System.out.println("当前上下文 seq = " + ctx.seq());
+    }
+}
+
+// 启动后连续调用 runner.run() 三次：
+// 当前上下文 seq = 47291833012
+// 当前上下文 seq = 47291833012   ← 完全相同，prototype 失效
+// 当前上下文 seq = 47291833012</code></pre>
+  <h3>80.4.2 解法一：ObjectProvider 延迟获取（推荐）</h3>
+  <pre class="code" data-lang="java"><code>import org.springframework.beans.factory.ObjectProvider;
+
+@Service
+public class TaskRunner {
+    private final ObjectProvider&lt;TaskContext&gt; ctxProvider;
+
+    public TaskRunner(ObjectProvider&lt;TaskContext&gt; provider) {
+        this.ctxProvider = provider;
+    }
+
+    public void run() {
+        TaskContext ctx = ctxProvider.getObject();   // 每次调用现取新实例
+        System.out.println("当前上下文 seq = " + ctx.seq());
+    }
+}
+// 三次调用 seq 各不相同；容器知道目标作用域，自动走 prototype 创建逻辑</code></pre>
+  <h3>80.4.3 解法二：@Lookup 方法注入</h3>
+  <pre class="code" data-lang="java"><code>@Service
+public abstract class TaskRunner {
+    // @Lookup 注解的方法：容器在运行时生成子类覆盖它，返回新 prototype
+    @Lookup
+    protected abstract TaskContext createContext();
+
+    public void run() {
+        TaskContext ctx = createContext();
+        System.out.println("当前上下文 seq = " + ctx.seq());
+    }
+}
+// 注意：类需为 abstract 或留可覆盖方法；纯构造器注入的场景优先选 ObjectProvider</code></pre>
+  <h3>80.4.4 解法三：scoped-proxy（Web 作用域必备）</h3>
+  <p>对于 request/session 作用域，若被单例注入，仅靠 ObjectProvider 还不够——启动期请求根本不存在。Spring 提供代理模式：容器给 Web 作用域 Bean 包一层 CGLIB 代理，单例持有的是这个代理；代理在每次方法调用时<strong>从当前请求/会话中取出真实 Bean 再转发</strong>。</p>
+  <pre class="code" data-lang="java"><code>@Component
+@RequestScope(proxyMode = ScopedProxyMode.TARGET_CLASS)
+public class RequestTrace {
+    private String traceId;
+    public String getTraceId() { return traceId; }
+    public void setTraceId(String id) { this.traceId = id; }
+}
+
+@Service
+public class OrderQueryService {
+    // 单例注入代理：代理内部按当前请求解析真实 RequestTrace
+    private final RequestTrace trace;
+    public OrderQueryService(RequestTrace trace) { this.trace = trace; }
+
+    public void query() {
+        System.out.println("trace=" + trace.getTraceId());
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>解法</th><th>适用场景</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr><td>ObjectProvider&lt;T&gt;</td><td>prototype 注入单例（首选）</td><td>每次 getObject() 现取，类型安全、不污染类结构</td></tr>
+      <tr><td>@Lookup 方法</td><td>希望保留"取新实例"语义封装在类内</td><td>类需可被子类覆盖；XML 配置时代常用，注解项目较少见</td></tr>
+      <tr><td>scoped-proxy</td><td>request/session 被单例注入</td><td>代理绑定当前上下文；@RequestScope 等默认 TARGET_CLASS 代理</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence"><span class="tag-pit">常见坑</span>：排查"原型不新"问题时，先确认<strong>持有方是不是 singleton</strong>。Spring 文档原话：作用域 Bean 之间直接注入时，短生命周期作用域（request/session/prototype）会被长生命周期（singleton）"钉死"，必须借助代理或 ObjectProvider 才能维持各自边界。</div>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">80.5</span> 作用域选型表</h2>
+  <p class="lead"><strong>一句话定位</strong>：选型第一原则——<strong>默认 singleton</strong>，只有当对象携带请求级或会话级状态、且不能共享时，才升级到 Web 作用域；只有"每次使用都必须全新状态"时才用 prototype。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:22%"><col style="width:44%"></colgroup>
+    <thead><tr><th>典型对象</th><th>推荐作用域</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>Service、Repository、配置类、工具 Bean</td><td>singleton</td><td>无状态，可并发共享；启动一次创建成本低</td></tr>
+      <tr><td>请求跟踪号、本次请求表单校验结果</td><td>request</td><td>状态只属于当前 HTTP 请求，跨请求必须隔离</td></tr>
+      <tr><td>登录用户信息、会话内购物车</td><td>session</td><td>同一会话共享，不同会话隔离；需注意序列化与集群 Session 共享</td></tr>
+      <tr><td>全局访问计数器、应用级配置快照</td><td>application</td><td>语义等同全局单例，强调绑定 ServletContext</td></tr>
+      <tr><td>携带可变状态的任务上下文、一次性工作对象</td><td>prototype</td><td>状态不可共享；用 ObjectProvider 在需要处现取</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence"><span class="tag-key">金句</span>：作用域选错通常有两种症状——<strong>共享了不该共享的状态</strong>（该用 request/session 却用 singleton，A 用户看到 B 用户的数据），或<strong>新建了不该新建的对象</strong>（无状态工具类用 prototype，启动与内存双重浪费）。判断标准只有一条：对象内部状态是否允许被并发/多人共享。</div>
+  <div class="warn-box"><span class="tag-pit">注意</span>：prototype Bean 由容器创建后交由调用方持有，<strong>容器不执行其 destroy 回调</strong>；若原型持有数据库连接、文件句柄等资源，必须由调用方显式关闭，否则会泄漏。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>默认作用域</td><td>singleton 全局唯一；prototype 每次取用新建且容器不缓存</td></tr>
+      <tr><td>Web 作用域</td><td>request/session/application 分别绑定请求、会话、应用上下文，需 Web 环境</td></tr>
+      <tr><td>@Lazy 语义</td><td>推迟创建时机而非改变份数；注入点 @Lazy 注入代理，首调真实对象</td></tr>
+      <tr><td>经典坑</td><td>单例注入原型只注入一次；ObjectProvider、@Lookup、scoped-proxy 依次修复</td></tr>
+      <tr><td>选型原则</td><td>默认 singleton；有状态隔离用 Web 作用域；一次性新对象才用 prototype</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>列出五种内置作用域的存活边界；说明为什么 Service、Repository 默认应使用 singleton。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现一个 @SessionScope 的购物车 Bean，包含 add/list/clear 三个方法，写两个 HTTP 请求验证两次请求看到同一会话内的商品，新会话则为空。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>构造"单例持有原型只生效一次"的复现工程，分别用 ObjectProvider 与 @Lookup 修复并打印三次实例地址证明修复有效；再写一段注释说明 scoped-proxy 为什么对 request/session 作用域是必需的。</div>
+  <p class="note">下一章：沿着"把通用逻辑从业务代码里抽出来"的思路，进入 AOP 概念与动态代理回顾——横切关注点、切面术语与 JDK/CGLIB 双代理机制。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="079_第79章_依赖注入三种方式与选择.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="081_第81章_AOP概念与动态代理回顾.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 80 章 Bean 作用域与懒加载</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

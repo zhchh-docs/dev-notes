@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 109 章 消息队列接入与异步解耦｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十二篇 综合项目收官</p>
+    <h1>第 109 章 消息队列接入与异步解耦</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 109 章 / 共 112 章 · 预计 40 分钟 · 第十二篇：项目实战</span>
+    </div>
+    <p class="hero-desc">审批通过后要通知提交人、写站内信、推消息——这些动作不必卡在主请求里同步完成。本章用 RabbitMQ 把通知链路异步化：讲清削峰、解耦、异步三大价值，落地 Spring AMQP 收发消息，并处理幂等、重复投递与消息堆积三类可靠性问题。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="108_第108章_缓存接入Redis模板.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="110_第110章_压测与调优闭环.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">109.1 为什么需要消息队列</a></li>
+    <li><a href="#sec3">109.2 RabbitMQ 核心概念模型</a></li>
+    <li><a href="#sec4">109.3 Spring AMQP 配置与声明</a></li>
+    <li><a href="#sec5">109.4 消息发送：RabbitTemplate</a></li>
+    <li><a href="#sec6">109.5 消息消费：监听器与手动确认</a></li>
+    <li><a href="#sec7">109.6 消息可靠性与死信队列</a></li>
+    <li><a href="#sec8">109.7 幂等、重复消息与堆积</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说出消息队列的<strong>削峰、解耦、异步</strong>三大价值与各自代价；</li>
+    <li>理解 RabbitMQ 的 <strong>exchange、queue、binding、routing key</strong> 模型与四种交换机类型；</li>
+    <li>用 Spring AMQP 完成<strong>队列声明、消息发送、监听消费</strong>的完整链路；</li>
+    <li>掌握 confirm、手动 ack、死信队列等<strong>可靠性手段</strong>；</li>
+    <li>落地消费<strong>幂等</strong>，能识别重复消息与消息堆积并给出处理方案。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">109.1</span> 为什么需要消息队列</h2>
+  <p class="lead">审批动作完成后，主请求原本要同步做三件事：给提交人发站内信、推送消息通知、记录通知流水。任何一个下游慢或挂掉，都会拖累主接口；引入消息队列后，主流程只负责把事件丢进队列就返回，通知由消费者慢慢处理。</p>
+  <table>
+    <colgroup><col style="width:14%"><col style="width:38%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <thead><tr><th>价值</th><th>说明</th><th>本项目场景</th><th>代价 / 注意</th></tr></thead>
+    <tbody>
+      <tr><td>异步</td><td>非核心动作延后处理，主接口 RT 下降、用户等待变短</td><td>审批通过后异步发通知、写通知流水</td><td>消息不保证实时到达；需要接受最终一致</td></tr>
+      <tr><td>解耦</td><td>生产者只发事件，不关心谁消费；新增通知渠道不改主流程代码</td><td>以后加短信、邮件渠道，新增消费者即可</td><td>系统间契约（消息格式）需要长期维护</td></tr>
+      <tr><td>削峰</td><td>突发流量先堆在队列里，消费者按自身能力匀速拉取</td><td>批量导入需求后的通知洪峰</td><td>队列积压期间延迟上升；需要限流与堆积监控</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" role="img" aria-label="同步调用与消息队列对比">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">同步调用 vs 消息队列异步化</text>
+
+      <rect x="30" y="50" width="120" height="46" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="90" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#b91c1c">主请求</text>
+      <rect x="220" y="34" width="130" height="30" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="285" y="54" text-anchor="middle" font-size="11" fill="#b45309">站内信（同步）</text>
+      <rect x="220" y="72" width="130" height="30" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="285" y="92" text-anchor="middle" font-size="11" fill="#b45309">消息推送（同步）</text>
+      <line x1="150" y1="58" x2="220" y2="49" stroke="#b91c1c" stroke-width="1.3" marker-end="url(#a6)"/>
+      <line x1="150" y1="82" x2="220" y2="87" stroke="#b91c1c" stroke-width="1.3" marker-end="url(#a6)"/>
+      <text x="90" y="128" text-anchor="middle" font-size="11" fill="#b91c1c">任一慢 → 主接口被拖慢</text>
+
+      <rect x="430" y="50" width="120" height="46" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="490" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#047857">主请求</text>
+      <rect x="610" y="50" width="150" height="46" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="685" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2d6a3f">RabbitMQ 队列</text>
+      <text x="685" y="88" text-anchor="middle" font-size="10.5" fill="#4f6348">事件缓冲 · 匀速消费</text>
+      <line x1="550" y1="73" x2="610" y2="73" stroke="#047857" stroke-width="1.3" marker-end="url(#a6)"/>
+      <rect x="430" y="130" width="120" height="30" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="490" y="150" text-anchor="middle" font-size="11" fill="#b45309">站内信消费者</text>
+      <rect x="610" y="130" width="150" height="30" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="685" y="150" text-anchor="middle" font-size="11" fill="#b45309">推送消费者（可扩展）</text>
+      <line x1="685" y1="96" x2="490" y2="130" stroke="#4f8a63" stroke-width="1.3" stroke-dasharray="5,4" marker-end="url(#a6)"/>
+      <line x1="685" y1="96" x2="685" y2="130" stroke="#4f8a63" stroke-width="1.3" stroke-dasharray="5,4" marker-end="url(#a6)"/>
+      <text x="490" y="188" text-anchor="middle" font-size="11" fill="#047857">主接口只发事件即返回；下游各自独立伸缩</text>
+
+      <defs><marker id="a6" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2d6a3f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 109-1 同步串行调用与队列异步解耦对比</p>
+  </div>
+  <div class="warn-box"><span class="tag-pit">引入代价</span>消息队列带来<strong>额外复杂度</strong>：系统可用性依赖 MQ 本身、消息可能重复或丢失、排障链路变长。能用同步调用解决的小项目不必硬上 MQ；本项目引入它，是为了在教学中把异步链路与可靠性问题完整走一遍。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">109.2</span> RabbitMQ 核心概念模型</h2>
+  <p class="lead">RabbitMQ 是 AMQP 协议的消息代理：生产者不直接把消息投递到队列，而是先发给<strong>交换机（Exchange）</strong>，交换机按<strong>绑定（Binding）</strong>规则与 <strong>routing key</strong> 把消息路由到一个或多个<strong>队列（Queue）</strong>，消费者从队列取消息。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="RabbitMQ 概念模型">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">RabbitMQ 路由模型：生产者 → 交换机 → 绑定 → 队列 → 消费者</text>
+
+      <rect x="30" y="80" width="130" height="60" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="95" y="106" text-anchor="middle" font-size="12" font-weight="700" fill="#2d6a3f">Producer</text>
+      <text x="95" y="126" text-anchor="middle" font-size="10.5" fill="#4f6348">携带 routing key</text>
+
+      <rect x="250" y="70" width="170" height="80" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="335" y="98" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">Exchange</text>
+      <text x="335" y="120" text-anchor="middle" font-size="10.5" fill="#4f6348">direct / topic / fanout / headers</text>
+      <text x="335" y="140" text-anchor="middle" font-size="10.5" fill="#4f6348">按规则路由到队列</text>
+
+      <rect x="540" y="40" width="180" height="46" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="630" y="68" text-anchor="middle" font-size="11.5" font-weight="700" fill="#b45309">queue.notify.approval</text>
+      <rect x="540" y="102" width="180" height="46" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="630" y="130" text-anchor="middle" font-size="11.5" font-weight="700" fill="#b45309">queue.notify.email</text>
+
+      <line x1="160" y1="110" x2="250" y2="110" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#a7)"/>
+      <line x1="420" y1="88" x2="540" y2="63" stroke="#4f8a63" stroke-width="1.5" marker-end="url(#a7)"/>
+      <line x1="420" y1="132" x2="540" y2="125" stroke="#4f8a63" stroke-width="1.5" marker-end="url(#a7)"/>
+      <text x="480" y="76" text-anchor="middle" font-size="10.5" fill="#4f6348">binding: routing key = approval</text>
+      <text x="480" y="150" text-anchor="middle" font-size="10.5" fill="#4f6348">binding: routing key = email.#</text>
+
+      <rect x="540" y="176" width="180" height="34" rx="8" fill="#f8faf0" stroke="#c2cfb4"/>
+      <text x="630" y="198" text-anchor="middle" font-size="11" fill="#4f6348">Consumer 监听队列并处理</text>
+      <line x1="630" y1="86" x2="630" y2="176" stroke="#c2cfb4" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <line x1="630" y1="148" x2="630" y2="176" stroke="#c2cfb4" stroke-width="1.2" stroke-dasharray="4,3"/>
+
+      <defs><marker id="a7" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2d6a3f"/></marker></defs>
+      <text x="400" y="222" text-anchor="middle" font-size="12" fill="#7a8a70">图 109-2 交换机依据绑定关系把消息分发到队列；队列与消费者一对多竞争消费</text>
+    </svg>
+    <p class="diagram-caption">图 109-2 RabbitMQ 路由模型</p>
+  </div>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>交换机类型</th><th>路由规则</th><th>本项目用途</th></tr></thead>
+    <tbody>
+      <tr><td>direct</td><td>routing key 精确匹配绑定键</td><td>审批通知按事件类型精确投递到站内信队列</td></tr>
+      <tr><td>topic</td><td>routing key 按词段通配（<code>*</code> 一个词，<code>#</code> 多个词）</td><td>通知事件分级：<code>notify.approval</code>、<code>notify.reject</code> 由订阅方按前缀收取</td></tr>
+      <tr><td>fanout</td><td>忽略 routing key，广播到所有绑定队列</td><td>系统公告类消息同时推给多个渠道</td></tr>
+      <tr><td>headers</td><td>按消息头属性匹配，不常用</td><td>教学项目不展开</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">109.3</span> Spring AMQP 配置与声明</h2>
+  <p class="lead">引入 <code>spring-boot-starter-amqp</code> 后，连接配置走 <code>spring.rabbitmq</code>；队列、交换机、绑定关系用 <code>@Bean</code> 声明，应用启动时由 RabbitAdmin 自动创建到 Broker。</p>
+  <pre class="code" data-lang="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-amqp&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+  <pre class="code" data-lang="yaml"><code># application-dev.yml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    publisher-confirm-type: correlated   # 开启发布确认（109.6）
+    publisher-returns: true              # 交换机无法路由时返回消息
+    listener:
+      simple:
+        acknowledge-mode: manual        # 手动 ack（109.6）
+        prefetch: 10                    # 每个消费者一次最多未确认条数
+        concurrency: 2                  # 初始消费者线程数
+        max-concurrency: 6</code></pre>
+  <pre class="code" data-lang="java"><code>// config/RabbitMqConfig.java —— 声明交换机、队列与绑定关系
+@Configuration
+public class RabbitMqConfig {
+
+    public static final String EXCHANGE_NOTIFY = "notify.exchange";
+    public static final String QUEUE_APPROVAL = "notify.approval.queue";
+    public static final String QUEUE_EMAIL    = "notify.email.queue";
+    public static final String ROUTING_APPROVAL = "notify.approval";
+    public static final String ROUTING_EMAIL    = "notify.email.#";
+
+    @Bean
+    public TopicExchange notifyExchange() {
+        return new TopicExchange(EXCHANGE_NOTIFY, true, false);
+    }
+
+    @Bean
+    public Queue approvalQueue() {
+        return new Queue(QUEUE_APPROVAL, true);   // durable 持久化
+    }
+
+    @Bean
+    public Queue emailQueue() {
+        return new Queue(QUEUE_EMAIL, true);
+    }
+
+    @Bean
+    public Binding approvalBinding(Queue approvalQueue, TopicExchange notifyExchange) {
+        return BindingBuilder.bind(approvalQueue)
+                .to(notifyExchange).with(ROUTING_APPROVAL);
+    }
+
+    @Bean
+    public Binding emailBinding(Queue emailQueue, TopicExchange notifyExchange) {
+        return BindingBuilder.bind(emailQueue)
+                .to(notifyExchange).with(ROUTING_EMAIL);
+    }
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">109.4</span> 消息发送：RabbitTemplate</h2>
+  <p class="lead">生产者在审批事务提交之后发送事件消息；消息体用 JSON 序列化，携带业务 id、事件类型、操作人与时间戳，消息头里放全局唯一消息 id 供消费方做幂等。</p>
+  <pre class="code" data-lang="java"><code>// dto/NotifyMessage.java —— 消息体契约（前后端与多消费者共用）
+public class NotifyMessage implements Serializable {
+    private String messageId;        // 全局唯一，幂等键
+    private String eventType;         // APPROVE / REJECT / PROGRESS
+    private Long requirementId;
+    private Long receiverId;
+    private String content;
+    private Long operatorId;
+    private LocalDateTime occurTime;
+    // getter / setter 省略
+}
+
+// service/impl/ApprovalServiceImpl.java —— 审批通过后异步发通知
+@Service
+public class ApprovalServiceImpl implements ApprovalService {
+    private final RequirementMapper requirementMapper;
+    private final ApprovalRecordMapper recordMapper;
+    private final RabbitTemplate rabbitTemplate;
+
+    public ApprovalServiceImpl(RequirementMapper r, ApprovalRecordMapper a,
+                               RabbitTemplate rabbitTemplate) {
+        this.requirementMapper = r; this.recordMapper = a;
+        this.rabbitTemplate = rabbitTemplate;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approve(Long requirementId, Long approverId, String comment) {
+        Requirement req = requirementMapper.selectById(requirementId);
+        if (req == null) throw new BizException(ErrorCode.REQUIREMENT_NOT_FOUND);
+        RequirementStatus.from(req.getStatus())
+                .transition(RequirementStatus.APPROVED);
+        req.setStatus(RequirementStatus.APPROVED.name());
+        requirementMapper.updateById(req);
+
+        ApprovalRecord record = new ApprovalRecord();
+        record.setRequirementId(requirementId);
+        record.setApproverId(approverId);
+        record.setAction("APPROVE");
+        record.setComment(comment);
+        recordMapper.insert(record);
+
+        // 事务提交后再发消息：避免事务回滚但消息已发出（见 109.7 与 108.4 同理）
+        NotifyMessage msg = buildMessage("APPROVE", req, approverId);
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    rabbitTemplate.convertAndSend(
+                        RabbitMqConfig.EXCHANGE_NOTIFY,
+                        RabbitMqConfig.ROUTING_APPROVAL,
+                        msg,
+                        m -&gt; {
+                            m.getMessageProperties().setMessageId(msg.getMessageId());
+                            return m;
+                        });
+                }
+            });
+    }
+}</code></pre>
+  <div class="key-sentence"><span class="tag-point">发送时机</span>与"事务提交后删缓存"同理：<strong>消息必须在数据库事务提交成功之后再发</strong>；事务回滚而消息已发出，消费者会收到一条数据库里根本不存在的事件。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">109.5</span> 消息消费：监听器与手动确认</h2>
+  <p class="lead">消费者用 <code>@RabbitListener</code> 绑定队列；手动确认模式下，业务处理成功后调用 <code>channel.basicAck</code>，处理失败按场景选择 <code>basicNack</code> 重回队列或转入死信队列。</p>
+  <pre class="code" data-lang="java"><code>// listener/NotifyApprovalListener.java
+@Component
+@Slf4j
+public class NotifyApprovalListener {
+
+    private final NotifyService notifyService;
+    private final RedisTemplate&lt;String, Object&gt; redisTemplate;
+
+    public NotifyApprovalListener(NotifyService n, RedisTemplate&lt;String, Object&gt; r) {
+        this.notifyService = n; this.redisTemplate = r;
+    }
+
+    @RabbitListener(queues = RabbitMqConfig.QUEUE_APPROVAL)
+    public void onApproval(NotifyMessage msg, Channel channel,
+                           Message message) throws IOException {
+        String messageId = message.getMessageProperties().getMessageId();
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        try {
+            // ① 幂等检查：消息 id 已处理过则直接 ack 丢弃（109.7）
+            if (alreadyHandled(messageId)) {
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
+            // ② 执行业务：写站内信、落通知流水
+            notifyService.sendInApp(msg);
+            markHandled(messageId);
+            // ③ 处理成功，手动确认
+            channel.basicAck(deliveryTag, false);
+        } catch (Exception e) {
+            log.error("审批通知消费失败, messageId={}", messageId, e);
+            // 失败不重回队列无限重试：拒绝并转入死信队列（109.6）
+            channel.basicNack(deliveryTag, false, false);
+        }
+    }
+
+    private boolean alreadyHandled(String messageId) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey("mq:handled:" + messageId));
+    }
+
+    private void markHandled(String messageId) {
+        // 幂等记录保留 7 天，覆盖消息重复投递窗口
+        redisTemplate.opsForValue()
+                .set("mq:handled:" + messageId, "1", Duration.ofDays(7));
+    }
+}</code></pre>
+  <p>同一队列的多个消费者之间是<strong>竞争消费</strong>关系：一条消息只会被其中一个消费者取走；需要广播给多个渠道时，用多个队列分别绑定交换机，而不是指望一条消息被多个消费者重复拿到。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">109.6</span> 消息可靠性与死信队列</h2>
+  <p class="lead">消息链路有三段都可能丢：生产者到 Broker、Broker 自身、Broker 到消费者；可靠性手段分别对应确认机制、持久化与手动确认。</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>环节</th><th>风险</th><th>手段</th></tr></thead>
+    <tbody>
+      <tr><td>生产者 → Broker</td><td>网络闪断导致消息没到 Broker</td><td>publisher confirm（correlated）回调确认；失败后重发或落库补偿</td></tr>
+      <tr><td>Broker 存储</td><td>Broker 重启丢失未持久化消息</td><td>交换机与队列 durable=true；消息投递时设置持久化模式</td></tr>
+      <tr><td>Broker → 消费者</td><td>消费者处理中途宕机，消息被当成功消费</td><td>手动 ack：处理成功才确认；异常时 nack 重回队列或进死信</td></tr>
+      <tr><td>反复失败的消息</td><td>毒消息无限重试，占满队列与线程</td><td>转入死信队列（DLX）人工干预或定时重放</td></tr>
+    </tbody>
+  </table>
+  <p><strong>死信队列（Dead Letter Exchange，DLX）</strong>一句话带过：队列可以绑定一个备用交换机，消息被拒绝、过期或队列长度超限后转入死信交换机，再路由到死信队列单独排查；本项目配置中预留 <code>notify.dlx.exchange</code>，后续可在队列声明时通过 <code>x-dead-letter-exchange</code> 参数接入。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">109.7</span> 幂等、重复消息与堆积</h2>
+  <div class="warn-box"><span class="tag-pit">坑一：消费端必须幂等</span>MQ 在重试、网络抖动、ack 丢失时会重复投递同一条消息。消费代码不能假设"消息只来一次"：以业务唯一键或消息 id 去重，重复消息直接 ack 跳过（109.5 的 Redis 标记即为教学版实现）。</div>
+  <div class="warn-box"><span class="tag-pit">坑二：生产端重复发送</span>confirm 超时或业务重试导致同一事件发两次；生产者生成全局唯一 <code>messageId</code>，消费端以它为幂等键，比在数据库业务字段上做唯一约束更通用。</div>
+  <div class="warn-box"><span class="tag-pit">坑三：消息堆积</span>消费者处理速度跟不上生产速度时队列长度持续增长。排查顺序：先看消费者线程数与 <code>prefetch</code> 是否过小；再看单条处理是否有慢 SQL、外部调用超时；必要时横向扩容消费者、拆分队列；长期堆积要回溯生产端是否需要限流。</div>
+  <div class="pit-sentence"><span class="tag-pit">设计纪律</span>消息体只放<strong>事件事实与业务 id</strong>，不放大对象与敏感字段；消费者按消息 id 能回数据库查到所需详情。事件命名用"过去时"（<code>Approved</code>、<code>Rejected</code>），语义上表达"已经发生的事实"。</div>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>三大价值</td><td>异步缩短主链路、解耦新增下游、削峰缓冲突发流量；代价是引入可用性与一致性复杂度</td></tr>
+      <tr><td>核心模型</td><td>生产者发交换机，按 routing key 与绑定关系路由到队列，消费者竞争消费</td></tr>
+      <tr><td>收发实现</td><td>@Bean 声明队列/交换机/绑定；RabbitTemplate 发送，@RabbitListener 监听手动 ack</td></tr>
+      <tr><td>可靠性</td><td>confirm 保送达、持久化防 Broker 重启、手动 ack 保消费、死信隔离毒消息</td></tr>
+      <tr><td>幂等与堆积</td><td>消息可能重复，消费端按 messageId 去重；堆积先查并发与单条耗时，再扩容与限流</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说出消息队列的三大价值与各自代价；解释 exchange、queue、binding、routing key 的关系，以及 direct 与 topic 交换机的区别。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为本项目新增"驳回通知"链路：声明 topic 绑定键 <code>notify.reject</code>，消费者写站内信；验证审批通过与驳回消息分别进入不同队列，重复投递同一条消息不产生重复通知。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给审批通知链路补上死信队列：配置 DLX 与死信队列，构造一条消费必失败的消息（如人为抛异常），观察消息进入死信队列；再写一个定时任务把死信消息重放回原队列最多三次。</div>
+  <p class="note">下一章：功能与异步链路都就位后，用 JMeter 压测核心接口，走完"定位瓶颈—调优—复测对比"的完整闭环。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="108_第108章_缓存接入Redis模板.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="110_第110章_压测与调优闭环.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 109 章 消息队列接入与异步解耦</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

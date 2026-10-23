@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 83 章 声明式事务与传播行为｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第九篇 Spring 核心</p>
+    <h1>第 83 章 声明式事务与传播行为</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 83 章 / 共 112 章 · 预计 40 分钟 · 第九篇：切面与事务实战</span>
+    </div>
+    <p class="hero-desc">数据库操作的原子性是业务安全的底线。本章在 JDBC 事务基础上讲解 Spring 事务抽象：@Transactional 如何依托代理与事务管理器完成提交回滚，逐一拆解七种传播行为、隔离级别与回滚规则，并总结事务失效的四大经典坑——自调用、非 public、catch 吞异常、REQUIRES_NEW 误判。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="082_第82章_切面实战日志与耗时统计.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="084_第84章_事件机制与监听器.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">83.1 编程式事务 vs 声明式事务</a></li>
+    <li><a href="#sec3">83.2 @Transactional 工作机制</a></li>
+    <li><a href="#sec4">83.3 七种传播行为详解</a></li>
+    <li><a href="#sec5">83.4 隔离级别、readOnly 与超时</a></li>
+    <li><a href="#sec5b">83.5 rollbackFor 与回滚规则</a></li>
+    <li><a href="#sec6">83.6 事务失效四大坑排查</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>对比<strong>编程式事务</strong>与<strong>声明式事务</strong>的写法与适用场景；</li>
+    <li>说清 <code>@Transactional</code> 背后<strong>代理 + 事务管理器</strong>的工作机制；</li>
+    <li>掌握<strong>七种传播行为</strong>在"有事务 / 无事务"两种入口下的处理结果；</li>
+    <li>正确配置隔离级别、<code>readOnly</code>、<code>rollbackFor</code>，并能定位四类事务失效问题。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">83.1</span> 编程式事务 vs 声明式事务</h2>
+  <p class="lead"><strong>一句话定位</strong>：编程式事务由代码显式开启、提交、回滚；声明式事务把这些样板交给注解与代理，业务方法只写业务。</p>
+  <h3>83.1.1 编程式：TransactionTemplate</h3>
+  <pre class="code" data-lang="java"><code>import org.springframework.transaction.support.TransactionTemplate;
+
+@Service
+public class OrderService {
+    private final TransactionTemplate txTemplate;
+    private final OrderRepository orderRepo;
+    private final InventoryClient inventory;
+
+    // TransactionTemplate 由容器按 PlatformTransactionManager 构建注入
+    public OrderService(TransactionTemplate txTemplate,
+                        OrderRepository orderRepo,
+                        InventoryClient inventory) {
+        this.txTemplate = txTemplate;
+        this.orderRepo = orderRepo;
+        this.inventory = inventory;
+    }
+
+    public Order createOrder(OrderRequest req) {
+        // 显式包裹：回调内抛 RuntimeException 自动回滚，正常返回自动提交
+        return txTemplate.execute(status -&gt; {
+            Order order = orderRepo.save(req.toOrder());
+            inventory.deduct(req.getSku(), req.getCount());
+            return order;
+        });
+    }
+}</code></pre>
+  <h3>83.1.2 声明式：@Transactional</h3>
+  <pre class="code" data-lang="java"><code>import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class OrderService {
+
+    @Transactional                          // 方法进入前开启事务，退出时提交/回滚
+    public Order createOrder(OrderRequest req) {
+        Order order = orderRepo.save(req.toOrder());
+        inventory.deduct(req.getSku(), req.getCount());
+        return order;
+    }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>编程式</th><th>声明式</th></tr></thead>
+    <tbody>
+      <tr><td>事务边界</td><td>代码显式控制，可精确到代码片段</td><td>方法级边界，注解标注即生效</td></tr>
+      <tr><td>灵活性</td><td>高：同一方法内多段事务、嵌套事务可精细编排</td><td>低：粒度固定在方法上</td></tr>
+      <tr><td>样板代码</td><td>多：模板回调、状态处理散落在业务代码中</td><td>少：一行注解，业务纯净</td></tr>
+      <tr><td>典型场景</td><td>复杂事务编排、需要分段提交的批处理</td><td>绝大多数 Service 方法（主流选择）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">83.2</span> @Transactional 工作机制</h2>
+  <p class="lead"><strong>一句话定位</strong>：@Transactional 本身不产生事务，它是一个标记；Spring 为标注方法所在的 Bean 生成代理，由事务切面在方法前后调用事务管理器完成 begin / commit / rollback。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="声明式事务代理流程">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">@Transactional 代理执行流程</text>
+      <rect x="40" y="52" width="150" height="56" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="115" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">调用方</text>
+      <text x="115" y="98" text-anchor="middle" font-size="11" fill="#4f6348">获得的是代理 Bean</text>
+      <line x1="190" y1="80" x2="280" y2="80" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr2)"/>
+      <rect x="290" y="46" width="220" height="170" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="400" y="72" text-anchor="middle" font-size="13" font-weight="700" fill="#047857">事务代理（AOP 切面）</text>
+      <text x="310" y="102" font-size="11.5" fill="#4f6348">1. 事务管理器开启事务</text>
+      <text x="310" y="128" font-size="11.5" fill="#4f6348">2. 放行调用目标方法</text>
+      <text x="310" y="154" font-size="11.5" fill="#4f6348">3. 正常返回 → commit</text>
+      <text x="310" y="180" font-size="11.5" fill="#4f6348">4. 命中回滚规则 → rollback</text>
+      <line x1="510" y1="80" x2="600" y2="80" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr2)"/>
+      <rect x="610" y="52" width="150" height="56" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="685" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#b91c1c">目标 Service</text>
+      <text x="685" y="98" text-anchor="middle" font-size="11" fill="#4f6348">只写业务 SQL</text>
+      <rect x="290" y="200" width="220" height="34" rx="8" fill="#eef3e8" stroke="#7a8a70"/>
+      <text x="400" y="222" text-anchor="middle" font-size="11.5" fill="#4f6348">PlatformTransactionManager 绑定连接到当前线程</text>
+      <defs>
+        <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#2d6a3f"/>
+        </marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 83-1 事务切面：代理拦截方法调用，事务管理器在前后完成提交与回滚</p>
+  </div>
+  <ul>
+    <li><strong>事务管理器抽象</strong>：Spring 用 <code>PlatformTransactionManager</code> 统一接口屏蔽持久层差异；JDBC/JPA 各自提供实现（<code>DataSourceTransactionManager</code>、<code>JpaTransactionManager</code>）；Spring Boot 按依赖自动装配。</li>
+    <li><strong>连接绑定线程</strong>：开启事务后，数据库连接绑定到当前线程（ThreadLocal），方法内各 Repository 取用的是同一连接，从而共享同一事务。</li>
+    <li><strong>事务切面顺序</strong>：事务通知包裹在业务方法最外层，先开事务，再进入日志、权限等其他切面。</li>
+  </ul>
+  <div class="warn-box"><span class="tag-pit">注意</span>：单体应用只配置一个事务管理器即可；引入多个数据源或 JTA 分布式事务时，需要在 <code>@Transactional(transactionManager = "xxx")</code> 显式指定管理器，否则可能命中默认管理器造成事务错乱。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">83.3</span> 七种传播行为详解</h2>
+  <p class="lead"><strong>一句话定位</strong>：传播行为（Propagation）回答"外层已有事务时，当前方法如何参与；外层没有事务时，当前方法如何自立门户"。默认 <code>REQUIRED</code>。</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:38%"><col style="width:42%"></colgroup>
+    <thead><tr><th>传播行为</th><th>外层已有事务时</th><th>外层无事务时</th></tr></thead>
+    <tbody>
+      <tr><td><code>REQUIRED</code>（默认）</td><td>加入外层事务，内外同生共死</td><td>新建一个事务，自成一个事务</td></tr>
+      <tr><td><code>REQUIRES_NEW</code></td><td>挂起外层事务，开启全新独立事务；两个事务分别提交回滚</td><td>新建事务</td></tr>
+      <tr><td><code>NESTED</code></td><td>在现有事务内开保存点（嵌套事务），子事务回滚只回退到保存点，外层仍可继续提交</td><td>等价于 REQUIRED，新建事务</td></tr>
+      <tr><td><code>SUPPORTS</code></td><td>加入外层事务，无事务也照跑</td><td>以非事务方式执行</td></tr>
+      <tr><td><code>NOT_SUPPORTED</code></td><td>挂起外层事务，以非事务方式执行</td><td>非事务方式执行</td></tr>
+      <tr><td><code>MANDATORY</code></td><td>加入外层事务</td><td>抛异常：必须在已有事务中运行</td></tr>
+      <tr><td><code>NEVER</code></td><td>抛异常：不允许在事务中运行</td><td>非事务方式执行</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class AccountService {
+
+    // 默认 REQUIRED：订单服务调用它，二者在同一事务里，任一失败整体回滚
+    @Transactional
+    public void transfer(Long from, Long to, BigDecimal amount) {
+        accountDao.deduct(from, amount);
+        accountDao.credit(to, amount);
+    }
+
+    // REQUIRES_NEW：独立新事务。例如"扣款失败也要记录一条审计日志并提交"
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void writeAuditLog(String message) {
+        auditDao.save(message);
+        // 无论外层订单事务最终是否回滚，这条审计记录都已独立提交
+    }
+
+    // NESTED：嵌套保存点。子流程失败回滚到保存点，外层可捕获后继续主流程
+    @Transactional(propagation = Propagation.NESTED)
+    public void applyCoupon(Coupon coupon) {
+        couponDao.bind(coupon);
+    }
+}</code></pre>
+  <div class="pit-sentence"><span class="tag-pit">常见坑</span>：<code>NESTED</code> 依赖数据库<strong>保存点（SAVEPOINT）</strong>能力，JDBC 驱动需支持；它与 <code>REQUIRES_NEW</code> 的本质区别：NESTED 仍属外层事务，外层回滚子事务必然回滚；REQUIRES_NEW 是两个物理连接、两个独立事务，互不影响。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">83.4</span> 隔离级别、readOnly 与超时</h2>
+  <p class="lead"><strong>一句话定位</strong>：隔离级别解决并发读写的可见性问题；readOnly 告诉事务管理器这是只读事务，允许数据库优化；timeout 限制事务最长占用时间。</p>
+  <pre class="code" data-lang="java"><code>import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+
+@Transactional(
+        isolation = Isolation.READ_COMMITTED,   // 隔离级别，见下表
+        readOnly = true,                       // 只读事务：不加写锁，可做快照优化
+        timeout = 5,                           // 秒级超时；超时回滚并抛 TransactionTimedOutException
+        rollbackFor = Exception.class           // 回滚规则，见 83.5
+)
+public Page&lt;Order&gt; queryOrders(OrderQuery query) {
+    return orderDao.search(query);
+}
+
+// 隔离级别取值：
+// DEFAULT            跟随数据库默认级别（MySQL InnoDB 默认 REPEATABLE_READ）
+// READ_UNCOMMITTED   读未提交：可读到脏数据，性能最高，几乎不用
+// READ_COMMITTED     读已提交：避免脏读，Oracle 默认；常见生产选择
+// REPEATABLE_READ    可重复读：同一事务内两次读结果一致；MySQL 默认
+// SERIALIZABLE       串行化：最强隔离，并发最差，极端一致性场景才用</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>隔离级别</th><th>解决的问题</th><th>残留风险</th></tr></thead>
+    <tbody>
+      <tr><td>READ_UNCOMMITTED</td><td>无</td><td>脏读、不可重复读、幻读全部存在</td></tr>
+      <tr><td>READ_COMMITTED</td><td>脏读</td><td>不可重复读、幻读</td></tr>
+      <tr><td>REPEATABLE_READ</td><td>脏读、不可重复读</td><td>幻读（InnoDB 间隙锁可部分缓解）</td></tr>
+      <tr><td>SERIALIZABLE</td><td>三类问题全部避免</td><td>并发性能显著下降</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence"><span class="tag-key">金句</span>：<code>readOnly = true</code> 是语义声明而非强制——只读方法写库仍会报错，但标注它能让事务管理器与连接池做只读优化；查询类方法统一标注 <code>@Transactional(readOnly = true)</code> 是好习惯。</div>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">83.5</span> rollbackFor 与回滚规则</h2>
+  <p class="lead"><strong>一句话定位</strong>：Spring 默认只对 <strong>RuntimeException 与 Error</strong> 回滚；受检异常（checked Exception）默认不回滚，需要 <code>rollbackFor</code> 显式指定。</p>
+  <pre class="code" data-lang="java"><code>@Service
+public class PaymentService {
+
+    // 默认规则：抛出 RuntimeException / Error → 回滚；
+    // 抛出 IOException、SQLException 等受检异常 → 仍然提交！
+    @Transactional
+    public PayResult pay(PayRequest req) throws PayException {
+        payDao.saveRecord(req);
+        if (!remoteGateway.ok()) {
+            // 受检异常：按默认规则事务不会回滚，已保存的记录残留
+            throw new PayException("网关不可用");
+        }
+        return PayResult.success();
+    }
+
+    // 正确写法：显式声明需要回滚的异常类型
+    @Transactional(rollbackFor = {PayException.class, IOException.class})
+    public PayResult payFixed(PayRequest req) throws PayException, IOException {
+        payDao.saveRecord(req);
+        if (!remoteGateway.ok()) {
+            throw new PayException("网关不可用");
+        }
+        return PayResult.success();
+    }
+
+    // noRollbackFor：指定某些异常即使抛出也不回滚（如可降级的业务告警）
+    @Transactional(rollbackFor = Exception.class,
+                   noRollbackFor = {RateLimitException.class})
+    public void createWithFallback(OrderRequest req) { /* ... */ }
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>：项目团队常约定 <code>rollbackFor = Exception.class</code> 统一兜底，避免受检异常漏配；这比记住"默认只回滚运行时异常"更省心，代价是把原本该保留的受检异常场景一并回滚，需要结合业务判断。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">83.6</span> 事务失效四大坑排查</h2>
+  <p class="lead"><strong>一句话定位</strong>：事务依托 AOP 代理，第 82 章的代理失效规律在这里全部重演；再加上回滚规则与异常处理两个业务层陷阱，构成四大高频事故现场。</p>
+  <h3>83.6.1 坑一：同类自调用绕过代理</h3>
+  <pre class="code" data-lang="java"><code>@Service
+public class OrderService {
+
+    public void batchCreate(List&lt;OrderRequest&gt; list) {
+        for (OrderRequest req : list) {
+            this.createOrder(req);          // ❌ this 直连目标对象，事务切面不触发
+        }
+    }
+
+    @Transactional
+    public void createOrder(OrderRequest req) { /* SQL */ }
+}
+// 修复：自注入代理、拆到独立 Bean，或 AopContext.currentProxy()（同 82.6.1）</code></pre>
+  <h3>83.6.2 坑二：方法非 public / final / 静态</h3>
+  <pre class="code" data-lang="java"><code>@Service
+public class OrderService {
+
+    @Transactional
+    private void internalCreate(OrderRequest req) { /* ❌ private 代理拦截不到 */ }
+
+    @Transactional
+    public final Order createOrder(OrderRequest req) { /* ❌ final 方法无法覆写 */ }
+}
+// Spring 事务代理要求目标方法为 public 非 final；static 方法同样不纳入代理</code></pre>
+  <h3>83.6.3 坑三：catch 吞掉异常，回滚规则无从触发</h3>
+  <pre class="code" data-lang="java"><code>@Transactional
+public void createOrder(OrderRequest req) {
+    try {
+        inventory.deduct(req.getSku(), req.getCount());
+    } catch (InventoryException ex) {
+        log.warn("库存不足：{}", ex.getMessage());
+        // ❌ 异常被吞：代理看不到异常抛出，事务按"正常返回"提交，脏数据落库
+    }
+    orderDao.save(req.toOrder());
+}
+// 修复一：catch 后手动标记回滚
+// TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+// 修复二：捕获后重新抛出，让事务切面感知；不要吞异常是第一纪律</code></pre>
+  <h3>83.6.4 坑四：REQUIRES_NEW 被同一事务"吞掉"的误解</h3>
+  <div class="warn-box">
+    <span class="tag-pit">常见误区</span>：REQUIRES_NEW 的独立事务只在<strong>通过代理对象调用</strong>时才成立。若在同类方法内直接 <code>this.writeAuditLog()</code> 调用，走的是目标对象而非代理，REQUIRES_NEW 不会生效，审计记录仍绑在外层事务里——外层回滚时日志一并消失。修复方式同自调用：注入自身代理后调用。
+  </div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>失效现场</th><th>根因</th><th>修复方向</th></tr></thead>
+    <tbody>
+      <tr><td>同类内部调用事务方法</td><td>this 引用目标对象，不经过代理</td><td>自注入代理 / 拆 Bean / AopContext</td></tr>
+      <tr><td>private、final、static 方法标注事务</td><td>代理无法覆写该方法</td><td>提升为 public 非 final；静态逻辑独立成 Bean</td></tr>
+      <tr><td>try-catch 后异常未重抛</td><td>代理感知不到异常，按正常提交</td><td>重抛异常或 setRollbackOnly() 手动标记</td></tr>
+      <tr><td>受检异常未配 rollbackFor</td><td>默认只回滚 RuntimeException / Error</td><td>rollbackFor = Exception.class 兜底或显式列出</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>事务形态</td><td>声明式注解为主，编程式 TransactionTemplate 处理复杂编排</td></tr>
+      <tr><td>工作机制</td><td>代理 + 事务切面 + PlatformTransactionManager；连接绑定线程共享事务</td></tr>
+      <tr><td>传播行为</td><td>默认 REQUIRED 并入同事务；REQUIRES_NEW 独立新事务；NESTED 保存点嵌套；其余四种约束执行方式</td></tr>
+      <tr><td>隔离与只读</td><td>READ_COMMITTED 常见选择；查询方法标 readOnly=true；timeout 防止长事务</td></tr>
+      <tr><td>回滚纪律</td><td>默认只回滚运行时异常；异常不能吞；自调用、非 public、受检异常是四大失效点</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出 REQUIRED、REQUIRES_NEW、NESTED、NOT_SUPPORTED 四种传播行为在"外层有事务 / 外层无事务"两个入口下的结果；解释脏读、不可重复读、幻读分别由哪个隔离级别解决。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现"下单 + 扣库存 + 独立审计日志"流程：主流程 REQUIRED，审计方法 REQUIRES_NEW；人为让主流程抛异常，验证审计日志已提交而订单与库存回滚。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>构造四个事务失效案例（自调用、private 方法、catch 吞异常、受检异常未配 rollbackFor），每个案例先演示脏数据或未回滚现象，再分别修复；整理成一份团队内部《@Transactional 失效排查清单》。</div>
+  <p class="note">下一章：事务提交之后再做后续动作——Spring 事件机制与监听器，用解耦的观察者模式串联业务后续流程。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="082_第82章_切面实战日志与耗时统计.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="084_第84章_事件机制与监听器.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 83 章 声明式事务与传播行为</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -48,13 +48,13 @@ TUTORIAL_BOOKS = {
         ("第三篇 索引与优化", 10, "plan"), ("第四篇 事务与锁", 9, "plan"),
         ("第五篇 日志与主从", 8, "plan"), ("第六篇 高可用与分库分表", 9, "plan"),
         ("第七篇 运维调优", 9, "plan"), ("第八篇 综合实战", 9, "plan")]},
-    "java": {"planned": 112, "status": "plan", "parts": [
-        ("第一篇 入门与语法", 10, "plan"), ("第二篇 面向对象", 10, "plan"),
-        ("第三篇 核心 API 与集合", 10, "plan"), ("第四篇 异常与 IO", 8, "plan"),
-        ("第五篇 反射注解与函数式", 8, "plan"), ("第六篇 并发编程", 12, "plan"),
-        ("第七篇 JVM", 10, "plan"), ("第八篇 数据库与 JDBC", 8, "plan"),
-        ("第九篇 Spring 核心", 10, "plan"), ("第十篇 SpringBoot 与 Web", 10, "plan"),
-        ("第十一篇 工程化与测试", 8, "plan"), ("第十二篇 综合项目收官", 8, "plan")]},
+    "java": {"planned": 112, "status": "done", "parts": [
+        ("第一篇 入门与语法", 10, "done"), ("第二篇 面向对象", 10, "done"),
+        ("第三篇 核心 API 与集合", 10, "done"), ("第四篇 异常与 IO", 8, "done"),
+        ("第五篇 反射注解与函数式", 8, "done"), ("第六篇 并发编程", 12, "done"),
+        ("第七篇 JVM", 10, "done"), ("第八篇 数据库与 JDBC", 8, "done"),
+        ("第九篇 Spring 核心", 10, "done"), ("第十篇 SpringBoot 与 Web", 10, "done"),
+        ("第十一篇 工程化与测试", 8, "done"), ("第十二篇 综合项目收官", 8, "done")]},
     "python": {"planned": 60, "status": "plan", "parts": [
         ("第一篇 入门与语法", 9, "plan"), ("第二篇 函数与进阶语法", 10, "plan"),
         ("第三篇 面向对象与标准库", 10, "plan"), ("第四篇 工程化", 9, "plan"),
@@ -92,7 +92,7 @@ BOOKS = [
     ("14_从0到精通",              "tutorial", "书架总导览",              "📚", "教科书模块总入口：每本对应一个技术点的从 0 到精通完整学习线", "#6B5D4F", "dir:14_从0到精通"),
     ("14_从0到精通/javascript",   "tutorial", "《JavaScript 从 0 到精通》", "🟨", "10 篇 · 97 章完稿 + 3 附录 · 全书完", "#A8842C", "tree:14_从0到精通/javascript"),
     ("14_从0到精通/typescript",   "tutorial", "《TypeScript 从 0 到精通》", "🔷", "6 篇 · 52 章完稿 · 全书完", "#33608C", "tree:14_从0到精通/typescript"),
-    ("14_从0到精通/java",         "tutorial", "《Java 从 0 到精通》",      "☕", "12 篇 · 规划 112 章 · 撰写中", "#B4552D", "tree:14_从0到精通/java"),
+    ("14_从0到精通/java",         "tutorial", "《Java 从 0 到精通》",      "☕", "12 篇 · 112 章完稿 · 全书完", "#B4552D", "tree:14_从0到精通/java"),
     ("14_从0到精通/mysql",        "tutorial", "《MySQL 从 0 到精通》",     "🐬", "8 篇 · 规划 72 章 · 撰写中", "#2E7D74", "tree:14_从0到精通/mysql"),
     ("14_从0到精通/python",       "tutorial", "《Python 从 0 到精通》",    "🐍", "6 篇 · 规划 60 章 · 撰写中", "#3A6B9C", "tree:14_从0到精通/python"),
     ("14_从0到精通/vue",          "tutorial", "《Vue 从 0 到精通》",       "💚", "8 篇 · 规划 78 章 · 撰写中", "#4A8B5C", "tree:14_从0到精通/vue"),
@@ -179,6 +179,9 @@ def collect(rel_dir: str, recursive: bool):
                 "t": title, "f": fn, "u": "old-docs/" + rel,
                 "d": depth_of(fn), "n": n,
             })
+    # 按章节编号排序（00_目录等 n=0 排最前，其余 001..N 升序），
+    # 避免 os.walk 的目录字符串排序把 100_第十篇 排到 10_第一篇 之前。
+    chapters.sort(key=lambda c: c["n"])
     return chapters
 
 

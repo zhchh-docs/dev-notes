@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 100 章 日志体系 Logback 与链路｜Java 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--line:#d8e2cc;--line-2:#c2cfb4;--ink:#1f2e1f;--ink-2:#4f6348;--ink-3:#7a8a70;--accent:#2d6a3f;--accent-2:#4f8a63;--accent-soft:#d8e8c8;--warn:#b45309;--warn-soft:#fef3c7;--danger:#b91c1c;--danger-soft:#fee2e2;--ok:#047857;--ok-soft:#d1fae5;--code-bg:#152010;--code-ink:#d8e2cc;--radius:12px;--shadow:0 1px 3px rgba(15,23,42,.08);--font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;--mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+nav.toc h2{margin:0 0 12px;font-size:14px;color:#22331f;padding:0 0 8px;border-bottom:1px solid var(--line);font-weight:600}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc;columns:2;column-gap:24px}
+nav.toc li{counter-increment:toc;font-size:13.5px;margin:5px 0;break-inside:avoid}
+nav.toc li::before{content:counter(toc);display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:5px;font-size:11.5px;font-weight:600;margin-right:8px}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}.container{margin-left:280px;max-width:calc(100% - 300px)}}
+@media(max-width:1023px){nav.toc{position:static;width:auto}nav.toc ol{columns:1}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:24px 0}
+section.card h2{font-size:22px;margin:0 0 20px;padding-left:13px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:14px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:30px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:15.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600}
+section.card p{margin:11px 0}
+section.card ul,section.card ol{margin:11px 0;padding-left:26px}
+section.card li{margin:7px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow:visible}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){.container{padding:0 12px}.hero{padding:24px 14px}.hero h1{font-size:21px}.doc-nav-btn{font-size:12px;padding:6px 10px}section.card{padding:18px 16px;margin:14px 0}section.card h2{font-size:19px}section.card h3{font-size:16px;margin:22px 0 10px}pre.code{font-size:12px;padding:12px}}
+</style>
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《Java 从 0 到精通》 · 第十一篇 工程化与测试</p>
+    <h1>第 100 章 日志体系 Logback 与链路</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 100 章 / 共 112 章 · 预计 40 分钟 · 第十一篇：运行观测</span>
+    </div>
+    <p class="hero-desc">线上排障第一入口是日志。本章梳理 SLF4J 门面与 Logback 实现、级别过滤、滚动文件配置、MDC 链路标识跨线程传递与高频坑。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="099_第99章_单元测试JUnit5与Mockito.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="101_第101章_代码规范Checkstyle与评审.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">100.1 日志的重要性与门面体系</a></li>
+    <li><a href="#sec3">100.2 级别、占位符与日志写法</a></li>
+    <li><a href="#sec4">100.3 logback-spring.xml 配置</a></li>
+    <li><a href="#sec5">100.4 MDC 与 traceId 链路标识</a></li>
+    <li><a href="#sec6">100.5 Spring Boot 日志属性配置</a></li>
+    <li><a href="#sec6b">100.6 常见坑：级别滥用、异步丢失与重复打印</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <strong>SLF4J 门面</strong>与 Logback 实现的分工及绑定告警含义；</li>
+    <li>掌握 trace / debug / info / warn / error 五个级别与 <code>{}</code> 占位符规范写法；</li>
+    <li>会配置 logback-spring.xml 的 appender、输出格式与时间大小滚动策略；</li>
+    <li>实现 MDC traceId 写入与<strong>异步线程传递</strong>，规避重复打印与异步队列丢日志。</li>
+  </ul>
+</section>
+
+
+<section id="sec2" class="card">
+  <h2><span class="num">100.1</span> 日志的重要性与门面体系</h2>
+  <p class="lead"><strong>一句话定位</strong>：日志是系统运行轨迹的持久化记录；SLF4J 是统一门面，Logback 是 Spring Boot 默认实现，业务代码只面向门面编程，实现可替换。</p>
+  <p>前端调试依赖浏览器控制台与 <code>console.log</code>，后端服务没有终端可看，必须把关键事件写入文件或日志平台，供排障、审计与监控使用。<code>System.out.println</code> 的问题：级别不分、不能落文件、不能按包过滤、线程与时间戳缺失、生产环境无法关闭。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 220" role="img" aria-label="SLF4J 门面与实现分层">
+      <text x="400" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">SLF4J 门面 + 日志实现分层</text>
+      <rect x="250" y="50" width="300" height="46" rx="9" fill="#d1fae5" stroke="#047857"/>
+      <text x="400" y="78" text-anchor="middle" font-size="12.5" font-weight="700" fill="#047857">业务代码：org.slf4j.Logger / LoggerFactory</text>
+      <rect x="250" y="112" width="300" height="46" rx="9" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="400" y="140" text-anchor="middle" font-size="12.5" font-weight="700" fill="#2d6a3f">SLF4J 门面：只定义 API，不做日志输出</text>
+      <rect x="80" y="176" width="200" height="34" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="180" y="198" text-anchor="middle" font-size="12" fill="#b45309">Logback（Spring Boot 默认）</text>
+      <rect x="300" y="176" width="200" height="34" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="400" y="198" text-anchor="middle" font-size="12" fill="#b45309">Log4j2（可替换实现）</text>
+      <rect x="520" y="176" width="200" height="34" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="620" y="198" text-anchor="middle" font-size="12" fill="#b45309">其他实现 / 桥接包</text>
+      <line x1="400" y1="96" x2="400" y2="112" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#a100)"/>
+      <line x1="400" y1="158" x2="180" y2="176" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5,4"/>
+      <line x1="400" y1="158" x2="400" y2="176" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5,4"/>
+      <line x1="400" y1="158" x2="620" y2="176" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5,4"/>
+      <defs><marker id="a100" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2d6a3f"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 100-1 业务代码面向 SLF4J 编程，底层实现由依赖决定</p>
+  </div>
+  <ul>
+    <li><strong>门面模式</strong>：业务代码 import <code>org.slf4j.Logger</code>，切换 Logback / Log4j2 不改业务代码；</li>
+    <li><strong>Spring Boot 默认栈</strong>：<code>spring-boot-starter-logging</code> 引入 Logback，并通过桥接包把其他框架的日志（JCL、Log4j、JUL）统一路由到 SLF4J；</li>
+    <li><strong>版本冲突信号</strong>：启动时 SLF4J 打印 <code>Class path contains multiple SLF4J bindings</code> 或 <code>Failed to load class org.slf4j.impl.StaticLoggerBinder</code>，说明依赖里混入了多套实现或缺少实现。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">100.2</span> 级别、占位符与日志写法</h2>
+  <p class="lead"><strong>一句话定位</strong>：日志级别从低到高 TRACE &lt; DEBUG &lt; INFO &lt; WARN &lt; ERROR；配置某级别后，只输出该级别及以上的日志；消息用 <code>{}</code> 占位符惰性拼接。</p>
+  <table>
+    <colgroup><col style="width:14%"><col style="width:38%"><col style="width:48%"></colgroup>
+    <thead><tr><th>级别</th><th>语义</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>TRACE</td><td>最细粒度的追踪细节</td><td>方法入参出参、循环内部步骤，生产默认关闭</td></tr>
+      <tr><td>DEBUG</td><td>开发调试细节</td><td>中间状态、缓存命中、SQL 参数，测试环境开启</td></tr>
+      <tr><td>INFO</td><td>关键业务节点与运行轨迹</td><td>请求进入、订单创建、定时任务起止、外部调用成功</td></tr>
+      <tr><td>WARN</td><td>可恢复的异常苗头</td><td>重试成功、参数兜底、降级触发、慢调用告警候选</td></tr>
+      <tr><td>ERROR</td><td>需要介入的失败事件</td><td>业务流程中断、外部调用失败、未捕获异常，必须带堆栈</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="java"><code>import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderService {
+    // 标准声明：类名作为 logger 名，便于按包名过滤
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+
+    public Order createOrder(Long userId, Long skuId, int count) {
+        // ① 占位符 {}：级别未开启时不做字符串拼接，性能安全
+        log.info("创建订单 userId={} skuId={} count={}", userId, skuId, count);
+
+        if (count &gt; 100) {
+            // ② WARN：可恢复的边界情况，记录上下文供后续观察
+            log.warn("下单数量偏大 userId={} count={}", userId, count);
+        }
+
+        try {
+            return doCreate(userId, skuId, count);
+        } catch (ExternalPayException e) {
+            // ③ 异常对象作为最后一个参数单独传入，堆栈才会完整打印
+            log.error("支付失败 userId={} skuId={}", userId, skuId, e);
+            throw new BizException("下单失败，请稍后重试", e);
+        }
+    }
+}</code></pre>
+  <div class="warn-box"><strong>禁止写法</strong>：<code>log.debug("订单详情：" + order)</code> 在 DEBUG 关闭时仍会执行字符串拼接与 <code>order.toString()</code>，高并发下白白消耗 CPU；必须用占位符。需要条件判断时用 <code>if (log.isDebugEnabled())</code> 包裹重型对象构造。</div>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>把异常信息拼进占位符字符串、最后不传 Throwable：<code>log.error("失败 " + e.getMessage())</code> 会丢失堆栈，排障时只剩一行消息。异常对象永远作为方法最后一个参数传入。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">100.3</span> logback-spring.xml 配置</h2>
+  <p class="lead"><strong>一句话定位</strong>：配置文件放在 <code>src/main/resources/logback-spring.xml</code>；通过 appender 定义输出目的地，encoder 定义格式，rollingPolicy 定义文件滚动与归档策略。</p>
+  <pre class="code" data-lang="xml"><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;configuration&gt;
+  &lt;!-- 引入 Spring Boot 默认配置，继承其基础规则 --&gt;
+  &lt;include resource="org/springframework/boot/logging/logback/defaults.xml"/&gt;
+
+  &lt;!-- 控制台输出 --&gt;
+  &lt;appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender"&gt;
+    &lt;encoder&gt;
+      &lt;pattern&gt;%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [traceId=%X{traceId}] %msg%n&lt;/pattern&gt;
+      &lt;charset&gt;UTF-8&lt;/charset&gt;
+    &lt;/encoder&gt;
+  &lt;/appender&gt;
+
+  &lt;!-- 滚动文件：按天 + 按大小切割，归档压缩，限制历史总量 --&gt;
+  &lt;appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+    &lt;file&gt;logs/order-service.log&lt;/file&gt;
+    &lt;rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy"&gt;
+      &lt;fileNamePattern&gt;logs/order-service.%d{yyyy-MM-dd}.%i.log.gz&lt;/fileNamePattern&gt;
+      &lt;maxFileSize&gt;100MB&lt;/maxFileSize&gt;
+      &lt;maxHistory&gt;30&lt;/maxHistory&gt;          &lt;!-- 保留 30 天 --&gt;
+      &lt;totalSizeCap&gt;5GB&lt;/totalSizeCap&gt;      &lt;!-- 归档总量上限 --&gt;
+      &lt;cleanHistoryOnStart&gt;true&lt;/cleanHistoryOnStart&gt;
+    &lt;/rollingPolicy&gt;
+    &lt;encoder&gt;
+      &lt;pattern&gt;%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [traceId=%X{traceId}] %msg%n&lt;/pattern&gt;
+      &lt;charset&gt;UTF-8&lt;/charset&gt;
+    &lt;/encoder&gt;
+  &lt;/appender&gt;
+
+  &lt;!-- 业务包级别单独调优 --&gt;
+  &lt;logger name="com.example.bookstore" level="INFO"/&gt;
+  &lt;logger name="org.springframework.web" level="INFO"/&gt;
+
+  &lt;!-- 开发环境只输出控制台；生产环境文件 + 控制台 --&gt;
+  &lt;springProfile name="dev"&gt;
+    &lt;root level="INFO"&gt;
+      &lt;appender-ref ref="CONSOLE"/&gt;
+    &lt;/root&gt;
+  &lt;/springProfile&gt;
+  &lt;springProfile name="prod"&gt;
+    &lt;root level="INFO"&gt;
+      &lt;appender-ref ref="CONSOLE"/&gt;
+      &lt;appender-ref ref="FILE"/&gt;
+    &lt;/root&gt;
+  &lt;/springProfile&gt;
+&lt;/configuration&gt;</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>组件</th><th>职责</th><th>常用配置项</th></tr></thead>
+    <tbody>
+      <tr><td>ConsoleAppender</td><td>输出到标准输出（容器日志采集依赖它）</td><td>encoder、pattern、charset</td></tr>
+      <tr><td>RollingFileAppender</td><td>写入文件并按策略滚动归档</td><td>file、rollingPolicy、encoder</td></tr>
+      <tr><td>SizeAndTimeBasedRollingPolicy</td><td>时间 + 文件大小双维度切割</td><td>fileNamePattern、maxFileSize、maxHistory、totalSizeCap</td></tr>
+      <tr><td>logger</td><td>按包/类名设置级别与 appender</td><td>name、level、additivity</td></tr>
+      <tr><td>springProfile</td><td>Spring 环境条件块，仅 logback-spring.xml 支持</td><td>name="dev" / "prod"</td></tr>
+    </tbody>
+  </table>
+  <p class="pit-sentence"><span class="tag-pit">常见坑</span>文件名写成 <code>logback.xml</code> 时不支持 <code>&lt;springProfile&gt;</code> 与 <code>&lt;springProperty&gt;</code>，环境块会被静默忽略；需要 Spring 扩展就必须使用 <code>logback-spring.xml</code>。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">100.4</span> MDC 与 traceId 链路标识</h2>
+  <p class="lead"><strong>一句话定位</strong>：MDC（Mapped Diagnostic Context）是线程内的日志上下文映射；请求入口生成 traceId 放入 MDC，pattern 中用 <code>%X{traceId}</code> 输出，同一请求的日志即可串联检索。</p>
+  <pre class="code" data-lang="java"><code>// ① 请求过滤器：进入时生成 traceId 写入 MDC，结束后清理
+@Component
+public class TraceIdFilter extends OncePerRequestFilter {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain chain) throws ServletException, IOException {
+        String traceId = Optional.ofNullable(request.getHeader("X-Trace-Id"))
+                .orElse(UUID.randomUUID().toString().replace("-", ""));
+        MDC.put("traceId", traceId);
+        response.setHeader("X-Trace-Id", traceId);
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            MDC.remove("traceId");   // 线程池复用下必须清理，避免串号
+        }
+    }
+}</code></pre>
+  <pre class="code" data-lang="java"><code>// ② 异步线程池：默认不传递 MDC，用 TaskDecorator 复制上下文
+public class MdcTaskDecorator implements TaskDecorator {
+    @Override
+    public Runnable decorate(Runnable runnable) {
+        Map&lt;String, String&gt; context = MDC.getCopyOfContextMap();  // 主线程快照
+        return () -&gt; {
+            if (context != null) MDC.setContextMap(context);       // 子线程恢复
+            try {
+                runnable.run();
+            } finally {
+                MDC.clear();
+            }
+        };
+    }
+}
+
+@Configuration
+public class AsyncConfig {
+    @Bean
+    public ThreadPoolTaskExecutor businessExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(500);
+        executor.setTaskDecorator(new MdcTaskDecorator());   // 挂到线程池
+        executor.initialize();
+        return executor;
+    }
+}</code></pre>
+  <ul>
+    <li><strong>同步链路</strong>：同一请求线程内 MDC 自动可用，pattern 中 <code>%X{traceId}</code> 即取值；</li>
+    <li><strong>异步线程</strong>：<code>@Async</code>、<code>CompletableFuture</code>、手动 <code>new Thread</code> 都不继承 MDC，必须通过 TaskDecorator 或包装 Runnable 显式传递；</li>
+    <li><strong>线程池复用</strong>：请求结束必须 <code>MDC.remove</code>，否则下一个复用该线程的请求会带上上一个 traceId，日志串号；</li>
+    <li><strong>跨服务传播</strong>：调用下游时把 traceId 放入请求头（如 <code>X-Trace-Id</code>），过滤器优先读取入口头值，实现跨服务串联。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">100.5</span> Spring Boot 日志属性配置</h2>
+  <p class="lead"><strong>一句话定位</strong>：不写 XML 也能完成常规调优——<code>application.yml</code> 中的 <code>logging.*</code> 属性覆盖级别、文件位置与格式；需要滚动策略、异步 appender 时再回到 logback-spring.xml。</p>
+  <pre class="code" data-lang="yaml"><code>logging:
+  level:
+    root: INFO
+    com.example.bookstore: DEBUG          # 业务包单独调为 DEBUG
+    org.springframework.jdbc.core: DEBUG  # SQL 参数调试
+  file:
+    name: logs/order-service.log           # 输出文件（与 path 二选一）
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [traceId=%X{traceId}] %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 5GB</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>属性</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td>logging.level.root</td><td>根 logger 级别，全局默认阈值</td></tr>
+      <tr><td>logging.level.&lt;包名&gt;</td><td>按包/类单独设置级别，覆盖 root</td></tr>
+      <tr><td>logging.file.name</td><td>日志文件完整路径名（与 logging.file.path 二选一）</td></tr>
+      <tr><td>logging.pattern.console / .file</td><td>控制台 / 文件输出格式模板</td></tr>
+      <tr><td>logging.logback.rollingpolicy.*</td><td>Spring Boot 托管的滚动策略参数（大小、天数、总量）</td></tr>
+    </tbody>
+  </table>
+  <p>配置优先级：<code>logback-spring.xml</code> 中的显式配置优先于 <code>application.yml</code> 属性；一旦引入自定义 XML，Boot 默认文件 appender 规则即由 XML 接管，注意不要两边重复定义导致行为不一致。</p>
+</section>
+
+<section id="sec6b" class="card">
+  <h2><span class="num">100.6</span> 常见坑：级别滥用、异步丢失与重复打印</h2>
+  <h3>① 级别滥用与打点位置错误</h3>
+  <p>业务正常流程刷大量 DEBUG、异常堆栈只打 INFO，都会让真正的告警信号淹没。纪律：INFO 只记录关键节点；循环体内、高频调用路径不打 INFO；异常必须 ERROR 且带堆栈。logger 声明为 <code>private static final</code>，不要在方法内反复 <code>LoggerFactory.getLogger</code>。</p>
+  <h3>② 异步 appender 的队列与丢日志</h3>
+  <pre class="code" data-lang="xml"><code>&lt;appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender"&gt;
+  &lt;queueSize&gt;512&lt;/queueSize&gt;            &lt;!-- 队列容量，默认 256 --&gt;
+  &lt;discardingThreshold&gt;0&lt;/discardingThreshold&gt;  &lt;!-- 0 表示不丢弃任何级别 --&gt;
+  &lt;neverBlock&gt;false&lt;/neverBlock&gt;       &lt;!-- 队列满时阻塞业务线程，避免丢日志 --&gt;
+  &lt;appender-ref ref="FILE"/&gt;
+&lt;/appender&gt;</code></pre>
+  <p>异步 appender 把日志先入队列、后台线程批量写出，降低 IO 阻塞；但队列满时默认策略会丢弃低级别日志（discardingThreshold），且异步线程上下文中 MDC 已在主线程快照中复制——配置不当会出现"生产 ERROR 日志缺行"。对财务、审计类日志建议关闭丢弃或直接同步落盘。</p>
+  <h3>③ 重复打印</h3>
+  <p>同一条日志出现两遍，最常见原因：root 挂了 CONSOLE 与 FILE，业务 logger 又显式挂了一份 appender，且 <code>additivity</code> 未关闭。子 logger 配置：</p>
+  <pre class="code" data-lang="xml"><code>&lt;!-- additivity=false：不再向 root 向上传递，避免重复输出 --&gt;
+&lt;logger name="com.example.bookstore" level="INFO" additivity="false"&gt;
+  &lt;appender-ref ref="FILE"/&gt;
+&lt;/logger&gt;</code></pre>
+  <p>另一种重复来自依赖冲突：classpath 中同时存在 logback-classic 与 log4j-to-slf4j 之外的其他实现，启动告警中先看绑定数量，再用 <code>mvn dependency:tree</code> 排除多余实现。</p>
+  <div class="key-sentence"><span class="tag-key">排障顺序</span>日志异常先看启动绑定告警 → 核对级别配置与包名 → 检查 additivity 与 appender 挂载 → 确认异步队列策略 → 最后排查 MDC 线程传递。</div>
+</section>
+
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>门面体系</td><td>业务面向 SLF4J 编程，Logback 为 Spring Boot 默认实现，切换实现不改业务代码</td></tr>
+      <tr><td>级别</td><td>TRACE &lt; DEBUG &lt; INFO &lt; WARN &lt; ERROR，配置级别以上才输出；异常对象单独传最后参数</td></tr>
+      <tr><td>占位符</td><td>{} 惰性拼接避免无效 toString；重型对象先判断 isDebugEnabled</td></tr>
+      <tr><td>配置</td><td>logback-spring.xml 支持 springProfile；Console/RollingFile appender + 时间大小滚动策略</td></tr>
+      <tr><td>MDC</td><td>入口写 traceId、pattern 用 %X 输出；异步线程 TaskDecorator 复制；用完 remove 防串号</td></tr>
+      <tr><td>高频坑</td><td>级别滥用、异步队列丢日志、additivity 未关导致重复打印</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>按从低到高列出五个日志级别，说明 INFO 与 WARN 的语义边界；解释为什么日志消息必须用 {} 占位符。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为现有 Spring Boot 工程接入 TraceIdFilter 与 MdcTaskDecorator，在异步任务日志中验证 traceId 跨线程保持一致。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>构造一次重复打印问题（业务 logger 与 root 同时挂 appender），用 additivity=false 修复；再人为制造多 SLF4J 绑定告警，用依赖树排除多余实现。</div>
+  <p class="note">下一章：让团队代码长得像同一个人写的——代码规范 Checkstyle 与代码评审。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="099_第99章_单元测试JUnit5与Mockito.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="101_第101章_代码规范Checkstyle与评审.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《Java 从 0 到精通》 · 第 100 章 日志体系 Logback 与链路</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600);
+          }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

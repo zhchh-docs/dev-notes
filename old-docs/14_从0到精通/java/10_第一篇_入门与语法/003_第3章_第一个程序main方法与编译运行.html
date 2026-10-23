@@ -129,154 +129,192 @@ code{font-size:13px}
   <ol>
     <li><a href="#sec1">本章目标</a></li>
     <li><a href="#sec2">3.1 main 方法逐词拆解</a></li>
-    <li><a href="#sec3">3.2 命令行编译与运行全流程</a></li>
-    <li><a href="#sec3">3.3 IDEA 里发生了什么</a></li>
-    <li><a href="#sec4">3.4 三种注释与代码规范</a></li>
-    <li><a href="#sec5">3.5 初学者编译错误大全</a></li>
+    <li><a href="#sec3">3.2 命令行编译运行全流程</a></li>
+    <li><a href="#sec4">3.3 编译期错误 vs 运行期错误</a></li>
+    <li><a href="#sec5">3.4 程序入口的三要素</a></li>
     <li><a href="#sec6">本章小结</a></li>
     <li><a href="#sec7">本章习题</a></li>
   </ol>
 </nav>
 <main>
-
 <section id="sec1" class="card">
   <h2><span class="num">◆</span>本章目标</h2>
+  <p class="lead">第 2 章是"点一下绿色三角就跑"，这一章要掀开盖子：<b>main 是什么、javac 做了什么、java 又做了什么。</b></p>
   <ul>
-    <li>能逐词解释 <code>public static void main(String[] args)</code> 每一部分的含义；</li>
-    <li>能在命令行完成 <strong>javac 编译 → java 运行</strong>的完整流程；</li>
-    <li>认识三类注释的写法与用途；</li>
-    <li>能独立读懂并修复初学者最常见的五类编译错误。</li>
+    <li>逐词读懂 <code>public static void main(String[] args)</code> 每个组成部分的含义；</li>
+    <li>不依赖 IDE，用命令行完成 javac 编译与 java 运行的完整流程；</li>
+    <li>分清<strong>编译期错误</strong>与<strong>运行期错误</strong>，建立第一层排障思维；</li>
+    <li>记住程序入口的三要素，能解释为什么 main 必须长那样。</li>
   </ul>
 </section>
 
 <section id="sec2" class="card">
   <h2><span class="num">3.1</span> main 方法逐词拆解</h2>
+  <p class="lead">main 不是关键字，却是一个约定俗成的"大门牌"——JVM 只认这个签名的方法作为起点。</p>
 <pre class="code" data-lang="java"><code>public class Hello {
     public static void main(String[] args) {
         System.out.println("Hello, Java!");
     }
 }</code></pre>
-  <p>这是 Java 程序的"标准入口"。JVM 启动时就是来找这个签名的 main 方法，从它的第一行开始执行。逐词拆开：</p>
   <table>
-    <colgroup><col style="width:20%"><col style="width:44%"><col style="width:36%"></colgroup>
-    <thead><tr><th>部分</th><th>含义</th><th>现在需要懂多少</th></tr></thead>
+    <thead><tr><th style="width:18%">片段</th><th style="width:22%">含义</th><th>展开一句</th></tr></thead>
     <tbody>
-      <tr><td><code>public class Hello</code></td><td>声明一个公开类，名为 Hello。Java 代码必须写在类里</td><td>类是代码的容器（第二篇详讲）</td></tr>
-      <tr><td><code>public</code>（方法前）</td><td>对外可见——JVM 要能从外部调用它</td><td>访问控制，第 12 章详讲</td></tr>
-      <tr><td><code>static</code></td><td>属于类本身，不需要先创建对象就能调用</td><td>第 11 章详讲</td></tr>
-      <tr><td><code>void</code></td><td>方法不返回任何值</td><td>第 7 章详讲</td></tr>
-      <tr><td><code>String[] args</code></td><td>命令行参数数组，运行时传进来的字符串</td><td>本章 3.2 会用一次</td></tr>
+      <tr><td><code>public</code></td><td>访问修饰符</td><td>对一切开放——JVM 在类外面调它，必须 public（第 12 章细讲）</td></tr>
+      <tr><td><code>static</code></td><td>静态的</td><td>属于类而不属于对象——JVM 启动时还没有任何对象，只能调静态方法（第 11、17 章递进）</td></tr>
+      <tr><td><code>void</code></td><td>返回类型</td><td>不返回任何值。JVM 不需要它返回什么，进程退出码用别的方式表达</td></tr>
+      <tr><td><code>main</code></td><td>方法名</td><td>约定名。JVM 按名查找入口，写成 Main 就找不到</td></tr>
+      <tr><td><code>String[] args</code></td><td>参数</td><td>命令行参数数组。后面马上用到它</td></tr>
     </tbody>
   </table>
-  <div class="key-sentence">main 的签名是 JVM 与你之间的"接头暗号"，一个词都不能错。写错则运行时报"在类 Hello 中找不到 main 方法"。</div>
-  <div class="warn-box"><span class="tag-pit">常见坑</span>一个源文件可以有多个类，但 <strong>public 类只能有一个</strong>，且文件名必须与 public 类名完全一致（含大小写）：<code>Hello.java</code> 里是 <code>public class Hello</code>。</div>
+  <div class="key-sentence">现在只需要"背下签名 + 知道它是 JVM 的入口"。其中 public 与 static 的完整原理分别在第 12、17 章，到时回看这张表会有完全不同的理解。</div>
+  <p>命令行参数怎么用？<code>java Hello Tom 18</code> 传进去的两个词会被装进 <code>args</code>：</p>
+<pre class="code" data-lang="java"><code>public class Greet {
+    public static void main(String[] args) {
+        System.out.println("收到参数个数：" + args.length);
+        System.out.println("第一个参数：" + args[0]);
+    }
+}
+// 命令行：java Greet Tom 18
+// 运行输出：
+// 收到参数个数：2
+// 第一个参数：Tom
+// 若不带参数直接 java Greet，第二行会抛 ArrayIndexOutOfBoundsException——数组下标越界，第 8 章再见</code></pre>
 </section>
 
 <section id="sec3" class="card">
-  <h2><span class="num">3.2</span> 命令行编译与运行全流程</h2>
-  <p>哪怕你日常用 IDEA，也请完整走一遍下面的流程——它让你看到 IDE 帮你隐藏了什么。新建目录写入 <code>Hello.java</code>，然后：</p>
-<pre class="code" data-lang="bash"><code># 1. 编译：生成 Hello.class（字节码）
+  <h2><span class="num">3.2</span> 命令行编译运行全流程</h2>
+  <p class="lead">IDE 帮你做了三件事：找 javac、拼参数、跑 java。亲手做一遍，以后"IDEA 能跑、命令行不能跑"就不再是灵异事件。</p>
+  <p>新建一个纯目录（不放 src 里），写入 <code>Hello.java</code>，然后：</p>
+<pre class="code" data-lang="shell"><code># 第 1 步：编译。在 Hello.java 所在目录执行
 javac Hello.java
+# 成功后目录里多出 Hello.class（字节码，给 JVM 看的，人看不懂很正常）
 
-# 2. 运行：把类名（不是文件名！）交给 JVM
+# 第 2 步：运行。注意：参数是【类名】，不是文件名！
 java Hello
 # 输出：Hello, Java!
 
-# 3. 带参数运行
-java Hello 张三 18
-# args[0]="张三"，args[1]="18"</code></pre>
-  <p>接收参数的例子——把 main 改成：</p>
-<pre class="code" data-lang="java"><code>public class Hello {
-    public static void main(String[] args) {
-        System.out.println("收到 " + args.length + " 个参数");
-        if (args.length &gt; 0) {
-            System.out.println("第一个参数是：" + args[0]);
-        }
-    }
-}</code></pre>
+# 顺带体验：让 JVM 输出它在执行字节码这件事
+javap -c Hello    # 反汇编字节码，能看到 invokevirtual 等指令（现在只需围观）</code></pre>
   <ul>
-    <li><code>javac Hello.java</code> 必须<strong>带扩展名</strong>（它是编译器，吃源文件）；</li>
-    <li><code>java Hello</code> 必须<strong>不带扩展名</strong>（它是 JVM，找的是类）；</li>
-    <li>Java 11 起单个文件可一步跑：<code>java Hello.java</code>（内部隐式编译，适合学习期）。</li>
+    <li><strong>javac 吃文件名</strong>（<code>Hello.java</code>），<strong>java 吃类名</strong>（<code>Hello</code>）——不带扩展名。混用是新手第一大报错来源；</li>
+    <li>java 命令去哪找 Hello.class？默认在<strong>当前目录</strong>找。换个目录运行就要用 classpath 参数（第 39 章类加载时再展开）；</li>
+    <li>改了源码必须<strong>重新编译</strong>再运行——javac 不会自动跟踪变更，IDE 的"自动构建"替你做了这一步而已。</li>
   </ul>
-  <div class="warn-box"><span class="tag-pit">常见坑</span>运行报 <code>ClassNotFoundException</code>，多半是：在错误目录执行、类名大小写写错，或忘了先编译。JVM 找的是"当前目录下的 Hello.class"。</div>
-</section>
-
-<section id="sec3b" class="card">
-  <h2><span class="num">3.3</span> IDEA 里发生了什么</h2>
-  <p>在 IDEA 里点一下绿色三角，背后发生的是与命令行完全等价的动作：</p>
-  <ol>
-    <li>调用 javac，把 <code>src</code> 下改动过的源码编译到 <code>out/production</code> 目录；</li>
-    <li>调用 java，把编译产物交给 JVM 运行；</li>
-    <li>把控制台输出重定向到 Run 窗口。</li>
-  </ol>
-  <p>两个实用推论：<strong>改了代码必须重新构建</strong>（IDEA 默认自动做；偶尔构建缓存出问题，菜单 Build → Rebuild Project 强制重来）；<strong>IDEA 报错和命令行报错是同一套</strong>，学会读一个就都会了。</p>
-  <div class="note"><strong>调试</strong>是 IDEA 相比命令行最大的增值：在代码行左侧单击打断点，用"虫子"图标启动 Debug，程序停在断点处可逐行执行、查看变量。现在先试一下，第六篇排障时它是主力工具。</div>
+  <div class="diagram">
+  <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="两个阶段两类错误">
+    <rect x="30" y="40" width="220" height="70" rx="10" fill="#f0f6ff" stroke="#2d6a3f"/>
+    <text x="140" y="70" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2e1f">编译期（javac）</text>
+    <text x="140" y="95" text-anchor="middle" font-size="12" fill="#4f6348">检查语法与类型 → 产 .class</text>
+    <line x1="250" y1="75" x2="330" y2="75" stroke="#2d6a3f" stroke-width="2" marker-end="url(#a3)"/>
+    <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+    <rect x="330" y="40" width="100" height="70" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+    <text x="380" y="80" text-anchor="middle" font-size="15" fill="#1f2e1f">.class</text>
+    <line x1="430" y1="75" x2="510" y2="75" stroke="#2d6a3f" stroke-width="2" marker-end="url(#a3)"/>
+    <rect x="510" y="40" width="220" height="70" rx="10" fill="#f0f6ff" stroke="#2d6a3f"/>
+    <text x="620" y="70" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f2e1f">运行期（java/JVM）</text>
+    <text x="620" y="95" text-anchor="middle" font-size="12" fill="#4f6348">执行逻辑 → 才会遇到逻辑错误</text>
+  </svg>
+  <p class="diagram-caption">图 3-1　程序生命周期的两个阶段，两类错误分属两边</p>
+  </div>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">3.4</span> 三种注释与代码规范</h2>
-<pre class="code" data-lang="java"><code>// 1. 单行注释：说明下一行在干什么
-int price = 99; // 行尾注释也可以
+  <h2><span class="num">3.3</span> 编译期错误 vs 运行期错误</h2>
+  <p class="lead">报错的第一反应不该是"改"，而是先问一句：<b>这是编译期报的还是运行期报的？</b></p>
+  <table>
+    <thead><tr><th style="width:18%">维度</th><th>编译期错误</th><th>运行期错误</th></tr></thead>
+    <tbody>
+      <tr><td>报错者</td><td>javac</td><td>JVM（以 Exception/Error 形式抛出）</td></tr>
+      <tr><td>典型例子</td><td>少分号、类名拼错、类型不匹配</td><td>除以零、数组越界、空指针</td></tr>
+      <tr><td>程序跑了吗</td><td>根本没跑，没有 .class</td><td>跑了一半，在出错行中断</td></tr>
+      <tr><td>排查方式</td><td>读编译器提示的行号与错误码</td><td>读异常栈的第一行与第一行"属于你的代码"帧</td></tr>
+    </tbody>
+  </table>
+  <p>看两个真实例子：</p>
+<pre class="code" data-lang="java"><code>// 例 1：编译期错误——分号都没跑得上
+int a = 10        // ← 缺分号
+// javac 报：error: ';' expected
 
-/*
- * 2. 多行注释：解释一段逻辑
- * 注意多行注释不能嵌套
- */
-
-/**
- * 3. 文档注释：会被 javadoc 工具提取成 API 文档
- * @param args 命令行参数
- */
-public static void main(String[] args) { }</code></pre>
-  <ul>
-    <li><strong>注释是写给未来的人看的</strong>——多半是你自己。解释"为什么这么写"，而不是复述代码；</li>
-    <li>命名惯例现在就养成：<strong>类名大驼峰</strong>（HelloWorld）、<strong>方法与变量小驼峰</strong>（getUserName）、<strong>常量全大写下划线</strong>（MAX_VALUE）；</li>
-    <li>缩进用 4 空格，大括号风格跟团队规范走，保持一致即可。</li>
-  </ul>
+// 例 2：运行期错误——编译通过，跑到一半炸了
+int a = 10;
+int b = a / 0;    // javac 无话可说（语法完全合法）
+// 运行报：Exception in thread "main" java.lang.ArithmeticException: / by zero</code></pre>
+  <div class="key-sentence">静态类型语言的福利：一大类错误（拼写、类型、漏写）被拦在编译期，代价是要学会读编译器的"话"。编译器提示永远是排查的第一手资料，比搜索引擎快。</div>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>读运行期异常栈别从下往上读——<strong>第一行</strong>是异常类型与原因，往下第一个<b>属于你项目包名</b>的 at 行才是出错位置，中间那些 JDK 内部帧（java.lang.*）先跳过。</div>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">3.5</span> 初学者编译错误大全</h2>
-  <p>编译器报错信息是帮你定位问题的，不是敌人。五类高频错误：</p>
-  <table>
-    <colgroup><col style="width:36%"><col style="width:30%"><col style="width:34%"></colgroup>
-    <thead><tr><th>报错（节选）</th><th>原因</th><th>修复</th></tr></thead>
-    <tbody>
-      <tr><td><code>class Hello is public, should be declared in a file named Hello.java</code></td><td>文件名与 public 类名不一致</td><td>重命名文件</td></tr>
-      <tr><td><code>';' expected</code></td><td>少了分号</td><td>看报错指向的行号</td></tr>
-      <tr><td><code>cannot find symbol</code></td><td>变量/类名拼错或未声明</td><td>检查拼写、大小写</td></tr>
-      <tr><td><code>reached end of file while parsing</code></td><td>大括号不配对</td><td>从文件尾往回找漏掉的 }</td></tr>
-      <tr><td><code>bad operand types</code></td><td>类型不匹配（如字符串减数字）</td><td>下一章学完类型就懂</td></tr>
-    </tbody>
-  </table>
-  <p class="pit-sentence">读报错三步法：<b>① 看第一行错误类型 ② 看行号 ③ 只修第一个错再编译</b>——一个错可能引发一串连锁报错。</p>
+  <h2><span class="num">3.4</span> 程序入口的三要素</h2>
+  <p class="lead">为什么 main 必须是 public、static、void？把三要素放回"JVM 启动时世界是什么样"的场景，答案自然浮现。</p>
+  <ul>
+    <li><strong>public</strong>：JVM 是类外部的调用者，非 public 它够不着（严格说某些 JVM 版本能调非 public，但规范要求 public，照做即可）；</li>
+    <li><strong>static</strong>：JVM 启动时还没有任何对象。静态方法属于类本身，不需要"先 new 一个对象再调"；</li>
+    <li><strong>签名精确匹配</strong>：<code>String[] args</code> 可写成 <code>String... args</code>（可变参数，第 7 章），但参数类型错了 JVM 就找不到入口，报"main 方法不是 static"之类的运行期错误。</li>
+  </ul>
+<pre class="code" data-lang="java"><code>// 这些写法 JVM 都不认（试着运行会得到各种错误提示）
+static void main(String[] args) { }              // 缺 public：入口不可见
+public void main(String[] args) { }              // 缺 static：没有对象可调
+public static int main(String[] args) { return 0; }  // 返回类型不对
+public static void Main(String[] args) { }       // 大小写敏感：这不是 main</code></pre>
+  <div class="key-sentence">一个类可以没有 main（比如工具类），也可以多个类各有 main——运行时用 <code>java 类名</code> 指定从哪个入口启动。</div>
+</section>
+
+<section id="sec5b" class="card">
+  <h2><span class="num">3.5</span> 围观字节码：class 文件里有什么</h2>
+  <p class="lead">JDK 自带 <code>javap</code> 反汇编工具。现在围观一次，是为了让"编译成字节码"从口号变成眼见为实。</p>
+<pre class="code" data-lang="java"><code>public class Add {
+    public static void main(String[] args) {
+        int sum = 3 + 5;
+        System.out.println(sum);
+    }
+}</code></pre>
+<pre class="code" data-lang="shell"><code>javac Add.java
+javap -c Add
+# 输出（节选）：
+# public static void main(java.lang.String[]);
+#   Code:
+#      0: iconst_3          // 把常量 3 压入操作数栈
+#      1: iconst_5          // 把常量 5 压入操作数栈
+#      2: iadd              // 弹出两个数相加，结果压回栈
+#      3: istore_1          // 存入局部变量 1（就是 sum）
+#      4: getstatic     #7  // 取 System.out
+#      7: iload_1           // 加载 sum
+#      8: invokevirtual #13 // 调用 println
+#     11: return</code></pre>
+  <p>三个第一印象，现在记下即可：</p>
+  <ul>
+    <li>字节码指令很短（iconst、iadd、return），操作的是一个"操作数栈"——JVM 是一台<strong>栈式计算机</strong>；</li>
+    <li><code>3 + 5</code> 在编译期就被算成了 8（javac 的常量折叠优化），运行时根本不再加；</li>
+    <li>调用方法对应 <code>invokevirtual</code> 等指令——第 14 章讲多态时，你会回来找 invokevirtual 与 invokestatic/invokeinterface 的区别，那是"动态分派"的字节码证据。</li>
+  </ul>
+  <div class="key-sentence">javap 是全书出场率最高的"显微镜"：多态分派（第 14 章）、字符串拼接优化（第 9 章）、泛型擦除（第 28 篇延伸）都靠它取证。把它加进你的工具箱。</div>
 </section>
 
 <section id="sec6" class="card">
   <h2><span class="num">✓</span> 本章小结</h2>
   <table>
-    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
-    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <thead><tr><th style="width:32%">要点</th><th>一句话总结</th></tr></thead>
     <tbody>
-      <tr><td>程序入口</td><td>JVM 按固定签名找 main：public static void main(String[] args)</td></tr>
-      <tr><td>编译运行</td><td>javac 带扩展名，java 不带；运行的是类名</td></tr>
-      <tr><td>IDE 本质</td><td>自动调 javac/java + 输出重定向 + 调试增值</td></tr>
-      <tr><td>注释三种</td><td>// 单行、/* */ 多行、/** */ 文档</td></tr>
-      <tr><td>读报错</td><td>错误类型 → 行号 → 修第一个再编译</td></tr>
+      <tr><td>main 签名</td><td>public static void main(String[] args)，JVM 的约定入口</td></tr>
+      <tr><td>static 的直觉</td><td>启动时没有对象，所以入口必须是"属于类"的方法</td></tr>
+      <tr><td>编译运行</td><td>javac 吃文件名，java 吃类名；改完源码要重编译</td></tr>
+      <tr><td>两类错误</td><td>编译期拦语法与类型，运行期才暴露逻辑与数据问题</td></tr>
+      <tr><td>读异常栈</td><td>第一行看类型原因，往下找第一个自己的类名</td></tr>
+      <tr><td>入口三要素</td><td>public 可见、static 免对象、签名精确匹配</td></tr>
     </tbody>
   </table>
 </section>
 
 <section id="sec7" class="card">
   <h2><span class="num">✎</span> 本章习题</h2>
-  <div class="ex-box"><span class="ex-tag">A 基础</span>不借助 IDE，在命令行完成：编写 <code>Info.java</code> 打印你的姓名和年龄，编译并运行成功。</div>
-  <div class="ex-box"><span class="ex-tag">B 进阶</span>接收命令行参数：运行 <code>java Info 张三 18</code> 时输出"姓名：张三，年龄：18"。</div>
-  <div class="ex-box"><span class="ex-tag">C 挑战</span>故意制造本章表格里的五种编译错误各一次，记录报错信息与你如何定位——建立你自己的"报错速查表"。</div>
-  <p class="note">参考答案见附录 C（撰写中）。下一章开始接触真正的数据：八种基本类型与字面量。</p>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>纯命令行完成：新建目录 → 写 Hello.java → javac 编译 → java 运行 → 修改输出文字 → 重新编译运行。全程不用 IDE。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给 main 传参实现一个 MiniCalc：<code>java MiniCalc 3 5</code> 输出"3 + 5 = 8"。提示：参数是字符串，转数字用 <code>Integer.parseInt(args[0])</code>。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>分别制造一个编译期错误和一个运行期错误，把完整报错信息抄下来，并各用一句话说明你是从报错信息的哪个位置定位到问题行的。</div>
+  <p class="note">参考答案见附录 C（撰写中）。语法地基已经打好，下一章进入数据的世界：Java 的八种基本数据类型与各种字面量——浮点误差、long 溢出这些经典坑都在第 4 章排掉。</p>
 </section>
-
 </main>
+
+
 </div>
 <nav class="doc-nav bottom">
   <a class="doc-nav-btn" href="../../00_目录.html">📖 全书目录</a>
