@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 45 章 binlog 的应用：Canal 数据同步｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第五篇 日志与主从</p>
+    <h1>第 45 章 binlog 的应用：Canal 数据同步</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 45 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">业务数据要进搜索引擎、缓存、数仓，难道在代码里到处埋双写？业界标准答案是订阅 binlog：Canal 伪装成从库，把变更实时捞出来发给消息队列。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="044_第44章_备份与恢复_mysqldump_xtrabackup.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../60_第六篇_高可用与分库分表/046_第46章_高可用架构总览.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">45.1 为什么订阅 binlog</a></li>
+    <li><a href="#sec3">45.2 Canal 的工作链路</a></li>
+    <li><a href="#sec4">45.3 主库侧准备</a></li>
+    <li><a href="#sec5">45.4 常见坑清单</a></li>
+    <li><a href="#sec6">本章小结</a></li>
+    <li><a href="#sec7">本章习题</a></li>
+  <li><a href="#secX">45.4 Canal 高可用</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解用 binlog 同步替代"业务代码双写"的动机；</li>
+    <li>说清 Canal 伪装成从库、解析 binlog、投递 MQ 的完整链路；</li>
+    <li>知道主库侧要开 ROW 格式、建复制账号；</li>
+    <li>认识数据同步的典型下游（ES、缓存、数仓）；</li>
+    <li>能向同事讲清"下单后 ES 怎么实时有了这条数据"。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">45.1</span> 为什么订阅 binlog</h2>
+  <p class="lead">双写的痛点：业务接口里既要写 MySQL 又要写 ES，漏写、失败、顺序错乱全靠代码兜。</p>
+  <ul>
+    <li><span class="tag-key">双写</span>在业务代码里同时写多个存储——耦合高、重试难、一致性靠人力；</li>
+    <li><span class="tag-point">订阅 binlog</span>把"数据变更"这件事统一从源头捞出来，下游各自消费——业务代码只写 MySQL；</li>
+    <li>典型下游：<strong>Elasticsearch</strong>（搜索）、<strong>Redis</strong>（缓存失效/刷新）、<strong>数仓</strong>（离线分析）。</li>
+  </ul>
+  <div class="key-sentence">binlog 订阅的本质：把"数据发生了什么"变成一条可靠的事件流，让系统从"业务主动推送"变成"下游按位点消费"。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">45.2</span> Canal 的工作链路</h2>
+  <p class="lead">Canal（阿里开源）假装自己是 MySQL 的从库：收到 binlog dump、解析成变更对象、再投出去。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" style="background:#fff;border:1px solid #d8e2cc;border-radius:8px;display:block;margin:0 auto;max-width:100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr45" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2d6a3f"/>
+        </marker>
+      </defs>
+      <rect x="20" y="80" width="150" height="70" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="95" y="108" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">MySQL 主库</text>
+      <text x="95" y="130" text-anchor="middle" font-size="11" fill="#4f6348">binlog (ROW)</text>
+      <rect x="240" y="80" width="160" height="70" rx="8" fill="#fff" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="320" y="105" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">Canal Server</text>
+      <text x="320" y="125" text-anchor="middle" font-size="11" fill="#4f6348">伪装从库·解析 binlog</text>
+      <text x="320" y="142" text-anchor="middle" font-size="11" fill="#4f6348">记录消费位点</text>
+      <rect x="470" y="80" width="140" height="70" rx="8" fill="#fff" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="540" y="108" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">Kafka/RocketMQ</text>
+      <text x="540" y="130" text-anchor="middle" font-size="11" fill="#4f6348">变更事件队列</text>
+      <rect x="670" y="40" width="110" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="725" y="68" text-anchor="middle" font-size="12" fill="#2d6a3f">ES 同步</text>
+      <rect x="670" y="100" width="110" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="725" y="128" text-anchor="middle" font-size="12" fill="#2d6a3f">Redis 刷新</text>
+      <rect x="670" y="160" width="110" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="725" y="188" text-anchor="middle" font-size="12" fill="#2d6a3f">数仓</text>
+      <line x1="170" y1="115" x2="238" y2="115" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#arr45)"/>
+      <line x1="400" y1="115" x2="468" y2="115" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#arr45)"/>
+      <line x1="610" y1="115" x2="668" y2="63" stroke="#2d6a3f" stroke-width="1.4" marker-end="url(#arr45)"/>
+      <line x1="610" y1="115" x2="668" y2="123" stroke="#2d6a3f" stroke-width="1.4" marker-end="url(#arr45)"/>
+      <line x1="610" y1="115" x2="668" y2="183" stroke="#2d6a3f" stroke-width="1.4" marker-end="url(#arr45)"/>
+    </svg>
+    <p class="diagram-caption" style="text-align:center;color:#7a8a70;font-size:13px;margin:6px 0 0">图 45-1 Canal 订阅链路：主库 binlog → Canal 解析 → MQ → 各下游消费</p>
+  </div>
+  <p>Canal 内部拆两层：<strong>instance</strong>（对应一个主库的解析实例，负责伪装从库、拉 binlog）与 <strong>adapter/投递器</strong>（把解析结果写到 MQ 或直接到下游）。它自己会记消费到哪个位点，挂了重启能接着拉。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">45.3</span> 主库侧准备</h2>
+  <p class="lead">Canal 要做"从库"，主库就得按从库复制那套来配。</p>
+  <pre class="code" data-lang="sql"><code>-- 1) 主库 binlog 必须是 ROW（Canal 需要行镜像）
+SET GLOBAL binlog_format = ROW;
+
+-- 2) 建一个与复制同权限的账号
+CREATE USER 'canal'@'%' IDENTIFIED BY 'Canal@2026';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'canal'@'%';
+
+-- 3) 确认主库可连、binlog 可拉
+SHOW MASTER STATUS;</code></pre>
+  <div class="note">Canal 的 instance 配置里填主库地址、端口、上面的账号密码，以及要监听的库表白名单（如 <code>mydb.order.*</code>）。解析出来的事件包含：表名、操作类型（INSERT/UPDATE/DELETE）、行数据的前后镜像。</div>
+  <div class="warn-box">ROW 格式下一条 UPDATE 的 binlog 体积可能很大（整行前后镜像都记），Canal 同步大表变更时注意主库 binlog 与网络带宽。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">45.4</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>主库用了 STATEMENT 格式</strong>：Canal 拿不到行镜像，解析失败；</li>
+    <li><span class="tag-pit">坑</span><strong>以为 binlog 订阅是实时强一致</strong>：有秒级延迟，ES 搜索"刚下单立刻搜到"要接受这个窗口；</li>
+    <li><span class="tag-pit">坑</span><strong>下游消费失败不重试</strong>：Canal 投递到 MQ 后要保证 MQ 持久化，否则事件丢了下游永久缺数据；</li>
+    <li><span class="tag-pit">坑</span><strong>Canal 实例挂了位点乱了</strong>：要监控 instance 运行状态，重启后从记录位点继续。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+</section>
+
+<section id="secX" class="card">
+  <h2><span class="num">45.4</span> Canal 自身的高可用</h2>
+  <p class="lead">Canal 实例也会挂，它靠位点持久化与主备切换保证不丢事件。</p>
+  <ul>
+    <li>Canal 把消费到的 binlog 位点定期写存储（ZK/文件）；</li>
+    <li>实例挂了重启后从记录位点继续拉，不重复不丢；</li>
+    <li>投递到 MQ 必须开启持久化，下游失败可重放。</li>
+  </ul>
+  <div class="warn-box">Canal 只是"搬运工"，真正保证不丢的是 MQ 持久化 + 下游重试，不是 Canal 本身。</div>
+</section>
+
+<section id="secX3" class="card">
+  <h2><span class="num">延伸</span> 动手实验建议</h2>
+  <p class="lead">本章内容偏原理，靠动手才能真正吃透。</p>
+  <ul>
+    <li>在测试环境把本章命令逐条跑一遍，记录每一步输出；</li>
+    <li>故意制造一次故障（如停掉从库线程），观察监控与告警；</li>
+    <li>把现象与本章原理对照，写出自己的实验小结；</li>
+    <li>回到本章习题，不看答案先口述，再核对。</li>
+  </ul>
+  <div class="pit-sentence">看会了不等于做会了：数据库这门手艺，是在实验台上长出来的。</div>
+</section>
+<section id="secX2" class="card">
+  <h2><span class="num">速记</span> 一句话要点</h2>
+  <p class="lead">把本章最容易忘的结论压成一句话。</p>
+  <ul>
+    <li><span class="tag-point">要点</span>Canal 订阅的是 binlog 事件流，不是查询结果；它适合"数据变更触发下游刷新"，不适合做实时 OLAP 查询。</li>
+    <li>本章所有命令均在 MySQL 8.0 验证，老版本语法以官方手册为准。</li>
+    <li>动手跑一遍本章的 SQL，胜过读十遍解释。</li>
+  </ul>
+  <div class="note">这一条结论，建议在面试前默写一遍。</div>
+</section>
+<section id="secSum" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>动机</td><td>用 binlog 订阅替代业务代码双写，解耦下游</td></tr>
+      <tr><td>链路</td><td>主库 ROW binlog → Canal 伪装从库解析 → MQ → ES/Redis/数仓</td></tr>
+      <tr><td>主库准备</td><td>开 ROW、建 REPLICATION 账号、确认 binlog 位点</td></tr>
+      <tr><td>位点</td><td>Canal 自己记消费位点，挂了可续传</td></tr>
+      <tr><td>定位</td><td>准实时事件流，不是强一致同步</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>画出 Canal 同步一条 INSERT 的完整链路（MySQL → Canal → MQ → 下游），并说明主库为什么必须用 ROW 格式。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在本机 MySQL 建 <code>canal</code> 账号、确认 <code>binlog_format=ROW</code>，并用一句话写出 Canal instance 配置里需要填哪几项（地址/端口/账号/监听表）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>如果 Canal 投递到 MQ 后，某个下游（ES）消费失败积压了一天，你会怎么保证数据最终对齐？思考"业务双写"与"binlog 订阅"在故障恢复上各要付出什么代价。</div>
+  <p class="note">第五篇收官。下一篇进入高可用：主从再可靠，主库挂了怎么自动切换？</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="044_第44章_备份与恢复_mysqldump_xtrabackup.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../60_第六篇_高可用与分库分表/046_第46章_高可用架构总览.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 45 章 binlog 的应用：Canal 数据同步</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

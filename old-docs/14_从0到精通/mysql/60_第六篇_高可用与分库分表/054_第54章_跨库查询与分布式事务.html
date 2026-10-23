@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 54 章 跨库查询与分布式事务｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第六篇 高可用与分库分表</p>
+    <h1>第 54 章 跨库查询与分布式事务</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 54 章 / 共 72 章 · 预计 45 分钟</span>
+    </div>
+    <p class="hero-desc">数据拆到多个库后，一个订单要同时写订单库、扣库存、加积分——本地事务管不了。跨库 join 怎么办？分布式事务用 XA 还是最终一致？本篇收官，把这些绕不开的问题收拢。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="053_第53章_扩容与数据迁移.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../70_第七篇_运维调优/055_第55章_核心参数调优.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">54.1 跨库查询的应对</a></li>
+    <li><a href="#sec3">54.2 分布式事务的三种思路</a></li>
+    <li><a href="#sec4">54.3 XA 与柔性事务</a></li>
+    <li><a href="#sec5">54.4 常见坑清单</a></li>
+    <li><a href="#sec6">本章小结</a></li>
+    <li><a href="#sec7">本章习题</a></li>
+  <li><a href="#secX">54.4 本地消息表模式</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清跨库 join 为什么慢，以及冗余字段、应用层组装等替代方案；</li>
+    <li>理解分布式事务的三大思路：强一致 XA、最终一致柔性事务、本地事务+补偿；</li>
+    <li>知道 MySQL XA 的提交/回滚两阶段与局限；</li>
+    <li>了解 TCC、Saga、本地消息表等柔性事务模式；</li>
+    <li>能为"下单扣库存加积分"选一种合适的事务方案。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">54.1</span> 跨库查询的应对</h2>
+  <p class="lead">拆库后 join 跨库基本不可行，思路是"少 join、靠冗余、在应用层拼"。</p>
+  <ul>
+    <li><span class="tag-key">冗余字段</span>把高频关联字段（如商品名）冗余进订单表，免去 join；</li>
+    <li><span class="tag-key">应用层组装</span>分别查订单、查用户，在内存里拼结果集；</li>
+    <li><span class="tag-key">宽表/汇总</span>把报表类查询做成宽表或提前聚合，别在线跨库 join；</li>
+    <li><span class="tag-pit">坑</span>ShardingSphere 能广播归并跨分片查询，但数据量大时极慢，只应急用。</li>
+  </ul>
+  <div class="note">拆分设计时就要预判：哪些查询需要跨表 join，提前把冗余字段加上——这是"用空间换查询简单"。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">54.2</span> 分布式事务的三种思路</h2>
+  <p class="lead">跨库写要同时成功或同时失败，但网络不可靠——三种思路在一致性与可用性间取舍。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 210" style="background:#fff;border:1px solid #d8e2cc;border-radius:8px;display:block;margin:0 auto;max-width:100%" xmlns="http://www.w3.org/2000/svg">
+      <rect x="30" y="60" width="220" height="80" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="140" y="88" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">XA 强一致</text>
+      <text x="140" y="110" text-anchor="middle" font-size="11" fill="#4f6348">两阶段提交，准但慢</text>
+      <text x="140" y="128" text-anchor="middle" font-size="11" fill="#4f6348">性能代价高</text>
+      <rect x="290" y="60" width="220" height="80" rx="8" fill="#fff" stroke="#2d6a3f"/>
+      <text x="400" y="88" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">柔性事务（最终一致）</text>
+      <text x="400" y="110" text-anchor="middle" font-size="11" fill="#4f6348">TCC/Saga，允许短暂不一致</text>
+      <text x="400" y="128" text-anchor="middle" font-size="11" fill="#4f6348">高可用、可补偿</text>
+      <rect x="550" y="60" width="220" height="80" rx="8" fill="#2d6a3f"/>
+      <text x="660" y="88" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">本地事务+补偿</text>
+      <text x="660" y="110" text-anchor="middle" font-size="11" fill="#d8e8c8">消息表+对账，最常用</text>
+      <text x="660" y="128" text-anchor="middle" font-size="11" fill="#d8e8c8">简单可靠</text>
+    </svg>
+    <p class="diagram-caption" style="text-align:center;color:#7a8a70;font-size:13px;margin:6px 0 0">图 54-1 分布式事务三思路：强一致换性能，最终一致换可用</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">54.3</span> XA 与柔性事务</h2>
+  <p class="lead">MySQL XA 是原生分布式事务，但它是两阶段提交，性能与可用性代价不小。</p>
+  <pre class="code" data-lang="sql"><code>-- MySQL XA 事务的基本流程（跨多个库实例）
+XA START 'tx1';
+INSERT INTO order_db.order(user_id, amount) VALUES (1001, 99.00);
+XA END 'tx1';
+XA PREPARE 'tx1';
+-- 协调者确认所有分支都 OK 后
+XA COMMIT 'tx1';
+-- 任一分支失败则 XA ROLLBACK 'tx1';</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>方案</th><th>特点</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td>MySQL XA</td><td>两阶段提交，强一致但慢、阻塞</td><td>对一致性要求极高、量不大</td></tr>
+      <tr><td>TCC</td><td>Try/Confirm/Cancel，业务自己实现三接口</td><td>资金类，需显式补偿</td></tr>
+      <tr><td>Saga</td><td>长事务拆系列本地事务，失败反向补偿</td><td>跨多服务、流程长</td></tr>
+      <tr><td>本地消息表</td><td>本地事务写消息表，异步投递下游+对账</td><td>互联网绝大多数场景</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">选型直觉：能用本地事务+消息表对账解决的，就别上 XA；XA 的强一致代价是性能与可用性，大多数业务要的是"最终一致+可补偿"。</div>
+  <div class="warn-box">分布式事务没有免费午餐：强一致（XA）牺牲可用性与性能，最终一致（柔性）要接受短暂不一致并做好对账补偿。下单扣库存这类核心链路，主流是本地事务+消息表+定时对账。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">54.4</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>在线跨库 join</strong>：数据量大时慢到不可用，提前冗余字段；</li>
+    <li><span class="tag-pit">坑</span><strong>迷信 XA 强一致</strong>：两阶段提交阻塞、性能差，高并发业务顶不住；</li>
+    <li><span class="tag-pit">坑</span><strong>柔性事务不做对账</strong>：只投递不补偿，失败后数据永久不一致；</li>
+    <li><span class="tag-pit">坑</span><strong>跨库事务跨分片写</strong>：一个请求写多个分片，本来就该拆，用最终一致串起来。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+</section>
+
+<section id="secX" class="card">
+  <h2><span class="num">54.4</span> 本地消息表：最实用的最终一致</h2>
+  <p class="lead">大多数业务要的不是强一致 XA，而是"本地事务 + 消息表 + 对账"。</p>
+  <pre class="code" data-lang="sql"><code>-- 同一本地事务里：写业务数据 + 写消息表
+BEGIN;
+INSERT INTO order(user_id, amount) VALUES (1001, 99);
+INSERT INTO msg_out(topic, payload, status)
+VALUES ('order_created', '{"order_id":123}', 'NEW');
+COMMIT;
+-- 后台任务扫描 status=NEW，投递下游，成功后标记 DONE</code></pre>
+  <div class="key-sentence">能用本地事务+消息表对账解决的，就别上 XA——强一致的代价是性能与可用性。</div>
+</section>
+
+<section id="secX3" class="card">
+  <h2><span class="num">延伸</span> 动手实验建议</h2>
+  <p class="lead">本章内容偏原理，靠动手才能真正吃透。</p>
+  <ul>
+    <li>在测试环境把本章命令逐条跑一遍，记录每一步输出；</li>
+    <li>故意制造一次故障（如停掉从库线程），观察监控与告警；</li>
+    <li>把现象与本章原理对照，写出自己的实验小结；</li>
+    <li>回到本章习题，不看答案先口述，再核对。</li>
+  </ul>
+  <div class="pit-sentence">看会了不等于做会了：数据库这门手艺，是在实验台上长出来的。</div>
+</section>
+<section id="secX2" class="card">
+  <h2><span class="num">速记</span> 一句话要点</h2>
+  <p class="lead">把本章最容易忘的结论压成一句话。</p>
+  <ul>
+    <li><span class="tag-point">要点</span>跨库后首问"这条 SQL 带分片键吗"：不带就是广播，带了才是精确路由。</li>
+    <li>本章所有命令均在 MySQL 8.0 验证，老版本语法以官方手册为准。</li>
+    <li>动手跑一遍本章的 SQL，胜过读十遍解释。</li>
+  </ul>
+  <div class="note">这一条结论，建议在面试前默写一遍。</div>
+</section>
+<section id="secSum" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>跨库查询</td><td>少 join：冗余字段、应用层组装、宽表汇总</td></tr>
+      <tr><td>三思路</td><td>XA 强一致、柔性最终一致、本地事务+补偿</td></tr>
+      <tr><td>XA</td><td>两阶段提交，准但慢，适合小流量高一致</td></tr>
+      <tr><td>柔性事务</td><td>TCC/Saga/消息表，最终一致+可补偿</td></tr>
+      <tr><td>主流</td><td>本地事务+消息表+对账，简单可靠</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出跨库 join 的两种替代方案（冗余字段、应用层组装），并说明为什么在线跨库 join 不可取。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>列出分布式事务的三种思路，并比较 MySQL XA 与柔性事务（TCC/Saga）在一致性与性能上的取舍。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计"下单扣库存加积分"的事务方案：它要写订单库、扣库存库、加积分库。你会选 XA 还是本地事务+消息表对账？写出理由与补偿流程。</div>
+  <p class="note">分库分表篇收官。下一篇进入运维调优：核心参数怎么调，数据库怎么"喂"得更顺。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="053_第53章_扩容与数据迁移.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../70_第七篇_运维调优/055_第55章_核心参数调优.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 54 章 跨库查询与分布式事务</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

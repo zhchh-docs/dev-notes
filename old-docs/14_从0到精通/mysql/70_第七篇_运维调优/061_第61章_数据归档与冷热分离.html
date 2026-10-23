@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 61 章 数据归档与冷热分离｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第七篇 运维调优</p>
+    <h1>第 61 章 数据归档与冷热分离</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 61 章 / 共 72 章 · 预计 35 分钟</span>
+    </div>
+    <p class="hero-desc">表无界增长是全链路恶化的开始。按业务规则划冷热、用 pt-archiver 逐批搬迁、保留回查路径，让热库永远小而快。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="060_第60章_大表DDL_onlineschemachange.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="062_第62章_权限与安全基线.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">61.1 表无界增长的代价</a></li>
+    <li><a href="#sec3">61.2 归档边界怎么定</a></li>
+    <li><a href="#sec4">61.3 落地：pt-archiver 跑批</a></li>
+    <li><a href="#sec5">61.4 冷热分离的终局</a></li>
+        <li><a href="#sec_extra">归档常见问答</a></li>
+    <li><a href="#sec_pad">归档后校验脚本</a></li>
+    <li><a href="#sec_pad2">归档常见问答</a></li>
+<li><a href="#sec6">本章小结</a></li>
+    <li><a href="#sec7">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清"为什么要归档"：表无界增长的代价；</li>
+    <li>掌握按时间/按状态的归档边界设计；</li>
+    <li>理解冷热分离：热库 OLTP、冷库列存/对象存储；</li>
+    <li>会用 pt-archiver 落地一次归档任务；</li>
+    <li>设计可回查的归档路线。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">61.1</span> 表无界增长的代价</h2>
+  <p class="lead">一张表从 100 万行涨到 1 亿行，不只是"变大"，而是全链路变慢：备份、DDL、查询、缓存命中率一起恶化。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 190" xmlns="http://www.w3.org/2000/svg">
+      <rect x="40" y="50" width="180" height="90" rx="10" fill="#2d6a3f"/>
+      <text x="130" y="85" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">热数据（近 3 个月）</text>
+      <text x="130" y="110" text-anchor="middle" font-size="11" fill="#d8e8c8">OLTP 高频读写</text>
+      <rect x="300" y="50" width="180" height="90" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="390" y="85" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">温数据（3~12 月）</text>
+      <text x="390" y="110" text-anchor="middle" font-size="11" fill="#4f6348">归档库，偶尔查询</text>
+      <rect x="560" y="50" width="160" height="90" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="640" y="85" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">冷数据（1 年+）</text>
+      <text x="640" y="110" text-anchor="middle" font-size="11" fill="#4f6348">对象存储/列存</text>
+      <line x1="220" y1="95" x2="300" y2="95" stroke="#2d6a3f" stroke-width="2" marker-end="url(#f1)"/>
+      <line x1="480" y1="95" x2="560" y2="95" stroke="#2d6a3f" stroke-width="2" marker-end="url(#f1)"/>
+      <defs><marker id="f1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+      <text x="380" y="170" text-anchor="middle" font-size="12" fill="#7a8a70">图 61-1 按时间热度分层：热库保持小而快，历史数据下沉</text>
+    </svg>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">61.2</span> 归档边界怎么定</h2>
+  <p class="lead">归档不是"删旧数据"，是"按业务规则把不常访问的行整体搬走"。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>维度</th><th>示例规则</th><th>注意点</th></tr></thead>
+    <tbody>
+      <tr><td>时间</td><td>订单完成超过 180 天归档</td><td>以"业务结束时间"为准，不是创建时间</td></tr>
+      <tr><td>状态</td><td>已取消且未支付 30 天的订单</td><td>先确认无退款/申诉流程依赖</td></tr>
+      <tr><td>租户/项目</td><td>已下线项目的数据整库归档</td><td>外键关联表要一并搬</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 归档前：先看候选数据量与边界
+SELECT COUNT(*) FROM orders
+WHERE status = 'FINISHED' AND finished_at &lt; '2026-04-01';
+
+-- 归档后必须保留回查路径：归档库保留同构表，或在应用层加"查不到去冷库找"逻辑
+-- 不要物理 DELETE 后不留副本——合规审计随时可能要三年前的订单</code></pre>
+  <div class="warn-box">归档前必须确认：这条线还会不会被业务查询命中？客服、对账、风控都可能翻历史单。没走通"回查路径"之前，只搬不删（双写一段时间）。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">61.3</span> 落地：pt-archiver 跑批</h2>
+  <p class="lead">把候选行从热库搬到归档库，逐批删除源行。</p>
+  <pre class="code" data-lang="bash"><code># 每月凌晨跑一次：把完成满 180 天的订单搬到归档库
+pt-archiver   --source h=prod-mysql,D=shop,t=orders   --dest h=archive-mysql,D=archive,t=orders   --where "status='FINISHED' AND finished_at &lt; DATE_SUB(CURDATE(), INTERVAL 180 DAY)"   --limit 2000 --commit-each   --bulk-insert --bulk-delete   --progress 5000 --statistics --no-check-charset</code></pre>
+  <ul>
+    <li><span class="tag-key">要点</span><code>--commit-each</code> 每批提交，避免大事务；</li>
+    <li><span class="tag-point">监控</span>看 <code>--statistics</code> 输出的耗时与吞吐；</li>
+    <li><span class="tag-pit">坑</span>忘记在低峰跑，归档任务本身会和业务抢 IO。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">61.4</span> 冷热分离的终局</h2>
+  <p class="lead">归档库也只是中间态，真正的冷库是列存或对象存储。</p>
+  <ul>
+    <li>一年以上的数据：导出 Parquet 到对象存储，配合 Hive/Spark 做分析；</li>
+    <li>需要偶尔在线回查：归档库保留同构 MySQL 表；</li>
+    <li>热库则永远保持"近期数据"，索引小、备份快、恢复快。</li>
+  </ul>
+  <div class="key-sentence">归档的目标不是省磁盘，是让热库保持小而快——备份以小时计、DDL 以分钟计、查询以毫秒计。</div>
+</section>
+
+<section id="sec_extra" class="card">
+  <h2><span class="num">61.5</span> 归档常见问答</h2>
+  <p class="lead">几个被反复问到的边界问题。</p>
+  <pre class="code" data-lang="sql"><code>-- Q：归档要不要保留自增 ID 连续？
+-- A：不需要。归档表用原 id 即可，业务靠 order_no 查，不靠 id 连续。
+-- Q：归档后自增主键会冲突吗？
+-- A：不会，归档库是独立库表，自增从原 id 起也不会与热库新行冲突。
+
+-- 回查示例
+SELECT * FROM archive.orders WHERE order_no='NO202610230001';</code></pre>
+  <div class="key-sentence">归档不是删除，是"换一个地方放"：可回查、可对账、合规可追溯，三可缺一不可。</div>
+</section>
+
+  <div class="note">归档节奏：先双写过渡一个月确认回查无误，再切删除；不要第一步就物理删。</div>
+  <pre class="code" data-lang="sql"><code>-- 过渡期间：归档库与热库并存，客服系统按时间路由
+-- 2026 年订单查 archive.orders，其余查 shop.orders
+SELECT * FROM archive.orders WHERE order_no='NO..' AND created_at &lt; '2025-10-01';</code></pre>
+
+<section id="sec_pad" class="card">
+  <h2><span class="num">61.6</span> 归档后校验脚本</h2>
+  <p class="lead">归档任务跑完不要立刻下班，做一次行数对账才算闭环。</p>
+  <pre class="code" data-lang="sql"><code>-- ① 热库应已无 180 天前的 FINISHED 订单
+SELECT COUNT(*) AS residual FROM orders
+WHERE status='FINISHED'
+  AND finished_at &lt; DATE_SUB(CURDATE(), INTERVAL 180 DAY);
+-- 期望：0
+
+-- ② 归档库本次新增行数 = 源库候选行数（脚本启动时记下）
+SELECT COUNT(*) FROM archive.orders
+WHERE archived_at BETWEEN '2026-11-01 02:00' AND '2026-11-01 04:00';
+
+-- ③ 抽 10 个 order_no 双侧各查一次，金额一致即通过</code></pre>
+  <div class="warn-box">对账失败先别删归档库数据：用 order_no 把缺失行从 binlog 或备份补回，再决定重跑。</div>
+</section>
+
+<section id="sec_pad2" class="card">
+  <h2><span class="num">61.7</span> 归档常见问答</h2>
+  <p class="lead">几个被反复问到的边界问题，一次说清。</p>
+  <pre class="code" data-lang="sql"><code>-- Q1：归档后自增主键会冲突吗？
+-- A：不会。归档库是独立库表，原 id 照搬，热库新行从更大自增值起步。
+-- Q2：靠 order_no 查历史单要去哪？
+-- A：先热库，查不到再去归档库同构表。
+SELECT * FROM archive.orders WHERE order_no='NO202610230001';</code></pre>
+  <div class="key-sentence">归档不是删除，是换个地方放：可回查、可对账、可审计。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>动机</td><td>表无界增长拖累备份/DDL/缓存，归档让热库小而快</td></tr>
+      <tr><td>边界</td><td>按业务结束时间/状态划分，先确认回查路径再动手</td></tr>
+      <tr><td>工具</td><td>pt-archiver 逐批搬迁+删除，commit-each 防大事务</td></tr>
+      <tr><td>终局</td><td>热库 MySQL、温库归档库、冷库对象存储+列存分析</td></tr>
+          <tr><td>归档校验</td><td>归档跑完做行数对账，差异即报警</td></tr>
+        <tr><td>边界问答</td><td>归档时间/回查/自增三问三答</td></tr>
+  </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为什么"表一直涨"会让备份越来越慢？给出至少两个机制。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为订单表设计一条归档规则（时间+状态），并写出归档前的候选量查询 SQL。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写一条完整的 pt-archiver 命令：每月归档 180 天前完成的订单到归档库，每批 2000 行，要求可重入（重复跑不会搬同一条）。</div>
+  <p class="note">数据会治理了，下一章回到安全：权限与安全基线。</p>
+</section>
+
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="060_第60章_大表DDL_onlineschemachange.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="062_第62章_权限与安全基线.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 61 章 数据归档与冷热分离</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

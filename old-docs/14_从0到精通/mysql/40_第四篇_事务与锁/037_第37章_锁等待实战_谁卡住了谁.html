@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 37 章 锁等待实战：谁卡住了谁｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 37 章 锁等待实战：谁卡住了谁</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 37 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">一条 UPDATE 忽然卡住不动、业务报"Lock wait timeout"——怎么揪出是谁的锁卡住了你的语句？本章从模拟锁等待开始，一步步用 PROCESSLIST、innodb_trx、8.0 的 data_locks / data_lock_waits 把"等待链"查清楚，最后 KILL 掉元凶。这是锁问题的完整排查手册。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="036_第36章_undo与redo的分工.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../50_第五篇_日志与主从/038_第38章_三大日志_redo_undo_binlog.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">37.1 模拟一次锁等待</a></li>
+    <li><a href="#sec3">37.2 第一步：PROCESSLIST 找卡住的语句</a></li>
+    <li><a href="#sec4">37.3 第二步：innodb_trx 找事务</a></li>
+    <li><a href="#sec5">37.4 第三步：data_locks 看具体锁</a></li>
+    <li><a href="#sec6">37.5 一条 SQL 看清等待链</a></li>
+    <li><a href="#sec7">37.6 解开：KILL 元凶与预防</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>动手模拟"一条 UPDATE 被另一个事务的行锁卡住"；</li>
+    <li>用 <code>SHOW PROCESSLIST</code> 找到卡住的会话；</li>
+    <li>用 <code>innodb_trx</code> 关联到事务，定位谁在等谁；</li>
+    <li>用 8.0 <code>data_locks / data_lock_waits</code> 看清锁的具体区间；</li>
+    <li>KILL 掉元凶事务，并形成预防习惯。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">37.1</span> 模拟一次锁等待</h2>
+  <p class="lead">先在实验环境把锁等待演出来，后面每一步都对着它查。</p>
+  <pre class="code" data-lang="sql"><code>-- 会话 A（持有锁的元凶）
+BEGIN;
+UPDATE account SET balance = balance - 100 WHERE id = 1;
+-- 锁住 id=1，且一直不 COMMIT（故意的）
+
+-- 会话 B（被卡住的受害者）
+UPDATE account SET balance = balance + 50 WHERE id = 1;
+-- 卡在这：等 A 释放 id=1 的行锁
+-- 超过 innodb_lock_wait_timeout（默认50秒）→ ERROR 1205 Lock wait timeout</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">37.2</span> 第一步：PROCESSLIST 找卡住的语句</h2>
+  <p class="lead">业务报"语句卡住"，先看当前所有连接在干嘛。</p>
+  <pre class="code" data-lang="sql"><code>SHOW PROCESSLIST;
+-- 重点看几列：
+-- Id        连接 ID（KILL 用它）
+-- State     状态：Sending data / Updating / 锁等待时多为 Waiting for table metadata lock 或 Sleep
+-- Time      该状态持续了多少秒（Time 很大的就是卡住的）
+-- Info     正在执行的 SQL
+
+-- 更全的写法
+SELECT * FROM performance_schema.processlist ORDER BY time DESC;</code></pre>
+  <p>一眼挑出 <strong>Time 列很大</strong>、State 异常、Info 是那条卡住 UPDATE 的连接——它就是受害者；但元凶（那个开了事务不提交的）往往 State 是 <code>Sleep</code>（闲着但占着锁），这才是要揪出来的。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">37.3</span> 第二步：innodb_trx 找事务</h2>
+  <p class="lead">PROCESSLIST 只告诉你谁卡着，innodb_trx 告诉你"谁的事务持着锁"。</p>
+  <pre class="code" data-lang="sql"><code>-- 所有 InnoDB 事务：谁开了、开了多久、在干嘛
+SELECT
+  trx_id,
+  trx_mysql_thread_id,        -- 对应 PROCESSLIST 的 Id
+  trx_state,
+  trx_started,
+  trx_query                   -- 当前 SQL（NULL = 事务开着但在 Sleep）
+FROM information_schema.innodb_trx;
+
+-- 你会看到：
+-- 元凶：trx_query = NULL（开了事务在睡觉），trx_started 很早
+-- 受害者：trx_query = 那条卡住的 UPDATE
+-- 用 trx_mysql_thread_id 就能关联到 PROCESSLIST 的连接</code></pre>
+  <div class="key-sentence">锁等待排查链条：<strong>PROCESSLIST 找卡住的连接 → innodb_trx 关联到事务 → 找到那个 trx_query 为 NULL、却还占着锁的元凶</strong>。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">37.4</span> 第三步：data_locks 看具体锁</h2>
+  <p class="lead">8.0 直接告诉你：谁拿着哪把锁、谁在等哪把锁。</p>
+  <pre class="code" data-lang="sql"><code>-- 当前所有锁
+SELECT
+  lock_id, lock_trx_id, lock_mode, lock_type, lock_table, lock_index_id, lock_data
+FROM performance_schema.data_locks;
+-- lock_data: 锁住的具体值（如 '1'）；lock_mode: X（排他）/ X,GAP（间隙）
+
+-- 锁等待关系：谁在等谁
+SELECT
+  requesting_engine_transaction_id,   -- 等待方
+  blocking_engine_transaction_id      -- 被等方（元凶）
+FROM performance_schema.data_lock_waits;
+
+-- 三表一 JOIN，完整还原"等待链"：
+-- 受害者事务 → 等 data_lock_waits → 元凶事务 → 持 data_locks</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>视图</th><th>回答的问题</th></tr></thead>
+    <tbody>
+      <tr><td>PROCESSLIST</td><td>哪个连接、跑哪条 SQL、卡了多久</td></tr>
+      <tr><td>innodb_trx</td><td>哪些事务开着、谁在睡觉却占锁</td></tr>
+      <tr><td>data_locks</td><td>当前有哪些锁、锁在哪个值、什么模式</td></tr>
+      <tr><td>data_lock_waits</td><td>等待链：谁在等谁</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">37.5</span> 一条 SQL 看清等待链</h2>
+  <p class="lead">把三张视图 JOIN 起来，一条查询直接输出"谁在等谁、锁在哪行"。</p>
+  <pre class="code" data-lang="sql"><code>-- 完整等待链查询（MySQL 8.0）
+SELECT
+  waiting.trx_mysql_thread_id    AS 受害者线程,
+  waiting.trx_query             AS 受害者SQL,
+  blocking.trx_mysql_thread_id   AS 元凶线程,
+  blocking.trx_query            AS 元凶SQL,
+  l.lock_table                  AS 锁的表,
+  l.lock_data                   AS 锁住的值,
+  l.lock_mode                   AS 锁模式
+FROM performance_schema.data_lock_waits w
+JOIN performance_schema.data_locks l
+  ON l.lock_id = w.requesting_engine_lock_id
+JOIN information_schema.innodb_trx waiting
+  ON waiting.trx_id = w.requesting_engine_transaction_id
+JOIN information_schema.innodb_trx blocking
+  ON blocking.trx_id = w.blocking_engine_transaction_id;</code></pre>
+  <div class="note"><strong>结果怎么读</strong>：一行就是一条等待关系。看到"受害者SQL"是你报障的那条、"元凶SQL"为 NULL（空事务），把"元凶线程"KILL 掉即可。</div>
+  <div class="pit-sentence">data_locks / data_lock_waits 是 8.0 才有的视图；5.7 没有这两张表，只能靠 <code>innodb_trx</code> + <code>SHOW ENGINE INNODB STATUS</code> 里的 TRANSACTIONS 段手工找。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">37.6</span> 解开：KILL 元凶与预防</h2>
+  <p class="lead">定位到元凶事务，KILL 它的连接，等待链立刻解开。</p>
+  <pre class="code" data-lang="sql"><code>-- 从 innodb_trx 拿到元凶的 trx_mysql_thread_id（假设是 12）
+KILL 12;
+-- 元凶事务被回滚，它持有的行锁释放，
+-- 会话 B 那条卡住的 UPDATE 立刻继续执行</code></pre>
+  <div class="warn-box">KILL 元凶前先确认它是不是长事务、有没有做大量修改——回滚需要时间。如果只是"开了事务在睡觉"的空事务，KILL 得很干脆。</div>
+  <p>预防习惯（前面各章的汇总）：</p>
+  <ul>
+    <li><span class="tag-point">点</span>事务<strong>尽早 COMMIT</strong>，别开着连接去干别的（第 35 章长事务）；</li>
+    <li><span class="tag-point">点</span>所有事务<strong>按固定顺序</strong>访问行（第 34 章防死锁）；</li>
+    <li><span class="tag-point">点</span>UPDATE/DELETE <strong>必须走索引</strong>，否则锁全表（第 33 章）；</li>
+    <li><span class="tag-point">点</span>给 <code>innodb_lock_wait_timeout</code> 设合理上限（默认 50 秒，核心库可调小到 5~10 秒快速失败）。</li>
+  </ul>
+  <div class="note"><strong>第四篇收官</strong>：到这里，事务（ACID、隔离级别、MVCC）、锁（分类、行锁间隙锁、死锁、长事务、undo/redo）就闭环了。下一篇进入日志与主从：redo、undo、binlog 三大日志与主从复制怎么配合。</div>
+  <div class="key-sentence">锁等待排查三步走：<strong>PROCESSLIST 定位卡住的连接 → innodb_trx 找到占锁不提交的元凶 → data_locks / data_lock_waits 看清锁区间与等待链 → KILL 元凶</strong>。</div>
+  <div class="warn-box"><strong>别急着 KILL</strong>：先看元凶的 trx_query 和 trx_rows_modified——如果它正在批量改数据，KILL 后回滚也要花时间，反而可能更久。确认是"开着事务睡觉"的空事务，再果断 KILL。</div>
+</section>
+<!--CONT2-->
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>排查链</td><td>PROCESSLIST 找卡住连接 → innodb_trx 找事务 → data_locks 看锁</td></tr>
+      <tr><td>元凶特征</td><td>trx_query 为 NULL（开事务睡觉）却占着行锁</td></tr>
+      <tr><td>data_lock_waits</td><td>直接给出等待链：等待方 ← 被等方</td></tr>
+      <tr><td>等待链 JOIN</td><td>三视图一条 SQL 输出 受害者SQL / 元凶线程 / 锁住的值</td></tr>
+      <tr><td>解开</td><td>KILL 元凶连接，行锁释放，受害者继续</td></tr>
+      <tr><td>预防</td><td>早提交、固定顺序、走索引、合理 lock_wait_timeout</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>模拟锁等待：会话 A 开事务更新 id=1 不提交，会话 B 更新 id=1 观察卡住；用 <code>SHOW PROCESSLIST</code> 找出会话 B 的连接 Id 与 State。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>接上，用 <code>information_schema.innodb_trx</code> 查出元凶事务（trx_query 为 NULL 的那个），拿到它的 trx_mysql_thread_id，并 KILL 它，观察会话 B 是否立刻解除等待。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在 8.0 环境用 <code>data_locks</code> 与 <code>data_lock_waits</code> 写出一条 JOIN 查询：完整输出"等待方事务 → 被等方事务 → 锁住的表与值"三列，并把它整理成你以后排查锁等待的固定脚本。</div>
+  <p class="note">第四篇收官。下一篇进入日志与主从：redo、undo、binlog 三大日志如何撑起主从复制。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="036_第36章_undo与redo的分工.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../50_第五篇_日志与主从/038_第38章_三大日志_redo_undo_binlog.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 37 章 锁等待实战：谁卡住了谁</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

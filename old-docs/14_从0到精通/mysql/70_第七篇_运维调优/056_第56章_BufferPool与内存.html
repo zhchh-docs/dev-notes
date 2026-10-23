@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 56 章 Buffer Pool 与内存｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第七篇 运维调优</p>
+    <h1>第 56 章 Buffer Pool 与内存</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 56 章 / 共 72 章 · 预计 35 分钟</span>
+    </div>
+    <p class="hero-desc">Buffer Pool 是 InnoDB 唯一的读写通道：大小怎么定、LRU 怎么防污染、命中率与脏页怎么看，这一章把内存调优的硬指标讲清楚。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="055_第55章_核心参数调优.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="057_第57章_连接池配置与排查.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">56.1 Buffer Pool 是什么</a></li>
+    <li><a href="#sec3">56.2 大小怎么定：公式与实例拆分</a></li>
+    <li><a href="#sec4">56.3 LRU 的改良：年轻区与老年代</a></li>
+    <li><a href="#sec5">56.4 怎么判断内存够不够</a></li>
+    <li><a href="#sec6">56.5 change buffer 与自适应哈希</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 Buffer Pool 在 InnoDB 中的角色：读缓存 + 写缓冲二合一；</li>
+    <li>掌握 <code>innodb_buffer_pool_size</code> 的取值公式与实例拆分；</li>
+    <li>理解 LRU 改良（年轻/老年代）与预读机制；</li>
+    <li>会查命中率、脏页比例、undo/change buffer 占用；</li>
+    <li>看懂"内存够不够"的真正标准。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">56.1</span> Buffer Pool 是什么</h2>
+  <p class="lead">InnoDB 所有数据读写都必须经过 Buffer Pool——磁盘页 16KB 被读进来缓存在内存，写操作先改内存页再异步刷盘。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+      <rect x="40" y="30" width="300" height="170" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="190" y="55" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="bold">Buffer Pool（内存）</text>
+      <rect x="60" y="70" width="120" height="50" rx="6" fill="#fff" stroke="#2d6a3f"/>
+      <text x="120" y="100" text-anchor="middle" font-size="11" fill="#1f2e1f">数据页/索引页</text>
+      <rect x="200" y="70" width="120" height="50" rx="6" fill="#fff" stroke="#2d6a3f"/>
+      <text x="260" y="100" text-anchor="middle" font-size="11" fill="#1f2e1f">change buffer</text>
+      <rect x="60" y="135" width="120" height="50" rx="6" fill="#fff" stroke="#2d6a3f"/>
+      <text x="120" y="165" text-anchor="middle" font-size="11" fill="#1f2e1f">自适应哈希</text>
+      <rect x="200" y="135" width="120" height="50" rx="6" fill="#fff" stroke="#2d6a3f"/>
+      <text x="260" y="165" text-anchor="middle" font-size="11" fill="#1f2e1f">锁信息/undo</text>
+      <rect x="480" y="70" width="220" height="90" rx="10" fill="#2d6a3f"/>
+      <text x="590" y="105" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">磁盘 .ibd 文件</text>
+      <text x="590" y="130" text-anchor="middle" font-size="11" fill="#d8e8c8">16KB 页，随机 IO</text>
+      <line x1="340" y1="110" x2="480" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#b1)"/>
+      <defs><marker id="b1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+      <text x="380" y="215" text-anchor="middle" font-size="12" fill="#7a8a70">图 56-1 Buffer Pool 是磁盘数据与所有 SQL 之间的唯一通道</text>
+    </svg>
+  </div>
+  <p>它带来两个直接结果：一是<strong>读命中</strong>——热数据第二次访问不走磁盘；二是<strong>写合并</strong>——连续多次改同一页，只在它"变脏"被淘汰时刷一次盘。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">56.2</span> 大小怎么定：公式与实例拆分</h2>
+  <p class="lead">官方建议：专用数据库服务器上，Buffer Pool 占物理内存的 50%~70%。</p>
+  <pre class="code" data-lang="sql"><code>-- 设为物理内存的 ~60%（16G 机器 → 约 10G），8.0 支持在线调整大小
+SET GLOBAL innodb_buffer_pool_size = 10737418240;   -- 字节数，10G
+SET PERSIST innodb_buffer_pool_size = 10737418240;
+
+-- 实例数：每个实例 1~2G，降低内部锁竞争
+-- 10G 建议 8 个实例（每个 1.25G）
+SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
+
+-- 查看调整进度（8.0 在线 resize 是异步的）
+SHOW STATUS LIKE 'InnoDB_buffer_pool_resize_status';</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>内存规模</th><th>推荐配置</th></tr></thead>
+    <tbody>
+      <tr><td>≤ 4G</td><td>buffer pool 占 50%，instances=1，开发机够用</td></tr>
+      <tr><td>8~32G</td><td>占 60%，instances = 每实例 1~2G</td></tr>
+      <tr><td>64G+</td><td>占 60~70%，instances 8~16，注意给 OS page cache 和连接留 25%</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">坑：把 buffer pool 设成 90% 物理内存，看似激进，实则 OS 没有 page cache 可用、连接内存被挤爆，swap 一上整机瘫痪。留 25% 给系统不是保守，是保命。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">56.3</span> LRU 的改良：年轻区与老年代</h2>
+  <p class="lead">普通 LRU 扛不住"一次全表扫 100G"把热数据冲掉，InnoDB 把 LRU 分成两段。</p>
+  <pre class="code" data-lang="sql"><code>-- 老年代比例：新读入的页先放老年代，命中后才晋升年轻区（默认 3/8）
+SHOW VARIABLES LIKE 'innodb_old_blocks_pct';        -- 默认 37
+-- 在老年代驻留多久后，第二次访问才算"真热"（毫秒，默认 1000）
+SHOW VARIABLES LIKE 'innodb_old_blocks_time';       -- 默认 1000
+
+-- 线性预读：连续读够 13 个页就批量拉下一区
+-- 随机预读：同一个区已有太多页在缓存，触发异步预取
+SHOW VARIABLES LIKE 'innodb_read_ahead_threshold';  -- 默认 56</code></pre>
+  <p>效果：全表扫描这种"只碰一次"的页污染的是老年代，热数据所在的年轻区纹丝不动。这就是大表统计查询不再把业务打挂的底层原因。</p>
+  <div class="key-sentence">InnoDB 的 LRU 不是"最近用过就不淘汰"，而是"用过两次才算热"——一次偶然访问不会碰瓷你的热数据。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">56.4</span> 怎么判断内存够不够</h2>
+  <p class="lead">别凭感觉，命中率和脏页比例是硬指标。</p>
+  <pre class="code" data-lang="sql"><code>-- 命中率：(1 - 未命中读/逻辑读)，应长期 &gt; 99%
+SHOW ENGINE INNODB STATUS\G
+-- Buffer pool hit rate 1000 / 1000  —— 看到 999/1000 以下要警惕
+
+-- 等价 SQL 口径
+SELECT VARIABLE_NAME, VARIABLE_VALUE
+FROM performance_schema.global_status
+WHERE VARIABLE_NAME IN ('Innodb_buffer_pool_read_requests','Innodb_buffer_pool_reads');
+
+-- 脏页比例：过高压写盘，过低说明刷盘过度
+SELECT VARIABLE_NAME, VARIABLE_VALUE FROM performance_schema.global_status
+WHERE VARIABLE_NAME LIKE 'Innodb_buffer_pool_pages%';</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <thead><tr><th>指标</th><th>健康区间</th></tr></thead>
+    <tbody>
+      <tr><td>Buffer pool 命中率</td><td>&gt; 99%；连续低于 99.5% 说明数据集已装不下</td></tr>
+      <tr><td>脏页比例</td><td>5%~20% 正常；&gt; 50% 说明刷盘跟不上写入</td></tr>
+      <tr><td>free 页数量</td><td>长期接近 0 说明内存吃紧，且磁盘读持续上升</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">命中率低不一定要加内存——先查是不是有大表全表扫描、统计任务在污染缓冲池。抓慢查询往往比扩容便宜一个数量级。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">56.5</span> change buffer 与自适应哈希</h2>
+  <p class="lead">Buffer Pool 里两个"加餐"组件，各自解决一类热点。</p>
+  <ul>
+    <li><span class="tag-key">change buffer</span>：对<strong>非唯一二级索引</strong>的写（INSERT/DELETE/UPDATE）先记在内存，等该页被读入时再合并——大幅减少写放大。唯一索引用不了它（必须立刻校验）。</li>
+    <li><span class="tag-point">自适应哈希索引 AHI</span>：InnoDB 观察到某些索引前缀被高频等值查询，自动在内存建哈希。8.0 自动调优，一般保持默认。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>SHOW VARIABLES LIKE 'innodb_change_buffer_max_size';  -- 占 buffer pool 比例，默认 25%
+SHOW STATUS   LIKE 'Innodb_buffer_pool_wait_free';    -- &gt;0 说明内存压力大到要等脏页刷出</code></pre>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>角色</td><td>Buffer Pool 是 InnoDB 读写唯一通道，读缓存与写缓冲二合一</td></tr>
+      <tr><td>大小</td><td>专用库占物理内存 60% 左右，留 25% 给系统，instances 按 1~2G 拆</td></tr>
+      <tr><td>LRU 改良</td><td>年轻/老年代两段 + old_blocks_time，防全表扫描污染热数据</td></tr>
+      <tr><td>健康度</td><td>命中率 &gt;99%、脏页 5%~20%，异常先抓慢查询再谈扩容</td></tr>
+      <tr><td>加餐组件</td><td>change buffer 服务非唯一二级索引写，AHI 自动加速等值热点</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说出 Buffer Pool 的两个职责，并从 <code>SHOW ENGINE INNODB STATUS</code> 里找到你本机的 buffer pool hit rate。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>一台 32G 的数据库服务器，请给出你推荐的 <code>innodb_buffer_pool_size</code>（GB 数）和 <code>innodb_buffer_pool_instances</code>，并解释为什么不留 90%。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为什么"全表扫描一张大表"在改良 LRU 下不会冲掉热数据？结合 <code>innodb_old_blocks_pct</code> 与 <code>innodb_old_blocks_time</code> 说明页的流转路径。</div>
+  <p class="note">内存讲完，下一章看连接：连接池为什么会把库拖垮，以及怎么排查。</p>
+</section>
+
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="055_第55章_核心参数调优.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="057_第57章_连接池配置与排查.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 56 章 Buffer Pool 与内存</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

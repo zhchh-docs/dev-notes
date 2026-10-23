@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 39 章 两阶段提交与崩溃恢复｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第五篇 日志与主从</p>
+    <h1>第 39 章 两阶段提交与崩溃恢复</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 39 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">redo 在引擎层、binlog 在 Server 层，谁先谁后？崩溃那一刻事务做到一半，重启时怎么判断它到底成没成？MySQL 用"两阶段提交"把两层日志的顺序钉死，这是主从不一致问题的总钥匙。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="038_第38章_三大日志_redo_undo_binlog.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="040_第40章_主从复制原理与搭建.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">39.1 为什么需要两阶段提交</a></li>
+    <li><a href="#sec3">39.2 prepare 与 commit 两步</a></li>
+    <li><a href="#sec4">39.3 崩溃恢复怎么判事务</a></li>
+    <li><a href="#sec5">39.4 关键参数与安全边界</a></li>
+    <li><a href="#sec6">39.5 常见坑清单</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  <li><a href="#secX">39.6 与分布式 XA 的区别</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解为什么 redo log 和 binlog 必须按固定顺序写，不能各写各的；</li>
+    <li>说清 prepare 阶段与 commit 阶段各自做了什么；</li>
+    <li>知道崩溃恢复时如何用 binlog 是否存在来决定提交还是回滚；</li>
+    <li>理解 <code>innodb_flush_log_at_trx_commit</code> 与 <code>sync_binlog</code>"双 1"的真正含义；</li>
+    <li>能向别人解释一次宕机重启后数据是怎么"对上"的。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">39.1</span> 为什么需要两阶段提交</h2>
+  <p class="lead">假设没有固定顺序：先写 redo 后写 binlog，或者反过来——宕机点不同，主库与从库的数据就可能分叉。</p>
+  <p>问题的根源在于<strong>两份日志由不同层负责、各自刷盘</strong>。考虑两种错误顺序：</p>
+  <ul>
+    <li><strong>先 redo 后 binlog</strong>：redo 写完、事务在主库提交成功，binlog 还没来得及写就宕机。从库没有这条事件，主库却有——主从不一致；</li>
+    <li><strong>先 binlog 后 redo</strong>：binlog 写了，从库已经重放这条修改，redo 还没落盘主库就宕机，主库恢复后回滚了该事务——又是两边不一致。</li>
+  </ul>
+  <p>MySQL 的解法不是"选一个先写"，而是让事务在 redo 里先打一个 <strong>prepare 标记</strong>，把 binlog 写完后，再把 redo 改成 <strong>commit 标记</strong>。这样崩溃点落在两步之间时，恢复程序有一个客观的判据：<strong>binlog 里有没有这个事务</strong>。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 240" style="background:#fff;border:1px solid #d8e2cc;border-radius:8px;display:block;margin:0 auto;max-width:100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr39" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2d6a3f"/>
+        </marker>
+      </defs>
+      <rect x="30" y="90" width="150" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="105" y="115" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">① redo: prepare</text>
+      <text x="105" y="135" text-anchor="middle" font-size="11" fill="#4f6348">写 prepare 日志</text>
+      <rect x="305" y="90" width="150" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="380" y="115" text-anchor="middle" font-size="13" font-weight="bold" fill="#2d6a3f">② 写 binlog</text>
+      <text x="380" y="135" text-anchor="middle" font-size="11" fill="#4f6348">Server 层事件落盘</text>
+      <rect x="580" y="90" width="150" height="60" rx="8" fill="#2d6a3f" stroke="#2d6a3f"/>
+      <text x="655" y="115" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">③ redo: commit</text>
+      <text x="655" y="135" text-anchor="middle" font-size="11" fill="#d8e8c8">事务正式完成</text>
+      <line x1="180" y1="120" x2="303" y2="120" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#arr39)"/>
+      <line x1="455" y1="120" x2="578" y2="120" stroke="#2d6a3f" stroke-width="1.6" marker-end="url(#arr39)"/>
+      <text x="380" y="200" text-anchor="middle" font-size="12" fill="#b45309">崩溃在 ①② 之间：恢复时查 binlog，没有 → 回滚；有 → 提交</text>
+    </svg>
+    <p class="diagram-caption" style="text-align:center;color:#7a8a70;font-size:13px;margin:6px 0 0">图 39-1 两阶段提交：prepare → binlog → commit 的固定顺序</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">39.2</span> prepare 与 commit 两步</h2>
+  <p class="lead">理解每一步"写在哪、刷不刷盘"，崩溃恢复才讲得通。</p>
+  <ol>
+    <li><strong>prepare 阶段</strong>：InnoDB 把事务回滚信息、修改页先记进 redo log，并打上 <code>TRX_MARKED_PREPARE</code> 的状态；此时事务对其他会话还不可见；</li>
+    <li><strong>binlog 写入</strong>：Server 层把这个事务的修改事件写入 binlog（是否刷盘由 <code>sync_binlog</code> 决定）；</li>
+    <li><strong>commit 阶段</strong>：InnoDB 把 redo 里的事务状态改为 commit，写一条 commit 日志，事务才算真正完成。</li>
+  </ol>
+  <p>关键设计：binlog 的事务内容里带有一个 <strong>XID</strong>（事务 ID），redo 的 prepare/commit 日志里也记着同一个 XID。恢复时两边靠 XID 对得上号。</p>
+  <pre class="code" data-lang="sql"><code>-- 查看当前 binlog 内部的事务位点（每秒/每事务都会推进）
+SHOW MASTER STATUS;
+
+-- 8.0 推荐用 REPLICA 语法查看复制状态
+SHOW REPLICA STATUS\G</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">39.3</span> 崩溃恢复怎么判事务</h2>
+  <p class="lead">MySQL 重启后先重放 redo，再逐个处理处于 prepare 状态的事务。</p>
+  <p>恢复程序扫描 redo log，把所有"已 commit"的事务重放回来；遇到处于 <strong>prepare 状态</strong>的事务时，按 XID 去 binlog 里查：</p>
+  <ul>
+    <li><strong>binlog 里存在这个 XID</strong>：说明 binlog 已经写完，从库可能已经重放了它——主库必须<strong>提交</strong>，否则主从分叉；</li>
+    <li><strong>binlog 里不存在这个 XID</strong>：说明事务还没写到 binlog，从库看不到——主库直接<strong>回滚</strong>。</li>
+  </ul>
+  <div class="key-sentence">两阶段提交的本质：用"binlog 里有没有这个 XID"作为事务是否对外可见的唯一裁判，让引擎层与 Server 层在崩溃后依然能对齐。</div>
+  <div class="note">这也解释了为什么主从复制要求 binlog 必须完整可靠：它不只是"复制用的日志"，它是崩溃恢复时判定事务去留的证据。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">39.4</span> 关键参数与安全边界</h2>
+  <p class="lead">双 1 的真正含义：redo 刷盘与 binlog 刷盘都在提交时硬刷。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>参数</th><th>设为 1 的效果</th><th>妥协代价</th></tr></thead>
+    <tbody>
+      <tr><td><code>innodb_flush_log_at_trx_commit=1</code></td><td>提交即把 redo 刷到磁盘</td><td>每次提交多一次 fsync，写并发下降</td></tr>
+      <tr><td><code>sync_binlog=1</code></td><td>提交即把 binlog 刷到磁盘</td><td>同样增加刷盘次数</td></tr>
+      <tr><td>两者同时 =1</td><td>崩溃最多丢"未提交"事务，主从不分叉</td><td>金融级配置，性能换安全</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 查看当前双 1 状态
+SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';
+SHOW VARIABLES LIKE 'sync_binlog';
+
+-- 生产环境写在 my.cnf [mysqld] 段：
+-- innodb_flush_log_at_trx_commit = 1
+-- sync_binlog = 1</code></pre>
+  <div class="warn-box">只开一个等于没开：<code>innodb_flush_log_at_trx_commit=1</code> 但 <code>sync_binlog=0</code>，宕机时 binlog 里没有的事务在主库却被提交——从库少数据，且无法自动修复。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">39.5</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>把"两阶段提交"和"分布式 XA 事务"混为一谈</strong>：本章讲的是 MySQL 内部为了对齐 redo/binlog 的内部两阶段；第 54 章的 XA 是跨多个数据库实例的外部协议，名字像，对象不同；</li>
+    <li><span class="tag-pit">坑</span><strong>以为 crash 后会自动重放 binlog</strong>：binlog 是"输出"，恢复靠的是 redo 重放 + XID 判定；</li>
+    <li><span class="tag-pit">坑</span><strong>大事务让 prepare 阶段挂很久</strong>：一个事务改了几百万行才提交，prepare→commit 之间窗口拉长，崩溃恢复时间也跟着长；</li>
+    <li><span class="tag-pit">坑</span><strong>用 <code>SET GLOBAL</code> 改双 1 参数不生效</strong>：这两个参数在 8.0 可以动态改，但重启后想持久必须写配置文件。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+</section>
+
+<section id="secX" class="card">
+  <h2><span class="num">39.6</span> 与分布式 XA 的区别</h2>
+  <p class="lead">本章的两阶段提交是 MySQL 内部为对齐 redo/binlog 的机制，别和跨库 XA 事务混淆。</p>
+  <p>内部两阶段提交的"参与者"是同一个实例的引擎层与 Server 层，目的是让本地事务在崩溃后可判定；而第 54 章的 XA 是跨多个独立数据库实例的外部协议，由协调者驱动多个分支 prepare/commit。两者都叫两阶段，但对象与作用域完全不同。</p>
+  <div class="note">面试常问：MySQL 内部两阶段提交解决的是"本地 redo 与 binlog 顺序"，不是"跨库事务一致性"。</div>
+</section>
+
+<section id="secSum" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>为什么需要</td><td>redo 与 binlog 分属两层，顺序不固定就会主从不一致</td></tr>
+      <tr><td>两步</td><td>redo prepare → 写 binlog → redo commit，XID 贯穿两者</td></tr>
+      <tr><td>崩溃恢复</td><td>prepare 事务按 XID 查 binlog：有则提交，无则回滚</td></tr>
+      <tr><td>双 1</td><td>redo 与 binlog 都提交即刷盘，缺一不可</td></tr>
+      <tr><td>意义</td><td>这是后面主从复制、数据恢复一切讨论的信任基础</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 <code>SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';</code> 与 <code>SHOW VARIABLES LIKE 'sync_binlog';</code> 确认本机是否双 1，并用自己的话写出"只开其中一个"为什么不够。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>假设某个事务停在 prepare 阶段、binlog 尚未写入，此时机器断电重启。请描述恢复程序会对该事务做什么，以及为什么这样做主库和未来的从库不会分叉。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>思考：为什么两阶段提交能容忍"prepare 后崩溃"，却不能容忍"commit 后立刻崩溃"？如果 commit 日志写一半宕机，恢复程序凭什么敢再提交一次？</div>
+  <p class="note">日志的信任基础讲完了，下一章进入实战：主从复制到底怎么搭，数据是怎么从主库流到从库的。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="038_第38章_三大日志_redo_undo_binlog.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="040_第40章_主从复制原理与搭建.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 39 章 两阶段提交与崩溃恢复</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

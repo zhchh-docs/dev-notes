@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 21 章 联合索引与最左前缀｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第三篇 索引与优化</p>
+    <h1>第 21 章 联合索引与最左前缀</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 21 章 / 共 72 章 · 预计 45 分钟</span>
+    </div>
+    <p class="hero-desc">"建了索引却不走"——线上一半的索引问题都出在联合索引的列序上。(a, b, c) 这棵树到底按什么排序、最左前缀为什么是铁律、范围查询后面的列为什么"断了"、MySQL 8.0 的索引下推又救了多少回表。本章把这棵树的排序逻辑彻底讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="020_第20章_索引类型_主键唯一普通全文.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="022_第22章_覆盖索引与回表.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">21.1 联合索引的排序逻辑：先按谁、再按谁</a></li>
+    <li><a href="#sec3">21.2 最左前缀原则：能用与不能用</a></li>
+    <li><a href="#sec4">21.3 范围查询断档：&gt; 后面的列为什么失效</a></li>
+    <li><a href="#sec5">21.4 索引下推 ICP：8.0 的回表救命功能</a></li>
+    <li><a href="#sec6">21.5 列序设计与常见误区</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解联合索引 (a, b, c) 在 B+ 树叶子节点上的<strong>排序规则</strong>：先按 a 排、a 相同再按 b 排；</li>
+    <li>背会并会用最左前缀原则，能判断一条查询能否命中索引；</li>
+    <li>解释"范围查询让后面的列断档"的原理；</li>
+    <li>认识索引下推（ICP），知道 <code>Using index condition</code> 意味着什么；</li>
+    <li>会给一组高频查询设计列序合理的联合索引。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">21.1</span> 联合索引的排序逻辑：先按谁、再按谁</h2>
+  <p class="lead">联合索引不是把几列各建一棵树，而是把几列的值拼成"复合键"、按字典序排在同一棵 B+ 树上。</p>
+  <p>以 <code>(city, age, name)</code> 为例，索引叶子节点的排序规则是：<strong>先按 city 排；city 相同再按 age 排；city、age 都相同最后按 name 排</strong>。像电话簿"先按姓排、同姓按名排"一样。</p>
+  <pre class="code" data-lang="sql"><code>CREATE INDEX idx_city_age_name ON user (city, age, name);
+
+-- 索引叶子里的键值（示意）按此顺序物理排列：
+-- ('成都', 25, '张三')
+-- ('成都', 25, '李四')
+-- ('成都', 30, '王五')
+-- ('北京', 22, '赵六')
+-- ('北京', 28, '孙七')
+-- ... 先排 city，city 相同才看 age，再相同才看 name</code></pre>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 210" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <rect x="30" y="30" width="200" height="150" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="130" y="55" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">city = 成都</text>
+    <text x="130" y="82" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 25 → 张三</text>
+    <text x="130" y="105" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 25 → 李四</text>
+    <text x="130" y="128" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 30 → 王五</text>
+    <text x="130" y="160" text-anchor="middle" font-size="11" fill="#7a8a70">块内按 age 有序</text>
+    <rect x="280" y="30" width="200" height="150" rx="8" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="380" y="55" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">city = 北京</text>
+    <text x="380" y="82" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 22 → 赵六</text>
+    <text x="380" y="105" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 28 → 孙七</text>
+    <text x="380" y="160" text-anchor="middle" font-size="11" fill="#7a8a70">块间按 city 有序</text>
+    <rect x="530" y="30" width="200" height="150" rx="8" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="630" y="55" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">city = 上海</text>
+    <text x="630" y="82" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 26 → 周八</text>
+    <text x="630" y="105" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">age 35 → 吴九</text>
+    <text x="630" y="160" text-anchor="middle" font-size="11" fill="#7a8a70">块内再按 name 有序</text>
+    <line x1="230" y1="105" x2="280" y2="105" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="480" y1="105" x2="530" y2="105" stroke="#2d6a3f" stroke-width="1.5"/>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 21-1 联合索引 (city, age, name) 的物理排序：块间按 city，块内按 age，末尾按 name</p>
+  </div>
+  <p>这个"先排谁"的规则是所有后续结论的根：<strong>只有当先决列等值锁定后，后列的有序性才成立</strong>。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">21.2</span> 最左前缀原则：能用与不能用</h2>
+  <p class="lead">查询要用上这棵树，必须从索引最左列开始，且连续等值匹配到哪一列，就能用哪一列。</p>
+  <p>拿 <code>idx_city_age_name (city, age, name)</code> 当样本，逐条对：</p>
+  <pre class="code" data-lang="sql"><code>-- ✅ 全命中：三列都等值，定位到 ('成都', 25, '张三') 这一个键
+WHERE city = '成都' AND age = 25 AND name = '张三'
+
+-- ✅ 命中前两列：city、age 等值，name 没给也行
+WHERE city = '成都' AND age = 25
+
+-- ✅ 命中第一列：只给 city 也能走索引（在成都的块内扫）
+WHERE city = '成都'
+
+-- ❌ 跳过最左列，直接从 age 开始：整块"成都"你不知道在哪，用不上树
+WHERE age = 25
+
+-- ❌ 从中间开始同理失效
+WHERE age = 25 AND name = '张三'</code></pre>
+  <div class="key-sentence">最左前缀铁律：索引按列序从左到右生效，一旦断档（没给左列、或左列是范围），右边的列就全部失去有序性、帮不上忙。</div>
+  <p>一个反直觉的好消息：<strong>条件的书写顺序无所谓</strong>。MySQL 优化器会自动把 <code>WHERE age = 25 AND city = '成都'</code> 重排成索引需要的 (city, age) 顺序——你按啥顺序写 WHERE，树都按列序理解。所以"最左前缀"说的是<strong>列有没有出现</strong>，不是书写顺序。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">21.3</span> 范围查询断档：&gt; 后面的列为什么失效</h2>
+  <p class="lead">范围列本身能用上，但它右边的列——索引的"断档点"——就全部失效了。</p>
+  <p>原理回到图 21-1：当 <code>city = '成都'</code> 等值锁定后，块内 age 是有序的，所以 <code>age &gt; 25</code> 能在块内二分定位起点。但 age 是范围（&gt;25），在"age&gt;25"这个开区间里，<strong>name 不再有序</strong>——25 以上可能有张三、也可能有李四穿插。所以 <code>name = '王五'</code> 这一条条件，索引帮不上忙，只能逐行回表判断。</p>
+  <pre class="code" data-lang="sql"><code>-- (city, age, name) 上：
+WHERE city = '成都' AND age &gt; 25 AND name = '王五'
+--  ↑等值可用   ↑范围可用  ↑断档：索引无法直接定位，只能回表逐行比对
+
+-- 对比：把范围列放最后（设计索引时就该这么排）
+-- 若高频查询是 city=? AND name=? AND age&gt;?，索引应建成 (city, name, age)</code></pre>
+  <table>
+    <colgroup><col style="width:38%"><col style="width:30%"><col style="width:32%"></colgroup>
+    <thead><tr><th>WHERE 条件</th><th>能用的索引列</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td>city='a' AND age=25 AND name='x'</td><td>三列全用</td><td>精确点查</td></tr>
+      <tr><td>city='a' AND age=25</td><td>city、age</td><td>索引定位到范围</td></tr>
+      <tr><td>city='a' AND age&gt;25 AND name='x'</td><td>city、age（范围）</td><td>name 断档，回表判断</td></tr>
+      <tr><td>age=25</td><td>无</td><td>跳过最左，全表扫</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">设计列序的实战口诀：<strong>等值列在前、范围列在后、排序列最后</strong>。把高频等值的列放左边，把范围/排序的列放右边——反过来写（范围列在中间）等于自废右列。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">21.4</span> 索引下推 ICP：8.0 的回表救命功能</h2>
+  <p class="lead">断档了也不一定要全部回表——索引下推（Index Condition Pushdown）在引擎层就把断档列的条件先筛一遍。</p>
+  <p>还是 <code>city='成都' AND age&gt;25 AND name='王五'</code>：没有 ICP 时，存储引擎沿着索引把"city=成都且 age&gt;25"的每一行主键都捞出来、<strong>全部回表</strong>取出整行，再由 Server 层用 name 过滤——回表次数 = 成都 age&gt;25 的行数。</p>
+  <p>有 ICP（MySQL 5.6 引入，8.0 默认开启）：因为 <code>name</code> 这一列<strong>本来就在索引键里</strong>（联合索引叶子存了 name），引擎层在索引上就顺手把 name='王五' 比对掉，<strong>只对真正命中的行回表</strong>。</p>
+  <pre class="code" data-lang="sql"><code>-- 确认 ICP 开关（5.6+ 引入，8.0 默认 ON）
+SET optimizer_switch = 'index_condition_pushdown=on';
+
+-- EXPLAIN 的 Extra 列会告诉你有没有用上：
+-- Using index condition  → 已下推，引擎层先筛，回表次数大减
+-- 没有该行                → 断档条件全量回表（第 24 章详解 Extra）</code></pre>
+  <div class="key-sentence">ICP 不改变"断档"这个事实，但把断档条件的过滤从"回表后"提前到"索引上"——能在索引页解决的，绝不回表。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">21.5</span> 列序设计与常见误区</h2>
+  <p class="lead">联合索引不是越多列越好，列序错了等于白建。</p>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>把区分度最低的列放最左</strong>：status 只有 0/1/2 三值，放第一列等于没筛掉几行（第 23 章低选择性）；高频等值列、区分度高的列优先左置；</li>
+    <li><span class="tag-pit">坑</span><strong>重复建冗余索引</strong>：已有 (a, b) 再建 (a) 就是冗余——最左前缀已经能用到 (a)；反过来 (a) 已存在再建 (a, b) 是必要的扩展；</li>
+    <li><span class="tag-pit">坑</span><strong>索引列超过 4~5 列</strong>：索引键越长、单页能放的键越少（扇出下降），树变高、写放大；联合索引控制在 3~4 列性价比最高；</li>
+    <li><span class="tag-point">点</span><strong>一条联合索引常能覆盖多条查询</strong>：(city, age, name) 同时服务"只按 city"、"city+age"、"city+age+name"三种查询——这是联合索引最香的地方。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>-- 业务场景：高频查询 WHERE user_id=? AND status=? ORDER BY created_at LIMIT 20
+-- 设计列序：等值的 user_id、status 在前，范围/排序的 created_at 垫底
+ALTER TABLE orders ADD INDEX idx_user_status_time (user_id, status, created_at);
+
+-- 一条索引同时覆盖：user_id 单查 / user_id+status / 带排序的分页查询</code></pre>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>排序逻辑</td><td>复合键按列序字典序排列：先 a，a 同再 b，b 同再 c</td></tr>
+      <tr><td>最左前缀</td><td>从最左列连续等值匹配才生效；跳过左列即失效</td></tr>
+      <tr><td>范围断档</td><td>范围列右边的列失去有序性；设计时把范围列放最后</td></tr>
+      <tr><td>索引下推 ICP</td><td>断档条件若在索引键内，引擎层先筛再回表（Using index condition）</td></tr>
+      <tr><td>列序原则</td><td>等值在前、范围在后、排序垫底；一条索引覆盖多类查询</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>表 <code>t(a, b, c, d)</code> 已建联合索引 <code>idx_abc(a, b, c)</code>。判断下列 WHERE 能否命中索引、命中哪几列：① <code>WHERE a=1 AND b=2 AND c=3</code>；② <code>WHERE b=2 AND a=1</code>；③ <code>WHERE c=3</code>；④ <code>WHERE a=1 AND c=3</code>。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>建一张 orders(user_id, status, created_at)，灌入测试数据并建 <code>idx_user_status_time(user_id, status, created_at)</code>，分别执行 <code>WHERE user_id=1 AND status=2</code> 与 <code>WHERE user_id=1 AND status=2 AND created_at&gt;'2026-01-01'</code>，用 EXPLAIN 观察 key 与 rows 差异（第 24 章会详解，先建立直觉）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>高频查询有三条：① <code>WHERE city=? AND age&gt;=18</code>；② <code>WHERE city=? AND name=?</code>；③ <code>WHERE city=? AND age=? AND name=?</code>。给出你设计的联合索引列序，并说明它如何同时覆盖三条查询、哪一条会出现"断档"。</div>
+  <p class="note">索引怎么排序、怎么命中都懂了，下一章解决"找到了索引还要不要回表"——覆盖索引与回表。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="020_第20章_索引类型_主键唯一普通全文.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="022_第22章_覆盖索引与回表.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 21 章 联合索引与最左前缀</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

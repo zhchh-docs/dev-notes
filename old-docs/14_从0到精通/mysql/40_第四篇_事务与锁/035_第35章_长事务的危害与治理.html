@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>第 5 章 增删改：INSERT/UPDATE/DELETE 与软删｜MySQL 从 0 到精通</title>
+<title>第 35 章 长事务的危害与治理｜MySQL 从 0 到精通</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -96,30 +96,30 @@ footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding
 <body>
 <header class="hero">
   <div class="container">
-    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
-    <h1>第 5 章 增删改：INSERT/UPDATE/DELETE 与软删</h1>
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 35 章 长事务的危害与治理</h1>
     <div class="meta-row">
       <span class="badge std">教科书</span>
-      <span class="meta">第 5 章 / 共 72 章 · 预计 40 分钟</span>
+      <span class="meta">第 35 章 / 共 72 章 · 预计 35 分钟</span>
     </div>
-    <p class="hero-desc">写数据的三个动词各有一批"保命细节"：INSERT 怎么拿回自增 ID、怎么和唯一键和平共处；UPDATE 为什么必须带 WHERE；为什么互联网公司几乎不做物理删除。本章逐一讲透。</p>
+    <p class="hero-desc">一个事务开了半小时不提交，危害远不止"慢"：undo 版本链越堆越长、purge 不推进、行锁一直占着、主从延迟越拉越大。本章把长事务的危害摊开，再给一套监控阈值与治理动作——怎么发现它、怎么 kill 它、怎么从代码上杜绝它。</p>
   </div>
 </header>
 <nav class="doc-nav top" aria-label="文档导航">
-  <a class="doc-nav-btn" href="004_第4章_建库建表_DDL与约束.html">← 上一章</a>
+  <a class="doc-nav-btn" href="034_第34章_死锁_复现分析与避免.html">← 上一章</a>
   <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="006_第6章_基础查询_WHERE与运算符.html">下一章 →</a>
+  <a class="doc-nav-btn" href="036_第36章_undo与redo的分工.html">下一章 →</a>
 </nav>
 <div class="container">
 <nav class="toc" aria-label="本章目录">
   <h2>本章地图</h2>
   <ol>
     <li><a href="#sec1">本章目标</a></li>
-    <li><a href="#sec2">5.1 INSERT 的四种姿势</a></li>
-    <li><a href="#sec3">5.2 UPDATE 与安全更新</a></li>
-    <li><a href="#sec4">5.3 DELETE 与软删除</a></li>
-    <li><a href="#sec5">5.4 冲突处理三兄弟对比</a></li>
-    <li><a href="#sec6">5.5 常见坑清单</a></li>
+    <li><a href="#sec2">35.1 什么是长事务</a></li>
+    <li><a href="#sec3">35.2 长事务的四大危害</a></li>
+    <li><a href="#sec4">35.3 如何发现长事务</a></li>
+    <li><a href="#sec5">35.4 如何处理：KILL 与阈值</a></li>
+    <li><a href="#sec6">35.5 从代码上杜绝长事务</a></li>
     <li><a href="#sec7">本章小结</a></li>
     <li><a href="#sec8">本章习题</a></li>
   </ol>
@@ -129,145 +129,145 @@ footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding
 <section id="sec1" class="card">
   <h2><span class="num">◆</span>本章目标</h2>
   <ul>
-    <li>熟练使用单条、多值、批量 <code>INSERT</code>，会用 <code>LAST_INSERT_ID()</code> 拿回自增主键；</li>
-    <li>掌握 <code>UPDATE</code> 的表达式写法与安全开关 <code>sql_safe_updates</code>；</li>
-    <li>理解软删除的设计与查询配合；</li>
-    <li>分清 <code>INSERT IGNORE</code>、<code>REPLACE INTO</code>、<code>ON DUPLICATE KEY UPDATE</code> 的行为差异；</li>
-    <li>避开增删改最伤人的几个坑。</li>
+    <li>定义"长事务"，知道生产可接受的事务时长阈值；</li>
+    <li>说出长事务的四大危害（undo、锁、purge、主从延迟）；</li>
+    <li>用 <code>information_schema.innodb_trx</code> 查出当前所有长事务；</li>
+    <li>会用 KILL 终止一个失控事务；</li>
+    <li>从代码层（拆分、批处理、避免远程调用）杜绝长事务。</li>
   </ul>
 </section>
 
 <section id="sec2" class="card">
-  <h2><span class="num">5.1</span> INSERT 的四种姿势</h2>
-  <pre class="code" data-lang="sql"><code>-- 姿势一：指明列名再插值（推荐：列顺序变了也不出错）
-INSERT INTO customer (name, phone) VALUES ('张三', '13800000001');
-
--- 姿势二：一次插多行（批量写入比循环单条快得多）
-INSERT INTO customer (name, phone) VALUES
-  ('李四', '13800000002'),
-  ('王五', '13800000003'),
-  ('赵六', '13800000004');
-
--- 姿势三：只插部分列，其余走默认值
-INSERT INTO product (name, price) VALUES ('机械键盘', 399.00);
-
--- 姿势四：INSERT ... SELECT，从别的表筛出来直接灌进来
-INSERT INTO customer_archive (id, name, phone)
-SELECT id, name, phone FROM customer WHERE id &lt;= 3;</code></pre>
-  <h4>拿到刚生成的自增 ID</h4>
-  <pre class="code" data-lang="sql"><code>INSERT INTO customer (name, phone) VALUES ('孙七', '13800000005');
-SELECT LAST_INSERT_ID();   -- 返回本次连接最近一次插入的自增值</code></pre>
-  <p>应用代码里这条更重要：各语言的驱动都提供了等价物，如 JDBC 的 <code>Statement.RETURN_GENERATED_KEYS</code>、MyBatis 的 <code>useGeneratedKeys</code>——先插客户、再用它的 ID 建订单，就是靠这个串起来的。</p>
-  <div class="note"><strong>列名清单是自我保护</strong>：不写列名（INSERT INTO t VALUES (...)）要求值与表列一一对应，表加一列整个语句就废了。永远显式写出列名。</div>
+  <h2><span class="num">35.1</span> 什么是长事务</h2>
+  <p class="lead">一个事务从 BEGIN 到 COMMIT 持续的时间，超过了合理范围，就是长事务。</p>
+  <pre class="code" data-lang="sql"><code>-- 典型长事务：BEGIN 后跑了一堆查询/计算，半小时才 COMMIT
+BEGIN;
+  SELECT ...;   -- 查了一堆数据，应用层慢慢算
+  -- 中间还夹了 HTTP 调用、调了第三方接口（网络慢）
+  UPDATE ...;
+COMMIT;         -- 这才提交，前面所有行锁、undo 都压了半小时</code></pre>
+  <p>生产经验值：<strong>单个事务控制在秒级（建议 &lt; 1 秒）</strong>。超过几秒就要警惕；几十秒、几分钟的事务，基本是事故苗子。</p>
 </section>
+
 <section id="sec3" class="card">
-  <h2><span class="num">5.2</span> UPDATE 与安全更新</h2>
-  <pre class="code" data-lang="sql"><code>-- 单行更新：主键定位
-UPDATE product SET price = 349.00 WHERE id = 1;
-
--- 表达式更新：在原值基础上算（想加 10 元就写表达式，别先查后写）
-UPDATE product SET price = price + 10 WHERE status = 1;
-
--- 多列一起改，还可以引用别的列
-UPDATE product
-SET price    = price * 0.9,
-    stock    = stock - 1,
-    updated_note = '双十一直降'
-WHERE id = 2;
-
--- 跨表更新（EXISTS 写法，安全且直观）
-UPDATE orders o
-SET o.amount = o.amount * 0.95
-WHERE EXISTS (SELECT 1 FROM customer c
-              WHERE c.id = o.customer_id AND c.level = 'VIP');</code></pre>
-  <p>UPDATE 是本书目前<strong>最危险</strong>的语句，两个保命习惯：</p>
-  <ol>
-    <li><strong>先 SELECT 后 UPDATE</strong>：把 WHERE 子句原封不动拿到 SELECT 里跑一遍，确认影响范围正确，再换成 UPDATE 执行；</li>
-    <li><strong>开启安全更新模式</strong>：<code>SET sql_safe_updates = 1;</code> 之后不带 WHERE（或不带键列条件）的 UPDATE/DELETE 会被直接拒绝——命令行手滑的最后一道保险。</li>
-  </ol>
-  <div class="warn-box">MySQL 8.0.31 之前的 UPDATE/DELETE 不支持 LIMIT 子句的某些场景且行为有版本差异；批量更新大表应按主键分批（每次几千行），一口气 UPDATE 千万行会造成长事务（第 35 章展开）。</div>
+  <h2><span class="num">35.2</span> 长事务的四大危害</h2>
+  <p class="lead">长事务危害的根源是一件事：<strong>它不提交，它的快照就得一直有效</strong>。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>危害</th><th>原理</th></tr></thead>
+    <tbody>
+      <tr><td>undo 版本链膨胀</td><td>事务的 ReadView 要看老版本，undo log 里的旧版本不能清理，越堆越长</td></tr>
+      <tr><td>purge 不推进</td><td>清理线程要等所有活跃事务都不用这些旧版本了才能删，长事务把它卡死</td></tr>
+      <tr><td>行锁长期占用</td><td>事务不提交，它持有的行锁一直不释放，别的事务排队等</td></tr>
+      <tr><td>主从延迟</td><td>长事务占着的行，从库回放要等它提交，主库越写越快、从库越追越远</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">一句话：长事务让 undo 不敢删、行锁不敢放、从库不敢追——它一个人慢，拖累整个数据库。</div>
+  <pre class="code" data-lang="sql"><code>-- 配套监控：information_schema.innodb_trx 里几个有用的列
+-- trx_started        事务开始时间
+-- trx_rows_modified  这个事务改了多少行（越多回滚越久）
+-- trx_lock_structs  它持有多少把锁
+-- trx_query          当前 SQL（NULL = 在睡觉）
+-- 排查时先看 trx_rows_modified 大不大，决定 KILL 后回滚多久</code></pre>
 </section>
 
 <section id="sec4" class="card">
-  <h2><span class="num">5.3</span> DELETE 与软删除</h2>
-  <pre class="code" data-lang="sql"><code>DELETE FROM product WHERE id = 5;              -- 物理删除单行
-DELETE FROM customer_archive WHERE created_at &lt; '2020-01-01';  -- 按条件删</code></pre>
-  <p>物理删除的问题：数据没了就真没了——误删、审计、恢复全都是灾难。所以业务表的标配是<strong>软删除</strong>：</p>
-  <ul>
-    <li>表上加 <code>is_deleted TINYINT NOT NULL DEFAULT 0</code>（或 <code>deleted_at DATETIME NULL</code>）；</li>
-    <li>"删除"变成 <code>UPDATE t SET is_deleted = 1 WHERE id = ?;</code></li>
-    <li>所有业务查询都补上 <code>WHERE is_deleted = 0</code>——这就是为什么第 4 章模板里要有这一列。</li>
-  </ul>
-  <pre class="code" data-lang="sql"><code>-- 软删
-UPDATE customer SET is_deleted = 1 WHERE id = 4;
+  <h2><span class="num">35.3</span> 如何发现长事务</h2>
+  <p class="lead">InnoDB 把当前所有事务都登记在 innodb_trx 里，按持续时间排一下就抓到了。</p>
+  <pre class="code" data-lang="sql"><code>-- 查当前所有事务，按运行时长排序（秒）
+SELECT
+  trx_id,
+  trx_started,                          -- 事务开始时间
+  TIMESTAMPDIFF(SECOND, trx_started, NOW()) AS run_sec,   -- 已运行秒数
+  trx_state,
+  trx_query                            -- 当前在跑的 SQL
+FROM information_schema.innodb_trx
+ORDER BY trx_started ASC;
 
--- 业务查询统一过滤
-SELECT id, name FROM customer WHERE is_deleted = 0;
-
--- 真想清数据时，由归档程序把 is_deleted = 1 且超过保留期的行搬走（第 61 章）</code></pre>
-  <div class="pit-sentence">软删的隐藏成本：所有查询都要记得过滤标记，漏一处就"诈尸"；唯一索引也会把已删记录算进去（手机号唯一列上，删过的老用户挡住新注册）——常用解法是把唯一索引改成 (phone, is_deleted) 组合或在唯一列拼接 deleted_at。</div>
+-- 抓超过 10 秒的长事务
+SELECT * FROM information_schema.innodb_trx
+WHERE TIMESTAMPDIFF(SECOND, trx_started, NOW()) &gt; 10;</code></pre>
+  <div class="note"><strong>监控化</strong>：把"长事务数"做成告警——每隔几秒跑上面这条查询，一旦有事务超过阈值（比如 30 秒）没提交，立刻通知 DBA。这是核心库必备的监控项。</div>
 </section>
 
 <section id="sec5" class="card">
-  <h2><span class="num">5.4</span> 冲突处理三兄弟对比</h2>
-  <p>插入时撞上唯一键怎么办？三种策略，行为差异很大：</p>
-  <table>
-    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
-    <thead><tr><th>写法</th><th>撞唯一键时的行为</th><th>副作用</th></tr></thead>
-    <tbody>
-      <tr><td>INSERT IGNORE</td><td>静默忽略报错，旧行保留</td><td>把"数据非法"等其他错误也一并吞掉，难排查</td></tr>
-      <tr><td>REPLACE INTO</td><td>删掉旧行、插入新行</td><td>自增 ID 变了；触发 DELETE 语义；关联数据成孤儿</td></tr>
-      <tr><td>ON DUPLICATE KEY UPDATE</td><td>把指定列更新为给定值</td><td>语义最明确，批量导入首选</td></tr>
-    </tbody>
-  </table>
-  <pre class="code" data-lang="sql"><code>-- 例：每日统计表，当天已有记录就累加
-INSERT INTO daily_stats (stat_date, pv, uv)
-VALUES ('2026-10-19', 1, 1)
-ON DUPLICATE KEY UPDATE pv = pv + 1, uv = uv + 1;</code></pre>
-  <div class="key-sentence">记住一句话：IGNORE 慎用（吞错误），REPLACE 少用（删了重来），UPSERT（ON DUPLICATE KEY UPDATE）最常用。</div>
+  <h2><span class="num">35.4</span> 如何处理：KILL 与阈值</h2>
+  <p class="lead">发现失控的长事务，直接 KILL 掉它的连接。</p>
+  <pre class="code" data-lang="sql"><code>-- 先从 innodb_trx 或 SHOW PROCESSLIST 找到连接 ID（Id 列）
+SHOW PROCESSLIST;
+
+-- KILL 掉那个连接（会回滚它未提交的事务）
+KILL 12345;
+
+-- 配套参数：防止事务无限期等锁
+SHOW VARIABLES LIKE 'innodb_lock_wait_timeout';   -- 默认 50 秒，可调小</code></pre>
+  <div class="warn-box">KILL 会触发回滚：如果长事务已经改了很多行，回滚也要花相应时间。所以要在<strong>它还没做大量修改时</strong>尽早发现、尽早 KILL——这就是为什么要监控"运行时长"而不是等它把库拖垮。</div>
 </section>
 
 <section id="sec6" class="card">
-  <h2><span class="num">5.5</span> 常见坑清单</h2>
+  <h2><span class="num">35.5</span> 从代码上杜绝长事务</h2>
+  <p class="lead">治本要回到代码：事务里只放数据库操作，把慢的、不可控的东西挪出去。</p>
   <ul>
-    <li><span class="tag-pit">坑</span><strong>UPDATE 漏 WHERE</strong>：全表被改。安全模式 + 先 SELECT 是双保险；</li>
-    <li><span class="tag-pit">坑</span><strong>字符串没加引号</strong>：<code>WHERE name = 张三</code> 会把"张三"当列名报 Unknown column；</li>
-    <li><span class="tag-pit">坑</span><strong>隐式类型转换</strong>：<code>WHERE phone = 13800000001</code>（数字没引号）在字符列上会导致索引失效（第 23 章）；</li>
-    <li><span class="tag-pit">坑</span><strong>UPDATE 影响 0 行不算错</strong>：matched 0 / changed 0 时要分清"没找到"还是"值没变"，应用层判断别只看是否抛异常。</li>
+    <li><span class="tag-key">关键</span><strong>事务里不放远程调用</strong>：HTTP/RPC/发消息这类网络操作挪到 COMMIT 之后；</li>
+    <li><span class="tag-key">关键</span><strong>大改动分批</strong>：一次 UPDATE 100 万行改成每批几千行、按主键循环提交（第 5 章）；</li>
+    <li><span class="tag-point">点</span><strong>事务里不放重计算</strong>：应用层算好再进事务，事务只做必要的读写；</li>
+    <li><span class="tag-point">点</span><strong>设置事务超时</strong>：框架层面（如 Spring 的 @Transactional timeout）给事务兜一个上限。</li>
   </ul>
+  <pre class="code" data-lang="sql"><code>-- 反面：一个事务里批处理 100 万行，锁与 undo 全压在一个事务里
+BEGIN;
+  UPDATE big_table SET flag = 1 WHERE id &lt;= 1000000;   -- 跑几分钟
+COMMIT;
+
+-- 正面：按主键分批，每批一个小事务
+-- 应用层循环：每 5000 行提交一次
+-- BEGIN; UPDATE ... WHERE id BETWEEN ? AND ?; COMMIT;
+-- 持锁时间短、undo 压力小、失败了重跑这一批</code></pre>
+  <div class="key-sentence">治理长事务的心法：<strong>事务里只放数据库读写，把网络调用、重计算、大改动全部挪出去、拆成小批</strong>。让每个事务"进来就干活、干完就走"。</div>
+  <pre class="code" data-lang="sql"><code>-- 分批脚本的骨架（应用层循环，伪代码）
+-- 每批按主键区间切，单批一个事务
+-- long_id = 起始 id；batch = 5000
+WHILE 还有数据:
+  BEGIN;
+    UPDATE big_table SET flag=1
+    WHERE id &gt;= long_id AND id &lt; long_id + 5000 AND flag = 0;
+  COMMIT;
+  long_id = long_id + 5000;
+-- 每批持锁毫秒级，undo 压力可控，失败了从断点续跑</code></pre>
+  <div class="note"><strong>框架兜底</strong>：Spring 等框架的 <code>@Transactional(timeout = 5)</code> 能在秒级自动回滚超时事务；微服务里则要配合链路监控，把事务耗时画进看板，而不是等它拖垮库才发现。</div>
+  <div class="note"><strong>KILL 之前先看修改量</strong>：<code>trx_rows_modified</code> 越大，回滚越久；如果它正在批量刷数，KILL 完还要等回滚完才能放锁——这时候与其 KILL，不如等它自然 COMMIT。</div>
 </section>
 <!--CONT2-->
 <section id="sec7" class="card">
   <h2><span class="num">✓</span> 本章小结</h2>
   <table>
-    <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
     <thead><tr><th>要点</th><th>一句话</th></tr></thead>
     <tbody>
-      <tr><td>INSERT</td><td>永远写列名清单；多值批量比循环快；LAST_INSERT_ID() 拿自增主键</td></tr>
-      <tr><td>UPDATE</td><td>先 SELECT 验证 WHERE，再执行；开 sql_safe_updates 兜底</td></tr>
-      <tr><td>软删除</td><td>is_deleted 打标记代替物理删；所有查询记得过滤；注意唯一索引陷阱</td></tr>
-      <tr><td>冲突处理</td><td>IGNORE 慎用、REPLACE 少用、ON DUPLICATE KEY UPDATE 首选</td></tr>
-      <tr><td>批量原则</td><td>大表更新/删除分批按主键切，避免长事务</td></tr>
+      <tr><td>长事务</td><td>BEGIN 到 COMMIT 超过秒级，生产要 &lt; 1 秒</td></tr>
+      <tr><td>四大危害</td><td>undo 膨胀、purge 卡死、行锁长占、主从延迟</td></tr>
+      <tr><td>发现</td><td>innodb_trx 按 trx_started 排，做成超阈值告警</td></tr>
+      <tr><td>处理</td><td>SHOW PROCESSLIST 找连接，KILL 掉失控事务</td></tr>
+      <tr><td>杜绝</td><td>事务里不放远程调用与重计算，大改动分批提交</td></tr>
     </tbody>
   </table>
 </section>
 
 <section id="sec8" class="card">
   <h2><span class="num">✎</span> 本章习题</h2>
-  <div class="ex-box"><span class="ex-tag">A 基础</span>向 product 表一次插入 5 条商品；然后用 <code>SET sql_safe_updates = 1</code> 后执行一条不带 WHERE 的 UPDATE，记录报错内容，再恢复 <code>SET sql_safe_updates = 0</code>。</div>
-  <div class="ex-box"><span class="ex-tag">B 进阶</span>给 customer 的 phone 建唯一索引（<code>ALTER TABLE customer ADD UNIQUE KEY uk_phone(phone)</code>），分别用 INSERT IGNORE、REPLACE INTO、ON DUPLICATE KEY UPDATE 插入重复手机号，观察三者的返回信息与表内数据差异（注意 REPLACE 后的自增 ID）。</div>
-  <div class="ex-box"><span class="ex-tag">C 挑战</span>把 customer 表加上 is_deleted 列并软删一行；思考：此时手机号还能再注册吗？动手验证，并给出你的唯一索引改造方案。</div>
-  <p class="note">写会了，下一章开始读：SELECT 的核心 WHERE 与各类运算符。</p>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>在一个会话里 <code>BEGIN</code> 后故意不提交，另开一个会话查 <code>information_schema.innodb_trx</code>，读出 trx_started 与已运行秒数。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一条 SQL：查出所有运行超过 10 秒的事务，输出它的 trx_id、当前 SQL、已运行秒数——把它做成你以后巡检长事务的固定脚本。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>一段代码在事务里调用了外部支付接口。从"长事务危害"角度分析它有哪些风险，并重构：哪些操作该留在事务内、哪些该挪到 COMMIT 之后，给出改造后的流程。</div>
+  <p class="note">长事务拖垮的 undo 和 redo 到底各自干什么？下一章把这两份日志的分工讲清楚。</p>
 </section>
 
 </main>
 </div>
 <nav class="doc-nav bottom">
-  <a class="doc-nav-btn" href="004_第4章_建库建表_DDL与约束.html">← 上一章</a>
+  <a class="doc-nav-btn" href="034_第34章_死锁_复现分析与避免.html">← 上一章</a>
   <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
-  <a class="doc-nav-btn" href="006_第6章_基础查询_WHERE与运算符.html">下一章 →</a>
+  <a class="doc-nav-btn" href="036_第36章_undo与redo的分工.html">下一章 →</a>
 </nav>
-<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 5 章 增删改：INSERT/UPDATE/DELETE 与软删</footer>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 35 章 长事务的危害与治理</footer>
 <button id="backTop" type="button" aria-label="回到顶部">↑</button>
 <script>
 (function () {

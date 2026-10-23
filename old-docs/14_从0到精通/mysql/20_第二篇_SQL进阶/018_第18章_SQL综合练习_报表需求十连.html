@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 18 章 SQL 综合练习：报表需求十连｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第二篇 SQL 进阶</p>
+    <h1>第 18 章 SQL 综合练习：报表需求十连</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 18 章 / 共 72 章 · 预计 50 分钟</span>
+    </div>
+    <p class="hero-desc">第二篇收官战：一个电商小库，10 个真实报表需求——日 GMV、类目 TopN、复购率、客单价、累计、环比、库存预警、沉睡订单、连下用户。每条 SQL 都可直接跑通，串起你学过的 JOIN/GROUP BY/子查询/窗口函数/CTE。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="017_第17章_存储过程与触发器初见.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../30_第三篇_索引与优化/019_第19章_B+树_索引为什么是这个结构.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">18.1 统一实验库（可复现）</a></li>
+    <li><a href="#sec3">18.2 需求 1-3：日报基础</a></li>
+    <li><a href="#sec4">18.3 需求 4-6：复购与累计</a></li>
+    <li><a href="#sec5">18.4 需求 7-8：库存与沉睡</a></li>
+    <li><a href="#sec6">18.5 需求 9-10：连下用户</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>拿到一条报表需求，能判断该用 GROUP BY、JOIN、子查询还是窗口函数；</li>
+    <li>把第 6~17 章的语法串成完整、可运行的报表 SQL；</li>
+    <li>熟悉电商业务指标的标准 SQL 口径（GMV、复购率、客单价、环比）；</li>
+    <li>为第三篇"索引与优化"埋下伏笔：每条报表都该问一句"它走索引了吗"。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">18.1</span> 统一实验库（可复现）</h2>
+  <p class="lead">本章全部需求基于四张表。先把这段建表脚本在测试库跑一遍。</p>
+  <pre class="code" data-lang="sql"><code>-- 用户表
+CREATE TABLE customer (
+  id         INT PRIMARY KEY AUTO_INCREMENT,
+  name       VARCHAR(20) NOT NULL,
+  level      VARCHAR(10) NOT NULL DEFAULT 'NORMAL',
+  is_deleted TINYINT NOT NULL DEFAULT 0
+);
+
+-- 商品表
+CREATE TABLE product (
+  id         INT PRIMARY KEY AUTO_INCREMENT,
+  name       VARCHAR(50) NOT NULL,
+  category   VARCHAR(20) NOT NULL,
+  price      DECIMAL(10,2) NOT NULL,
+  stock      INT NOT NULL DEFAULT 0,
+  is_deleted TINYINT NOT NULL DEFAULT 0
+);
+
+-- 订单主表
+CREATE TABLE orders (
+  id          INT PRIMARY KEY AUTO_INCREMENT,
+  order_no    VARCHAR(20) NOT NULL,
+  customer_id INT NOT NULL,
+  amount      DECIMAL(10,2) NOT NULL,    -- 订单总额
+  status      VARCHAR(10) NOT NULL,      -- UNPAID / PAID / DONE
+  created_at  DATETIME NOT NULL,
+  is_deleted  TINYINT NOT NULL DEFAULT 0
+);
+
+-- 订单明细表
+CREATE TABLE order_item (
+  id         INT PRIMARY KEY AUTO_INCREMENT,
+  order_id   INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity   INT NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL
+);
+
+-- 示例数据（按需扩充，以下为最小可跑样本）
+INSERT INTO customer (name, level) VALUES
+  ('张三','VIP'),('李四','NORMAL'),('王五','NORMAL');
+INSERT INTO product (name, category, price, stock) VALUES
+  ('机械键盘','键盘',399,50),('游戏鼠标','鼠标',199,0),('显示器','外设',1299,20);
+INSERT INTO orders (order_no, customer_id, amount, status, created_at) VALUES
+  ('NO001',1,399,'PAID','2026-10-01 10:00:00'),
+  ('NO002',2,199,'PAID','2026-10-02 11:00:00'),
+  ('NO003',1,1299,'PAID','2026-10-03 12:00:00'),
+  ('NO004',3,399,'UNPAID','2026-10-04 09:00:00');
+INSERT INTO order_item (order_id, product_id, quantity, unit_price) VALUES
+  (1,1,1,399),(2,2,1,199),(3,3,1,1299),(4,1,1,399);</code></pre>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 200" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="60" y="70" width="150" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="135" y="95" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">customer</text>
+      <text x="135" y="115" text-anchor="middle" font-size="11" fill="#4f6348">id PK</text>
+      <rect x="300" y="70" width="150" height="60" rx="8" fill="#2d6a3f"/>
+      <text x="375" y="95" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">orders</text>
+      <text x="375" y="115" text-anchor="middle" font-size="11" fill="#d8e8c8">customer_id FK</text>
+      <rect x="540" y="20" width="160" height="55" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="620" y="43" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">order_item</text>
+      <text x="620" y="63" text-anchor="middle" font-size="11" fill="#4f6348">order_id / product_id</text>
+      <rect x="540" y="120" width="160" height="55" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="620" y="143" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">product</text>
+      <text x="620" y="163" text-anchor="middle" font-size="11" fill="#4f6348">id PK</text>
+      <line x1="210" y1="100" x2="300" y2="100" stroke="#2d6a3f" stroke-width="1.5"/>
+      <line x1="450" y1="90" x2="540" y2="50" stroke="#2d6a3f" stroke-width="1.5"/>
+      <line x1="450" y1="115" x2="540" y2="140" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="380" y="195" text-anchor="middle" font-size="13" fill="#4f6348">图 18-1　电商小库星型：orders 居中，连用户、连明细、连商品</text>
+    </svg>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">18.2</span> 需求 1-3：日报基础</h2>
+  <h3>需求 1：每日订单量与 GMV</h3>
+  <pre class="code" data-lang="sql"><code>-- 口径：已支付订单，按日聚合
+SELECT
+  DATE(created_at) AS d,
+  COUNT(*)          AS order_cnt,
+  SUM(amount)       AS gmv
+FROM orders
+WHERE status = 'PAID'
+  AND is_deleted = 0
+GROUP BY DATE(created_at)
+ORDER BY d;</code></pre>
+  <h3>需求 2：类目 GMV Top10</h3>
+  <pre class="code" data-lang="sql"><code>-- 穿过 order_item → product 拿到类目，按类目汇总
+SELECT
+  p.category,
+  SUM(oi.quantity * oi.unit_price) AS cat_gmv,
+  SUM(oi.quantity)                  AS qty
+FROM orders o
+INNER JOIN order_item oi ON oi.order_id = o.id
+INNER JOIN product p      ON p.id = oi.product_id
+WHERE o.status = 'PAID'
+  AND o.is_deleted = 0
+GROUP BY p.category
+ORDER BY cat_gmv DESC
+LIMIT 10;</code></pre>
+  <h3>需求 3：库存预警（可售库存 &lt; 安全阈值）</h3>
+  <pre class="code" data-lang="sql"><code>SELECT id, name, category, stock
+FROM product
+WHERE stock &lt;= 10          -- 安全阈值 10 件
+  AND is_deleted = 0
+ORDER BY stock ASC;</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">18.3</span> 需求 4-6：复购与累计</h2>
+  <h3>需求 4：复购率（下过 ≥2 单的用户 / 下过单的用户总数）</h3>
+  <pre class="code" data-lang="sql"><code>WITH user_order_cnt AS (
+  SELECT customer_id, COUNT(*) AS cnt
+  FROM orders
+  WHERE status = 'PAID' AND is_deleted = 0
+  GROUP BY customer_id
+)
+SELECT
+  COUNT(*)                                             AS paying_users,
+  SUM(CASE WHEN cnt &gt;= 2 THEN 1 ELSE 0 END)            AS repeat_users,
+  ROUND(
+    SUM(CASE WHEN cnt &gt;= 2 THEN 1 ELSE 0 END) / COUNT(*)
+  , 4) AS repeat_rate
+FROM user_order_cnt;</code></pre>
+  <h3>需求 5：日客单价（GMV / 订单数）</h3>
+  <pre class="code" data-lang="sql"><code>SELECT
+  DATE(created_at) AS d,
+  COUNT(*)         AS order_cnt,
+  SUM(amount)      AS gmv,
+  ROUND(SUM(amount) / COUNT(*), 2) AS aov   -- Average Order Value
+FROM orders
+WHERE status = 'PAID' AND is_deleted = 0
+GROUP BY DATE(created_at)
+ORDER BY d;</code></pre>
+  <h3>需求 6：累计销售额（至今逐日累加）</h3>
+  <pre class="code" data-lang="sql"><code>WITH daily AS (
+  SELECT DATE(created_at) AS d, SUM(amount) AS day_gmv
+  FROM orders
+  WHERE status = 'PAID' AND is_deleted = 0
+  GROUP BY DATE(created_at)
+)
+SELECT
+  d,
+  day_gmv,
+  SUM(day_gmv) OVER (ORDER BY d) AS cum_gmv
+FROM daily
+ORDER BY d;</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">18.4</span> 需求 7-8：库存与沉睡</h2>
+  <h3>需求 7：每个类目销量 Top3 商品</h3>
+  <pre class="code" data-lang="sql"><code>WITH prod_sales AS (
+  SELECT
+    p.category,
+    p.name,
+    SUM(oi.quantity) AS qty
+  FROM orders o
+  INNER JOIN order_item oi ON oi.order_id = o.id
+  INNER JOIN product p     ON p.id = oi.product_id
+  WHERE o.status = 'PAID' AND o.is_deleted = 0
+  GROUP BY p.category, p.name
+),
+ranked AS (
+  SELECT
+    category, name, qty,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY qty DESC, name) AS rn
+  FROM prod_sales
+)
+SELECT category, name, qty
+FROM ranked
+WHERE rn &lt;= 3
+ORDER BY category, rn;</code></pre>
+  <h3>需求 8：30 天未支付的沉睡订单（催收名单）</h3>
+  <pre class="code" data-lang="sql"><code>SELECT id, order_no, customer_id, amount, created_at
+FROM orders
+WHERE status = 'UNPAID'
+  AND is_deleted = 0
+  AND created_at &lt; CURDATE() - INTERVAL 7 DAY   -- 下单超 7 天还没付
+ORDER BY created_at;</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">18.5</span> 需求 9-10：连下用户</h2>
+  <h3>需求 9：日 GMV 环比（和前一天比）</h3>
+  <pre class="code" data-lang="sql"><code>WITH daily AS (
+  SELECT DATE(created_at) AS d, SUM(amount) AS gmv
+  FROM orders
+  WHERE status = 'PAID' AND is_deleted = 0
+  GROUP BY DATE(created_at)
+)
+SELECT
+  d,
+  gmv,
+  LAG(gmv) OVER (ORDER BY d) AS prev_gmv,
+  ROUND(
+    (gmv - LAG(gmv) OVER (ORDER BY d))
+    / NULLIF(LAG(gmv) OVER (ORDER BY d), 0)
+  , 4) AS mom_rate
+FROM daily
+ORDER BY d;</code></pre>
+  <h3>需求 10：最近 30 天连续下过单的用户（简化口径：30 天内下单 ≥10 天）</h3>
+  <pre class="code" data-lang="sql"><code>WITH user_days AS (
+  SELECT customer_id, COUNT(DISTINCT DATE(created_at)) AS active_days
+  FROM orders
+  WHERE status = 'PAID' AND is_deleted = 0
+    AND created_at &gt;= CURDATE() - INTERVAL 30 DAY
+  GROUP BY customer_id
+  HAVING active_days &gt;= 10          -- 30 天里有 10 天以上来下单
+)
+SELECT c.id, c.name, u.active_days
+FROM user_days u
+INNER JOIN customer c ON c.id = u.customer_id
+ORDER BY u.active_days DESC;</code></pre>
+  <div class="note"><strong>"真正连续"的高级写法</strong>：严格意义的"连续 N 天"要用到窗口函数做"日期减去行号分组"的经典技巧（gap-island 问题），本书在进阶篇的实战章节（第 80 章）会展开；本需求的"活跃天数"口径对运营召回已经够用。</div>
+  <div class="key-sentence">报表 SQL 的通用拆解顺序：先定口径（哪些行算）→ 再定粒度（按什么分组）→ 然后选聚合函数 → 最后加窗口/排序/分页。10 条需求全是这个套路。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:72%"></colgroup>
+    <thead><tr><th>指标/需求</th><th>标准 SQL 思路</th></tr></thead>
+    <tbody>
+      <tr><td>日 GMV / 订单量</td><td>DATE(created_at) 分组 + COUNT/SUM</td></tr>
+      <tr><td>类目 TopN</td><td>三表 JOIN → 分组 → 窗口排名 → 外层筛</td></tr>
+      <tr><td>复购率</td><td>用户粒度计数 → CASE WHEN 聚合比例</td></tr>
+      <tr><td>客单价</td><td>SUM(amount)/COUNT(*) 按日</td></tr>
+      <tr><td>累计/环比</td><td>SUM/LAG OVER (ORDER BY 日期)</td></tr>
+      <tr><td>沉睡订单</td><td>状态 + 日期范围过滤</td></tr>
+      <tr><td>活跃用户</td><td>COUNT(DISTINCT 日期) HAVING 阈值</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>在实验库上完整跑出"需求 1 每日订单量与 GMV"，并手工核对一行的 COUNT 与 SUM 是否与 orders 表原始数据一致。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把"需求 6 累计销售额"改写成"按类目分别累计"（窗口 PARTITION BY category），观察输出。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>新增需求："找出每位用户历史上金额最大的一笔订单"（返回用户名、订单号、金额）。要求用窗口函数 ROW_NUMBER 按用户分区取 rn=1，先写出 SQL，再思考：如果订单金额并列怎么办？</div>
+  <p class="note">第二篇完结！下一篇进入第三篇"索引与优化"：B+ 树为什么长这样、EXPLAIN 怎么读、为什么你的报表 SQL 在百万行上跑不动——从第 19 章开始。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="017_第17章_存储过程与触发器初见.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../30_第三篇_索引与优化/019_第19章_B+树_索引为什么是这个结构.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 18 章 SQL 综合练习：报表需求十连</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

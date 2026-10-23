@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 12 章 UNION 与集合运算｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第二篇 SQL 进阶</p>
+    <h1>第 12 章 UNION 与集合运算</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 12 章 / 共 72 章 · 预计 30 分钟</span>
+    </div>
+    <p class="hero-desc">日志表按月份分表、站内消息要合并"订单通知"和"系统通知"——把两个 SELECT 的结果竖向叠起来用 UNION。UNION 和 UNION ALL 差在哪、ORDER BY 给谁排序、8.0.31 起才有的 INTERSECT/EXCEPT 又是什么，本章讲清。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="011_第11章_EXISTS与IN的选择.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="013_第13章_窗口函数_rank_row_number_累计.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">12.1 UNION 与 UNION ALL</a></li>
+    <li><a href="#sec3">12.2 列对齐与类型规则</a></li>
+    <li><a href="#sec4">12.3 ORDER BY 与 LIMIT 的位置</a></li>
+    <li><a href="#sec5">12.4 INTERSECT 与 EXCEPT（8.0.31+）</a></li>
+    <li><a href="#sec6">本章小结</a></li>
+    <li><a href="#sec7">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>分清 <code>UNION</code>（去重）与 <code>UNION ALL</code>（不去重）的成本差异，形成"默认 ALL"的肌肉记忆；</li>
+    <li>掌握集合运算的列对齐规则：列数一致、类型兼容，列名以第一个 SELECT 为准；</li>
+    <li>知道 ORDER BY/LIMIT 在 UNION 语句里写在哪才生效；</li>
+    <li>了解 MySQL 8.0.31 引入的 <code>INTERSECT</code> / <code>EXCEPT</code> 语法与版本边界；</li>
+    <li>看懂分表查询合并、消息流合并这两个真实场景。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">12.1</span> UNION 与 UNION ALL</h2>
+  <p class="lead">UNION 把多个 SELECT 的结果竖向堆叠。区别只有一个：UNION 会对整行去重，UNION ALL 直接拼。</p>
+  <pre class="code" data-lang="sql"><code>-- 场景：站内消息中心，"我的待办" = 订单通知 + 系统通知
+SELECT id, title, created_at
+FROM msg_order
+WHERE user_id = 42
+UNION ALL
+SELECT id, title, created_at
+FROM msg_system
+WHERE user_id = 42
+ORDER BY created_at DESC
+LIMIT 20;</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>写法</th><th>行为</th><th>成本</th></tr></thead>
+    <tbody>
+      <tr><td>UNION ALL</td><td>直接堆叠，保留重复行</td><td>低：两张表各扫各的，拼起来完事</td></tr>
+      <tr><td>UNION</td><td>堆叠后对整行去重（临时表 + 排序/哈希）</td><td>高：数据量越大去重越贵</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">默认写 UNION ALL，只有业务确实要求"两行完全相同只留一条"时才用 UNION——这是 SQL 性能清单里性价比最高的一个习惯。</div>
+  <div class="note"><strong>分表合并</strong>：按月份分表的 order_202609、order_202610 做跨月查询时，UNION ALL 是标准姿势；这也是第 60 章分库分表中间件背后的思路。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">12.2</span> 列对齐与类型规则</h2>
+  <p class="lead">竖向堆叠的硬性规则：每个 SELECT 的列数必须一致，同位置列的类型要兼容。</p>
+  <pre class="code" data-lang="sql"><code>-- 合法：列数一致、对应类型兼容
+SELECT id, name, price FROM product WHERE category_id = 3
+UNION ALL
+SELECT id, name, price FROM product_backup WHERE category_id = 3;
+
+-- 报错示例一：列数不一致
+SELECT id, name FROM product
+UNION ALL
+SELECT id, name, price FROM product_backup;     -- The used SELECT statements have a different number of columns
+
+-- 报错/隐式转换示例二：类型不兼容（能跑但结果可能不是你想的）
+SELECT id FROM product
+UNION ALL
+SELECT name FROM product;       -- id 是数字、name 是字符串 → 按规则统一成字符串</code></pre>
+  <ul>
+    <li><strong>列名以第一个 SELECT 为准</strong>：结果集的列名看第一句，后面 SELECT 的列名被忽略；</li>
+    <li><strong>类型向上兼容</strong>：同位置数字与字符串混用时，MySQL 按数据类型优先级统一（通常变成字符串或 DOUBLE）——别依赖这种隐式转换，手工 CAST 对齐；</li>
+    <li><strong>行去重按"整行所有列"比较</strong>：UNION 的去重是逐列等值，NULL 与 NULL 在 UNION 里视为相等（与 WHERE 里的三值逻辑不同，这是集合运算的定义）。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">12.3</span> ORDER BY 与 LIMIT 的位置</h2>
+  <p class="lead">这是 UNION 语句第二大坑：排序和分页作用于"堆叠后的整体"还是"单个 SELECT"？</p>
+  <pre class="code" data-lang="sql"><code>-- 正确：最后一个 SELECT 后面写 ORDER BY，作用于 UNION 合并后的整体
+SELECT id, title, created_at FROM msg_order   WHERE user_id = 42
+UNION ALL
+SELECT id, title, created_at FROM msg_system  WHERE user_id = 42
+ORDER BY created_at DESC                      -- 对合并后的所有行排序
+LIMIT 20;                                    -- 对合并后的整体分页
+
+-- 错误认知：给单个 SELECT 排序（不加括号时不生效/不符合预期）
+-- 想给子集先排：需要括号（MySQL 支持带括号的 SELECT）
+(SELECT id, title FROM msg_order  ORDER BY created_at DESC LIMIT 10)
+UNION ALL
+(SELECT id, title FROM msg_system ORDER BY created_at DESC LIMIT 10);</code></pre>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 220" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="40" y="40" width="220" height="55" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="150" y="63" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">SELECT A（订单通知）</text>
+      <text x="150" y="83" text-anchor="middle" font-size="11" fill="#4f6348">列：id / title / created_at</text>
+      <rect x="40" y="120" width="220" height="55" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="150" y="143" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">SELECT B（系统通知）</text>
+      <text x="150" y="163" text-anchor="middle" font-size="11" fill="#4f6348">列：id / title / created_at</text>
+      <line x1="260" y1="67" x2="330" y2="115" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr4)"/>
+      <line x1="260" y1="147" x2="330" y2="125" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr4)"/>
+      <rect x="330" y="85" width="170" height="60" rx="8" fill="#2d6a3f"/>
+      <text x="415" y="110" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">UNION ALL 堆叠</text>
+      <text x="415" y="130" text-anchor="middle" font-size="11" fill="#d8e8c8">（UNION 则先整行去重）</text>
+      <line x1="500" y1="115" x2="560" y2="115" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr4)"/>
+      <rect x="560" y="85" width="170" height="60" rx="8" fill="#2d6a3f"/>
+      <text x="645" y="110" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">ORDER BY / LIMIT</text>
+      <text x="645" y="130" text-anchor="middle" font-size="11" fill="#d8e8c8">作用于整体</text>
+      <defs><marker id="arr4" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2d6a3f"/></marker></defs>
+      <text x="380" y="200" text-anchor="middle" font-size="13" fill="#4f6348">图 12-1　UNION 执行流：先各自查、堆叠，最后统一排序分页</text>
+    </svg>
+  </div>
+  <div class="pit-sentence">跨子集分页是经典大坑："每个子查询各 LIMIT 10，再整体 LIMIT 20" 不等于"整体的前 20 条"。真要做整体分页，必须把 UNION 结果当派生表再包一层 ORDER BY/LIMIT。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">12.4</span> INTERSECT 与 EXCEPT（8.0.31+）</h2>
+  <p class="lead">标准 SQL 里的另外两个集合运算：交集（INTERSECT）与差集（EXCEPT），MySQL 直到 8.0.31 才正式支持。</p>
+  <pre class="code" data-lang="sql"><code>-- 版本前提：SELECT VERSION(); 需 &gt;= 8.0.31
+
+-- INTERSECT：既在订单通知里、又在系统通知里出现过的人（实际业务少用）
+SELECT user_id FROM msg_order  WHERE created_at &gt; '2026-10-01'
+INTERSECT
+SELECT user_id FROM msg_system WHERE created_at &gt; '2026-10-01';
+
+-- EXCEPT：下过单但从没被系统通知过的用户集合
+SELECT user_id FROM msg_order
+EXCEPT
+SELECT user_id FROM msg_system;
+
+-- 旧版本（8.0.31 之前）的等价写法：
+-- INTERSECT → INNER JOIN / EXISTS；EXCEPT → NOT EXISTS（第 11 章）</code></pre>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:30%"><col style="width:50%"></colgroup>
+    <thead><tr><th>运算</th><th>数学含义</th><th>旧版本替代写法</th></tr></thead>
+    <tbody>
+      <tr><td>UNION [ALL]</td><td>并集</td><td>一直支持，无替代问题</td></tr>
+      <tr><td>INTERSECT</td><td>交集（同时在两边）</td><td>INNER JOIN / EXISTS</td></tr>
+      <tr><td>EXCEPT</td><td>差集（在 A 不在 B）</td><td>NOT EXISTS / LEFT JOIN IS NULL</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">版本差异显式标注：INTERSECT/EXCEPT 是 8.0.31（2022 年末）才进入语法的。线上若版本低于此，用 JOIN/EXISTS 改写，本书后续报表章节也统一用兼容写法。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:72%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>UNION ALL vs UNION</td><td>默认 ALL；UNION 的整行去重要付出排序/哈希成本</td></tr>
+      <tr><td>列对齐</td><td>列数一致、类型兼容；列名看第一个 SELECT</td></tr>
+      <tr><td>排序分页</td><td>写在最后，作用于合并后的整体；子集分页要各自括号包起来</td></tr>
+      <tr><td>INTERSECT/EXCEPT</td><td>8.0.31+ 才有；旧版本用 EXISTS/NOT EXISTS 改写</td></tr>
+      <tr><td>典型场景</td><td>分表合并、消息流、日志归集</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>把 order_202609 与 order_202610 两张结构相同的分表合并，查出两月所有已支付订单的 id、order_no、amount，按金额降序取前 50。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把 A 的结果再包装一层派生表，实现"按月分别各取金额前 3，再合并且整体按金额降序"，对比"不包一层直接写"的结果差异。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在 MySQL 版本低于 8.0.31 的前提下，用 NOT EXISTS 写出"下过单但从未被系统通知过的用户"，并说明为什么不用 NOT IN。</div>
+  <p class="note">集合运算会了，下一章是第二篇的重头戏：窗口函数——排名、累计、环比，一条 SQL 搞定过去要写半页的报表。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="011_第11章_EXISTS与IN的选择.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="013_第13章_窗口函数_rank_row_number_累计.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 12 章 UNION 与集合运算</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

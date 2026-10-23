@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 22 章 覆盖索引与回表｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第三篇 索引与优化</p>
+    <h1>第 22 章 覆盖索引与回表</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 22 章 / 共 72 章 · 预计 35 分钟</span>
+    </div>
+    <p class="hero-desc">二级索引的叶子里只存"索引列 + 主键值"，所以按二级索引找到行之后，还要拿主键回聚簇索引再取一次整行——这就是回表。能不能不回表？能，只要你要的列索引里全有了，这就是覆盖索引。本章把"回表"这两次 IO 省下来。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="021_第21章_联合索引与最左前缀.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="023_第23章_索引失效的N种场景.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">22.1 回表：二级索引为什么要查两次</a></li>
+    <li><a href="#sec3">22.2 覆盖索引：一次索引查询就拿全所有列</a></li>
+    <li><a href="#sec4">22.3 EXPLAIN 里的 Using index</a></li>
+    <li><a href="#sec5">22.4 为什么杜绝 SELECT *</a></li>
+    <li><a href="#sec6">22.5 延迟关联：深度分页的回表优化</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>画出"二级索引 → 主键 → 聚簇索引"的回表路径，说出多一次 IO 花在哪；</li>
+    <li>定义覆盖索引，并在 EXPLAIN 中认出 <code>Using index</code>；</li>
+    <li>理解为什么 <code>SELECT *</code> 是覆盖索引的天敌；</li>
+    <li>会用延迟关联（join 子查询）优化 <code>LIMIT 100000, 20</code> 这类深度分页；</li>
+    <li>能为高频查询设计"顺手覆盖"的联合索引。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">22.1</span> 回表：二级索引为什么要查两次</h2>
+  <p class="lead">二级索引的叶子存的不是整行，而是"索引列值 + 主键值"——拿主键再去聚簇索引取整行，这一跳就是回表。</p>
+  <p>回顾第 20 章：普通索引 <code>idx_city(city)</code> 的叶子节点，每条记录存的是 <code>('成都', 主键 id=1001)</code>。当执行 <code>SELECT * FROM user WHERE city='成都'</code> 时：</p>
+  <ol>
+    <li>在 <code>idx_city</code> 的 B+ 树里定位到 city='成都' 的叶子页，读出一堆主键值（1001、1008、1033……）；</li>
+    <li><code>SELECT *</code> 要 name、phone、age 等<strong>整行</strong>，这些列不在二级索引里，只能拿每个主键值回聚簇索引（主键 B+ 树）再查一次；</li>
+    <li>每回一次表 = 多一次 B+ 树查找。命中 1000 行 = 1000 次随机回表，这就是慢的根源。</li>
+  </ol>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 220" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <rect x="40" y="30" width="240" height="160" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="160" y="55" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">二级索引 idx_city</text>
+    <text x="160" y="85" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">('成都', id=1001)</text>
+    <text x="160" y="110" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">('成都', id=1008)</text>
+    <text x="160" y="135" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">('成都', id=1033)</text>
+    <text x="160" y="170" text-anchor="middle" font-size="11" fill="#7a8a70">只存索引列 + 主键</text>
+    <rect x="480" y="30" width="240" height="160" rx="8" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="600" y="55" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">聚簇索引（主键树）</text>
+    <text x="600" y="85" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">id=1001 → 整行数据</text>
+    <text x="600" y="110" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">id=1008 → 整行数据</text>
+    <text x="600" y="135" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">id=1033 → 整行数据</text>
+    <text x="600" y="170" text-anchor="middle" font-size="11" fill="#7a8a70">叶子存完整行</text>
+    <path d="M 280 85 C 360 85, 400 85, 480 85" stroke="#2d6a3f" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+    <path d="M 280 110 C 360 110, 400 110, 480 110" stroke="#2d6a3f" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+    <path d="M 280 135 C 360 135, 400 135, 480 135" stroke="#2d6a3f" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+    <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+    <text x="380" y="20" text-anchor="middle" font-size="12" fill="#b45309">每命中一行主键 → 一次回表随机 IO</text>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 22-1 回表路径：二级索引查到主键，再拿主键去聚簇索引逐行取整行</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">22.2</span> 覆盖索引：一次索引查询就拿全所有列</h2>
+  <p class="lead">如果查询要的列，索引叶子里<strong>全都有</strong>，就不用回表了——这叫覆盖索引（Covering Index）。</p>
+  <p>二级索引的叶子天然存了"索引列 + 主键"。所以只要 SELECT 的列、WHERE 用到的列，加起来都 ≤ 索引列，引擎读完索引叶子就齐活，连聚簇索引都不用碰。</p>
+  <pre class="code" data-lang="sql"><code>-- 索引：idx_city_age (city, age)
+SELECT city, age FROM user WHERE city = '成都' AND age = 25;
+--  ↑索引要的列 = city、age，索引叶子里全有 → 不回表
+
+SELECT * FROM user WHERE city = '成都';
+--  ↑还要 name、phone……索引里没有 → 每行都回表</code></pre>
+  <div class="key-sentence">覆盖索引的本质：把要查的列"塞进"联合索引里，让索引叶子 = 查询结果的全部数据，回表归零。</div>
+  <p>实战技巧：给高频查询建联合索引时，把 <strong>WHERE 列 + 真正会 SELECT 的列</strong> 一起排进去。比如列表页只要显示用户名和城市，<code>idx_city_name(city, name)</code> 就顺手覆盖了"按城市筛、取名称"这条查询。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">22.3</span> EXPLAIN 里的 Using index</h2>
+  <p class="lead">EXPLAIN 的 Extra 列直接告诉你有没有回表——这是你判断覆盖索引的唯一权威依据。</p>
+  <pre class="code" data-lang="sql"><code>-- 覆盖索引命中：Extra 显示 Using index
+EXPLAIN SELECT city, age FROM user WHERE city = '成都';
+-- Extra: Using index   → 索引覆盖，没回表，性能拉满
+
+-- 非覆盖：Extra 只有 Using where（没有 Using index）
+EXPLAIN SELECT * FROM user WHERE city = '成都';
+-- Extra: Using where   → 走了索引但逐行回表
+
+-- 配合 ICP 的形态：Using index condition 仍可能回表，要区分（第 21、24 章）</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>Extra 关键值</th><th>含义</th><th>回表</th></tr></thead>
+    <tbody>
+      <tr><td>Using index</td><td>索引覆盖，查询列全在索引里</td><td>不回表</td></tr>
+      <tr><td>Using index condition</td><td>索引下推，断档列在引擎层先筛</td><td>只对命中行回表</td></tr>
+      <tr><td>Using where</td><td>Server 层再过滤，可能逐行回表</td><td>按命中行回表</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>记法</strong>：Extra 里出现 <code>Using index</code>（不带 condition）才是教科书式覆盖索引；只要出现回表的迹象，rows 乘以回表成本就是这条查询的真实开销。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">22.4</span> 为什么杜绝 SELECT *</h2>
+  <p class="lead">SELECT * 会把"所有列"都变成回表触发条件，直接扼杀覆盖索引。</p>
+  <p>很多人图省事写 <code>SELECT *</code>，对覆盖索引是灾难：你原本只要 name、city 两列，建了 (city, name) 能覆盖；一旦 SELECT *，还要 phone、age、email……索引里没有，只能全部回表，再好的联合索引都白搭。</p>
+  <pre class="code" data-lang="sql"><code>-- 反面：要 10 列，索引只能覆盖 2 列 → 8 列要回表
+SELECT * FROM user WHERE city = '成都';
+
+-- 正面：只写真正用到的列，让索引刚好覆盖
+SELECT name, city FROM user WHERE city = '成都';</code></pre>
+  <div class="pit-sentence">生产规范：<strong>永远不写 SELECT *</strong>。列名显式列出，既避免回表，又防止表结构加列后应用读到多余数据、还能利用覆盖索引——一举三得。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">22.5</span> 延迟关联：深度分页的回表优化</h2>
+  <p class="lead"><code>LIMIT 100000, 20</code> 为什么慢？因为它要先回表捞出 10 万行、再丢掉 99980 行。</p>
+  <pre class="code" data-lang="sql"><code>-- 慢：深分页。回表取前 10 万行，再往后翻 20 行
+SELECT * FROM user
+WHERE city = '成都'
+ORDER BY id
+LIMIT 100000, 20;
+
+-- 快：延迟关联。先用覆盖索引只取这 20 个主键，再回表
+SELECT t.* FROM user t
+JOIN (
+  SELECT id FROM user
+  WHERE city = '成都'
+  ORDER BY id
+  LIMIT 100000, 20
+) AS tmp ON tmp.id = t.id;</code></pre>
+  <p>原理：子查询 <code>SELECT id FROM user ... LIMIT 100000,20</code> 只要 id——在 (city, id) 或覆盖索引上就能完成，<strong>不回表</strong>；拿到的只有 20 个主键，外层 JOIN 再回表取 20 行整行。回表次数从 10 万次降到 20 次，这就是深度分页的标准答案。</p>
+  <div class="key-sentence">深分页优化口诀：先在覆盖索引上把"要哪几个主键"算出来，再用这几个主键回表——回表次数 = 一页行数，不是偏移量。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>回表</td><td>二级索引叶子存"索引列+主键"，取整行要拿主键再查聚簇索引</td></tr>
+      <tr><td>覆盖索引</td><td>查询列全在索引里，读完叶子即得结果，不回表</td></tr>
+      <tr><td>Using index</td><td>EXPLAIN Extra 出现它 = 教科书式覆盖索引命中</td></tr>
+      <tr><td>SELECT *</td><td>触发不必要回表，扼杀覆盖索引；永远显式列名</td></tr>
+      <tr><td>延迟关联</td><td>深分页先在覆盖索引上取主键、再回表，回表次数从偏移量降到一页</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>在 <code>user(city, age, name, ...)</code> 上建 <code>idx_city_age(city, age)</code>，分别执行 <code>SELECT city, age FROM user WHERE city='成都'</code> 与 <code>SELECT * FROM user WHERE city='成都'</code>，用 EXPLAIN 观察 Extra 列 <code>Using index</code> 的有无。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给上一题的查询设计一条能覆盖 <code>SELECT name, city FROM user WHERE city=? AND age=?</code> 的联合索引（提示：索引列 = 等值列 + 查询列），并用 EXPLAIN 验证 Extra 变成 <code>Using index</code>。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>造一张 10 万行的 orders 表，对比 <code>LIMIT 50000, 10</code> 的朴素写法与延迟关联写法的执行计划与耗时；说明为什么子查询里 <code>SELECT id</code> 能不回表。</div>
+  <p class="note">索引建好了也可能白建。下一章盘点"索引失效的 N 种场景"——把你写过的 WHERE 逐个对一遍。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="021_第21章_联合索引与最左前缀.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="023_第23章_索引失效的N种场景.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 22 章 覆盖索引与回表</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

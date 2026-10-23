@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 14 章 CTE 公用表表达式与递归查询｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第二篇 SQL 进阶</p>
+    <h1>第 14 章 CTE 公用表表达式与递归查询</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 14 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">"上一章那种子查询包子查询"——嵌套三层之后谁都读不懂。CTE（WITH 子句）让你把中间结果起名字、层层叠上去；它还有一个杀手锏：RECURSIVE 递归，遍历部门树、菜单树、生成连续日期序列全靠它。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="013_第13章_窗口函数_rank_row_number_累计.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="015_第15章_常用函数_字符串_日期_条件.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">14.1 非递归 CTE：先起名再用</a></li>
+    <li><a href="#sec3">14.2 链式 CTE</a></li>
+    <li><a href="#sec4">14.3 递归 CTE：遍历树</a></li>
+    <li><a href="#sec5">14.4 递归的终止与深度限制</a></li>
+    <li><a href="#sec6">14.5 实战：日期序列</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>用 <code>WITH</code> 把复杂查询拆成"命名的中间步骤"，告别三层嵌套子查询；</li>
+    <li>写出链式 CTE（第二步引用第一步的结果）；</li>
+    <li>理解递归 CTE 的"锚点 + 递归步"两段结构；</li>
+    <li>用递归 CTE 遍历组织树（manager_id → id）；</li>
+    <li>知道 <code>cte_max_recursion_depth</code> 的兜底作用，避免递归死循环。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">14.1</span> 非递归 CTE：先起名再用</h2>
+  <p class="lead">CTE = Common Table Expression：在主查询之前用 WITH 定义一批"临时视图"，主查询里随便引用。</p>
+  <pre class="code" data-lang="sql"><code>-- 上一章组内 TopN 的 CTE 写法：可读性碾压嵌套子查询
+WITH cat_sales AS (
+  SELECT
+    category,
+    product,
+    SUM(amount) AS total_amount
+  FROM sales_demo
+  GROUP BY category, product
+),
+ranked AS (
+  SELECT
+    category, product, total_amount,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY total_amount DESC) AS rn
+  FROM cat_sales
+)
+SELECT category, product, total_amount
+FROM ranked
+WHERE rn &lt;= 3
+ORDER BY category, rn;</code></pre>
+  <ul>
+    <li>每个 CTE 像一条"命名的变量"：第一步算完叫 <code>cat_sales</code>，第二步 <code>ranked</code> 直接引用它；</li>
+    <li>一条 WITH 里可以定义多个 CTE，用逗号分隔；后面的可以引用前面的（链式，见下一节）；</li>
+    <li>CTE 只在<strong>当前这条语句</strong>里有效，语句结束就消失——不建表、不存数据，纯语法糖 + 可读性。</li>
+  </ul>
+  <div class="key-sentence">CTE 对性能几乎无影响（8.0 会做合并/下推优化），它的真正价值是可读性：报表 SQL 超过两层嵌套就该换 CTE 拆步骤。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">14.2</span> 链式 CTE</h2>
+  <p class="lead">后一步引用前一步的结果，像流水线一样——这是 CTE 最常用的形态。</p>
+  <pre class="code" data-lang="sql"><code>-- 业务：算"本月每日本类目的累计销售额环比"
+WITH daily AS (                       -- 第一步：按日按类目汇总
+  SELECT sale_date, category, SUM(amount) AS day_amount
+  FROM sales_demo
+  GROUP BY sale_date, category
+),
+cum AS (                             -- 第二步：在 daily 基础上算累计
+  SELECT
+    sale_date, category, day_amount,
+    SUM(day_amount) OVER (
+      PARTITION BY category ORDER BY sale_date
+    ) AS cum_amount
+  FROM daily
+)
+SELECT * FROM cum ORDER BY category, sale_date;
+
+-- CTE 还能被引用多次（子查询做不到，FROM 派生表也只能用一次）
+WITH stats AS (SELECT AVG(amount) AS avg_a FROM sales_demo)
+SELECT * FROM sales_demo CROSS JOIN stats
+WHERE amount &gt; stats.avg_a;</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">14.3</span> 递归 CTE：遍历树</h2>
+  <p class="lead">WITH RECURSIVE 是 SQL 处理"自引用结构"（部门树、菜单树、评论楼中楼）的唯一优雅解。</p>
+  <pre class="code" data-lang="sql"><code>-- 准备：员工表（manager_id 指向本表 id）
+DROP TABLE IF EXISTS emp_tree;
+CREATE TABLE emp_tree (
+  id        INT PRIMARY KEY,
+  name      VARCHAR(20),
+  manager_id INT
+);
+INSERT INTO emp_tree VALUES
+  (1, 'CEO',      NULL),
+  (2, '技术总监', 1),
+  (3, '产品总监', 1),
+  (4, '前端组长', 2),
+  (5, '后端组长', 2),
+  (6, '前端工程师', 4);
+
+-- 递归 CTE：从 CEO 出发，向下逐层找到所有下属
+WITH RECURSIVE org AS (
+  -- ① 锚点：起点行（谁都不是下属的人）
+  SELECT id, name, manager_id, 1 AS depth
+  FROM emp_tree
+  WHERE manager_id IS NULL
+
+  UNION ALL
+
+  -- ② 递归步：把上一步的结果 join 回原表，找"它的下属"
+  SELECT e.id, e.name, e.manager_id, o.depth + 1
+  FROM emp_tree e
+  JOIN org o ON e.manager_id = o.id
+)
+SELECT * FROM org ORDER BY depth, id;</code></pre>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 230" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="330" y="20" width="100" height="40" rx="8" fill="#2d6a3f"/>
+      <text x="380" y="45" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">depth=1 CEO</text>
+      <line x1="355" y1="60" x2="220" y2="100" stroke="#2d6a3f" stroke-width="1.5"/>
+      <line x1="405" y1="60" x2="540" y2="100" stroke="#2d6a3f" stroke-width="1.5"/>
+      <rect x="170" y="100" width="110" height="40" rx="8" fill="#4f8a63"/>
+      <text x="225" y="125" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">depth=2 技术总监</text>
+      <rect x="485" y="100" width="110" height="40" rx="8" fill="#4f8a63"/>
+      <text x="540" y="125" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">depth=2 产品总监</text>
+      <line x1="200" y1="140" x2="150" y2="180" stroke="#2d6a3f" stroke-width="1.5"/>
+      <line x1="245" y1="140" x2="300" y2="180" stroke="#2d6a3f" stroke-width="1.5"/>
+      <rect x="95" y="180" width="110" height="35" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="150" y="202" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">depth=3 前端组长</text>
+      <rect x="250" y="180" width="110" height="35" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="305" y="202" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">depth=3 后端组长</text>
+      <text x="600" y="60" text-anchor="middle" font-size="12" fill="#4f6348">①锚点 → ②JOIN 递归步</text>
+      <text x="600" y="85" text-anchor="middle" font-size="12" fill="#4f6348">每轮产出一层新行</text>
+      <text x="380" y="228" text-anchor="middle" font-size="12" fill="#4f6348">图 14-1　递归 CTE 逐层展开组织树（depth 即层级）</text>
+    </svg>
+  </div>
+  <div class="note"><strong>反向遍历</strong>：从某员工出发找全部上级，把 JOIN 条件反过来：<code>JOIN org o ON e.id = o.manager_id</code> 改成 <code>JOIN org o ON e.id = o.manager_id</code> 锚点换成"该员工"，递归步 <code>JOIN emp_tree e ON o.manager_id = e.id</code> 即可一路找到 CEO。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">14.4</span> 递归的终止与深度限制</h2>
+  <p class="lead">递归不是死循环——它靠"递归步再也产不出新行"自然停止，但 MySQL 给它兜了一层强制上限。</p>
+  <pre class="code" data-lang="sql"><code>-- 查看/调整递归深度上限（默认 1000）
+SHOW VARIABLES LIKE 'cte_max_recursion_depth';
+SET SESSION cte_max_recursion_depth = 100;
+
+-- 构造死循环（自引用成环）的后果：
+WITH RECURSIVE loop_cte AS (
+  SELECT 1 AS n
+  UNION ALL
+  SELECT n + 1 FROM loop_cte WHERE n &lt; 5000   -- 没有其他终止条件
+)
+SELECT * FROM loop_cte;
+-- 跑到 1000 层（默认上限）直接报错：Recursive query aborted after 1001 iterations</code></pre>
+  <div class="warn-box">生产纪律：① 递归步的 JOIN 条件必须收敛（manager_id 指向一定收敛到锚点），环数据要先清掉；② 无限序列（如生成日期）必须显式写终止条件 <code>WHERE n &lt; 某上限</code>；③ <code>cte_max_recursion_depth</code> 是保险丝，别为了跑大递归把它调到天上去。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">14.5</span> 实战：日期序列</h2>
+  <p class="lead">报表常见需求：没下单的日期也要显示 0——先生成连续日期表，再 LEFT JOIN 真实数据。</p>
+  <pre class="code" data-lang="sql"><code>-- 生成 2026-10-01 ~ 2026-10-07 的连续日期序列
+WITH RECURSIVE dates AS (
+  SELECT CAST('2026-10-01' AS DATE) AS d
+  UNION ALL
+  SELECT d + INTERVAL 1 DAY FROM dates WHERE d &lt; '2026-10-07'
+)
+SELECT d FROM dates;
+
+-- 实战：10 月每天订单数，没单的日期显示 0
+WITH RECURSIVE dates AS (
+  SELECT CAST('2026-10-01' AS DATE) AS d
+  UNION ALL
+  SELECT d + INTERVAL 1 DAY FROM dates WHERE d &lt; '2026-10-31'
+),
+day_order AS (
+  SELECT DATE(created_at) AS d, COUNT(*) AS cnt
+  FROM orders
+  WHERE created_at &gt;= '2026-10-01' AND created_at &lt; '2026-11-01'
+  GROUP BY DATE(created_at)
+)
+SELECT d.d, COALESCE(o.cnt, 0) AS order_cnt
+FROM dates d
+LEFT JOIN day_order o ON o.d = d.d
+ORDER BY d.d;</code></pre>
+  <div class="key-sentence">"日期表 LEFT JOIN 业务表，COALESCE 补 0" 是报表 SQL 的经典范式——没有 CTE 之前，这个需求要建日历表或者递归嵌套半天。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:72%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>非递归 CTE</td><td>WITH 给中间结果起名，替代嵌套子查询，主提升可读性</td></tr>
+      <tr><td>链式</td><td>后面的 CTE 可以引用前面的；同一结果可被多次引用</td></tr>
+      <tr><td>递归 CTE</td><td>锚点（起点）+ UNION ALL + 递归步（JOIN 自身）</td></tr>
+      <tr><td>树遍历</td><td>组织树/菜单树/楼中楼评论的标准解，depth 记录层级</td></tr>
+      <tr><td>保险丝</td><td>cte_max_recursion_depth 默认 1000；无限序列必须写终止条件</td></tr>
+      <tr><td>日期序列</td><td>连续日期 CTE + LEFT JOIN + COALESCE 补 0</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 WITH 改写第 13 章"组内 Top3"查询：先 CTE 汇总、再 CTE 排名、最后主查询筛 rn&lt;=3，对比嵌套子查询版本的可读性。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在 emp_tree 基础上，从"前端工程师"出发，用递归 CTE 一路向上找到 CEO，输出路径（depth 从大到小排）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>生成 2026-10 全月日期序列，LEFT JOIN 订单表统计每日订单数，没单的日期补 0；并给没下单的日期加一条 WHERE 过滤思路（要不要在 LEFT 前先筛）。</div>
+  <p class="note">CTE 会用了，下一章回到单兵武器：字符串、日期、条件三大类常用函数——写 SQL 谁也离不了。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="013_第13章_窗口函数_rank_row_number_累计.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="015_第15章_常用函数_字符串_日期_条件.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 14 章 CTE 公用表表达式与递归查询</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

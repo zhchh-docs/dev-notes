@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 36 章 undo 与 redo 的分工｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 36 章 undo 与 redo 的分工</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 36 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">A 靠 undo、D 靠 redo——上一章留下的这个结论，本章展开。undo log 是"回滚日志"也是 MVCC 的版本链；redo log 是"重做日志"靠 WAL 保证宕机不丢。两份日志在一次提交里怎么配合、两阶段提交是什么，看完这章事务的持久化就闭环了。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="035_第35章_长事务的危害与治理.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_锁等待实战_谁卡住了谁.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">36.1 undo log：回滚日志与版本链</a></li>
+    <li><a href="#sec3">36.2 redo log：WAL 与崩溃恢复</a></li>
+    <li><a href="#sec4">36.3 一次提交的两份日志配合</a></li>
+    <li><a href="#sec5">36.4 两阶段提交：redo 与 binlog</a></li>
+    <li><a href="#sec6">36.5 关键参数与对比表</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 undo log 的两个职责：回滚 + MVCC 版本链；</li>
+    <li>理解 redo log 的 WAL 思想与崩溃恢复；</li>
+    <li>描述一次 COMMIT 时两份日志与数据页的先后顺序；</li>
+    <li>解释两阶段提交（redo prepare → binlog → redo commit）；</li>
+    <li>看懂 redo 相关参数，区分物理日志与逻辑日志。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">36.1</span> undo log：回滚日志与版本链</h2>
+  <p class="lead">undo log 记的是"修改前的旧值"，一份日志干两件事。</p>
+  <pre class="code" data-lang="sql"><code>-- 把 id=1 的 balance 从 100 改成 0 之前，undo 记下：
+--   旧值 = 100，对应 id=1
+-- 作用一（回滚）：事务 ROLLBACK 时，照 undo 把 0 改回 100
+-- 作用二（MVCC）：第 31 章的版本链，快照读靠它找历史版本</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>undo 的职责</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>回滚（原子性）</td><td>事务失败时，按 undo 反向撤销已做的修改</td></tr>
+      <tr><td>多版本（MVCC）</td><td>保存旧版本，供别的事务快照读（版本链）</td></tr>
+      <tr><td>清理时机</td><td>等所有活跃事务都不再需要这些旧版本，purge 线程才删</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">长事务为什么拖垮 undo？它的 ReadView 一直引用某个旧版本，purge 线程就不敢删那段 undo——undo 越堆越多，这就是第 35 章"undo 膨胀"的根源。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">36.2</span> redo log：WAL 与崩溃恢复</h2>
+  <p class="lead">redo log 记的是"修改后的新值"，靠预写日志保证宕机不丢。</p>
+  <p>问题：数据修改先写在内存缓冲池，还没落盘就宕机，修改就丢了。如果每次提交都把数据页刷盘，又太慢（随机 IO）。WAL（Write-Ahead Logging）的解法：<strong>先把修改顺序写进 redo log（顺序 IO，快），再慢慢刷数据页</strong>。</p>
+  <pre class="code" data-lang="sql"><code>-- 提交时：
+-- 1. 修改写进内存缓冲池（数据页）
+-- 2. 同一份修改顺序写进 redo log（持久，先落盘）
+-- 3. COMMIT 返回成功（哪怕数据页还没刷盘）
+
+-- 宕机恢复：重启时读 redo log，把"已提交但没落盘"的修改重做一遍
+--  → 数据不丢（持久性 D）</code></pre>
+  <div class="key-sentence">WAL 精髓：<strong>提交只保证 redo log 落盘（顺序写），数据页异步刷（随机写）</strong>——既快又不丢。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">36.3</span> 一次提交的两份日志配合</h2>
+  <p class="lead">一次 COMMIT，undo、redo、数据页三者各司其职。</p>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 210" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <rect x="40" y="60" width="180" height="90" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="130" y="90" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">undo log</text>
+    <text x="130" y="115" text-anchor="middle" font-size="11" fill="#7a8a70">旧值（回滚+版本链）</text>
+    <text x="130" y="135" text-anchor="middle" font-size="11" fill="#7a8a70">事务提交前先写</text>
+    <rect x="290" y="60" width="180" height="90" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="1.5"/>
+    <text x="380" y="90" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">redo log</text>
+    <text x="380" y="115" text-anchor="middle" font-size="11" fill="#7a8a70">新值（重做日志）</text>
+    <text x="380" y="135" text-anchor="middle" font-size="11" fill="#7a8a70">提交时必须落盘</text>
+    <rect x="540" y="60" width="180" height="90" rx="8" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="630" y="90" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="bold">数据页</text>
+    <text x="630" y="115" text-anchor="middle" font-size="11" fill="#7a8a70">内存缓冲池</text>
+    <text x="630" y="135" text-anchor="middle" font-size="11" fill="#7a8a70">异步刷盘</text>
+    <line x1="220" y1="105" x2="290" y2="105" stroke="#2d6a3f" stroke-width="1.2"/>
+    <line x1="470" y1="105" x2="540" y2="105" stroke="#2d6a3f" stroke-width="1.2"/>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 36-1 一次提交的三份写入：undo 记旧值、redo 记新值并落盘、数据页异步刷</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">36.4</span> 两阶段提交：redo 与 binlog</h2>
+  <p class="lead">InnoDB 既要 redo（崩溃恢复），Server 层又要 binlog（主从复制）——两份日志要保证一致，靠两阶段提交。</p>
+  <pre class="code" data-lang="sql"><code>-- 一次事务提交的两阶段：
+-- 阶段 1：redo log 置为 prepare 状态（已写，但未定）
+-- 阶段 2：写 binlog（Server 层的日志，主从同步靠它）
+-- 阶段 3：redo log 置为 commit 状态
+
+-- 为什么要这样？保证 redo 和 binlog 要么都有、要么都没有
+-- 宕机恢复时：redo prepare 但 binlog 没写完 → 回滚；
+--             redo prepare 且 binlog 已写完 → 提交（重做）</code></pre>
+  <div class="note">binlog 是 Server 层的日志，用于主从复制（第五篇展开）。两阶段提交（XA）是让"InnoDB 的 redo"与"Server 的 binlog"在崩溃时保持一致的经典设计。</div>
+  <div class="key-sentence">undo 与 redo 一句话分清：<strong>undo 往回退（旧值、回滚、版本链），redo 往前冲（新值、重做、不丢）</strong>。一个保原子，一个保持久。</div>
+  <p>崩溃恢复时 InnoDB 会扫描 redo log：把所有"已提交"的修改重做（哪怕数据页还没落盘），把"未提交"的事务用 undo 回滚——最后数据库回到"该提交的都提交了、该回滚的都回滚了"的一致状态。这就是 D（持久性）和 A（原子性）在宕机后同时兜底的过程。</p>
+  <div class="note"><strong>两阶段提交为什么必须</strong>：如果 redo 与 binlog 不一致（比如 redo 提交了但 binlog 没写），主从复制时从库就会缺这笔变更，主从数据分叉。两阶段提交就是为了让两份日志在崩溃时能对齐。</div>
+  <div class="warn-box"><strong>性能与安全的取舍</strong>：innodb_flush_log_at_trx_commit 设为 0 或 2 能提升写入吞吐，但宕机可能丢最后 1 秒数据。核心交易库永远设 1，只有日志、埋点这类可丢数据的库才考虑放宽。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">36.5</span> 关键参数与对比表</h2>
+  <pre class="code" data-lang="sql"><code>-- redo log 总容量（8.0.30+ 用这个，替代旧的 innodb_log_file_size）
+SHOW VARIABLES LIKE 'innodb_redo_log_capacity';
+
+-- 提交时 redo 刷盘策略：
+-- 1 = 每次提交都刷盘（最安全，默认）；0 = 由操作系统决定，可能丢
+-- 2 = 每秒刷盘，宕机丢最后 1 秒
+SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';
+-- 核心库必须设 1，否则宕机可能丢已提交的数据</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th></th><th>undo log</th><th>redo log</th></tr></thead>
+    <tbody>
+      <tr><td>记什么</td><td>旧值（逻辑日志）</td><td>新值/物理页修改（物理日志）</td></tr>
+      <tr><td>职责</td><td>回滚 + MVCC 版本链</td><td>崩溃恢复，保证持久性</td></tr>
+      <tr><td>何时清</td><td>旧版本没人用了才清</td><td>循环复用，写满覆盖</td></tr>
+      <tr><td>对应特性</td><td>A 原子性</td><td>D 持久性</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>WAL（Write-Ahead Logging）的含义</strong>：先写日志、再改数据页。哪怕数据页还没刷盘就宕机，redo log 也能把它重做回来——这就是为什么"提交了就不会丢"，而不用每次提交都把整页刷盘（那太慢了）。</div>
+  <div class="note"><strong>checkpoint 在干嘛</strong>：checkpoint 是 InnoDB 定期把内存脏页真正刷到磁盘、并推进 redo log 可回收位点的动作；它让 redo log 文件能循环复用，不会无限膨胀。</div>
+  <div class="note"><strong>doublewrite 双写缓冲</strong>：页写到磁盘前先落一份到 doublewrite 区，防止"写了一半页"（partial page write）。这是 redo log 能成立的前提——redo 记录的是页的物理修改，页本身坏了它也救不回来。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>undo log</td><td>记旧值，负责回滚（A）与 MVCC 版本链</td></tr>
+      <tr><td>redo log</td><td>记新值，WAL 先落盘，崩溃恢复保持久性（D）</td></tr>
+      <tr><td>WAL</td><td>提交只保证 redo 落盘，数据页异步刷，又快又不丢</td></tr>
+      <tr><td>两阶段提交</td><td>redo prepare → binlog → redo commit，保证两日志一致</td></tr>
+      <tr><td>刷盘参数</td><td>innodb_flush_log_at_trx_commit=1 核心库必设</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话对比：undo log 记的是旧值还是新值？redo log 呢？它们各自支撑 ACID 的哪个字母？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>查 <code>innodb_flush_log_at_trx_commit</code> 的当前值，并解释为什么它设为 1 时宕机不丢数据、设为 2 时最多丢 1 秒。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>描述一次事务提交的完整流程（内存缓冲池 → undo → redo prepare → binlog → redo commit → 数据页异步刷），并说明宕机发生在"redo prepare 后、binlog 写完前"时，恢复程序该怎么判断提交还是回滚。</div>
+  <p class="note">理论闭环了，下一章上实战：锁等待——谁卡住了谁，一步步把它查出来、解开。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="035_第35章_长事务的危害与治理.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_锁等待实战_谁卡住了谁.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 36 章 undo 与 redo 的分工</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

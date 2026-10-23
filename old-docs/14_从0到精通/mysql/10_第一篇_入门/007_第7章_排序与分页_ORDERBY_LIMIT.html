@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 7 章 排序与分页：ORDER BY/LIMIT｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 7 章 排序与分页：ORDER BY/LIMIT</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 7 章 / 共 72 章 · 预计 30 分钟</span>
+    </div>
+    <p class="hero-desc">商品列表按销量排序、后台按创建时间翻页——排序与分页是所有列表页的底座。ORDER BY 怎么写、LIMIT 怎么翻，以及"翻到第 100 页"为什么会把数据库翻慢，本章讲透。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="006_第6章_基础查询_WHERE与运算符.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="008_第8章_聚合与分组_GROUPBY与HAVING.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">7.1 ORDER BY：升降序与多列</a></li>
+    <li><a href="#sec3">7.2 LIMIT：切片与分页</a></li>
+    <li><a href="#sec4">7.3 深分页问题与游标分页</a></li>
+    <li><a href="#sec5">7.4 排序与索引的关系</a></li>
+    <li><a href="#sec6">7.5 排序稳定性与 NULL</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>用 <code>ORDER BY</code> 完成单列、多列、表达式排序，理解 <code>ASC/DESC</code> 的默认值；</li>
+    <li>用 <code>LIMIT m, n</code> / <code>LIMIT n OFFSET m</code> 写出标准分页查询；</li>
+    <li>看懂"深分页"（OFFSET 很大）为什么慢，会用游标分页改写；</li>
+    <li>知道排序什么时候能用索引、什么时候会退化成 filesort；</li>
+    <li>处理 NULL 值的排序位置，避免分页翻页时行"跳变"。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">7.1</span> ORDER BY：升降序与多列</h2>
+  <p class="lead">ORDER BY 决定结果集的行先后顺序——没有它，MySQL 返回行的顺序是不保证的（别依赖"看起来是主键顺序"）。</p>
+  <pre class="code" data-lang="sql"><code>-- 单列升序（ASC 可省略，但建议显式写）
+SELECT id, name, price FROM product
+WHERE category_id = 3
+ORDER BY price ASC;
+
+-- 多列排序：先按类目升序，同类目下价格降序，再按销量升序
+SELECT id, name, category_id, price, sales
+FROM product
+WHERE is_deleted = 0
+ORDER BY category_id ASC, price DESC, sales ASC;
+
+-- 按表达式排序：按"折扣价"排序
+SELECT id, name, price, price * 0.85 AS promo_price
+FROM product
+ORDER BY price * 0.85 DESC;
+
+-- 按列在 SELECT 列表里的位置排序（不推荐，仅知道有这回事）
+SELECT id, name, price FROM product ORDER BY 3 DESC;  -- 按第 3 列 price</code></pre>
+  <p>三个要点：</p>
+  <ul>
+    <li><strong>默认是 ASC</strong>：只写 <code>ORDER BY price</code> 就是升序；线上代码里显式写 <code>ASC/DESC</code>，读代码的人不用猜；</li>
+    <li><strong>多列排序逐列生效</strong>：只有前一列值相等时才比较下一列，和 JS 的 <code>sort((a,b)=&gt;...) 链式比较</code> 完全一样；</li>
+    <li><strong>ORDER BY 可以用 SELECT 里的别名</strong>：<code>ORDER BY promo_price DESC</code> 直接可用（这是它和 WHERE 的区别）。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">7.2</span> LIMIT：切片与分页</h2>
+  <p class="lead">LIMIT 从"排好序的结果集"里切一段——它是列表页的核心。</p>
+  <pre class="code" data-lang="sql"><code>-- 取前 10 条：商品列表第一页
+SELECT id, name, price, sales
+FROM product
+WHERE is_deleted = 0
+ORDER BY sales DESC, id DESC
+LIMIT 10;
+
+-- 第 2 页：跳过 10 条，再取 10 条（page=2, size=10）
+SELECT id, name, price, sales
+FROM product
+WHERE is_deleted = 0
+ORDER BY sales DESC, id DESC
+LIMIT 10 OFFSET 10;
+
+-- 等价的老写法（MySQL 方言，能读即可）
+SELECT ... LIMIT 10, 10;
+
+-- 业务常客：TopN（销量前 3 的商品）
+SELECT id, name, sales FROM product
+ORDER BY sales DESC LIMIT 3;</code></pre>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 210" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="30" y="70" width="700" height="50" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="60" y="100" text-anchor="middle" font-size="13" fill="#1f2e1f">全部行（按 sales 排好序）</text>
+      <rect x="30" y="70" width="120" height="50" rx="8" fill="#2d6a3f"/>
+      <text x="90" y="100" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">第1页 10条</text>
+      <rect x="150" y="70" width="120" height="50" fill="#4f8a63"/>
+      <text x="210" y="100" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">第2页 OFFSET 10</text>
+      <rect x="270" y="70" width="120" height="50" fill="#7aa87f"/>
+      <text x="330" y="100" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">第3页 OFFSET 20</text>
+      <text x="560" y="100" text-anchor="middle" font-size="13" fill="#4f6348">…… OFFSET 越来越大</text>
+      <text x="380" y="160" text-anchor="middle" font-size="13" fill="#4f6348">图 7-1　LIMIT/OFFSET 分页示意：翻页越深，数据库要跳过的行越多</text>
+    </svg>
+  </div>
+  <div class="key-sentence">分页查询的排序键必须"唯一且稳定"：ORDER BY 的最后一列一定带上主键（如 ORDER BY sales DESC, id DESC），否则同一销量的行在翻页时会被重复或漏掉。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">7.3</span> 深分页问题与游标分页</h2>
+  <p class="lead">LIMIT 100000, 10 不是"跳过 10 万行再取 10 条"那么便宜——数据库真的要把前 10 万行都读出来、再扔掉。</p>
+  <pre class="code" data-lang="sql"><code>-- 反面教材：第 10001 页，OFFSET = 100000
+SELECT id, name, price FROM product
+ORDER BY id
+LIMIT 100000, 10;
+
+-- 游标分页（keyset pagination）：记住上一页最后一行的"游标值"，下次从它接着读
+-- 第 1 页
+SELECT id, name, price FROM product
+ORDER BY id LIMIT 10;            -- 假设最后一行 id = 100
+
+-- 第 2 页：不用 OFFSET，直接"大于上一页的最后一个游标"
+SELECT id, name, price FROM product
+WHERE id &gt; 100
+ORDER BY id LIMIT 10;
+
+-- 按非唯一列排序时，游标用"(排序列, 主键) 联合"
+SELECT id, sales, name FROM product
+WHERE (sales, id) &lt; (1234, 88)   -- 上一页最后一行的 (sales,id)
+ORDER BY sales DESC, id DESC
+LIMIT 10;</code></pre>
+  <p>为什么游标分页快？<code>WHERE id &gt; 100 ORDER BY id LIMIT 10</code> 可以直接从索引的 100 号位置开始读 10 行，全程只读 10 行；而 OFFSET 要先扫过 10 万行。代价是：<strong>游标分页不支持"跳到第 N 页"，只支持"下一页"和"上一页"</strong>——这对 App 无限滚动、后台流水列表完全够用，电商"跳到第 50 页"的功能本来就极少有人点。</p>
+  <div class="warn-box">后台管理系统常见的"每页 50 条、共 1 万页"用 OFFSET 是常态（管理后台量级不大），但 C 端列表、日志流水、消息记录这类千万级表，从第一天就该用游标分页，否则数据量上来后就是定时炸弹。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">7.4</span> 排序与索引的关系</h2>
+  <p>排序有两条路径，成本天差地别：</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>方式</th><th>触发条件</th><th>成本</th></tr></thead>
+    <tbody>
+      <tr><td>索引有序扫描</td><td>ORDER BY 的列顺序、方向与某个索引完全一致，且 WHERE 条件能用上该索引的前缀</td><td>几乎为零，按索引顺序读即可</td></tr>
+      <tr><td>filesort</td><td>没有合适索引，或索引方向对不上（如 ORDER BY a ASC, b DESC 但索引是 a ASC, b ASC）</td><td>把满足 WHERE 的行捞出来在内存/磁盘排，数据量越大越慢</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 有索引 idx_category_sales (category_id, sales)：
+-- 下面这条查询直接沿索引顺序读，不需要 filesort
+SELECT id, name FROM product
+WHERE category_id = 3
+ORDER BY sales LIMIT 10;
+
+-- 但换个方向就排不上：索引是 (category_id, sales ASC)，
+-- 这里要求 sales DESC，MySQL 8.0 之前只能 filesort（8.0 支持降序索引）
+SELECT id, name FROM product
+WHERE category_id = 3
+ORDER BY sales DESC LIMIT 10;</code></pre>
+  <p>第 19 章会从 B+ 树结构讲清"为什么索引天然有序"；现在先记住：<code>EXPLAIN</code> 结果里 <code>Extra</code> 出现 <code>Using filesort</code> 就要警觉——配合 LIMIT 的 TopN 场景，filesort 往往意味着"为了 10 条返回结果排了十万行"。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">7.5</span> 排序稳定性与 NULL</h2>
+  <p>两个实战细节：</p>
+  <ul>
+    <li><strong>NULL 的位置</strong>：MySQL 中升序时 NULL 排在最前，降序时排在最后——这是固定行为，但如果你希望 NULL 一律排最后，用表达式兜底：<code>ORDER BY (level IS NULL), level ASC</code>；</li>
+    <li><strong>排序不稳定</strong>：ORDER BY 某列时，值相等的两行谁先谁后不保证。这就是 7.2 强调"排序键最后带上唯一主键"的原因——不带，翻页时就会出现"上一页见过的人又出现在下一页"。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>-- level 为 NULL 的用户排最后，其余按 level 字母序
+SELECT id, name, level FROM customer
+ORDER BY (level IS NULL) ASC, level ASC, id ASC;</code></pre>
+  <div class="note">前端转全栈的你会发现这很像 JS 的 <code>Array.sort</code> 不稳定问题（ES2019 后 V8 稳定了）——数据库这边只能自己用唯一列兜底。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>ORDER BY</td><td>默认升序；多列逐列比较；最后一列务必带唯一主键保证分页稳定</td></tr>
+      <tr><td>LIMIT</td><td>LIMIT n 取前 n 条；OFFSET 翻页；TopN 就是 LIMIT n</td></tr>
+      <tr><td>深分页</td><td>OFFSET 越大越慢；千万级表用游标分页（WHERE 游标 &gt; 上次最后一行）</td></tr>
+      <tr><td>filesort</td><td>排序列与索引对不上时触发，EXPLAIN 看到 Using filesort 要警觉</td></tr>
+      <tr><td>NULL 排序</td><td>升序排最前、降序排最后；可用表达式把 NULL 强制沉底</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>从 <code>product</code> 表查出销量前 20 的商品（id、name、sales、price），要求排序稳定、带上主键，只查未软删的。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把上一题改写成游标分页：第 1 页取完后，用最后一行的 (sales, id) 作为游标写出第 2 页查询，并解释为什么不能只用 sales 当游标。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>orders 表千万行，需求是"按创建时间倒序的后台流水列表，只支持上一页/下一页"。写出建索引建议和两页的 SQL（含"上一页"方向），并说明 EXPLAIN 里希望看到什么。</div>
+  <p class="note">列表页会做了，下一章进入聚合与分组：COUNT/SUM/AVG、GROUP BY、HAVING——报表 SQL 的基本功。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="006_第6章_基础查询_WHERE与运算符.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="008_第8章_聚合与分组_GROUPBY与HAVING.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 7 章 排序与分页：ORDER BY/LIMIT</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 33 章 行锁、间隙锁与临键锁｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 33 章 行锁、间隙锁与临键锁</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 33 章 / 共 72 章 · 预计 45 分钟</span>
+    </div>
+    <p class="hero-desc">RR 级别下，InnoDB 是靠什么挡住幻读的？答案就是这三种锁：记录锁锁单行、间隙锁锁"行之间的空当"、临键锁把二者合并。本章用一组排好序的主键，画出每种锁锁住的具体区间——看懂它，你就理解了为什么有时候"没锁那一行却也插入不进去"。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="032_第32章_锁的分类_全局表行.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="034_第34章_死锁_复现分析与避免.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">33.1 记录锁：锁住单条索引记录</a></li>
+    <li><a href="#sec3">33.2 间隙锁：锁住行与行之间的空当</a></li>
+    <li><a href="#sec4">33.3 临键锁：左开右闭的区间</a></li>
+    <li><a href="#sec5">33.4 唯一索引的退化规则</a></li>
+    <li><a href="#sec6">33.5 实战：为什么插入被莫名挡住</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>分清 record lock、gap lock、next-key lock 各锁什么区间；</li>
+    <li>画得出临键锁"左开右闭"的区间范围；</li>
+    <li>记住唯一索引等值命中/未命中时锁的退化规则；</li>
+    <li>解释间隙锁存在的意义（防幻读）；</li>
+    <li>排查"没锁那一行却插入不进去"的怪现象。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">33.1</span> 记录锁：锁住单条索引记录</h2>
+  <p class="lead">记录锁（Record Lock）是最直观的行锁：精确锁住你命中的那一条索引记录。</p>
+  <pre class="code" data-lang="sql"><code>-- 表的主键索引排好序：... 10 | 20 | 30 | 40 ...
+-- 会话 A：等值命中 id=20，给这一条加记录锁
+BEGIN;
+SELECT * FROM account WHERE id = 20 FOR UPDATE;
+-- 锁住：{20} 这一条
+
+-- 会话 B：想改 id=20 → 被挡；改 id=30 → 不受影响
+UPDATE account SET balance=0 WHERE id = 20;   -- 阻塞</code></pre>
+  <p>记录锁锁的是<strong>索引上的一条记录</strong>，不是物理行。没走索引的查询，会把整个索引的记录都锁上（退化成表级）。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">33.2</span> 间隙锁：锁住行与行之间的空当</h2>
+  <p class="lead">光锁现有行不够——别人往"空当"里插入新行，范围查询就会幻读。间隙锁锁的是"行之间的开区间"。</p>
+  <pre class="code" data-lang="sql"><code>-- 主键排好序：... 10 | 20 | 30 ...
+-- 会话 A 做范围查询并加锁
+SELECT * FROM account WHERE id BETWEEN 15 AND 25 FOR UPDATE;
+-- 不仅锁住 20，还锁住 (10, 20) 和 (20, 30) 这两个间隙
+
+-- 会话 B 想往间隙里插：
+INSERT INTO account VALUES (15, 100);   -- 阻塞！(10,20) 被间隙锁锁了
+INSERT INTO account VALUES (25, 100);   -- 阻塞！(20,30) 被间隙锁锁了</code></pre>
+  <div class="key-sentence">间隙锁（Gap Lock）的唯一使命：<strong>阻止别的事务在这个范围里插入新行</strong>——这正是 RR 级别基本杜绝幻读的关键。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">33.3</span> 临键锁：左开右闭的区间</h2>
+  <p class="lead">InnoDB 默认的行锁形态是临键锁（Next-Key Lock）= 记录锁 + 前面的间隙，区间"左开右闭"。</p>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 200" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <line x1="80" y1="100" x2="700" y2="100" stroke="#2d6a3f" stroke-width="2"/>
+    <circle cx="150" cy="100" r="6" fill="#2d6a3f"/>
+    <circle cx="300" cy="100" r="6" fill="#2d6a3f"/>
+    <circle cx="450" cy="100" r="6" fill="#2d6a3f"/>
+    <circle cx="600" cy="100" r="6" fill="#2d6a3f"/>
+    <text x="150" y="130" text-anchor="middle" font-size="12" fill="#1f2e1f">10</text>
+    <text x="300" y="130" text-anchor="middle" font-size="12" fill="#1f2e1f">20</text>
+    <text x="450" y="130" text-anchor="middle" font-size="12" fill="#1f2e1f">30</text>
+    <text x="600" y="130" text-anchor="middle" font-size="12" fill="#1f2e1f">40</text>
+    <rect x="150" y="55" width="300" height="24" rx="4" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.2"/>
+    <text x="300" y="72" text-anchor="middle" font-size="11" fill="#1f2e1f">临键锁区间 (10, 30] = (10,20)间隙 + {20} + (20,30)间隙</text>
+    <text x="380" y="160" text-anchor="middle" font-size="12" fill="#7a8a70">左开右闭：锁住 20 这行，以及它左边 (10,20)、右边 (20,30) 两个间隙</text>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 33-1 临键锁 = 记录锁 + 间隙锁，区间左开右闭 (prev, this]</p>
+  </div>
+  <p>规则：InnoDB 在 RR 下，对索引范围扫描加锁时，默认给扫描到的每个索引记录加临键锁——<strong>锁住该记录 + 它左边的间隙</strong>。这样无论别的事务往哪个间隙插入，都会被挡住，幻读无从发生。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">33.4</span> 唯一索引的退化规则</h2>
+  <p class="lead">不是所有情况都加临键锁——唯一索引等值查询会"退化"。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>唯一索引等值查询</th><th>命中结果</th><th>加什么锁</th></tr></thead>
+    <tbody>
+      <tr><td>等值查询且<strong>命中</strong>唯一记录</td><td>找到该行</td><td>退化成<strong>记录锁</strong>（不加间隙锁）</td></tr>
+      <tr><td>等值查询且<strong>未命中</strong></td><td>找不到</td><td>退化成<strong>间隙锁</strong>（锁住该位置间隙）</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 唯一索引等值命中 id=20 → 只锁记录锁，不加间隙
+SELECT * FROM account WHERE id = 20 FOR UPDATE;   -- {20}
+
+-- 唯一索引等值未命中 id=25（表里没有 25）
+SELECT * FROM account WHERE id = 25 FOR UPDATE;
+-- 退化成间隙锁：锁住 (20,30)，防止别人插 25 进来</code></pre>
+  <div class="note">退化的逻辑：唯一索引等值命中时，确定只有这一行，不需要防"同一键再插入"（唯一约束已经挡住），所以不用间隙锁；未命中时为了防止幻读同一键，才退化成间隙锁。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">33.5</span> 实战：为什么插入被莫名挡住</h2>
+  <p class="lead">线上最常见的困惑：明明没锁那一行，为什么 INSERT 报锁等待超时？</p>
+  <pre class="code" data-lang="sql"><code>-- 会话 A（RR）跑了一个范围查询加锁
+BEGIN;
+SELECT * FROM account WHERE id &gt;= 20 AND id &lt;= 30 FOR UPDATE;
+-- 加了临键锁：锁住 (10,20]、(20,30]、(30,40] …
+
+-- 会话 B 想插入 id=25
+INSERT INTO account VALUES (25, 100);
+-- 报错锁等待：25 落在 (20,30) 这个被临键锁锁住的间隙里
+ERROR 1205 (HY000): Lock wait timeout exceeded</code></pre>
+  <div class="pit-sentence">排查口诀：插入被挡，先看目标值落在哪个间隙——<strong>它的前一个记录和后一个记录之间，大概率被别的事务的临键锁锁住了</strong>。用 <code>SHOW ENGINE INNODB STATUS</code> 或 performance_schema.data_locks 看具体锁区间（第 37 章）。</div>
+  <pre class="code" data-lang="sql"><code>-- 查看当前到底加了哪些锁（8.0）
+SELECT lock_mode, lock_type, lock_table, lock_data
+FROM performance_schema.data_locks;
+-- lock_mode: X（排他记录锁）/ X,GAP（间隙锁）/ X,Next-Key（临键锁）
+-- lock_data 直接告诉你锁住的是哪个值或哪个间隙</code></pre>
+  <div class="key-sentence">三种锁的记忆法：<strong>记录锁锁"点"、间隙锁锁"空当"、临键锁锁"点+空当"的左开右闭区间</strong>。RR 靠它们组合，既防修改冲突、又防范围插入的幻读。</div>
+  <div class="note">RC 级别下没有间隙锁：因为 RC 不靠快照防幻读（它本来就允许不可重复读），所以行锁只锁记录、不锁间隙，并发更高、死锁更少——这也是很多互联网公司把默认 RR 降到 RC 的原因之一。</div>
+  <h4>插入意向锁</h4>
+  <p>往被间隙锁锁住的区间里 INSERT 时，插入方会先加一把"插入意向锁"——它本质是在告诉别人"我打算插这儿"。插入意向锁之间不互斥（多个事务可往不同间隙插入），但会与那个间隙的间隙锁冲突，所以 INSERT 必须等间隙锁释放。这就是"插入被挡"的锁层面细节。</p>
+  <div class="key-sentence">排查锁问题时，先分清锁的是"点"（记录锁）还是"区间"（临键锁）——后者的范围往往比你想的大，插入被挡十有八九是撞上了临键锁的间隙。</div>
+  <div class="note"><strong>记忆口诀</strong>：唯一命中退记录、唯一落空退间隙、范围扫描加临键。三种退化规则背熟，遇到锁区间问题就不会发懵。</div>
+  <div class="note"><strong>等值命中为什么能退化成记录锁</strong>：唯一索引等值命中确定只有一行，唯一约束已经保证"同样的键插不进第二行"，再加间隙锁是浪费——所以 InnoDB 退化成纯记录锁，把并发让出来。</div>
+  <div class="note"><strong>范围扫描为什么必须加临键锁</strong>：范围条件没有确定的右边界，你不知道下一条该锁到哪；为了防止别的事务在你扫描的区间里插入新行（幻读），InnoDB 必须用"左开右闭"的临键锁把整个区间罩住。</div>
+  <div class="note"><strong>RC 级别下几乎没有间隙锁</strong>：RC 本就允许不可重复读、不靠 MVCC 快照防幻读，所以行锁只锁记录、不锁间隙，并发更高、死锁更少——这也是高并发互联网库把默认 RR 降到 RC 的主要动因。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>记录锁</td><td>锁住命中的单条索引记录</td></tr>
+      <tr><td>间隙锁</td><td>锁住行与行之间的开区间，阻止插入，防幻读</td></tr>
+      <tr><td>临键锁</td><td>记录锁 + 间隙锁，左开右闭 (prev, this]，RR 默认形态</td></tr>
+      <tr><td>唯一索引退化</td><td>等值命中→记录锁；等值未命中→间隙锁</td></tr>
+      <tr><td>锁区间</td><td>插入被挡，查目标值落在哪个被锁间隙</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>画一条主键为 5、10、15、20 的索引轴，标出 <code>WHERE id &gt;= 10 AND id &lt;= 15 FOR UPDATE</code> 在 RR 下加的临键锁区间（左开右闭）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>建一张主键 10/20/30 的表，会话 A 用 <code>SELECT ... WHERE id=25 FOR UPDATE</code>（未命中）加锁，会话 B 尝试插入 id=15、id=25、id=35，观察哪些被挡，并解释间隙锁锁住了哪段。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>对比"唯一索引等值命中"与"普通索引范围扫描"的加锁差异：为什么前者退化成纯记录锁、后者要加临键锁？从"防幻读的必要性"角度推导。</div>
+  <p class="note">锁会加对地方，但两个事务互相等对方的锁——死锁就来了。下一章复现它、分析它、避免它。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="032_第32章_锁的分类_全局表行.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="034_第34章_死锁_复现分析与避免.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 33 章 行锁、间隙锁与临键锁</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

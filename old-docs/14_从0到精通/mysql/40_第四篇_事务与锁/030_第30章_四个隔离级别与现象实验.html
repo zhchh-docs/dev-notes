@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 30 章 四个隔离级别与现象实验｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 30 章 四个隔离级别与现象实验</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 30 章 / 共 72 章 · 预计 50 分钟</span>
+    </div>
+    <p class="hero-desc">两个并发事务同时读写同一份数据，会出现三种"乱象"：脏读、不可重复读、幻读。SQL 标准给了四个隔离级别逐级挡住它们。本章在两个会话里动手实验，每个级别分别看到什么现象、InnoDB 的 REPEATABLE READ 为什么几乎杜绝幻读。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="029_第29章_事务与ACID.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="031_第31章_MVCC_多版本并发控制.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">30.1 三种乱象：脏读/不可重复读/幻读</a></li>
+    <li><a href="#sec3">30.2 四个隔离级别与实验准备</a></li>
+    <li><a href="#sec4">30.3 读未提交 RU 实验</a></li>
+    <li><a href="#sec5">30.4 读已提交 RC 实验</a></li>
+    <li><a href="#sec6">30.5 可重复读 RR 实验与幻读</a></li>
+    <li><a href="#sec7">30.6 串行化与级别选择</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清脏读、不可重复读、幻读三种现象的区别；</li>
+    <li>背会四个隔离级别各能挡住哪种现象；</li>
+    <li>在两个会话里动手复现每个级别的现象；</li>
+    <li>知道 MySQL/InnoDB 默认是 REPEATABLE READ，且基本杜绝幻读；</li>
+    <li>会按业务选择合适的隔离级别。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">30.1</span> 三种乱象：脏读/不可重复读/幻读</h2>
+  <p class="lead">并发事务同时读写同一份数据时，可能出现三种"读得不对"。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:48%"><col style="width:30%"></colgroup>
+    <thead><tr><th>现象</th><th>含义</th><th>举个例子</th></tr></thead>
+    <tbody>
+      <tr><td>脏读</td><td>读到了别的事务<strong>未提交</strong>的修改</td><td>A 转走 100 还没提交，B 就读到余额少了 100</td></tr>
+      <tr><td>不可重复读</td><td>同一事务内，两次读同一行，结果<strong>不一样</strong>（被人改了）</td><td>B 两次读余额，中间 A 提交了，两次值不同</td></tr>
+      <tr><td>幻读</td><td>同一事务内，两次按范围查询，行数<strong>变了</strong>（被人插/删了）</td><td>B 两次查"余额&gt;100 的人"，中间 A 插入一行，第二次多了一条</td></tr>
+    </tbody>
+  </table>
+  <p>注意区分：<strong>不可重复读针对"改过的行"</strong>，<strong>幻读针对"新增/消失的行"</strong>。隔离级别就是逐级把这些现象锁在门外。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">30.2</span> 四个隔离级别与实验准备</h2>
+  <p class="lead">SQL 标准定义四个级别，级别越高、现象越少、并发越差。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:18%"><col style="width:18%"><col style="width:18%"><col style="width:20%"></colgroup>
+    <thead><tr><th>隔离级别</th><th>脏读</th><th>不可重复读</th><th>幻读</th><th>并发</th></tr></thead>
+    <tbody>
+      <tr><td>读未提交 RU</td><td>可能</td><td>可能</td><td>可能</td><td>最高</td></tr>
+      <tr><td>读已提交 RC</td><td>不可能</td><td>可能</td><td>可能</td><td>较高</td></tr>
+      <tr><td>可重复读 RR（默认）</td><td>不可能</td><td>不可能</td><td>InnoDB 基本杜绝</td><td>中等</td></tr>
+      <tr><td>串行化 Serializable</td><td>不可能</td><td>不可能</td><td>不可能</td><td>最低</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- 查看当前隔离级别（8.0 默认 REPEATABLE-READ）
+SELECT @@transaction_isolation;    -- 5.7 是 tx_isolation
+
+-- 设置本会话的隔离级别（实验时用）
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+-- 实验用表
+CREATE TABLE account (id INT PRIMARY KEY, balance INT);
+INSERT INTO account VALUES (1, 100);</code></pre>
+  <div class="note"><strong>开两个会话</strong>：本实验需要两个数据库连接（会话 A、会话 B）。同一个客户端开两个查询窗口，分别代表两个并发事务。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">30.3</span> 读未提交 RU 实验</h2>
+  <p class="lead">RU 是最低级别：别人没提交的修改你也能读到——脏读发生。</p>
+  <pre class="code" data-lang="sql"><code>-- 会话 A（转账方）
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+BEGIN;
+UPDATE account SET balance = balance - 100 WHERE id = 1;   -- 扣到 0，还没 COMMIT
+-- 此刻：balance=0，但未提交
+
+-- 会话 B（读取方）
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+BEGIN;
+SELECT balance FROM account WHERE id = 1;   -- 结果：0  ← 脏读！读到 A 未提交的 0
+
+-- 会话 A 回滚
+ROLLBACK;   -- balance 恢复 100
+-- 会话 B 刚才读到的 0 是"脏数据"，压根没真实发生过</code></pre>
+  <div class="pit-sentence">脏读的危害：B 基于"0"做了判断（比如给用户发提醒"余额不足"），结果 A 回滚了，数据根本没变——B 做出了错误决策。RU 几乎没有生产价值。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">30.4</span> 读已提交 RC 实验</h2>
+  <p class="lead">RC 只允许读到"已提交"的数据，脏读被挡住，但不可重复读仍在。</p>
+  <pre class="code" data-lang="sql"><code>-- 会话 A
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN;
+
+-- 会话 B
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN;
+
+-- 会话 A 第一次读
+SELECT balance FROM account WHERE id = 1;   -- 100
+
+-- 会话 B 中途修改并提交
+-- 会话 B: UPDATE account SET balance = 50 WHERE id = 1; COMMIT;
+
+-- 会话 A 第二次读同一行
+SELECT balance FROM account WHERE id = 1;   -- 50  ← 不可重复读！同一事务内两次读不一样</code></pre>
+  <p>RC 挡住了脏读（B 没提交时 A 读到的还是 100），但挡不住"已提交的新值"——A 在同一个事务里两次读同一行，被 B 的提交改了结果。RC 是 Oracle、PG 等很多数据库的默认级别。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">30.5</span> 可重复读 RR 实验与幻读</h2>
+  <p class="lead">RR 是 MySQL 默认级别：同一事务内多次读同一行，结果一致。</p>
+  <pre class="code" data-lang="sql"><code>-- 会话 A（RR 默认）
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+BEGIN;
+SELECT balance FROM account WHERE id = 1;   -- 100
+
+-- 会话 B 修改并提交
+-- 会话 B: UPDATE account SET balance = 50 WHERE id = 1; COMMIT;
+
+-- 会话 A 再读
+SELECT balance FROM account WHERE id = 1;   -- 100  ← 可重复读！还是第一次的快照
+
+-- 会话 A 整个事务期间，看到的都是"第一次读那一刻"的快照</code></pre>
+  <p>这就是 MVCC 的威力（下一章细讲）：RR 下，事务第一次读会拍下一个<strong>一致性快照</strong>，之后无论别人怎么提交，你读的都是这个快照——所以同一行两次读结果一样。</p>
+  <div class="key-sentence">InnoDB 的 RR 靠 MVCC 的 ReadView 快照 + 临键锁（next-key lock），<strong>基本杜绝了幻读</strong>——这是它比 SQL 标准的 RR 更强的地方，也是 MySQL 敢把 RR 当默认的底气。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">30.6</span> 串行化与级别选择</h2>
+  <p class="lead">Serializable 让所有事务排队执行，彻底杜绝一切现象，但并发性能最差。</p>
+  <pre class="code" data-lang="sql"><code>-- 串行化：一个事务在读时，别的事务写同一行会被锁住排队
+SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+-- 几乎退化为"一条接一条执行"，只在对一致性要求极高、并发很低的场景用</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>级别</th><th>什么时候用</th></tr></thead>
+    <tbody>
+      <tr><td>RU</td><td>几乎不用（脏读不可接受）</td></tr>
+      <tr><td>RC</td><td>对一致性要求稍低、追求高并发的互联网业务（很多公司从 RR 降到 RC）</td></tr>
+      <tr><td>RR（默认）</td><td>多数业务的默认值：可重复读 + 基本杜绝幻读，并发与一致平衡</td></tr>
+      <tr><td>Serializable</td><td>银行对账等极少数强一致、低并发场景</td></tr>
+    </tbody>
+  </table>
+</section>
+<!--CONT2-->
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>三种现象</td><td>脏读（读未提交）、不可重复读（同行被改）、幻读（范围行数变）</td></tr>
+      <tr><td>四级别</td><td>RU 全有、RC 挡脏读、RR 挡到幻读、Serializable 全挡</td></tr>
+      <tr><td>默认级别</td><td>InnoDB 默认 REPEATABLE READ，且基本杜绝幻读</td></tr>
+      <tr><td>实验方法</td><td>开两个会话，SET SESSION 隔离级别，对照两次读的差异</td></tr>
+      <tr><td>级别选择</td><td>多数用 RR；追求高并发降到 RC；强一致才上 Serializable</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>开两个会话，把隔离级别都设为 RC，复现"不可重复读"：会话 A 两次读 balance，中间会话 B 修改并提交，观察 A 两次结果不同。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>同样的操作在 RR 级别下复现：会话 A 两次读 balance，中间 B 提交修改，观察 A 两次结果是否一致，并解释为什么（提示：一致性快照）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>对比 RC 与 RR 在"同一事务内连续两次范围查询"的行为差异，思考：为什么互联网高并发系统常把默认 RR 降到 RC？从并发性能与业务一致性要求两个角度分析代价与收益。</div>
+  <p class="note">为什么 RR 能做到"两次读一样"？下一章揭开它的底层引擎：MVCC 多版本并发控制。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="029_第29章_事务与ACID.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="031_第31章_MVCC_多版本并发控制.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 30 章 四个隔离级别与现象实验</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

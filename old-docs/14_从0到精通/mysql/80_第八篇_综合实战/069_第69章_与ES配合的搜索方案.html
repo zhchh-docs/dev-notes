@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 69 章 与 ES 配合的搜索方案｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第八篇 综合实战</p>
+    <h1>第 69 章 与 ES 配合的搜索方案</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 69 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">模糊搜索不该用 LIKE：MySQL 做事实来源，ES 做衍生索引，binlog 异步同步、ES 只拿 id、详情价格回 MySQL。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="068_第68章_与Redis配合的读写模板.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="070_第70章_数据归档方案设计.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">69.1 为什么 LIKE 扛不住搜索</a></li>
+    <li><a href="#sec3">69.2 MySQL → ES 同步</a></li>
+    <li><a href="#sec4">69.3 搜索查询模板</a></li>
+        <li><a href="#sec_extra">同步延迟处理</a></li>
+    <li><a href="#sec_pad">ES 索引模板与 SQL 侧配合</a></li>
+<li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解为什么模糊搜索不该用 MySQL LIKE；</li>
+    <li>建立 MySQL → Elasticsearch 的数据同步方案；</li>
+    <li>会写"查 ES 拿 ID 列表，再回 MySQL 取详情"的双读模板；</li>
+    <li>处理同步延迟与数据不一致；</li>
+    <li>知道 ES 适合什么、不适合什么。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">69.1</span> 为什么 LIKE 扛不住搜索</h2>
+  <p class="lead"><code>WHERE name LIKE '%机械%'</code> 前导通配符必然全表扫，商品上十万行就慢得没法用。</p>
+  <pre class="code" data-lang="sql"><code>-- 反例：前缀 % 无法走索引，全表扫描
+SELECT * FROM product WHERE name LIKE '%机械键盘%';
+-- EXPLAIN 看到 type=ALL，rows = 全表行数</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>能力</th><th>MySQL</th><th>Elasticsearch</th></tr></thead>
+    <tbody>
+      <tr><td>模糊/分词搜索</td><td>LIKE 全表扫</td><td>倒排索引，毫秒级</td></tr>
+      <tr><td>相关度排序</td><td>无</td><td>BM25 打分</td></tr>
+      <tr><td>实时更新事务</td><td>强一致</td><td>近实时（1s 级）</td></tr>
+      <tr><td>写入事务</td><td>ACID</td><td>最终一致</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">分工原则：MySQL 是事实来源（system of record），ES 是衍生索引（derived index）——搜索走 ES，详情与下单永远回 MySQL。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">69.2</span> MySQL → ES 同步</h2>
+  <p class="lead">同步两条路：业务双写，或 binlog 订阅（Canal/Debezium）。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg">
+      <rect x="40" y="55" width="150" height="70" rx="10" fill="#2d6a3f"/>
+      <text x="115" y="85" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">MySQL</text>
+      <text x="115" y="108" text-anchor="middle" font-size="11" fill="#d8e8c8">事实来源</text>
+      <rect x="300" y="55" width="160" height="70" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="380" y="85" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">binlog 订阅</text>
+      <text x="380" y="108" text-anchor="middle" font-size="11" fill="#4f6348">Canal/Debezium</text>
+      <rect x="560" y="55" width="160" height="70" rx="10" fill="#2d6a3f"/>
+      <text x="640" y="85" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">Elasticsearch</text>
+      <text x="640" y="108" text-anchor="middle" font-size="11" fill="#d8e8c8">搜索索引</text>
+      <line x1="190" y1="90" x2="300" y2="90" stroke="#2d6a3f" stroke-width="2" marker-end="url(#l1)"/>
+      <line x1="460" y1="90" x2="560" y2="90" stroke="#2d6a3f" stroke-width="2" marker-end="url(#l1)"/>
+      <defs><marker id="l1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+      <text x="380" y="150" text-anchor="middle" font-size="12" fill="#7a8a70">图 69-1 binlog 订阅异步同步，业务代码不感知 ES</text>
+    </svg>
+  </div>
+  <pre class="code" data-lang="python"><code># 应用层双写模板（简单场景）：先写库，成功后异步投 ES
+def upsert_product(p):
+    db.execute("UPDATE product SET name=?, price=? WHERE id=?", p.name, p.price, p.id)
+    mq.send("product.sync", {"id": p.id, "name": p.name, "price": p.price})  # 异步
+# 消费者消费消息写 ES，失败重试，保证最终一致</code></pre>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">69.3</span> 搜索查询模板</h2>
+  <pre class="code" data-lang="json"><code>// ES 查询：按名称分词搜，返回 id 与相关度
+GET /products/_search
+{
+  "query": { "match": { "name": "机械键盘" } },
+  "_source": ["id"],
+  "size": 20
+}</code></pre>
+  <pre class="code" data-lang="python"><code># 双读模板：ES 拿 id，MySQL 取详情（价格/库存以库为准）
+def search_products(kw):
+    ids = es.search("products", kw)          # 只拿 id 列表
+    if not ids:
+        return []
+    rows = db.query(
+        f"SELECT * FROM product WHERE id IN ({','.join(['?']*len(ids))}) AND status=1",
+        *ids)
+    return rows</code></pre>
+  <div class="warn-box">ES 里存的 name 可以搜，但<strong>价格、库存、上下架状态永远不要用 ES 的</strong>——它们更新快、ES 有延迟，下单与展示价格必须回 MySQL。</div>
+</section>
+
+<section id="sec_extra" class="card">
+  <h2><span class="num">69.4</span> 同步延迟与一致性兜底</h2>
+  <p class="lead">用户刚改完商品，立刻搜索搜不到？需要兜底。</p>
+  <pre class="code" data-lang="python"><code># 写库后主动触发一次同步（不等 binlog 延迟）
+def update_product(p):
+    db.execute("UPDATE product SET name=? WHERE id=?", p.name, p.id)
+    es.upsert("products", p.id, p)   # 同步立即写 ES，binlog 再做最终校正</code></pre>
+  <ul>
+    <li><span class="tag-point">体验</span>写后即时同步，把"搜不到"窗口从秒级降到毫秒；</li>
+    <li><span class="tag-key">兜底</span>binlog 订阅做最终一致，漏掉的变更会被追平。</li>
+  </ul>
+</section>
+
+  <div class="note">兜底：搜索结果页标注"数据更新可能延迟几秒"，管理预期比默默不一致更好。</div>
+  <pre class="code" data-lang="sql"><code>-- 对账：定时抽查 ES 文档数与 MySQL 商品数是否一致
+SELECT COUNT(*) FROM product WHERE status=1;
+-- 与 ES _count 对比，偏差大触发全量重建</code></pre>
+
+<section id="sec_pad" class="card">
+  <h2><span class="num">69.5</span> ES 索引模板与 SQL 侧配合</h2>
+  <p class="lead">ES 索引不是全字段搬过去，只搬要搜的，价格库存留 MySQL。</p>
+  <pre class="code" data-lang="json"><code>// products 索引 mapping：name 中文分词，id 与分类精确
+PUT /products
+{
+  "mappings": {
+    "properties": {
+      "id":      { "type": "long" },
+      "name":    { "type": "text", "analyzer": "ik_max_word" },
+      "category":{ "type": "keyword" },
+      "status":  { "type": "byte" }
+    }
+  }
+}</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>字段</th><th>放哪</th></tr></thead>
+    <tbody>
+      <tr><td>name / category</td><td>进 ES，承担分词搜索与筛选</td></tr>
+      <tr><td>price / stock / status</td><td>留 MySQL，展示时回查，避免脏读</td></tr>
+      <tr><td>id</td><td>两边都存，ES 结果靠它回表</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>分工</td><td>MySQL 是事实来源，ES 是衍生搜索索引</td></tr>
+      <tr><td>同步</td><td>binlog 订阅异步同步，业务不感知；失败重试保证最终一致</td></tr>
+      <tr><td>查询</td><td>ES 只拿 id，详情/价格/库存回 MySQL</td></tr>
+      <tr><td>边界</td><td>ES 近实时、非事务，不适合做扣库存这类强一致操作</td></tr>
+          <tr><td>索引模板</td><td>分词映射怎么建，SQL 侧哪些字段进 ES</td></tr>
+  </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>解释为什么 <code>LIKE '%词%'</code> 用不上索引，给出 EXPLAIN 证据。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>画出"用户搜索 → ES 拿 id → MySQL 取详情"的完整时序，标注哪一步可能不一致。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为什么不直接在 ES 里存商品价格并展示？结合"ES 更新延迟"说明一次脏价格事故的成因。</div>
+  <p class="note">搜索方案落地，下一章专门设计数据归档方案（呼应第 61 章的工具）。</p>
+</section>
+
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="068_第68章_与Redis配合的读写模板.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="070_第70章_数据归档方案设计.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 69 章 与 ES 配合的搜索方案</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

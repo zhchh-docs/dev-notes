@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 29 章 事务与 ACID｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 29 章 事务与 ACID</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 29 章 / 共 72 章 · 预计 35 分钟</span>
+    </div>
+    <p class="hero-desc">转账时"扣 A 100 元、加 B 100 元"必须同时成功或同时失败——这就是事务。本章从 BEGIN/COMMIT 讲起，把 ACID 四个字母拆成真实机制：原子性靠 undo、持久性靠 redo、隔离性靠锁与 MVCC。看懂这一章，并发世界的大门才算打开。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../30_第三篇_索引与优化/028_第28章_数据类型精讲与选型原则.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="030_第30章_四个隔离级别与现象实验.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">29.1 事务是什么：一次转账</a></li>
+    <li><a href="#sec3">29.2 BEGIN / COMMIT / ROLLBACK</a></li>
+    <li><a href="#sec4">29.3 ACID 拆解：四个字母背后的机制</a></li>
+    <li><a href="#sec5">29.4 自动提交与保存点</a></li>
+    <li><a href="#sec6">29.5 事务的状态与常见误区</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>用转账案例说清"为什么需要事务"；</li>
+    <li>熟练使用 <code>BEGIN / COMMIT / ROLLBACK / SAVEPOINT</code>；</li>
+    <li>把 ACID 四个字母对应到真实机制：undo、redo、锁、MVCC；</li>
+    <li>理解 autocommit 的默认行为，知道"每条 SQL 都是一个事务"；</li>
+    <li>避开事务使用的几个常见误区。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">29.1</span> 事务是什么：一次转账</h2>
+  <p class="lead">事务（Transaction）是一组"要么全做、要么全不做"的操作单元。</p>
+  <p>经典转账：A 给 B 转 100 元，要执行两条 UPDATE——A 扣 100、B 加 100。如果扣完 A 就宕机、B 还没加，钱就凭空消失了。事务的意义就是：<strong>这两条 UPDATE 绑成一个原子单元，中间任何一步失败，已做的全部撤销</strong>。</p>
+  <pre class="code" data-lang="sql"><code>-- 转账：两条 UPDATE 必须同生共死
+BEGIN;
+  UPDATE account SET balance = balance - 100 WHERE id = 1;  -- A 扣 100
+  UPDATE account SET balance = balance + 100 WHERE id = 2;  -- B 加 100
+COMMIT;   -- 两条都成功才提交；任一步出错就 ROLLBACK 全部撤销</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">29.2</span> BEGIN / COMMIT / ROLLBACK</h2>
+  <p class="lead">三个动词构成事务的一生：开始、提交、回滚。</p>
+  <pre class="code" data-lang="sql"><code>-- 开始一个事务
+BEGIN;                 -- 或 START TRANSACTION;
+
+-- 期间执行的所有写操作，都还在"未提交"状态
+UPDATE ... ;
+INSERT ... ;
+
+-- 一切正常：提交，永久生效
+COMMIT;
+
+-- 发现异常：回滚，BEGIN 之后的所有写操作全部撤销
+ROLLBACK;</code></pre>
+  <p>这三个动作的关键在<strong>未提交状态</strong>：COMMIT 之前，你的修改对其他会话不可见（隔离性，下一章），且可以一键撤销；一旦 COMMIT，就永久落盘、不可回滚。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">29.3</span> ACID 拆解：四个字母背后的机制</h2>
+  <p class="lead">ACID 是事务的四大特性，每个字母背后都有具体的存储引擎机制撑着。</p>
+  <table>
+    <colgroup><col style="width:16%"><col style="width:32%"><col style="width:52%"></colgroup>
+    <thead><tr><th>字母</th><th>特性</th><th>靠什么实现（InnoDB）</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td>原子性 Atomicity</td><td><strong>undo log</strong>：每步修改前记下反向操作，回滚时照着 undo 撤销（第 36 章）</td></tr>
+      <tr><td>C</td><td>一致性 Consistency</td><td>数据库从一个合法状态转到另一个合法状态；是 AID 三者共同保证的结果</td></tr>
+      <tr><td>I</td><td>隔离性 Isolation</td><td><strong>锁 + MVCC</strong>：并发事务互不干扰（第 30、31、32 章）</td></tr>
+      <tr><td>D</td><td>持久性 Durability</td><td><strong>redo log</strong>：提交前先把修改顺序写进日志（WAL），宕机后靠 redo 恢复（第 36 章）</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 200" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <rect x="60" y="60" width="140" height="80" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="130" y="92" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="bold">A 原子性</text>
+    <text x="130" y="118" text-anchor="middle" font-size="11" fill="#7a8a70">undo log 回滚</text>
+    <rect x="240" y="60" width="140" height="80" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="1.5"/>
+    <text x="310" y="92" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="bold">C 一致性</text>
+    <text x="310" y="118" text-anchor="middle" font-size="11" fill="#7a8a70">AID 的共同结果</text>
+    <rect x="420" y="60" width="140" height="80" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="490" y="92" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="bold">I 隔离性</text>
+    <text x="490" y="118" text-anchor="middle" font-size="11" fill="#7a8a70">锁 + MVCC</text>
+    <rect x="600" y="60" width="140" height="80" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="1.5"/>
+    <text x="670" y="92" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="bold">D 持久性</text>
+    <text x="670" y="118" text-anchor="middle" font-size="11" fill="#7a8a70">redo log 不丢</text>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 29-1 ACID 的实现分工：A 靠 undo、D 靠 redo、I 靠锁与 MVCC、C 是最终结果</p>
+  </div>
+  <div class="key-sentence">记法：<strong>A（原子）配 undo，D（持久）配 redo，I（隔离）配锁和 MVCC</strong>，C 是前三者合力达成的"数据始终合法"。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">29.4</span> 自动提交与保存点</h2>
+  <p class="lead">MySQL 默认 autocommit=1：你不显式 BEGIN，每条 SQL 都是独立事务。</p>
+  <pre class="code" data-lang="sql"><code>-- 查看自动提交（默认 ON）
+SHOW VARIABLES LIKE 'autocommit';
+
+-- 关闭自动提交后，不写 COMMIT 所有修改都不算数
+SET autocommit = 0;
+UPDATE ... ;          -- 此时还没提交
+COMMIT;               -- 手动提交才算
+
+-- 保存点：一个事务里分段回滚
+BEGIN;
+  UPDATE account SET balance = balance - 100 WHERE id = 1;
+  SAVEPOINT sp1;                 -- 打个点
+  UPDATE account SET balance = balance + 100 WHERE id = 2;
+  -- 出问题时只回滚到 sp1，前面那步保留
+  ROLLBACK TO SAVEPOINT sp1;
+COMMIT;</code></pre>
+  <div class="note"><strong>应用层的真相</strong>：Java 里 <code>@Transactional</code>、MyBatis 的事务，本质就是帮你在方法前后包了 BEGIN 和 COMMIT。理解了手动三步，框架自动事务就是这三步的封装。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">29.5</span> 事务的状态与常见误区</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>事务里夹远程调用</strong>：事务还没提交，就发起 HTTP/RPC 调用——对方读到的可能是你未提交的数据，且远程调用慢会拉长事务（第 35 章长事务）；</li>
+    <li><span class="tag-pit">坑</span><strong>忘了 COMMIT</strong>：autocommit=0 的环境里只写不提交，数据一直处于未提交状态、行锁一直占着；</li>
+    <li><span class="tag-pit">坑</span><strong>事务太大</strong>：一个事务塞几十条 UPDATE，持锁太久、回滚成本高（第 35 章专门治理）；</li>
+    <li><span class="tag-point">点</span><strong>只读查询不必开事务</strong>：纯 SELECT 不写数据，包在事务里是白占资源。</li>
+  </ul>
+  <div class="key-sentence">事务使用的总原则：<strong>边界要小（只包必须同生共死的写操作）、动作要快（别在事务里干别的）、提交要早（能不持有锁就不持有）</strong>。</div>
+  <div class="note"><strong>COMMIT 之前修改对别人不可见</strong>：这正是隔离性的体现（第 30 章）。你在事务里改了半天，别的会话看不到，直到你 COMMIT——所以事务开得越久，别人等你的一致性状态越久。</div>
+  <div class="warn-box"><strong>autocommit=1 的隐藏行为</strong>：不显式 BEGIN 时，每条单条 SQL 自动是一个独立事务——很多人以为自己"没开事务"，其实引擎已经帮你开了又提了。这也是为什么批量插入要自己 BEGIN 包住。</div>
+  <div class="note"><strong>事务里别放耗时操作</strong>：HTTP 调用、发邮件、第三方支付回调，都要挪到 COMMIT 之后；它们不产生 undo/redo，却会拉长持锁时间，是长事务的头号来源（第 35 章）。</div>
+  <div class="note"><strong>SAVEPOINT 用在哪</strong>：流程里有"试探性修改"时才用（比如先扣库存再决定是否下单）；绝大多数业务直接 BEGIN/COMMIT/ROLLBACK 三件套就够，别把简单流程复杂化。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>事务</td><td>一组操作同生共死，要么全成功要么全回滚</td></tr>
+      <tr><td>三动词</td><td>BEGIN 开始、COMMIT 落盘、ROLLBACK 撤销</td></tr>
+      <tr><td>A 原子性</td><td>undo log 记反向操作，回滚照着撤销</td></tr>
+      <tr><td>D 持久性</td><td>redo log 先写日志再落盘，宕机可恢复</td></tr>
+      <tr><td>I 隔离性</td><td>锁 + MVCC，并发事务互不干扰</td></tr>
+      <tr><td>autocommit</td><td>默认每条 SQL 独立成事务；显式 BEGIN 才把多条绑一起</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>建一张 account(id, balance) 表，插入两行；用 BEGIN 包两条转账 UPDATE，先 COMMIT 验证余额正确；再演示一次故意少转，用 ROLLBACK 撤销，观察余额恢复。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用 SAVEPOINT 把一个事务分成两段，演示 <code>ROLLBACK TO SAVEPOINT</code> 只撤销后半段、保留前半段，并 COMMIT 看最终数据。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把一个 HTTP 远程调用（模拟）放进事务里，思考三个问题：远程调用期间你的行锁在占着吗？对方读到的是你未提交的数据吗？这个事务会因远程超时被拖成多久？给出改进方案。</div>
+  <p class="note">事务是什么懂了，下一章上实验：四个隔离级别，每个级别下脏读、不可重复读、幻读到底长什么样。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../30_第三篇_索引与优化/028_第28章_数据类型精讲与选型原则.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="030_第30章_四个隔离级别与现象实验.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 29 章 事务与 ACID</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 32 章 锁的分类：全局/表/行｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 32 章 锁的分类：全局/表/行</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 32 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">MySQL 的锁不是一种，是一套体系：全局锁冻住整个库、表锁锁住整张表、行锁只锁一行。粒度越细并发越高。本章把这套体系分层讲清——什么时候用全局锁、表锁和元数据锁 MDL 在哪种场景会坑你、行锁为什么是 InnoDB 并发的底气。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="031_第31章_MVCC_多版本并发控制.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="033_第33章_行锁间隙锁与临键锁.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">32.1 全局锁：FLUSH TABLES WITH READ LOCK</a></li>
+    <li><a href="#sec3">32.2 表级锁：表锁与元数据锁 MDL</a></li>
+    <li><a href="#sec4">32.3 意向锁：IS / IX 的兼容矩阵</a></li>
+    <li><a href="#sec5">32.4 行锁：InnoDB 并发的底气</a></li>
+    <li><a href="#sec6">32.5 自增锁与 AUTO-INC</a></li>
+    <li><a href="#sec6b">32.6 锁粒度与性能权衡</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>按粒度从大到小说出 MySQL 的三类锁：全局锁、表锁、行锁；</li>
+    <li>知道全局锁的用途（备份一致性）与代价；</li>
+    <li>理解元数据锁 MDL 是什么，为什么它会成为线上事故元凶；</li>
+    <li>看懂意向锁 IS/IX 的兼容矩阵；</li>
+    <li>理解行锁为什么让 InnoDB 并发远高于 MyISAM。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">32.1</span> 全局锁：FLUSH TABLES WITH READ LOCK</h2>
+  <p class="lead">全局锁把整个数据库变成"只读"——所有写操作、DDL 全部冻结。</p>
+  <pre class="code" data-lang="sql"><code>-- 加全局只读锁：整个库不再接受写
+FLUSH TABLES WITH READ LOCK;
+
+-- 此时所有会话的 INSERT/UPDATE/DDL 全部阻塞
+
+-- 解锁
+UNLOCK TABLES;</code></pre>
+  <p>用途：做<strong>一致性备份</strong>——在加锁那一刻 mysqldump 导出，能保证数据时间点一致（不备份中途还在写）。但代价是：<strong>加锁期间整个库不能写</strong>，业务全面停摆。</p>
+  <div class="warn-box">生产几乎不用全局锁做备份：现代方案是用支持一致性快照的备份工具（如 mysqldump --single-transaction，靠 MVCC 而非锁），把备份对业务的影响降到最低。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">32.2</span> 表级锁：表锁与元数据锁 MDL</h2>
+  <p class="lead">表锁锁住整张表；而更隐蔽、却更常出事的是元数据锁 MDL。</p>
+  <pre class="code" data-lang="sql"><code>-- 显式表锁（MyISAM 时代的用法，InnoDB 很少用）
+LOCK TABLES user READ;     -- 只读锁
+LOCK TABLES user WRITE;    -- 写锁
+UNLOCK TABLES;
+
+-- 元数据锁 MDL：InnoDB 在你访问一张表时自动加的
+-- 普通 SELECT → 加 MDL 读锁
+-- ALTER TABLE → 要拿 MDL 写锁</code></pre>
+  <p>MDL（MetaData Lock）是 5.5 引入的隐形锁：事务在读表时自动加 MDL 读锁，DDL 改表结构时要拿 MDL 写锁。<strong>读锁不阻塞读，但阻塞写；写锁要等所有读锁释放</strong>。</p>
+  <div class="pit-sentence">经典线上事故：一个慢查询占着某表的 MDL 读锁不释放，此时你执行 ALTER TABLE 想拿 MDL 写锁，就得排队；它后面所有新的 SELECT 也跟着排队等 MDL 写锁——<strong>一张表瞬间被全部堵死</strong>。加索引前先确认没有长事务占着该表。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">32.3</span> 意向锁：IS / IX 的兼容矩阵</h2>
+  <p class="lead">行锁之前，InnoDB 先在表上挂一把"意向锁"，告诉你"这张表有人要改行"。</p>
+  <p>问题：表锁要判断"整张表能不能锁"，得逐行扫行锁吗？太蠢。于是有了意向锁——事务准备加行锁前，先在表上挂意向锁：</p>
+  <ul>
+    <li><strong>IS（意向共享锁）</strong>：我打算给某些行加共享锁；</li>
+    <li><strong>IX（意向排他锁）</strong>：我打算给某些行加排他锁。</li>
+  </ul>
+  <table>
+    <colgroup><col style="width:25%"><col style="width:19%"><col style="width:19%"><col style="width:19%"><col style="width:18%"></colgroup>
+    <thead><tr><th></th><th>表读锁</th><th>表写锁</th><th>IS</th><th>IX</th></tr></thead>
+    <tbody>
+      <tr><td>表读锁</td><td>兼容</td><td>冲突</td><td>兼容</td><td>冲突</td></tr>
+      <tr><td>表写锁</td><td>冲突</td><td>冲突</td><td>冲突</td><td>冲突</td></tr>
+      <tr><td>IS（意向共享）</td><td>兼容</td><td>冲突</td><td>兼容</td><td>兼容</td></tr>
+      <tr><td>IX（意向排他）</td><td>冲突</td><td>冲突</td><td>兼容</td><td>兼容</td></tr>
+    </tbody>
+  </table>
+  <p>关键结论：<strong>意向锁之间互不冲突（IS 与 IX 兼容）</strong>，所以多个事务可以同时给不同行加行锁；只有当有人想拿<strong>整张表的写锁</strong>时，才被 IX 挡住。意向锁是"表级快速路标"，让表锁不必逐行检查。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">32.4</span> 行锁：InnoDB 并发的底气</h2>
+  <p class="lead">行锁只锁要改的那一行，不同事务改不同行互不干扰——这是 InnoDB 高并发的根本。</p>
+  <pre class="code" data-lang="sql"><code>-- 会话 A：改 id=1
+BEGIN;
+UPDATE account SET balance = balance - 100 WHERE id = 1;   -- 只锁 id=1 这行
+
+-- 会话 B：改 id=2（不同行，不冲突，能并发执行）
+BEGIN;
+UPDATE account SET balance = balance + 100 WHERE id = 2;  -- 立刻执行，不等待</code></pre>
+  <p>对比 MyISAM：它只能锁整张表，两个写操作必须排队。InnoDB 的行锁把并发粒度降到行级——100 个事务同时改 100 个不同的用户，互不阻塞。这就是为什么高并发互联网几乎只用 InnoDB。</p>
+  <pre class="code" data-lang="sql"><code>-- 反面教材：UPDATE 的 WHERE 没走索引
+UPDATE account SET balance = 0 WHERE name = '张三';
+-- name 没有索引 → InnoDB 只能全表扫，给每一行都加行锁
+-- 等于锁了整张表，别的事务想改行都被挡——并发瞬间归零</code></pre>
+  <div class="key-sentence">锁的粒度定律：<strong>粒度越粗（表锁）越简单但并发越差；粒度越细（行锁）并发越高但管理越复杂</strong>。InnoDB 选择行锁，把并发做到极致。</div>
+  <div class="note"><strong>行锁是加在索引上的</strong>：InnoDB 的行锁锁的是索引记录。如果 UPDATE 的条件没走索引，行锁会退化成锁全表（下一章展开间隙锁）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">32.5</span> 自增锁与 AUTO-INC</h2>
+  <p class="lead">往自增列插数据时，InnoDB 要保证生成的 id 连续不重复，用的是自增锁。</p>
+  <pre class="code" data-lang="sql"><code>-- 插入带 AUTO_INCREMENT 的表时，引擎在语句级加自增锁
+-- 保证并发插入时 id 不重号、尽量连续
+INSERT INTO user (name) VALUES ('甲'), ('乙'), ('丙');
+
+-- 8.0 对自增锁做了优化：插入前先一次性预留一批 id，
+-- 避免每条都等锁，批量插入快很多</code></pre>
+  <p>自增锁是一种特殊的表级轻锁，只在生成自增值时短暂持有，语句结束就释放。它的存在是为了让"并发插入不重号"，平时不用你操心，但建表时选了自增主键，就隐式用了它。</p>
+</section>
+
+<section id="sec6b" class="card">
+  <h2><span class="num">32.6</span> 锁粒度与性能权衡</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:30%"><col style="width:25%"><col style="width:25%"></colgroup>
+    <thead><tr><th>锁</th><th>锁住范围</th><th>并发</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>全局锁</td><td>整个库只读</td><td>最差</td><td>一致性备份（已少用）</td></tr>
+      <tr><td>表锁</td><td>整张表</td><td>差</td><td>DDL、MyISAM</td></tr>
+      <tr><td>MDL</td><td>表元数据</td><td>—</td><td>自动加，防 DDL/DML 打架</td></tr>
+      <tr><td>行锁</td><td>某一行</td><td>好</td><td>InnoDB 日常 DML</td></tr>
+    </tbody>
+  </table>
+  <p>理解这套体系，后续三章（行锁/间隙锁、死锁、锁等待）就有了坐标系。</p>
+  <div class="key-sentence">一句话记住这张锁地图：<strong>全局锁冻整库、表锁冻整表、MDL 防 DDL/DML 打架、意向锁当路标、行锁才是并发主角</strong>。排查任何锁问题，先定位到是哪一层的锁在起作用。</div>
+  <div class="note"><strong>MyISAM 的对照</strong>：MyISAM 引擎只有表锁，没有行锁，两个写操作必须整表排队——这也是它在高并发写场景下被 InnoDB 全面取代的根本原因。你现在用的 InnoDB，默认就是行锁主导。</div>
+  <div class="note"><strong>意向锁是给"表级锁"看的</strong>：事务在加行锁前，先在表上加一把意向 IX 锁；这样别人想锁整表时，一看表上有 IX 就知道"有行正在被锁"，不必逐行扫描判断——它是个性能路标，不是真锁数据。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>全局锁</td><td>整库只读，用于一致性备份，代价是业务停写</td></tr>
+      <tr><td>MDL</td><td>隐形元数据锁；慢查询占着读锁会让后续 DDL/SELECT 全排队</td></tr>
+      <tr><td>意向锁</td><td>表级路标，IS/IX 互相兼容，让行锁并发成为可能</td></tr>
+      <tr><td>行锁</td><td>只锁改行的那一行，不同行并发，是 InnoDB 高并发的底气</td></tr>
+      <tr><td>粒度定律</td><td>锁越细并发越高；行锁锁在索引上，没走索引会退化</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>开两个会话：会话 A 对 id=1 加行锁（<code>UPDATE ... WHERE id=1</code> 不提交），会话 B 改 id=2，观察 B 是否需要等待；再让 B 改 id=1，观察是否被阻塞。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>用兼容矩阵解释：为什么两个事务可以同时给不同行加排他行锁（IX 与 IX 兼容），而一个事务想拿表写锁时会被所有 IX 挡住。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>复现 MDL 事故：会话 A 对一张大表跑一个故意慢的 SELECT（不结束），会话 B 此时执行 ALTER TABLE，再观察会话 C 的普通 SELECT 是否被堵。说出这背后 MDL 读锁/写锁的排队逻辑。</div>
+  <p class="note">行锁的粒度还能再细分。下一章钻进 InnoDB 最精密的部分：记录锁、间隙锁、临键锁。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="031_第31章_MVCC_多版本并发控制.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="033_第33章_行锁间隙锁与临键锁.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 32 章 锁的分类：全局/表/行</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 26 章 优化案例：从 8s 到 80ms｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第三篇 索引与优化</p>
+    <h1>第 26 章 优化案例：从 8s 到 80ms</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 26 章 / 共 72 章 · 预计 45 分钟</span>
+    </div>
+    <p class="hero-desc">把前面学的全用上：一条真实的订单列表查询，从 8.2 秒优化到 76 毫秒。本章完整复现排查过程——先 EXPLAIN 看到全表扫和 filesort，再一步步加索引、改写法、做延迟关联，每一步都给出前后 EXPLAIN 对比和耗时数字。这是你以后优化任何慢查询的标准动作。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="025_第25章_慢查询定位_slowlog与分析.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="027_第27章_表设计规范与反范式权衡.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">26.1 案发：一条 8 秒的订单列表查询</a></li>
+    <li><a href="#sec3">26.2 第一步 EXPLAIN：问题出在哪</a></li>
+    <li><a href="#sec4">26.3 第二步：加联合索引</a></li>
+    <li><a href="#sec5">26.4 第三步：消除 filesort 与回表</a></li>
+    <li><a href="#sec6">26.5 第四步：延迟关联治深分页</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>完整复现一条慢 SQL 的优化全流程：定位 → EXPLAIN → 加索引 → 验证；</li>
+    <li>看到前后 <code>type</code>、<code>key</code>、<code>rows</code>、<code>Extra</code> 的具体变化；</li>
+    <li>理解"加索引"不是一步到位，而是要匹配 WHERE + ORDER BY；</li>
+    <li>掌握深分页的延迟关联改造；</li>
+    <li>形成可复用的优化动作清单。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">26.1</span> 案发：一条 8 秒的订单列表查询</h2>
+  <p class="lead">业务场景：运营后台按用户查订单列表，按时间倒序翻页，一页 20 条。</p>
+  <pre class="code" data-lang="sql"><code>-- 表结构（简化）：订单表 1000 万行
+CREATE TABLE orders (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id     BIGINT UNSIGNED NOT NULL,
+  status      TINYINT         NOT NULL,          -- 1待付款 2已完成 3已取消
+  amount      DECIMAL(12,2)   NOT NULL,
+  created_at  DATETIME        NOT NULL,
+  PRIMARY KEY (id)
+  -- （初期）除主键外，没有任何二级索引！
+) ENGINE=InnoDB;
+
+-- 出事的 SQL：运营后台"我的订单"列表
+SELECT * FROM orders
+WHERE user_id = 10086 AND status = 2
+ORDER BY created_at DESC
+LIMIT 50000, 20;          -- 翻到深页</code></pre>
+  <p>业务反馈：列表页打开要 8 秒多，越往后翻越慢。慢日志把它记了下来——这就是第 25 章定位到的那条 SQL。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">26.2</span> 第一步 EXPLAIN：问题出在哪</h2>
+  <p class="lead">先别动手，让 EXPLAIN 告诉你病根。</p>
+  <pre class="code" data-lang="sql"><code>EXPLAIN SELECT * FROM orders
+WHERE user_id = 10086 AND status = 2
+ORDER BY created_at DESC
+LIMIT 50000, 20;
+
+-- 优化前输出：
+-- type: ALL              ← 全表扫描！1000 万行
+-- possible_keys: NULL    ← 没有任何索引可选
+-- key: NULL              ← 一个索引都没用上
+-- rows: 10000000         ← 估算要扫 1000 万行
+-- Extra: Using where; Using filesort
+--                              ↑ 还要额外排序</code></pre>
+  <p>病根一目了然：<strong>没索引（key=NULL）+ 全表扫（type=ALL）+ 额外排序（filesort）</strong>。1000 万行里捞某个用户的几百条，还要全表扫一遍再排一遍——8 秒就是这么来的。</p>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 200" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <rect x="60" y="60" width="200" height="80" rx="8" fill="#fee2e2" stroke="#b91c1c" stroke-width="1.5"/>
+    <text x="160" y="92" text-anchor="middle" font-size="13" fill="#b91c1c" font-weight="bold">优化前 8.2s</text>
+    <text x="160" y="118" text-anchor="middle" font-size="12" fill="#1f2e1f">type=ALL / rows=1000万</text>
+    <rect x="300" y="60" width="160" height="80" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="380" y="92" text-anchor="middle" font-size="13" fill="#2d6a3f" font-weight="bold">加索引</text>
+    <text x="380" y="118" text-anchor="middle" font-size="12" fill="#1f2e1f">联合索引匹配 WHERE</text>
+    <rect x="520" y="60" width="180" height="80" rx="8" fill="#d1fae5" stroke="#047857" stroke-width="1.5"/>
+    <text x="610" y="92" text-anchor="middle" font-size="13" fill="#047857" font-weight="bold">优化后 76ms</text>
+    <text x="610" y="118" text-anchor="middle" font-size="12" fill="#1f2e1f">type=ref / rows≈20</text>
+    <line x1="260" y1="100" x2="300" y2="100" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <line x1="460" y1="100" x2="520" y2="100" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 26-1 一条订单列表查询的优化全程：8.2 秒 → 76 毫秒，提速约 108 倍</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">26.3</span> 第二步：加联合索引</h2>
+  <p class="lead">WHERE 是 user_id + status 等值，ORDER BY 是 created_at——按第 21 章列序原则设计。</p>
+  <pre class="code" data-lang="sql"><code>-- 设计：等值列 user_id、status 在前，排序列 created_at 垫底
+ALTER TABLE orders
+  ADD INDEX idx_user_status_time (user_id, status, created_at);
+
+-- 加完索引再 EXPLAIN：
+-- type: ref                ← 终于走索引了
+-- key: idx_user_status_time ← 用上了
+-- rows: 几百                ← 扫的行数从 1000 万降到几百
+-- Extra: Using where; Using index condition</code></pre>
+  <p>这一步直接把 8.2 秒砍到约 1.5 秒——<strong>全表扫没了</strong>，定位到这个用户已完成的几百条订单。但 ORDER BY created_at 的 filesort 还在（索引虽然带了 created_at，但 LIMIT 深分页仍要排序翻找），而且 SELECT * 还在逐行回表。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">26.4</span> 第三步：消除 filesort 与回表</h2>
+  <p class="lead">索引已经把 user_id+status 等值锁定，created_at 也在索引里有序——为什么还在排序？</p>
+  <pre class="code" data-lang="sql"><code>-- 问题在 SELECT *：索引里只有 user_id, status, created_at, 主键
+-- 你要 *（全部列），所以索引不能覆盖，要回表；
+-- 而且深分页 LIMIT 50000,20 要先在索引里数过 5 万行再取 20 行
+
+-- 改造 1：列表页只查真正需要的列（别 SELECT *）
+SELECT id, user_id, status, amount, created_at
+FROM orders
+WHERE user_id = 10086 AND status = 2
+ORDER BY created_at DESC
+LIMIT 20;
+-- 浅分页时：(user_id, status, created_at) 取出即按时间有序，filesort 消失</code></pre>
+  <div class="key-sentence">索引带排序列的价值：WHERE 等值锁定后，索引叶子本身就按 created_at 有序——取出即排序，filesort 自然消失。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">26.5</span> 第四步：延迟关联治深分页</h2>
+  <p class="lead">真正把 1.5 秒砍到 76 毫秒的，是深分页改造。</p>
+  <pre class="code" data-lang="sql"><code>-- 慢：LIMIT 50000,20 要先在索引里数过 5 万行、再回表取整行
+SELECT * FROM orders
+WHERE user_id = 10086 AND status = 2
+ORDER BY created_at DESC
+LIMIT 50000, 20;
+
+-- 快：延迟关联。先在覆盖索引上只取这 20 个主键，再回表
+SELECT t.* FROM orders t
+JOIN (
+  SELECT id FROM orders
+  WHERE user_id = 10086 AND status = 2
+  ORDER BY created_at DESC
+  LIMIT 50000, 20
+) AS tmp ON tmp.id = t.id;
+
+-- 优化后 EXPLAIN：
+-- 子查询：type=ref，只在索引上取 20 个 id（Using index，不回表）
+-- 外层：type=eq_ref，按 20 个 id 回表取整行（只回 20 次）
+-- 总耗时：76 毫秒</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:25%"><col style="width:25%"><col style="width:26%"></colgroup>
+    <thead><tr><th>阶段</th><th>type</th><th>rows</th><th>耗时</th></tr></thead>
+    <tbody>
+      <tr><td>优化前</td><td>ALL</td><td>1000 万</td><td>8.2 s</td></tr>
+      <tr><td>加联合索引</td><td>ref</td><td>几百</td><td>1.5 s</td></tr>
+      <tr><td>消除 SELECT *</td><td>ref</td><td>几百</td><td>0.4 s</td></tr>
+      <tr><td>延迟关联</td><td>ref + eq_ref</td><td>≈20</td><td>76 ms</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>复盘三句话</strong>：①没索引先加匹配 WHERE 的联合索引（等值在前、排序垫底）；②杜绝 SELECT *，让列表查询走覆盖索引；③深分页用延迟关联，回表次数 = 一页行数。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>先 EXPLAIN</td><td>type=ALL、key=NULL、filesort 是三大病根，先看清再动手</td></tr>
+      <tr><td>联合索引</td><td>等值列在前、排序列垫底，一次解决筛选 + 排序</td></tr>
+      <tr><td>杜绝 SELECT *</td><td>只查需要的列，让索引覆盖、减少回表</td></tr>
+      <tr><td>延迟关联</td><td>深分页先在覆盖索引上取主键、再回表，回表次数压到一页</td></tr>
+      <tr><td>优化节奏</td><td>每加一步都跑 EXPLAIN + 计时，对比前后 rows 与耗时</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>按本章步骤造一张 100 万行的 orders 表，复现 <code>WHERE user_id=? AND status=2 ORDER BY created_at DESC LIMIT 20</code>，观察加联合索引前后 type 与 rows 的变化。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把分页改成 <code>LIMIT 20000, 20</code>，分别用朴素写法和延迟关联写法计时，对比两者的 EXPLAIN，说明子查询 <code>SELECT id</code> 为什么不回表。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给这条查询再加上一个"时间范围"条件（<code>created_at &gt; '2026-01-01'</code>），思考现有联合索引 (user_id, status, created_at) 还能不能同时覆盖等值、范围、排序？画出新条件下索引的使用情况。</div>
+  <p class="note">查询优化是"表上功夫"，下一章回到设计源头：表该怎么建、什么时候该反范式。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="025_第25章_慢查询定位_slowlog与分析.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="027_第27章_表设计规范与反范式权衡.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 26 章 优化案例：从 8s 到 80ms</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

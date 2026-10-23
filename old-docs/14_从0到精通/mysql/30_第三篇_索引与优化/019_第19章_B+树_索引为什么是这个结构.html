@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 19 章 B+ 树：索引为什么是这个结构｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第三篇 索引与优化</p>
+    <h1>第 19 章 B+ 树：索引为什么是这个结构</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 19 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">一亿行的表，按主键查一行为什么只要两三次磁盘 IO？答案藏在 InnoDB 默认的索引结构 B+ 树里。本章从"二叉树为什么不行"讲起，把 B+ 树的每个零件拆开看：非叶子节点、叶子链表、16KB 的页——看懂它，后面所有索引章节都只是它的推论。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../20_第二篇_SQL进阶/018_第18章_SQL综合练习_报表需求十连.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="020_第20章_索引类型_主键唯一普通全文.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">19.1 从磁盘 IO 说起：为什么不能用二叉树</a></li>
+    <li><a href="#sec3">19.2 B 树与 B+ 树：差的那三刀</a></li>
+    <li><a href="#sec4">19.3 解剖一棵 InnoDB B+ 树</a></li>
+    <li><a href="#sec5">19.4 树高与千万行：为什么三层层级能存上亿行</a></li>
+    <li><a href="#sec6">19.5 为什么不用哈希索引</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解索引的本质是<strong>减少磁盘 IO 次数</strong>，说清二叉/红黑树为什么不适合磁盘数据库；</li>
+    <li>说出 B+ 树相对 B 树的三处关键改造，以及每处改造解决什么问题；</li>
+    <li>认识 InnoDB 的页（16KB）、非叶子节点与叶子节点各自存什么；</li>
+    <li>会估算一棵 B+ 树的高度与可容纳行数；</li>
+    <li>解释哈希索引为什么只适合等值查询，InnoDB 默认为什么是 B+ 树。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">19.1</span> 从磁盘 IO 说起：为什么不能用二叉树</h2>
+  <p class="lead">索引不是为了"算得快"，而是为了"少读几次盘"。结构设计的全部约束都来自这一句话。</p>
+  <p>先把数量级摆出来：内存一次随机访问约 100 纳秒，机械磁盘一次随机读约 10 毫秒，两者相差 <strong>十万倍</strong>；SSD 随机读虽然快到几十微秒，但仍然比内存贵上千倍。数据库的数据长期放在磁盘上，查询要做的事就是<strong>把"要读的磁盘块"压到最少</strong>。</p>
+  <p>二叉搜索树、AVL、红黑树这类"瘦高"结构的问题就在这里：每个节点只放一个关键字，N 行数据的树高约为 log₂N。一张 1 亿行的表，树高约 27——最坏情况下一次查询要走 27 个节点，而每个节点都在磁盘不同位置，就是 27 次随机 IO，按机械盘算是 0.3 秒起步，完全不可接受。</p>
+  <pre class="code" data-lang="sql"><code>-- 感受一下量级：1 亿行 = 100,000,000，log2(N) ≈ 26.6
+-- 二叉树：最坏 27 次磁盘 IO
+-- B+ 树（多路）：每页放约 1000 个键，log(1000, N) ≈ 2.7 → 3 次 IO 封顶</code></pre>
+  <p>结论朴素而硬核：要让树"矮胖"——<strong>每个节点存很多关键字</strong>，一次磁盘读（一个页）就能拿到成百上千个键，靠"扇出"把树高压到 3~4 层。这就是多路平衡搜索树（B 树家族）的设计动机。</p>
+  <div class="note"><strong>为什么节点要等于"页"</strong>：InnoDB 读写磁盘的最小单位不是行，而是<strong>页（Page），默认 16KB</strong>。索引节点直接对齐一个页，读一次盘就把整个节点读进内存——IO 次数=树高，一次都不浪费。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">19.2</span> B 树与 B+ 树：差的那三刀</h2>
+  <p class="lead">B 树已经是多路平衡树，但 MySQL 最终选了它的变种 B+ 树。三处改造，每一处都对应一个真实业务痛点。</p>
+  <p>B 树（Balanced Tree）的每个节点既存关键字、也存完整数据，找到键就停。它比二叉树矮得多，但还有三个问题：数据散落在各层节点里，每个节点存的数据一多，<strong>单页能放的关键字就变少</strong>，扇出上不去，树又变高了；范围查询要在树里中序遍历、来回回溯；节点不连在一起，顺序扫描没保障。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>B 树</th><th>B+ 树（InnoDB）</th></tr></thead>
+    <tbody>
+      <tr><td>数据存放位置</td><td>每个节点都存键 + 数据</td><td>数据只存叶子节点，非叶子节点只存键</td></tr>
+      <tr><td>扇出（单页键数）</td><td>小（数据占地方）</td><td>大（非叶子页只放键与指针，可达上千）</td></tr>
+      <tr><td>范围查询</td><td>需中序遍历，回溯父节点</td><td>叶子节点双向链表相连，找到起点后一路向右扫到底</td></tr>
+      <tr><td>查询稳定性</td><td>键在非叶子就可能提前命中，耗时不稳定</td><td>一律走到叶子，任意查询路径等长，性能稳定</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">B+ 树的精髓：非叶子"只指路、不装货"，叶子"装货且手拉手"。树更矮、范围更快、查询耗时更稳。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">19.3</span> 解剖一棵 InnoDB B+ 树</h2>
+  <p class="lead">把一棵真实的 B+ 树摆在眼前：根页、内部页、叶子页，各存什么、怎么连，一次查询走哪条线。</p>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 800 240" width="100%" style="max-width:800px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <!-- 连接线 -->
+    <line x1="400" y1="52" x2="180" y2="108" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="400" y1="52" x2="620" y2="108" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="180" y1="144" x2="110" y2="196" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="180" y1="144" x2="290" y2="196" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="620" y1="144" x2="510" y2="196" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="620" y1="144" x2="690" y2="196" stroke="#2d6a3f" stroke-width="1.5"/>
+    <!-- 根页 -->
+    <rect x="320" y="16" width="160" height="36" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="400" y="39" text-anchor="middle" font-size="13" fill="#1f2e1f" font-family="monospace">根页 [10 | 20 | 30]</text>
+    <!-- 内部页 -->
+    <rect x="100" y="108" width="160" height="36" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="180" y="131" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">内部页 [5 | 10]</text>
+    <rect x="540" y="108" width="160" height="36" rx="6" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="620" y="131" text-anchor="middle" font-size="12" fill="#1f2e1f" font-family="monospace">内部页 [20|30|40]</text>
+    <!-- 叶子页：双向链表 -->
+    <rect x="30" y="196" width="160" height="36" rx="6" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="110" y="219" text-anchor="middle" font-size="12" fill="#1f2e1f">叶子 1~9（数据行）</text>
+    <rect x="210" y="196" width="160" height="36" rx="6" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="290" y="219" text-anchor="middle" font-size="12" fill="#1f2e1f">叶子 10~19（数据行）</text>
+    <rect x="430" y="196" width="160" height="36" rx="6" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="510" y="219" text-anchor="middle" font-size="12" fill="#1f2e1f">叶子 20~29（数据行）</text>
+    <rect x="610" y="196" width="160" height="36" rx="6" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="690" y="219" text-anchor="middle" font-size="12" fill="#1f2e1f">叶子 30~49（数据行）</text>
+    <!-- 叶子双向链表箭头 -->
+    <line x1="190" y1="214" x2="210" y2="214" stroke="#2d6a3f" stroke-width="1.2"/>
+    <line x1="370" y1="214" x2="430" y2="214" stroke="#2d6a3f" stroke-width="1.2"/>
+    <line x1="590" y1="214" x2="610" y2="214" stroke="#2d6a3f" stroke-width="1.2"/>
+    <text x="400" y="232" text-anchor="middle" font-size="11" fill="#7a8a70">叶子页之间用 prev / next 指针双向串联 → 范围查询一路向右扫</text>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 19-1 一棵三层 B+ 树：非叶子页只存键与指针，叶子页存完整数据行并双向相连</p>
+  </div>
+  <p>三个零件逐个说：</p>
+  <ul>
+    <li><span class="tag-key">关键</span><strong>非叶子节点（内部页）</strong>：只存"键 + 指向子页的指针"。一个页 16KB，主键按 BIGINT（8 字节）算，加页指针约 6 字节，单页能装 <strong>上千个键</strong>——这就是扇出。</li>
+    <li><span class="tag-key">关键</span><strong>叶子节点</strong>：聚簇索引（主键）的叶子直接存<strong>完整行数据</strong>；二级索引的叶子存"索引列值 + 主键值"（第 20、22 章展开回表）。</li>
+    <li><span class="tag-key">关键</span><strong>双向链表</strong>：相邻叶子页用 prev/next 指针串起来，且页内键值有序。<code>BETWEEN</code>、<code>ORDER BY</code>、<code>&gt;</code> 这类范围条件，找到起点后顺着链表扫即可，不用回树。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>-- 查看 InnoDB 页大小（默认 16384 = 16KB）
+SHOW VARIABLES LIKE 'innodb_page_size';
+
+-- 建一张演示表，主键即聚簇索引
+CREATE TABLE bpt_demo (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(32) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+-- root 页常驻在内存缓冲池里，所以绝大多数查询实际只走 2 次磁盘 IO</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">19.4</span> 树高与千万行：为什么三层层级能存上亿行</h2>
+  <p class="lead">做一道除法题，你就理解为什么 DBA 说"B+ 树一般不会超过 4 层"。</p>
+  <p>粗算一遍：非叶子页扇出约 1000（保守取 1200），叶子页按行均长 1KB 算、一页约放 16 行（保守，实际紧凑行能到上百行）。</p>
+  <pre class="code" data-lang="sql"><code>-- 高度估算（粗算）
+-- 第 1 层（根）：1 页，指向 1000 个内部页
+-- 第 2 层（内部）：1000 页 × 每页再分 1000 → 指向 100 万个叶子页
+-- 第 3 层（叶子）：100 万页 × 每页约 100 行 ≈ 1 亿行
+-- 结论：树高 3 层，装 1 亿行；一次主键查询 = 2~3 次 IO</code></pre>
+  <p>这就是为什么千万级、甚至上亿行的表，按主键查一行仍然飞快——<strong>数据量翻 100 倍，树只多一层</strong>。也解释了两个日常现象：往表上插数据为什么不会让查询越来越慢（树高基本不变）；为什么联合索引的列不宜太多（索引页同样是 16KB，列越多、单页能放的键越少，扇出下降、树变高，第 21 章细讲）。</p>
+  <div class="key-sentence">主键查一行 = 2~3 次磁盘 IO，这就是 B+ 树给千万级表开出的"便宜"。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">19.5</span> 为什么不用哈希索引</h2>
+  <p class="lead">哈希表等值查找 O(1)，比 B+ 树还快，为什么 InnoDB 不拿它当默认？</p>
+  <p>哈希索引确实是等值查询的天花板：算一次哈希值直接定位。但它有三个硬伤，恰好全踩在业务 SQL 的痛点上：</p>
+  <ol>
+    <li><strong>不支持范围查询</strong>：哈希打散后，连续键值在物理上乱序，<code>WHERE age &gt; 20</code> 无从下手；</li>
+    <li><strong>不支持排序与最左前缀</strong>：<code>ORDER BY</code>、联合索引左侧匹配（第 21 章）全部失效；</li>
+    <li><strong>不支持部分列匹配</strong>：<code>LIKE 'abc%'</code> 这类前缀扫描做不了。</li>
+  </ol>
+  <p>MySQL 中哈希索引真实存在于 <code>MEMORY</code> 引擎，以及 InnoDB 的<strong>自适应哈希索引（AHI）</strong>——引擎监测到某些索引值被频繁等值访问时，自动为其在内存中建哈希，无需人工干预。</p>
+  <pre class="code" data-lang="sql"><code>-- 查看自适应哈希索引是否开启（默认 ON，由引擎自控）
+SHOW VARIABLES LIKE 'innodb_adaptive_hash_index';
+
+-- 注意：CREATE INDEX 建不出哈希索引；USING HASH 仅适用于 MEMORY 引擎</code></pre>
+  <div class="pit-sentence">常见误解："B+ 树比哈希快"——错。等值点查哈希更快，但业务里大量是范围、排序、联合条件，InnoDB 选择"全能的 B+ 树"，再用 AHI 把热点等值查询加速补回来。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>索引的本质</td><td>减少磁盘 IO；节点对齐 16KB 页，一次盘读拿整页</td></tr>
+      <tr><td>为什么不用二叉树</td><td>瘦高，1 亿行要走 27 层 ≈ 27 次随机 IO，不可接受</td></tr>
+      <tr><td>B+ 树三刀</td><td>非叶子只存键（扇出大）、数据只在叶子、叶子双向链表</td></tr>
+      <tr><td>树高</td><td>扇出约 1000，3 层存约 1 亿行；主键查询 = 2~3 次 IO</td></tr>
+      <tr><td>哈希索引</td><td>只擅长等值；不支持范围/排序/最左前缀，靠 AHI 内存加速补位</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>执行 <code>SHOW VARIABLES LIKE 'innodb_page_size';</code> 确认页大小；然后口算：若扇出为 1000、每叶子页放 100 行，两层、三层 B+ 树各能装多少行？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>画出"按主键 id=5000000 查一行"在 B+ 树中的完整路径（从根页比较、下钻、到叶子页命中），并说明这条路径会读几个页。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为什么联合索引列数越多、索引的扇出越小、树越高？从"一个 16KB 索引页能放多少个键"的角度推导，并给出控制索引列数的两条实践原则。</div>
+  <p class="note">结构懂了，下一章动手建索引：主键、唯一、普通、全文，四类索引分别长什么样、怎么建。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../20_第二篇_SQL进阶/018_第18章_SQL综合练习_报表需求十连.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="020_第20章_索引类型_主键唯一普通全文.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 19 章 B+ 树：索引为什么是这个结构</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

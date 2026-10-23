@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 43 章 GTID 与复制拓扑｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第五篇 日志与主从</p>
+    <h1>第 43 章 GTID 与复制拓扑</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 43 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">传统复制靠"binlog 文件名 + 偏移量"追位点，换主库就得重新算位点，极易出错。GTID 给每个事务一个全网唯一编号，换主库只要说一句"从这个编号继续"——这是高可用切换的基石。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="042_第42章_半同步复制.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="044_第44章_备份与恢复_mysqldump_xtrabackup.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">43.1 GTID 是什么</a></li>
+    <li><a href="#sec3">43.2 开启 GTID</a></li>
+    <li><a href="#sec4">43.3 基于 GTID 建复制</a></li>
+    <li><a href="#sec5">43.4 常见复制拓扑</a></li>
+    <li><a href="#sec6">43.5 常见坑清单</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  <li><a href="#secX">43.5 GTID 跳过错误事务</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 GTID 的结构 <code>server_uuid:transaction_id</code> 与幂等性；</li>
+    <li>会在 my.cnf 开启 <code>gtid_mode=ON</code> 并配 <code>enforce_gtid_consistency</code>；</li>
+    <li>会用 <code>CHANGE REPLICATION SOURCE TO ... AUTO_POSITION=1</code> 建立基于 GTID 的复制；</li>
+    <li>认识一主多从、级联复制、双主等常见拓扑；</li>
+    <li>知道为什么 GTID 是 MHA/MGR 自动切换的前提。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">43.1</span> GTID 是什么</h2>
+  <p class="lead">GTID（Global Transaction ID）= 一个事务在整个复制体系里的唯一身份证，格式 <code>uuid:seqno</code>。</p>
+  <pre class="code" data-lang="sql"><code>-- 示例 GTID：3E11FA47-71CA-11E1-9E33-C80AA9429562:23
+-- 前半段 server_uuid：实例的唯一标识（自动生成，存在 auto.cnf）
+-- 后半段 seqno：这台实例上第 23 个提交的事务</code></pre>
+  <p>它最大的好处是<strong>幂等自动定位</strong>：从库只要声明"我已经执行到哪些 GTID 了"，主库就会自动把缺失的事务推过来，不需要人工算文件号和偏移。换主库时这一条省去了最容易出错的一步。</p>
+  <div class="key-sentence">传统复制是"我要从 mysql-bin.000003 的第 1574 字节继续"；GTID 复制是"我已经做到 3E11...:23，把我没有的都发过来"。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 760 180" style="background:#fff;border:1px solid #d8e2cc;border-radius:8px;display:block;margin:0 auto;max-width:100%" xmlns="http://www.w3.org/2000/svg">
+      <rect x="40" y="60" width="200" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="140" y="85" text-anchor="middle" font-size="13" fill="#2d6a3f" font-weight="bold">主库 A (uuid=AAA)</text>
+      <text x="140" y="105" text-anchor="middle" font-size="12" fill="#4f6348">事务 …:101, …:102, …:103</text>
+      <rect x="520" y="60" width="200" height="60" rx="8" fill="#fff" stroke="#2d6a3f"/>
+      <text x="620" y="85" text-anchor="middle" font-size="13" fill="#2d6a3f" font-weight="bold">从库 B</text>
+      <text x="620" y="105" text-anchor="middle" font-size="12" fill="#4f6348">已执行到 :102，自动拉 :103</text>
+      <line x1="240" y1="90" x2="518" y2="90" stroke="#2d6a3f" stroke-width="1.6"/>
+    </svg>
+    <p class="diagram-caption" style="text-align:center;color:#7a8a70;font-size:13px;margin:6px 0 0">图 43-1 GTID 自动定位：从库报"我做到哪"，主库自动补缺口</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">43.2</span> 开启 GTID</h2>
+  <p class="lead">GTID 需要实例级开关，主从两边都要开，并遵守一致性约束。</p>
+  <pre class="code" data-lang="sql"><code># my.cnf [mysqld]（主从都配）
+gtid_mode = ON
+enforce_gtid_consistency = ON
+log_bin = mysql-bin
+server_id = 1</code></pre>
+  <pre class="code" data-lang="sql"><code>-- 启动后确认
+SHOW VARIABLES LIKE 'gtid_mode';
+SHOW VARIABLES LIKE 'enforce_gtid_consistency';
+
+-- 查看本机已执行的 GTID 集合
+SHOW MASTER STATUS\G          -- Executed_Gtid_Set 列
+SELECT @@global.gtid_executed;</code></pre>
+  <div class="warn-box"><code>enforce_gtid_consistency=ON</code> 会拒绝不被 GTID 支持的语句（如 <code>CREATE TABLE ... SELECT</code> 老写法、事务内创建临时表）。升级时先开 <code>WARN</code> 模式观察报错，再切 ON。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">43.3</span> 基于 GTID 建复制</h2>
+  <p class="lead">核心区别：不再填 <code>SOURCE_LOG_FILE/POS</code>，改填 <code>SOURCE_AUTO_POSITION=1</code>。</p>
+  <pre class="code" data-lang="sql"><code>-- 从库配置：接主库，自动定位位点
+CHANGE REPLICATION SOURCE TO
+  SOURCE_HOST     = '10.0.0.11',
+  SOURCE_PORT     = 3306,
+  SOURCE_USER     = 'repl',
+  SOURCE_PASSWORD = 'Repl@2026',
+  SOURCE_AUTO_POSITION = 1;     -- 关键：让它自动找 GTID 缺口
+
+START REPLICA;
+
+-- 验证
+SHOW REPLICA STATUS\G
+-- Retrieved_Gtid_Set / Executed_Gtid_Set 是否在推进</code></pre>
+  <div class="note">换主库场景：主库 A 挂了，从库 B 提升为新主。其余从库只要把 <code>SOURCE_HOST</code> 改成 B、仍用 <code>AUTO_POSITION=1</code>，它们会自动找出"还没从 B 这里同步到的事务"——这就是高可用切换为什么依赖 GTID。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">43.4</span> 常见复制拓扑</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>拓扑</th><th>结构</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td>一主多从</td><td>一个主库挂 N 个从库</td><td>读多写少，读扩容</td></tr>
+      <tr><td>级联复制</td><td>主→从→从从（从库再当别人的主）</td><td>缓解主库 Dump 线程压力，跨机房</td></tr>
+      <tr><td>双主</td><td>两台互为主从</td><td>高可用切换 + 写就近，需防写冲突</td></tr>
+      <tr><td>带从的读写分离</td><td>主写 + 多从读 + 中间件路由</td><td>第 48 章主题</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">双主两边都可写极易主键冲突，除非用 <code>auto_increment_increment/offset</code> 错开自增、且业务严格分写，否则别开双写。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">43.5</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>主从 GTID 没对齐就换主</strong>：新主上缺的事务不会自动补，数据分叉；</li>
+    <li><span class="tag-pit">坑</span><strong>在从库手动写数据</strong>：会产生本地 GTID，之后再追主库容易冲突；</li>
+    <li><span class="tag-pit">坑</span><strong>混淆 server_uuid 与 server_id</strong>：UUID 自动生成别手改，server_id 要手动唯一；</li>
+    <li><span class="tag-pit">坑</span><strong>以为开了 GTID 就能跳过错误事务</strong>：跳过要用空事务补 GTID（<code>SET GTID_NEXT</code>），不是简单 stop slave。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+</section>
+
+<section id="secX" class="card">
+  <h2><span class="num">43.5</span> GTID 下跳过错误事务</h2>
+  <p class="lead">传统位点用 sql_slave_skip_counter 跳一条，GTID 下要注入空事务补位。</p>
+  <pre class="code" data-lang="sql"><code>-- GTID 模式跳过出错事务：构造一个空事务占用该 GTID
+SET GTID_NEXT = 'aaaaaaaa-1111-2222-3333-000000000001:100';
+BEGIN; COMMIT;
+SET GTID_NEXT = AUTOMATIC;
+START REPLICA;</code></pre>
+  <div class="pit-sentence">跳过意味着该事务在从库缺失，事后必须补数据并核对，不能跳完就当没事。</div>
+</section>
+
+<section id="secX2" class="card">
+  <h2><span class="num">速记</span> 一句话要点</h2>
+  <p class="lead">把本章最容易忘的结论压成一句话。</p>
+  <ul>
+    <li><span class="tag-point">要点</span>GTID 的好处在切换时最明显：不用记 binlog 位点，AUTO_POSITION 自动对齐；代价是要改老脚本里基于位点的 CHANGE MASTER。</li>
+    <li>本章所有命令均在 MySQL 8.0 验证，老版本语法以官方手册为准。</li>
+    <li>动手跑一遍本章的 SQL，胜过读十遍解释。</li>
+  </ul>
+  <div class="note">这一条结论，建议在面试前默写一遍。</div>
+</section>
+<section id="secSum" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>GTID 结构</td><td>server_uuid:seqno，事务的全网唯一编号</td></tr>
+      <tr><td>开启</td><td>gtid_mode=ON + enforce_gtid_consistency=ON</td></tr>
+      <tr><td>建复制</td><td>CHANGE REPLICATION SOURCE TO ... AUTO_POSITION=1，不填位点</td></tr>
+      <tr><td>拓扑</td><td>一主多从、级联、双主，按读写与跨机房选</td></tr>
+      <tr><td>意义</td><td>GTID 是自动高可用切换（MHA/MGR）的前提</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出 GTID 的结构，并解释 <code>server_uuid</code> 从哪里来、为什么不要手动改它。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在你已搭的主从上开启 GTID（先开 WARN 观察），然后用 <code>SOURCE_AUTO_POSITION=1</code> 重建复制，用 <code>SHOW REPLICA STATUS</code> 查看 <code>Executed_Gtid_Set</code> 是否推进。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>假设主库 A 宕机，你要把从库 B 提升为新主、其余从库改指向 B。写出完整切换命令序列，并说明为什么 AUTO_POSITION=1 让"找到缺哪些事务"这一步不用人工算位点。</div>
+  <p class="note">复制讲透了，下一章回到基本功：数据库怎么备份、怎么在灾难后用 mysqldump/xtrabackup 恢复。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="042_第42章_半同步复制.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="044_第44章_备份与恢复_mysqldump_xtrabackup.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 43 章 GTID 与复制拓扑</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

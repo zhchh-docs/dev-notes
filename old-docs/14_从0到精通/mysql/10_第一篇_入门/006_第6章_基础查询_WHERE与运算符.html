@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 6 章 基础查询：WHERE 与运算符｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 6 章 基础查询：WHERE 与运算符</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 6 章 / 共 72 章 · 预计 35 分钟</span>
+    </div>
+    <p class="hero-desc">读数据是 SQL 里频率最高的动作。SELECT 怎么列、WHERE 怎么写、IN/BETWEEN/LIKE 怎么分工，以及 NULL 为什么能让你的查询悄悄少掉一半行——本章把"查得对"这件事一次讲清。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="005_第5章_增删改_INSERT_UPDATE_DELETE与软删.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="007_第7章_排序与分页_ORDERBY_LIMIT.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">6.1 SELECT 的基本形态</a></li>
+    <li><a href="#sec3">6.2 WHERE：比较与逻辑运算</a></li>
+    <li><a href="#sec4">6.3 IN / BETWEEN / LIKE 三件套</a></li>
+    <li><a href="#sec5">6.4 NULL 的三值逻辑</a></li>
+    <li><a href="#sec6">6.5 运算符优先级与括号</a></li>
+    <li><a href="#sec7">6.6 常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>写出列清单、常量与表达式混合的 <code>SELECT</code>，会用 <code>AS</code> 起别名、会用 <code>DISTINCT</code> 去重；</li>
+    <li>熟练组合 <code>=、!=、&gt;、&lt;、AND、OR、NOT</code> 表达任意筛选条件；</li>
+    <li>分清 <code>IN</code>、<code>BETWEEN ... AND</code>、<code>LIKE</code> 的适用场景与性能差异；</li>
+    <li>理解 NULL 的三值逻辑，避开 <code>NULL</code> 导致的"查不到"幽灵问题；</li>
+    <li>记住运算符优先级，用括号把复杂条件写得既对又可读。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">6.1</span> SELECT 的基本形态</h2>
+  <p class="lead">SELECT 决定"看哪些列"，FROM 决定"从哪张表看"——这是查询的地基。</p>
+  <pre class="code" data-lang="sql"><code>-- 1. 列出明确的列（永远别用 SELECT *，生产环境与网络传输都吃亏）
+SELECT id, name, price, stock
+FROM product;
+
+-- 2. 带表达式：SELECT 列表里可以直接写计算
+SELECT id,
+       name,
+       price,
+       price * 0.9        AS discount_price,   -- AS 起别名，结果集列名就叫这个
+       stock * price      AS stock_value      -- 库存货值
+FROM product;
+
+-- 3. 常量与函数也能出现在列表里
+SELECT id,
+       name,
+       '京东自营'          AS source,           -- 字符串常量列
+       CURRENT_TIMESTAMP  AS query_time        -- 函数列
+FROM product;
+
+-- 4. DISTINCT 对整行去重（常用于"查过哪些类目"）
+SELECT DISTINCT category_id
+FROM product;</code></pre>
+  <p>几个约定俗成的写法：</p>
+  <ul>
+    <li><code>AS</code> 可省略，但<strong>强烈建议显式写</strong>——<code>price*0.9 discount_price</code> 这种靠空格区分的写法容易在重构时读错；</li>
+    <li>别名一旦起好，<code>WHERE</code> 里<strong>不能</strong>引用它（SELECT 子句的执行顺序在 WHERE 之后，下一节的执行顺序图会解释），但 <code>ORDER BY</code>、<code>GROUP BY</code>、<code>HAVING</code> 里可以；</li>
+    <li><code>DISTINCT</code> 作用于<strong>后面所有列的组合</strong>：<code>SELECT DISTINCT a, b</code> 是 (a,b) 组合去重，不是只对 a 去重。</li>
+  </ul>
+  <div class="note"><strong>SELECT * 的三个问题</strong>：① 网络/内存多传不需要的列；② 表结构一变应用就崩（依赖列顺序）；③ 可能用上索引覆盖不了的列，让执行计划变差。练习可以偷懒，生产一律写列名。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">6.2</span> WHERE：比较与逻辑运算</h2>
+  <p class="lead">WHERE 是"行级过滤器"：逐行判断，真的留下，假的丢弃——它决定了扫描之后哪些行能进入下一步。</p>
+  <pre class="code" data-lang="sql"><code>-- 比较运算：= 等于、!= 或 &lt;&gt; 不等于、&gt; &gt;= &lt; &lt;=
+SELECT id, name, price
+FROM product
+WHERE price &gt;= 100;
+
+-- 逻辑组合：AND / OR / NOT
+SELECT id, name, price, category_id
+FROM product
+WHERE category_id = 3
+  AND price &gt;= 100
+  AND price &lt;= 500
+  AND is_deleted = 0;
+
+-- NOT 取反：排除"已下架"和"无库存"
+SELECT id, name
+FROM product
+WHERE NOT (status = 0 OR stock = 0);</code></pre>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 220" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="20" y="80" width="150" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="95" y="105" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">FROM product</text>
+      <text x="95" y="125" text-anchor="middle" font-size="12" fill="#4f6348">逐行取出</text>
+      <line x1="170" y1="110" x2="230" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="230" y="80" width="170" height="60" rx="8" fill="#2d6a3f" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="315" y="105" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="700">WHERE 过滤</text>
+      <text x="315" y="125" text-anchor="middle" font-size="12" fill="#d8e8c8">真→留 / 假→丢</text>
+      <line x1="400" y1="110" x2="460" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="460" y="80" width="140" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="530" y="105" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">SELECT</text>
+      <text x="530" y="125" text-anchor="middle" font-size="12" fill="#4f6348">投影列/表达式</text>
+      <line x1="600" y1="110" x2="660" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="660" y="80" width="80" height="60" rx="8" fill="#2d6a3f" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="700" y="115" text-anchor="middle" font-size="13" fill="#ffffff" font-weight="700">结果集</text>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#2d6a3f"/>
+      </marker></defs>
+      <text x="380" y="195" text-anchor="middle" font-size="13" fill="#4f6348">图 6-1　SELECT 的逻辑执行顺序：先 FROM 取行，再 WHERE 过滤，最后 SELECT 投影——所以别名不能在 WHERE 里用</text>
+    </svg>
+  </div>
+  <p>要点：</p>
+  <ul>
+    <li>MySQL 里 <code>!=</code> 与 <code>&lt;&gt;</code> 完全等价，团队约定一种即可（本书示例混用，读到别意外）；</li>
+    <li><code>AND</code> 优先级高于 <code>OR</code>，混写时<strong>永远加括号</strong>：<code>a OR b AND c</code> 实际是 <code>a OR (b AND c)</code>；</li>
+    <li>多个 AND 条件之间，优化器会自动挑能用索引的先走（第 23 章 EXPLAIN 展开），你不必手写顺序。</li>
+  </ul>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">6.3</span> IN / BETWEEN / LIKE 三件套</h2>
+  <p class="lead">三个最常用的范围匹配写法，各有各的适用边界，混用会既慢又错。</p>
+  <pre class="code" data-lang="sql"><code>-- IN：离散值集合（等价于一串 OR，可读性好得多）
+SELECT id, name, category_id
+FROM product
+WHERE category_id IN (3, 7, 12);
+
+-- BETWEEN：闭区间，含两端
+SELECT id, name, price
+FROM product
+WHERE price BETWEEN 100 AND 500;   -- 等价于 price &gt;= 100 AND price &lt;= 500
+
+-- LIKE 模糊匹配：% 任意多字符（含 0 个），_ 恰好一个字符
+SELECT id, name
+FROM product
+WHERE name LIKE '%机械键盘%';       -- 包含"机械键盘"四字
+
+-- 日期也可以 BETWEEN（注意 datetime 的右端含时分秒陷阱）
+SELECT id, order_no, created_at
+FROM orders
+WHERE created_at BETWEEN '2026-10-01' AND '2026-10-31';</code></pre>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:30%"><col style="width:26%"><col style="width:24%"></colgroup>
+    <thead><tr><th>写法</th><th>语义</th><th>能否走索引</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>IN (a,b,c)</td><td>等于集合中任意一个</td><td>能（每个值都走索引）</td><td>类目枚举、订单状态清单</td></tr>
+      <tr><td>BETWEEN x AND y</td><td>闭区间 [x,y]</td><td>能（范围扫描）</td><td>价格段、日期段</td></tr>
+      <tr><td>LIKE '前缀%'</td><td>以某串开头</td><td>能（最左前缀）</td><td>手机号前缀、商品名前缀搜索</td></tr>
+      <tr><td>LIKE '%中缀%'</td><td>包含某串</td><td>不能（全表扫）</td><td>站内全文搜索应换 FULLTEXT</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">BETWEEN  datetime 的右端是闭区间：BETWEEN '2026-10-01' AND '2026-10-31' 会漏掉 10-31 当天 00:00:00 之后的所有订单（因为 '2026-10-31' 被当作 2026-10-31 00:00:00）。日期范围查询统一写成 &gt;= 当天 AND &lt; 次日，最稳妥。</div>
+  <div class="note"><strong>LIKE 里的转义</strong>：当要匹配的字符串本身含 <code>%</code> 或 <code>_</code> 时，用 <code>ESCAPE</code> 指定转义符：<code>WHERE name LIKE 'A\_%' ESCAPE '\'</code> 表示字面量下划线。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">6.4</span> NULL 的三值逻辑</h2>
+  <p class="lead">SQL 里 NULL 不是"0"也不是"空字符串"，而是"未知"。任何与 NULL 的比较都不会得到 TRUE 或 FALSE，而是第三个值：UNKNOWN。</p>
+  <pre class="code" data-lang="sql"><code>-- 错误写法：NULL 永远不等于任何东西（包括另一个 NULL）
+SELECT * FROM customer WHERE level = NULL;     -- 一行都查不到！
+
+-- 正确写法：IS NULL / IS NOT NULL
+SELECT id, name
+FROM customer
+WHERE level IS NULL;                            -- 新注册还没分层的用户
+
+-- &lt;=&gt;：NULL 安全等于（MySQL 方言，两个 NULL 视为相等）
+SELECT id, name
+FROM customer
+WHERE level &lt;=&gt; NULL;
+
+-- COALESCE：把 NULL 替换成默认值再比较
+SELECT id, name, level
+FROM customer
+WHERE COALESCE(level, 'NORMAL') = 'NORMAL';</code></pre>
+  <p>三值逻辑的真值表只有一条要背：<strong>WHERE 只保留结果为 TRUE 的行，UNKNOWN 一律丢弃</strong>。这直接解释了两个经典坑：</p>
+  <ol>
+    <li><code>NOT IN (含 NULL 的集合)</code> 永远返回空——因为集合里有 NULL 时，每个值的比较结果都是 UNKNOWN，取反还是 UNKNOWN；</li>
+    <li>LEFT JOIN 后 <code>WHERE 右表列 = 某值</code> 会把没匹配上的行（右表全是 NULL）全部丢掉，LEFT JOIN 退化成 INNER JOIN——第 9 章还会见到这个坑。</li>
+  </ol>
+  <div class="key-sentence">判断 NULL 只能用 IS NULL / IS NOT NULL / &lt;=&gt;；业务列尽量设默认值（NOT NULL DEFAULT ...），让 NULL 只出现在真正"未知"的地方。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">6.5</span> 运算符优先级与括号</h2>
+  <p>MySQL 运算符从高到低的常用层级（节选）：乘除 &gt; 加减 &gt; 比较 &gt; NOT &gt; AND &gt; OR。看这个真实需求："查 3 号类目下、价格满 100 元的商品，或者全部满 500 元的商品"。</p>
+  <pre class="code" data-lang="sql"><code>-- 错误写法：AND 比 OR 先结合，实际语义全错
+SELECT * FROM product
+WHERE category_id = 3 AND price &gt;= 100 OR price &gt;= 500;
+-- MySQL 实际按 (category_id = 3 AND price &gt;= 100) OR (price &gt;= 500) 执行
+-- 后半句把所有类目下满 500 的都捞出来了，不是我们要的
+
+-- 正确写法：括号显式表达意图
+SELECT * FROM product
+WHERE category_id = 3
+  AND (price &gt;= 100 OR price &gt;= 500);</code></pre>
+  <p>给从前端转全栈的你一个类比：JS 里 <code>&amp;&amp;</code> 优先于 <code>||</code>，写复杂条件也习惯性加括号——SQL 完全一样。养成"条件复杂就加括号"的肌肉记忆，比背优先级表可靠得多。</p>
+  <div class="note"><strong>可读性建议</strong>：每个 AND/OR 条件单独一行、左对齐起头，评审和排错时一眼看清组合关系。这也是本书所有示例的排版风格。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">6.6</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>WHERE col = NULL 查不到</strong>：用 IS NULL；见 6.4；</li>
+    <li><span class="tag-pit">坑</span><strong>LIKE '%关键词%' 拖垮系统</strong>：前导通配符不走索引，大数据量应上 FULLTEXT 搜索引擎；</li>
+    <li><span class="tag-pit">坑</span><strong>BETWEEN 日期漏掉最后一天</strong>：datetime 右端写次日零点；</li>
+    <li><span class="tag-pit">坑</span><strong>字符串列用数字比较</strong>：<code>WHERE phone = 13800000001</code>（漏引号）触发隐式转换、索引失效；</li>
+    <li><span class="tag-pit">坑</span><strong>OR 混写不打括号</strong>：AND 优先于 OR，条件悄悄变形。</li>
+  </ul>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>SELECT 列表</td><td>写列名不写 *；AS 显式起别名；DISTINCT 作用于整行组合</td></tr>
+      <tr><td>WHERE</td><td>行级过滤器，逐行判断只留 TRUE；比较/AND/OR/NOT 自由组合</td></tr>
+      <tr><td>三件套</td><td>IN 离散集合、BETWEEN 闭区间、LIKE 仅前缀能走索引</td></tr>
+      <tr><td>NULL</td><td>三值逻辑，判断只能 IS NULL；NOT IN 遇 NULL 必空</td></tr>
+      <tr><td>优先级</td><td>AND 高于 OR，复杂条件一律括号</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>从 <code>product</code> 表查出：类目为 3 或 7、价格在 100 到 500 元之间、未软删的商品，要求只返回 <code>id、name、price</code> 三列，并用别名把列名改成中文（如 商品名）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>造一条"坑"：先插入一个 <code>level</code> 为 NULL 的 customer，再分别执行 <code>WHERE level = NULL</code> 与 <code>WHERE level IS NULL</code>，对比结果行数；然后试试 <code>NOT IN (1, NULL)</code> 在 orders 表上的返回值，解释为什么。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>写出"查找名称中包含'键盘'、且库存不为 0、状态为上架或预售（status IN (1,2)）、且价格不低于 200 元"的查询，要求所有 OR 组合用括号显式表达，并思考这条查询在大表上哪里会慢、为什么。</div>
+  <p class="note">会查了，下一章学排序与分页：ORDER BY 怎么排、LIMIT 怎么翻页、深分页为什么慢。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="005_第5章_增删改_INSERT_UPDATE_DELETE与软删.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="007_第7章_排序与分页_ORDERBY_LIMIT.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 6 章 基础查询：WHERE 与运算符</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

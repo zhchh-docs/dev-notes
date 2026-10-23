@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 25 章 慢查询定位：slow log 与分析｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第三篇 索引与优化</p>
+    <h1>第 25 章 慢查询定位：slow log 与分析</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 25 章 / 共 72 章 · 预计 35 分钟</span>
+    </div>
+    <p class="hero-desc">数据库慢了，先别急着加索引——先让数据库自己告诉你"谁最慢"。慢查询日志（slow query log）就是这台记录仪：怎么开、阈值设多少、8.0 的 performance_schema 怎么按语句聚合，最后把最值得优化的那几条 SQL 筛出来。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="024_第24章_EXPLAIN全字段解读.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="026_第26章_优化案例_从8s到80ms.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">25.1 开启慢查询日志</a></li>
+    <li><a href="#sec3">25.2 阈值与相关开关</a></li>
+    <li><a href="#sec4">25.3 日志分析工具：mysqldumpslow 与 pt-query-digest</a></li>
+    <li><a href="#sec5">25.4 performance_schema：8.0 的 SQL 聚合视图</a></li>
+    <li><a href="#sec6">25.5 慢查询日志格式解读</a></li>
+    <li><a href="#sec7">25.6 定位到单条 SQL 后的动作</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>会动态开启/关闭慢查询日志，不用重启数据库；</li>
+    <li>理解 <code>long_query_time</code> 的含义，知道生产环境该设多少；</li>
+    <li>会用 <code>mysqldumpslow</code> 从日志里聚合出 TOP 慢 SQL；</li>
+    <li>会用 8.0 的 <code>performance_schema.events_statements_summary_by_digest</code> 按 SQL 模板聚合；</li>
+    <li>形成"先定位、再优化"的标准排查流程。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">25.1</span> 开启慢查询日志</h2>
+  <p class="lead">慢查询日志是一个开关，打开后 MySQL 把"超过阈值的 SQL"逐条记进文件。</p>
+  <pre class="code" data-lang="sql"><code>-- 动态开启（8.0，无需重启）
+SET GLOBAL slow_query_log = ON;
+
+-- 指定日志文件位置（生产一般放独立磁盘）
+SET GLOBAL slow_query_log_file = '/var/log/mysql/slow.log';
+
+-- 查看当前状态
+SHOW VARIABLES LIKE 'slow_query_log%';</code></pre>
+  <div class="note"><strong>想永久生效</strong>：把这两行写进 my.cnf 的 [mysqld] 段；动态 SET 只在当前实例存活期有效，重启后丢失。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">25.2</span> 阈值与相关开关</h2>
+  <p class="lead">阈值定多高，决定了你抓什么级别的"慢"。</p>
+  <pre class="code" data-lang="sql"><code>-- 超过 1 秒的查询记入慢日志（生产常用 1s；默认 10s 太宽松）
+SET GLOBAL long_query_time = 1;
+
+-- 管理类开关：没走索引的查询也记下来（对排查索引问题很有用）
+SET GLOBAL log_queries_not_using_indexes = ON;
+
+-- 查看
+SHOW VARIABLES LIKE 'long_query_time';
+SHOW VARIABLES LIKE 'log_queries_not_using_indexes';</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>参数</th><th>默认值</th><th>生产建议</th></tr></thead>
+    <tbody>
+      <tr><td>long_query_time</td><td>10 秒</td><td>1 秒（核心库 0.5 秒）</td></tr>
+      <tr><td>log_queries_not_using_indexes</td><td>OFF</td><td>ON（索引问题早发现）</td></tr>
+      <tr><td>slow_query_log</td><td>OFF</td><td>ON（基本不开白不开）</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">阈值别设太小（比如 0.1 秒）：大量"正常但略慢"的 SQL 会把日志撑爆、反而淹掉真正的慢查询。1 秒是大多数业务的平衡点。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">25.3</span> 日志分析工具：mysqldumpslow 与 pt-query-digest</h2>
+  <p class="lead">慢日志是一条条原文，直接读能把人淹死——先聚合成"按 SQL 模板统计"再看。</p>
+  <pre class="code" data-lang="sql"><code>-- mysqldumpslow：MySQL 自带，开箱即用
+-- -s t 按总耗时排序；-t 10 取前 10 条；-g 带正则过滤
+mysqldumpslow -s t -t 10 /var/log/mysql/slow.log
+
+-- 输出把相似 SQL 归并成一类，给出：次数、总耗时、平均耗时、扫描行数
+-- 你一眼就看到"哪类 SQL 最慢、被调用多少次"</code></pre>
+  <pre class="code" data-lang="sql"><code>-- pt-query-digest（Percona Toolkit）：业界事实标准，更专业
+pt-query-digest /var/log/mysql/slow.log --limit 20
+
+-- 它输出：整体统计（多少类 SQL）、TOP 慢查询指纹、每条的执行画像
+-- 还能按时间维度看哪类 SQL 在哪个时间段突然变慢</code></pre>
+  <p>为什么要"聚合"？同一条 SQL（比如 <code>WHERE user_id=?</code>）一天跑几万次，参数不同但模板一样；聚合后你看到的是"<strong>这条模板 SQL 总共花了多少时间</strong>"，而不是淹没在几万条原文里。</p>
+  <pre class="code" data-lang="sql"><code>-- mysqldumpslow 典型输出长这样（已归并）：
+-- Count: 1200  Time=8.2s (9840)  Lock=0.1s  Rows=0.5
+--   SELECT * FROM orders WHERE user_id=? AND status=?
+-- Count: 3     Time=4.1s (12)   Lock=0.0s  Rows=100000
+--   SELECT * FROM orders ORDER BY created_at
+-- 先看 Count×Time 的总量，第一条 1200 次×8.2s 才是大头</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">25.4</span> performance_schema：8.0 的 SQL 聚合视图</h2>
+  <p class="lead">不想落慢日志文件？8.0 直接在数据库里就能按 SQL 模板查统计。</p>
+  <pre class="code" data-lang="sql"><code>-- 8.0 自带：按 SQL 模板（digest）聚合的语句历史
+SELECT
+  digest_text,                 -- 聚合后的 SQL 模板
+  count_star,                  -- 执行次数
+  round(sum_timer_wait/1e12, 2)  AS total_sec,   -- 总耗时(秒)
+  round(avg_timer_wait/1e12, 2)  AS avg_sec,     -- 平均耗时
+  rows_examined                -- 扫描行数
+FROM performance_schema.events_statements_summary_by_digest
+ORDER BY sum_timer_wait DESC
+LIMIT 20;
+
+-- 这张表实时维护，不用专门开慢日志，直接查"谁最慢"</code></pre>
+  <div class="key-sentence">定位慢 SQL 的两条路：慢日志（落盘、可事后追溯）+ performance_schema（实时、直接查）。生产环境两者一起用，互为补充。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">25.5</span> 慢查询日志格式解读</h2>
+  <p class="lead">慢日志里每一条"慢"到底记了什么？拆开看一眼，下次抓现场才知道关键指标在哪。</p>
+  <pre class="code" data-lang="sql"><code>-- 一条典型慢日志长这样（精简后）：
+-- # Time: 2026-10-23T10:15:30
+-- # User@Host: app[app] @ 10.0.0.5 []
+-- # Query_time: 8.123  Lock_time: 0.020  Rows_sent: 20  Rows_examined: 1000000
+-- SET timestamp=1729673730;
+-- SELECT * FROM orders WHERE user_id=10086 ORDER BY created_at DESC LIMIT 20;</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>字段</th><th>含义与排查价值</th></tr></thead>
+    <tbody>
+      <tr><td>Query_time</td><td>SQL 总耗时，超过 long_query_time 才会被记录</td></tr>
+      <tr><td>Lock_time</td><td>等锁花了多久；异常高说明是锁等待而非 SQL 本身慢</td></tr>
+      <tr><td>Rows_sent</td><td>真正返回给客户端的行数</td></tr>
+      <tr><td>Rows_examined</td><td>扫描的行数；与 Rows_sent 差距越大，越可能缺索引</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">重点看 <code>Rows_examined</code> 与 <code>Rows_sent</code> 的比值：返回 20 行却扫了 100 万行，基本就是"全表扫 + 缺索引"的铁证，直接去翻 EXPLAIN 即可。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">25.6</span> 定位到单条 SQL 后的动作</h2>
+  <p class="lead">揪出最慢的那条 SQL 之后，固定走三步：</p>
+  <ol>
+    <li><strong>EXPLAIN</strong> 看执行计划：type 是不是 ALL、key 是不是 NULL（第 24 章）；</li>
+    <li><strong>对照失效清单</strong>：是索引没建，还是建了没用（第 23 章）；</li>
+    <li><strong>动手优化</strong>：加索引 / 改写法 / 覆盖索引 / 延迟关联，优化前后各跑一次 EXPLAIN 对比。</li>
+  </ol>
+  <div class="note"><strong>别陷入"为优化而优化"</strong>：先看慢 SQL 的<strong>总耗时占比</strong>（次数 × 平均耗时）——一条每天跑一次、偶尔 5 秒的报表 SQL，不如每天跑十万次、每次 0.2 秒的列表 SQL 值得优化。资源要花在总耗时最高的地方。</div>
+  <pre class="code" data-lang="sql"><code>-- 慢日志轮转：日志会越滚越大，定期清理避免撑满磁盘
+-- 生产一般按天切割，用 logrotate 或数据库参数自动归档
+SHOW VARIABLES LIKE 'slow_query_log_file';
+
+-- 长期留存的慢样本，集中到日志系统（如 ELK）做趋势分析
+-- 比临时翻文件更能看出"哪类 SQL 在恶化"</code></pre>
+  <div class="key-sentence">定位慢 SQL 的完整闭环：<strong>慢日志按模板聚合 → performance_schema 按耗时排序 → EXPLAIN 看清病根 → 按总耗时排优先级动手</strong>。慢查询治理是个持续动作，不是一次性项目。</div>
+  <div class="warn-box">慢日志开太细（阈值 0.1 秒）会撑爆磁盘、反而淹没真慢查询；开太粗（默认 10 秒）又抓不住"每天跑十万次、每次 0.3 秒"的隐形耗时王。1 秒是多数业务的平衡点。</div>
+</section>
+<!--CONT2-->
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>开慢日志</td><td>slow_query_log=ON，动态可开；生产写进 my.cnf 永久生效</td></tr>
+      <tr><td>阈值</td><td>long_query_time 生产设 1 秒；log_queries_not_using_indexes 建议开</td></tr>
+      <tr><td>分析工具</td><td>mysqldumpslow 自带、pt-query-digest 专业，都按 SQL 模板聚合</td></tr>
+      <tr><td>performance_schema</td><td>8.0 直接查 events_statements_summary_by_digest，实时看谁最慢</td></tr>
+      <tr><td>慢日志字段</td><td>看 Rows_examined / Rows_sent 比值判断是否缺索引</td></tr>
+      <tr><td>优化优先级</td><td>按 次数×平均耗时 排，总耗时最高的先治</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>动态开启慢查询日志（<code>SET GLOBAL slow_query_log=ON</code>），把阈值设为 1 秒，执行几条故意慢的 SQL（比如对百万行表全表扫），再用 <code>mysqldumpslow -s t -t 5</code> 看结果。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>查询 <code>performance_schema.events_statements_summary_by_digest</code>，按总耗时降序取 TOP 5，写出每条 SQL 的执行次数与平均耗时，判断哪条最值得优化。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给 <code>log_queries_not_using_indexes=ON</code> 后，故意跑一条没走索引的 SQL 观察是否被记录；思考：为什么这个开关对核心库是"必开"，但对小表又可能产生噪音？</div>
+  <p class="note">定位手法齐了，下一章是一场实战复盘：一条 8 秒的订单查询，如何一步步优化到 80 毫秒。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="024_第24章_EXPLAIN全字段解读.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="026_第26章_优化案例_从8s到80ms.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 25 章 慢查询定位：slow log 与分析</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

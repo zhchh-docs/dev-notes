@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 68 章 与 Redis 配合的读写模板｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第八篇 综合实战</p>
+    <h1>第 68 章 与 Redis 配合的读写模板</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 68 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">Cache-Aside 读写模板、先更库后删缓存、穿透/击穿/雪崩三对策、库存计数与 MySQL 的最终一致。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="067_第67章_报表实战_窗口函数综合运用.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="069_第69章_与ES配合的搜索方案.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">68.1 Cache-Aside 读模板</a></li>
+    <li><a href="#sec3">68.2 穿透、击穿、雪崩</a></li>
+    <li><a href="#sec4">68.3 库存计数与 Redis 配合</a></li>
+        <li><a href="#sec_extra">缓存key设计</a></li>
+<li><a href="#sec5">本章小结</a></li>
+    <li><a href="#sec6">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解缓存为什么能把数据库压力降一个数量级；</li>
+    <li>掌握 Cache-Aside（旁路缓存）读写模板；</li>
+    <li>处理缓存穿透、击穿、雪崩三类问题；</li>
+    <li>写出"先更新库再删缓存"的正确顺序；</li>
+    <li>给商品详情、库存计数落可复用模板。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">68.1</span> Cache-Aside 读模板</h2>
+  <p class="lead">最常用的模式：读先问 Redis，没有再查库并回填；写先更库再删缓存。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+      <rect x="60" y="30" width="160" height="60" rx="8" fill="#2d6a3f"/>
+      <text x="140" y="65" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">应用</text>
+      <rect x="300" y="20" width="180" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="390" y="45" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">Redis 缓存</text>
+      <text x="390" y="65" text-anchor="middle" font-size="10" fill="#4f6348">命中直接返回</text>
+      <rect x="300" y="140" width="180" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="390" y="165" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">MySQL</text>
+      <text x="390" y="185" text-anchor="middle" font-size="10" fill="#4f6348">未命中才查</text>
+      <line x1="220" y1="50" x2="300" y2="50" stroke="#2d6a3f" stroke-width="1.5" marker-end="url(#k1)"/>
+      <line x1="220" y1="70" x2="300" y2="165" stroke="#2d6a3f" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#k1)"/>
+      <line x1="300" y1="190" x2="220" y2="70" stroke="#2d6a3f" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#k1)"/>
+      <defs><marker id="k1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+      <text x="480" y="120" font-size="11" fill="#4f6348">未命中</text>
+      <text x="480" y="195" font-size="11" fill="#4f6348">回填缓存</text>
+      <text x="380" y="222" text-anchor="middle" font-size="12" fill="#7a8a70">图 68-1 Cache-Aside：读先缓存后库，写先库后删缓存</text>
+    </svg>
+  </div>
+  <pre class="code" data-lang="python"><code># 伪代码：商品详情 Cache-Aside
+def get_product(pid):
+    key = f"product:{pid}"
+    data = redis.get(key)
+    if data:
+        return json.loads(data)                 # 命中
+    row = db.query("SELECT * FROM product WHERE id=?", pid)
+    if row is None:
+        redis.setex(key, 60, "NULL")           # 防穿透：空值也短缓存
+        return None
+    redis.setex(key, 3600, json.dumps(row))    # 回填，1h
+    return row
+
+# 写：先更新库，再删缓存（不是更新缓存）
+def update_product(pid, price):
+    db.execute("UPDATE product SET price=? WHERE id=?", price, pid)
+    redis.delete(f"product:{pid}")            # 下次读自然回源最新值</code></pre>
+  <div class="pit-sentence">坑：写操作"先更新缓存再更库"会把旧值写回缓存。正确是<strong>先更库、后删缓存</strong>，让下次读重新加载。删缓存失败要重试队列兜底。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">68.2</span> 穿透、击穿、雪崩</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>问题</th><th>现象</th><th>对策</th></tr></thead>
+    <tbody>
+      <tr><td>穿透</td><td>查不存在的 key，每次都打库</td><td>空值短缓存 + 布隆过滤器</td></tr>
+      <tr><td>击穿</td><td>热点 key 过期瞬间，并发全打库</td><td>热点 key 不过期 / 互斥锁重建</td></tr>
+      <tr><td>雪崩</td><td>大批 key 同时过期</td><td>过期时间加随机抖动（3600±300s）</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">缓存三兄弟的区别：穿透是"查无此 key"，击穿是"单个热点过期"，雪崩是"成片同时过期"——对策分别是空值缓存、互斥锁、过期加随机。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">68.3</span> 库存计数与 Redis 配合</h2>
+  <pre class="code" data-lang="python"><code># 读多写少的库存展示：Redis 计数，MySQL 为准
+# 下单时先 DECR 占位，再异步落库扣减
+def try_dec_stock(pid, n=1):
+    left = redis.decrby(f"stock:{pid}", n)
+    if left &lt; 0:
+        redis.incrby(f"stock:{pid}", n)     # 超卖回滚
+        return False
+    return True</code></pre>
+  <ul>
+    <li><span class="tag-key">原则</span>：Redis 扛并发计数，MySQL 做最终一致，不能反过来；</li>
+    <li><span class="tag-pit">坑</span>：Redis 库存与 DB 库存会短暂不一致，对账脚本定期校准。</li>
+  </ul>
+</section>
+
+<section id="sec_extra" class="card">
+  <h2><span class="num">68.4</span> 缓存 key 设计与淘汰</h2>
+  <p class="lead">key 规范乱，后期排查与迁移就是噩梦。</p>
+  <pre class="code" data-lang="text"><code># 约定：业务:实体:id ，统一前缀
+product:detail:55
+stock:item:55
+order:detail:NO202610230001
+
+# 过期：热点长 TTL + 随机抖动防雪崩
+SETEX product:detail:55 3600 $((RANDOM%300)) value</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>约定</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>统一前缀</td><td>业务:实体:id，便于按前缀清理</td></tr>
+      <tr><td>空值短缓存</td><td>防穿透，TTL 60 秒即可</td></tr>
+      <tr><td>过期加随机</td><td>±5% 抖动，避免同批 key 同时失效</td></tr>
+    </tbody>
+  </table>
+</section>
+
+  <div class="note">监控：缓存命中率、重建 QPS、删除失败重试队列长度，三项异常说明缓存层在退化。</div>
+  <ul>
+    <li>命中率长期低于 90%：key TTL 过短或热点漂移；</li>
+    <li>重建 QPS 飙升：发生击穿，检查互斥锁是否生效。</li>
+  </ul>
+
+<section id="sec5" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>读模板</td><td>Cache-Aside：读先 Redis 后库回填，未命中空值短缓存</td></tr>
+      <tr><td>写模板</td><td>先更库后删缓存，不更新缓存，失败走重试</td></tr>
+      <tr><td>三问题</td><td>穿透空值缓存、击穿互斥锁、雪崩过期加随机</td></tr>
+      <tr><td>库存</td><td>Redis 扛并发计数，MySQL 为准，对账校准</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>画出 Cache-Aside 的读路径（缓存命中/未命中两条分支）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为什么写操作要"先更库后删缓存"而不是"先更缓存后更库"？说一种会脏读的时序。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为"热点商品详情"设计防击穿方案：用互斥锁重建缓存，写出伪代码。</div>
+  <p class="note">缓存提速，下一章把模糊搜索交给 Elasticsearch。</p>
+</section>
+
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="067_第67章_报表实战_窗口函数综合运用.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="069_第69章_与ES配合的搜索方案.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 68 章 与 Redis 配合的读写模板</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

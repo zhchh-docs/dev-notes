@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 8 章 聚合与分组：GROUP BY/HAVING｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第一篇 入门</p>
+    <h1>第 8 章 聚合与分组：GROUP BY/HAVING</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 8 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">"每个类目卖了多少钱""昨天有多少订单"——这类问题的答案不是某一行，而是一组行的汇总。COUNT/SUM/AVG 怎么用、GROUP BY 按什么分、HAVING 和 WHERE 到底谁先谁后，本章一次理清。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="007_第7章_排序与分页_ORDERBY_LIMIT.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="009_第9章_多表连接_INNER_LEFTJOIN.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">8.1 五大聚合函数</a></li>
+    <li><a href="#sec3">8.2 GROUP BY 分组</a></li>
+    <li><a href="#sec4">8.3 HAVING 与 WHERE 的分工</a></li>
+    <li><a href="#sec5">8.4 WITH ROLLUP 小计</a></li>
+    <li><a href="#sec6">8.5 常见坑清单</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>熟练使用 <code>COUNT/SUM/AVG/MAX/MIN</code>，搞清 <code>COUNT(*)</code> 与 <code>COUNT(列)</code> 的差别；</li>
+    <li>用 <code>GROUP BY</code> 按列分组聚合，理解 <code>ONLY_FULL_GROUP_BY</code> 为什么拦住你；</li>
+    <li>说清 WHERE、GROUP BY、HAVING 的执行先后，知道过滤"行"和过滤"组"分别写在哪；</li>
+    <li>会用 <code>WITH ROLLUP</code> 出小计与合计行；</li>
+    <li>避开 NULL 参与聚合、隐式分组等经典坑。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">8.1</span> 五大聚合函数</h2>
+  <p class="lead">聚合函数把多行压成一行——这是 SQL 从"查表"走向"统计"的分水岭。</p>
+  <pre class="code" data-lang="sql"><code>-- 全表一把聚合：整张订单表一个总数
+SELECT
+  COUNT(*)        AS order_cnt,     -- 订单总数
+  SUM(amount)     AS total_amount,   -- 总成交额
+  AVG(amount)     AS avg_amount,     -- 客单价
+  MAX(created_at) AS last_order,     -- 最近一笔下单时间
+  MIN(created_at) AS first_order
+FROM orders
+WHERE is_deleted = 0;</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:44%"><col style="width:34%"></colgroup>
+    <thead><tr><th>函数</th><th>语义</th><th>对 NULL 的处理</th></tr></thead>
+    <tbody>
+      <tr><td>COUNT(*)</td><td>数行数（不管列值）</td><td>NULL 行也算</td></tr>
+      <tr><td>COUNT(列)</td><td>数"该列非 NULL"的行数</td><td>NULL 行跳过</td></tr>
+      <tr><td>COUNT(DISTINCT 列)</td><td>该列去重后的值个数</td><td>先去重再数，NULL 跳过</td></tr>
+      <tr><td>SUM / AVG</td><td>求和 / 平均</td><td>自动忽略 NULL 行</td></tr>
+      <tr><td>MAX / MIN</td><td>最大 / 最小值</td><td>忽略 NULL</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">COUNT(列) ≠ COUNT(*)：统计表行数用 COUNT(*)；想数"有手机号的用户数"才用 COUNT(phone)。新同学最常犯的错就是用 COUNT(可空列) 去数总行数，结果永远少一截。</div>
+  <pre class="code" data-lang="sql"><code>-- 一张表快速摸底三件套
+SELECT
+  COUNT(*)                              AS total_rows,
+  COUNT(phone)                          AS with_phone,
+  COUNT(DISTINCT category_id)           AS category_kind
+FROM product;</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">8.2</span> GROUP BY 分组</h2>
+  <p class="lead">GROUP BY 把行按某列"打包"，每个包出一行聚合结果。</p>
+  <pre class="code" data-lang="sql"><code>-- 按类目分组：每个类目出一行
+SELECT
+  category_id,
+  COUNT(*)    AS product_cnt,
+  AVG(price)  AS avg_price,
+  SUM(stock)  AS total_stock
+FROM product
+WHERE is_deleted = 0
+GROUP BY category_id;
+
+-- 多列分组：类目 + 状态 二维统计
+SELECT category_id, status, COUNT(*) AS cnt
+FROM product
+GROUP BY category_id, status;</code></pre>
+  <p>MySQL 8.0 默认开启 <code>ONLY_FULL_GROUP_BY</code> 模式，它强制要求：<strong>SELECT 列表里的非聚合列，必须全部出现在 GROUP BY 中</strong>。</p>
+  <pre class="code" data-lang="sql"><code>-- 报错：name 既没在 GROUP BY 里，也没被聚合包起来
+SELECT category_id, name, COUNT(*)
+FROM product
+GROUP BY category_id;
+-- ERROR 1055: Expression #2 of SELECT list is not in GROUP BY ...
+
+-- 为什么要拦：同一类目下有几十个 name，到底返回哪个？旧 MySQL 会"随机"给一个，
+-- 结果报表时准时不准，这正是 8.0 默认开启该模式的原因</code></pre>
+  <div class="key-sentence">记住语义：GROUP BY 之后，结果集一行 = 一个分组。SELECT 里除了聚合列，只允许写"分组键本身"——想带别的列，就得用 MAX/MIN/ANY_VALUE() 之类显式决定取哪个。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">8.3</span> HAVING 与 WHERE 的分工</h2>
+  <p class="lead">同是"过滤"，WHERE 过滤的是分组前的行，HAVING 过滤的是分组后的组——位置不同，能力不同。</p>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 220" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="20" y="85" width="120" height="50" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="80" y="105" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">FROM 取行</text>
+      <text x="80" y="124" text-anchor="middle" font-size="11" fill="#4f6348">原始行</text>
+      <line x1="140" y1="110" x2="185" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr2)"/>
+      <rect x="185" y="85" width="130" height="50" rx="8" fill="#2d6a3f"/>
+      <text x="250" y="105" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">WHERE</text>
+      <text x="250" y="124" text-anchor="middle" font-size="11" fill="#d8e8c8">分组前行级过滤</text>
+      <line x1="315" y1="110" x2="360" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr2)"/>
+      <rect x="360" y="85" width="130" height="50" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="425" y="105" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">GROUP BY</text>
+      <text x="425" y="124" text-anchor="middle" font-size="11" fill="#4f6348">打包成组</text>
+      <line x1="490" y1="110" x2="535" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr2)"/>
+      <rect x="535" y="85" width="130" height="50" rx="8" fill="#2d6a3f"/>
+      <text x="600" y="105" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">HAVING</text>
+      <text x="600" y="124" text-anchor="middle" font-size="11" fill="#d8e8c8">分组后组级过滤</text>
+      <line x1="665" y1="110" x2="705" y2="110" stroke="#2d6a3f" stroke-width="2" marker-end="url(#arr2)"/>
+      <text x="725" y="115" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">结果</text>
+      <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#2d6a3f"/>
+      </marker></defs>
+      <text x="380" y="190" text-anchor="middle" font-size="13" fill="#4f6348">图 8-1　SQL 逻辑执行顺序：WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</text>
+    </svg>
+  </div>
+  <pre class="code" data-lang="sql"><code>-- 需求：统计"卖得好的类目"——商品数超过 10 个、平均价超过 200 元
+SELECT
+  category_id,
+  COUNT(*)   AS product_cnt,
+  AVG(price) AS avg_price
+FROM product
+WHERE is_deleted = 0          -- 行级过滤：先把软删的扔掉（能下推就别放到 HAVING）
+GROUP BY category_id
+HAVING COUNT(*) &gt; 10          -- 组级过滤：按聚合结果筛组
+   AND AVG(price) &gt; 200;</code></pre>
+  <ul>
+    <li><strong>能写 WHERE 就别写 HAVING</strong>：WHERE 在分组前过滤，数据量小、还能走索引；HAVING 是分组后才筛，等于白算了很多组；</li>
+    <li><strong>HAVING 里才能用聚合条件</strong>：<code>HAVING COUNT(*) &gt; 10</code> 写在 WHERE 里是非法的（行还没分出来，哪来的组计数）。</li>
+  </ul>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">8.4</span> WITH ROLLUP 小计</h2>
+  <p class="lead">MySQL 8.0 支持 <code>WITH ROLLUP</code>：分组结果之外自动追加小计行和总计行，出报表特别省事。</p>
+  <pre class="code" data-lang="sql"><code>-- 按类目统计，末尾自动追加一行"全部合计"
+SELECT
+  category_id,
+  COUNT(*)   AS cnt,
+  SUM(stock) AS total_stock
+FROM product
+WHERE is_deleted = 0
+GROUP BY category_id
+WITH ROLLUP;
+-- 返回：每个 category_id 一行 + 最后一行 category_id 为 NULL 的总计行
+
+-- 8.0.20+ 支持 GROUPING() 函数区分"真 NULL"和"ROLLUP 产生的 NULL"
+SELECT
+  CASE WHEN GROUPING(category_id) = 1 THEN '全部类目' ELSE CAST(category_id AS CHAR) END AS cat,
+  COUNT(*) AS cnt
+FROM product
+GROUP BY category_id
+WITH ROLLUP;</code></pre>
+  <div class="note">BI 场景下 ROLLUP 用得不多（前端自己拼合计更灵活），但快速出"小计+总计"的一次性报表，它是最省力的写法。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">8.5</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>COUNT(可空列) 当总数</strong>：永远少数 NULL 行，总行数用 COUNT(*)；</li>
+    <li><span class="tag-pit">坑</span><strong>GROUP BY 后 SELECT 非分组列</strong>：8.0 直接报错（ONLY_FULL_GROUP_BY），别再关掉它图省事；</li>
+    <li><span class="tag-pit">坑</span><strong>把聚合条件写进 WHERE</strong>：报语法错，聚合筛组一律 HAVING；</li>
+    <li><span class="tag-pit">坑</span><strong>AVG 被 NULL 拉偏理解</strong>：AVG 自动忽略 NULL 行——这通常是想要的，但如果业务想把 NULL 当 0 算，必须 COALESCE(列,0)；</li>
+    <li><span class="tag-pit">坑</span><strong>GROUP BY 隐式分组</strong>：SELECT 里有聚合函数、又没写 GROUP BY，整张表被当成一个隐式组——"查最大金额的订单的其他列"时要小心，那不是行级数据。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>聚合函数</td><td>COUNT(*) 数行、COUNT(列) 数非空；SUM/AVG/MAX/MIN 自动忽略 NULL</td></tr>
+      <tr><td>GROUP BY</td><td>SELECT 非聚合列必须是分组键；ONLY_FULL_GROUP_BY 是保护不是障碍</td></tr>
+      <tr><td>WHERE vs HAVING</td><td>WHERE 分组前行过滤（能下推、走索引）；HAVING 分组后组过滤（用聚合结果）</td></tr>
+      <tr><td>WITH ROLLUP</td><td>自动追加小计/总计行，GROUPING() 区分合计 NULL</td></tr>
+      <tr><td>执行顺序</td><td>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>统计每个类目（category_id）下商品数量、平均价格、总库存，只统计未软删且上架状态的商品，按商品数降序取前 10。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在 A 的基础上加条件：只保留"商品数 ≥ 5 且平均价 ≥ 100 元"的类目；先写一版"把条件塞 WHERE 里"的错误 SQL 体会报错，再写对的版本。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>统计 orders 表：按"下单日期"分组，输出每天的订单数、总成交额、客单价；只保留成交额超过当天全店平均的日期（提示：需要组间比较，想想子查询或窗口函数——下两章会讲，先试着用 HAVING + 聚合表达能表达的部分）。</div>
+  <p class="note">单表统计会了，下一章连表：INNER JOIN 与 LEFT JOIN——电商订单要联用户、联商品，全靠它。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="007_第7章_排序与分页_ORDERBY_LIMIT.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="009_第9章_多表连接_INNER_LEFTJOIN.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 8 章 聚合与分组：GROUP BY/HAVING</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

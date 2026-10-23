@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 44 章 备份与恢复：mysqldump/xtrabackup｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第五篇 日志与主从</p>
+    <h1>第 44 章 备份与恢复：mysqldump/xtrabackup</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 44 章 / 共 72 章 · 预计 50 分钟</span>
+    </div>
+    <p class="hero-desc">没演练过恢复的备份等于没有备份。本章给两套可直接跑的方案：轻量逻辑备份 mysqldump（小库、迁移、升级前兜底），与物理热备 xtrabackup（大库、不停机）。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="043_第43章_GTID与复制拓扑.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="045_第45章_binlog的应用_Canal数据同步.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">44.1 备份方式怎么选</a></li>
+    <li><a href="#sec3">44.2 mysqldump 备份与恢复</a></li>
+    <li><a href="#sec4">44.3 xtrabackup 物理热备</a></li>
+    <li><a href="#sec5">44.4 binlog 时间点恢复</a></li>
+    <li><a href="#sec6">44.5 常见坑清单</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  <li><a href="#secX">44.5 备份保留策略</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清逻辑备份与物理备份的适用边界；</li>
+    <li>会用 <code>mysqldump</code> 导出、并在新实例完整恢复；</li>
+    <li>会用 <code>xtrabackup</code> 做不停机全量备份与 prepare；</li>
+    <li>理解全量 + binlog 组合做时间点恢复（PITR）；</li>
+    <li>建立"备份必须演练恢复"的运维习惯。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">44.1</span> 备份方式怎么选</h2>
+  <p class="lead">先看数据量：小库逻辑备份最省事，大库物理热备才扛得住。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:30%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <thead><tr><th>方式</th><th>原理</th><th>优点</th><th>缺点</th></tr></thead>
+    <tbody>
+      <tr><td>mysqldump（逻辑）</td><td>导出成 SQL 文本</td><td>体积小、跨版本、可读</td><td>千万行以上慢，恢复更慢</td></tr>
+      <tr><td>xtrabackup（物理）</td><td>直接拷贝数据文件</td><td>热备不停机、快</td><td>占空间大，需 prepare</td></tr>
+      <tr><td>binlog 增量</td><td>记录备份后的修改事件</td><td>秒级时间点恢复</td><td>必须配合全量用</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">黄金组合：xtrabackup 每周全量 + binlog 实时增量 + 定期演练恢复。mysqldump 用于小库迁移与升级前兜底。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">44.2</span> mysqldump 备份与恢复</h2>
+  <p class="lead">mysqldump 把库导出成一串 CREATE/INSERT 语句，导入即重放。</p>
+  <pre class="code" data-lang="sql"><code># 备份整个库（带事务一致性、建库语句、表锁关闭）
+mysqldump -uroot -p \
+  --single-transaction \
+  --master-data=2 \
+  --routines --triggers \
+  mydb > mydb_20261023.sql
+
+# 只备份某几张表
+mysqldump -uroot -p --single-transaction mydb order order_item > orders.sql
+
+# 恢复：在新实例上直接执行这个 SQL 文件
+mysql -uroot -p -e "CREATE DATABASE mydb;"
+mysql -uroot -p mydb < mydb_20261023.sql</code></pre>
+  <ul>
+    <li><code>--single-transaction</code>：InnoDB 下开一致性快照备份，不锁表；</li>
+    <li><code>--master-data=2</code>：把备份时的 binlog 位点注释写进文件，PITR 从这里继续；</li>
+    <li><code>--routines/--triggers</code>：把存储过程、触发器一起带走（默认不带，容易漏）。</li>
+  </ul>
+  <div class="warn-box">mysqldump 恢复是"逐句重放"，百万级表恢复可能要几小时。大库别指望它做日常备份，它是迁移与兜底工具。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">44.3</span> xtrabackup 物理热备</h2>
+  <p class="lead">Percona 的 xtrabackup 直接拷贝 InnoDB 数据文件，备份时业务照常写。</p>
+  <pre class="code" data-lang="sql"><code># 全量备份（不停机）
+xtrabackup --backup --user=root --password=xxx --target-dir=/backup/full_20261023
+
+# prepare：把备份期间产生的 redo 重放完整，得到一致的数据
+xtrabackup --prepare --target-dir=/backup/full_20261023
+
+# 恢复：把 prepare 好的目录拷回数据目录（先停库、清空 datadir）
+systemctl stop mysql
+xtrabackup --copy-back --target-dir=/backup/full_20261023
+chown -R mysql:mysql /var/lib/mysql
+systemctl start mysql</code></pre>
+  <div class="note">MySQL 8.0 对应工具是 <code>xtrabackup 8.0</code>，版本要与服务端匹配。<code>--prepare</code> 这步不能省：备份时数据文件一直在变，要靠 redo 把它拉到一个时间点。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 760 170" style="background:#fff;border:1px solid #d8e2cc;border-radius:8px;display:block;margin:0 auto;max-width:100%" xmlns="http://www.w3.org/2000/svg">
+      <rect x="30" y="55" width="180" height="55" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="120" y="88" text-anchor="middle" font-size="13" fill="#2d6a3f" font-weight="bold">① --backup</text>
+      <rect x="290" y="55" width="180" height="55" rx="8" fill="#fff" stroke="#2d6a3f"/>
+      <text x="380" y="88" text-anchor="middle" font-size="13" fill="#2d6a3f" font-weight="bold">② --prepare</text>
+      <rect x="550" y="55" width="180" height="55" rx="8" fill="#2d6a3f"/>
+      <text x="640" y="88" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">③ --copy-back</text>
+      <line x1="210" y1="82" x2="288" y2="82" stroke="#2d6a3f" stroke-width="1.6"/>
+      <line x1="470" y1="82" x2="548" y2="82" stroke="#2d6a3f" stroke-width="1.6"/>
+      <text x="380" y="140" text-anchor="middle" font-size="12" fill="#4f6348">备份 → 重放 redo 得到一致点 → 拷回 datadir 启动</text>
+    </svg>
+    <p class="diagram-caption" style="text-align:center;color:#7a8a70;font-size:13px;margin:6px 0 0">图 44-1 xtrabackup 三步走：backup → prepare → copy-back</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">44.4</span> binlog 时间点恢复</h2>
+  <p class="lead">全量备份只到某个时刻，之后的数据靠 binlog 补到你指定的"误操作前一秒"。</p>
+  <pre class="code" data-lang="sql"><code># 场景：凌晨 2 点全量，早上 10 点有人误 DROP TABLE，要恢复到 9:59
+# 1) 先恢复全量备份（mysqldump 或 xtrabackup）
+# 2) 从备份位点开始重放 binlog，截止到误操作时间点
+mysqlbinlog --start-position=1574 \
+  --stop-datetime="2026-10-23 09:59:50" \
+  binlog.000010 binlog.000011 | mysql -uroot -p</code></pre>
+  <div class="danger-box">误删/误改后第一时间：<strong>先停写、别再动 binlog 文件</strong>，确认要恢复到的位点再操作。恢复是"覆盖式重放"，做错方向会把数据搞得更乱。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">44.5</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>从不演练恢复</strong>：备份文件损坏、权限不对，真出事才发现恢复不了；</li>
+    <li><span class="tag-pit">坑</span><strong>mysqldump 漏 --routines</strong>：存储过程没导出来，新库功能缺一半；</li>
+    <li><span class="tag-pit">坑</span><strong>xtrabackup 跳过 --prepare</strong>：直接把"备份中还在写"的文件拷回去，启动即崩；</li>
+    <li><span class="tag-pit">坑</span><strong>备份和数据放同一块盘</strong>：盘坏了备份一起没，备份要异地/异机。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+</section>
+
+<section id="secX" class="card">
+  <h2><span class="num">44.5</span> 备份保留与验证策略</h2>
+  <p class="lead">备份不是备完就完，要定保留周期并定期做恢复演练。</p>
+  <ul>
+    <li>每周全量 + 每日 binlog 增量，保留至少一个月；</li>
+    <li>每月挑一个备份做恢复演练，验证可用；</li>
+    <li>备份文件异地存放，与数据盘分开。</li>
+  </ul>
+  <div class="note">没演练过恢复的备份等于没有备份——这是运维界用无数次事故换来的教训。</div>
+</section>
+
+<section id="secSum" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>选型</td><td>小库 mysqldump，大库 xtrabackup，增量靠 binlog</td></tr>
+      <tr><td>mysqldump</td><td>--single-transaction 一致性备份，导入即重放</td></tr>
+      <tr><td>xtrabackup</td><td>backup → prepare → copy-back 三步不能跳</td></tr>
+      <tr><td>PITR</td><td>全量恢复后用 mysqlbinlog 重放到误操作前</td></tr>
+      <tr><td>铁律</td><td>备份必须演练恢复、必须异地存放</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 mysqldump 导出本机 <code>mydb</code>，新建一个空库后把 SQL 导入进去，验证两边 <code>SELECT COUNT(*)</code> 一致。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写出 <code>--single-transaction</code> 与 <code>--master-data=2</code> 各自的作用，并说明备份文件里 <code>CHANGE MASTER TO MASTER_LOG_POS=...</code> 这行为什么对 PITR 重要。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>模拟"凌晨全量 + 上午误删"场景：恢复全量后，用 <code>mysqlbinlog --stop-datetime</code> 重放到误操作前一秒。写出完整命令序列，并解释为什么恢复期间要先停业务写入。</div>
+  <p class="note">备份会用了，下一章把 binlog 用出花来：Canal 怎么把 binlog 实时同步到下游各系统。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="043_第43章_GTID与复制拓扑.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="045_第45章_binlog的应用_Canal数据同步.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 44 章 备份与恢复：mysqldump/xtrabackup</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

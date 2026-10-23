@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 60 章 大表 DDL：online schema change｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第七篇 运维调优</p>
+    <h1>第 60 章 大表 DDL：online schema change</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 60 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">亿级大表 ALTER 不再是噩梦：8.0 INSTANT/INPLACE、pt-online-schema-change 的影子表触发器、gh-ost 的 binlog 流式方案，本章给完整选型路径。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="059_第59章_pt工具箱实战.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="061_第61章_数据归档与冷热分离.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">60.1 为什么大表 ALTER 这么痛</a></li>
+    <li><a href="#sec3">60.2 pt-online-schema-change 原理</a></li>
+    <li><a href="#sec4">60.3 gh-ost：无触发器方案</a></li>
+    <li><a href="#sec5">60.4 排期与止损</a></li>
+        <li><a href="#sec_extra">DDL 风险清单</a></li>
+<li><a href="#sec6">本章小结</a></li>
+    <li><a href="#sec7">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解为什么亿级大表直接 <code>ALTER TABLE</code> 是灾难；</li>
+    <li>掌握 MySQL 8.0 原生 INSTANT / INPLACE 算法与锁级；</li>
+    <li>会用 <code>pt-online-schema-change</code> 的原理与命令；</li>
+    <li>理解 gh-ost 的触发日志方案及与 osc 的差异；</li>
+    <li>学会给大表 DDL 选型与排期。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">60.1</span> 为什么大表 ALTER 这么痛</h2>
+  <p class="lead">传统 COPY 算法要整表复制：500G 的表 ALTER 一次锁几小时，业务直接停摆。</p>
+  <pre class="code" data-lang="sql"><code>-- 直接在大表上加索引：8.0 之前可能锁表数小时
+ALTER TABLE orders ADD INDEX idx_user_created(user_id, created_at);
+
+-- 先看这次 ALTER 到底用什么算法、加什么锁（8.0 支持 EXPLAIN 格式预演）
+ALTER TABLE orders ADD INDEX idx_user_created(user_id, created_at), ALGORITHM=INPLACE, LOCK=NONE;
+-- 若服务端不支持 LOCK=NONE 会直接报错而不是默默锁表——这是关键保护</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>算法</th><th>行为</th><th>对业务影响</th></tr></thead>
+    <tbody>
+      <tr><td>COPY</td><td>建临时表，整表复制</td><td>读写都受限，大表灾难</td></tr>
+      <tr><td>INPLACE</td><td>在原表上改，不整表复制</td><td>多数加索引/加列可用，仍有短暂元数据锁</td></tr>
+      <tr><td>INSTANT（8.0.12+）</td><td>只改元数据</td><td>加列（末尾）瞬时完成，毫秒级</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">8.0.12 起加列走 INSTANT；8.0.29 起 INSTANT 支持更多位置。但删列、改类型、重排列仍可能走 INPLACE/COPY——每个 DDL 前都用 <code>ALGORITHM=... LOCK=NONE</code> 显式约束，不支持就报错，别让它默默锁表。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">60.2</span> pt-online-schema-change 原理</h2>
+  <p class="lead">当原生方案不够用时，pt-osc 的思路：影子表 + 触发器追平增量。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg">
+      <rect x="30" y="40" width="160" height="60" rx="8" fill="#2d6a3f"/>
+      <text x="110" y="65" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">原表 orders</text>
+      <text x="110" y="85" text-anchor="middle" font-size="10" fill="#d8e8c8">业务正常读写</text>
+      <rect x="300" y="40" width="180" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="390" y="65" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">影子表 orders_new</text>
+      <text x="390" y="85" text-anchor="middle" font-size="10" fill="#4f6348">已按新结构建好</text>
+      <rect x="300" y="150" width="180" height="60" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="2"/>
+      <text x="390" y="175" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">触发器</text>
+      <text x="390" y="195" text-anchor="middle" font-size="10" fill="#4f6348">把原表增量写入影子表</text>
+      <line x1="190" y1="70" x2="300" y2="70" stroke="#2d6a3f" stroke-width="2" stroke-dasharray="5,4"/>
+      <line x1="110" y1="100" x2="110" y2="180" stroke="#2d6a3f" stroke-width="2" marker-end="url(#e1)"/>
+      <text x="200" y="130" font-size="11" fill="#4f6348">分批拷贝历史行</text>
+      <defs><marker id="e1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2d6a3f"/></marker></defs>
+      <text x="380" y="230" text-anchor="middle" font-size="12" fill="#7a8a70">图 60-1 pt-osc：影子表追平后 RENAME 原子切换，业务无感</text>
+    </svg>
+  </div>
+  <pre class="code" data-lang="bash"><code># 给 orders 加列（实际改成新表结构），每批 1000 行，看进度
+pt-online-schema-change   --alter "ADD COLUMN remark VARCHAR(255)"   --host=127.0.0.1 --user=root --ask-pass   D=shop,t=orders --print --progress=time,10 --chunk-size=1000</code></pre>
+  <div class="pit-sentence">坑：pt-osc 靠触发器追增量——原表上已有触发器时它会直接拒绝运行；且触发器本身在高写入下是开销。这就是 gh-ost 出现的原因。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">60.3</span> gh-ost：无触发器方案</h2>
+  <p class="lead">gh-ost 由 GitHub 开源，不建触发器，改为<strong>解析 binlog</strong> 把原表变更流式应用到影子表。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>维度</th><th>pt-online-schema-change</th><th>gh-ost</th></tr></thead>
+    <tbody>
+      <tr><td>追增量方式</td><td>原表建触发器</td><td>读 binlog 流式应用</td></tr>
+      <tr><td>对原表侵入</td><td>有触发器开销</td><td>无触发器</td></tr>
+      <tr><td>暂停/控制</td><td>有限</td><td>可动态暂停、限速、切换</td></tr>
+      <tr><td>前置条件</td><td>原表无触发器</td><td>binlog 格式 ROW</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="bash"><code># gh-ost 典型命令（需 ROW 格式 binlog）
+gh-ost --host=127.0.0.1 --user=root --ask-pass   --database=shop --table=orders   --alter="ADD INDEX idx_user_created(user_id, created_at)"   --max-load=Threads_running=50   --chunk-size=1000 --allow-on-master --execute</code></pre>
+  <div class="key-sentence">选型顺序：先试原生 INSTANT/INPLACE + LOCK=NONE（零成本）；不够用再 gh-ost（无触发器、可控）；pt-osc 作为兼容兜底。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">60.4</span> 排期与止损</h2>
+  <ul>
+    <li>DDL 排在业务低峰，先在从库验证耗时；</li>
+    <li>改前备份表结构与数据（至少逻辑导出）；</li>
+    <li>gh-ost 支持 <code>--postpone-cut-over-flag-file</code>，切换时机可人工控制；</li>
+    <li>监控Threads_running、主从延迟，飙高就暂停。</li>
+  </ul>
+</section>
+
+<section id="sec_extra" class="card">
+  <h2><span class="num">60.5</span> DDL 风险清单</h2>
+  <p class="lead">每次在线改表前，按这张单子过一遍，避免"改完才想起"。</p>
+  <pre class="code" data-lang="sql"><code>-- 改前预估：该表大小与行数
+SELECT table_name, table_rows,
+       ROUND((data_length+index_length)/1024/1024/1024,2) AS gb
+FROM information_schema.TABLES
+WHERE table_schema='shop' AND table_name='orders';
+
+-- 改中：盯主从延迟，飙高就 gh-ost 暂停
+SHOW REPLICA STATUS\G</code></pre>
+  <ul>
+    <li><span class="tag-pit">风险</span>元数据锁排队：长事务会让 DDL 等待并堵住后续查询；</li>
+    <li><span class="tag-key">动作</span>改前确认无长事务（INNODB_TRX），低峰执行；</li>
+    <li><span class="tag-point">回滚</span>gh-ost/pt-osc 中途可中止，已建影子表可丢弃，不影响原表。</li>
+  </ul>
+</section>
+
+  <div class="note">一句话选型：能 INSTANT 就 INSTANT，其次 INPLACE+LOCK=NONE，大改表用 gh-ost，pt-osc 兜底。</div>
+  <pre class="code" data-lang="sql"><code>-- 执行前最后确认：无长事务
+SELECT * FROM information_schema.INNODB_TRX
+WHERE TIMESTAMPDIFF(SECOND, trx_started, NOW()) &gt; 30;</code></pre>
+
+<section id="sec6" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>原生能力</td><td>8.0 INSTANT 加列毫秒级；一律显式 ALGORITHM/LOCK=NONE 防默默锁表</td></tr>
+      <tr><td>pt-osc</td><td>影子表+触发器追增量，已有触发器会拒绝</td></tr>
+      <tr><td>gh-ost</td><td>解析 ROW binlog 追增量，无触发器、可动态暂停限速</td></tr>
+      <tr><td>选型</td><td>原生 → gh-ost → pt-osc，低峰执行、先从库验证、备好回滚</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出 8.0 原生加列走 INSTANT 的前提，并用 <code>ALGORITHM=INPLACE, LOCK=NONE</code> 约束一句加索引 SQL。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>对比 pt-osc 与 gh-ost 在"追增量"上的本质差异，说明为什么 gh-ost 对高写入表更友好。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>你要给一张 2 亿行的订单表加一个普通索引，写出完整选型决策：先试什么、失败后用什么工具、执行前后做什么检查。</div>
+  <p class="note">大表改结构讲完，下一章解决大表本身：数据归档与冷热分离。</p>
+</section>
+
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="059_第59章_pt工具箱实战.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="061_第61章_数据归档与冷热分离.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 60 章 大表 DDL：online schema change</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 24 章 EXPLAIN 全字段解读｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第三篇 索引与优化</p>
+    <h1>第 24 章 EXPLAIN 全字段解读</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 24 章 / 共 72 章 · 预计 50 分钟</span>
+    </div>
+    <p class="hero-desc">EXPLAIN 是优化 SQL 的照妖镜：一条查询加两个字，就能看到优化器打算走哪个索引、扫多少行、要不要临时表。本章用一份真实输出，逐列把 id、select_type、type、key、rows、Extra 讲透——type 列从好到坏的等级、Extra 里每个"Using"的含义，看完你就能独立诊断任何慢查询。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="023_第23章_索引失效的N种场景.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="025_第25章_慢查询定位_slowlog与分析.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">24.1 一份真实的 EXPLAIN 输出</a></li>
+    <li><a href="#sec3">24.2 type 列：从好到坏的等级</a></li>
+    <li><a href="#sec4">24.3 key / key_len / ref / rows</a></li>
+    <li><a href="#sec5">24.4 Extra 列：每个 Using 的含义</a></li>
+    <li><a href="#sec6">24.5 JSON / TREE 格式与实战排查</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>会用 <code>EXPLAIN</code>（8.0 还可以 <code>EXPLAIN ANALYZE</code>）查看执行计划；</li>
+    <li>逐列读懂 id、select_type、table、type、possible_keys、key、key_len、ref、rows、filtered、Extra；</li>
+    <li>背会 type 列的性能等级，知道哪几个是<strong>红线</strong>；</li>
+    <li>看懂 Extra 里 <code>Using index</code> / <code>Using filesort</code> / <code>Using temporary</code> 的代价；</li>
+    <li>拿到任意慢查询，能用 EXPLAIN 说出它慢在哪。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">24.1</span> 一份真实的 EXPLAIN 输出</h2>
+  <p class="lead">先看一行真实输出长什么样，再逐列拆开。</p>
+  <pre class="code" data-lang="sql"><code>-- 建表演示：订单表，按用户 + 状态筛单
+EXPLAIN SELECT o.id, o.amount
+FROM orders o
+JOIN user u ON u.id = o.user_id
+WHERE u.city = '成都' AND o.status = 2
+ORDER BY o.created_at DESC LIMIT 20;</code></pre>
+  <p>典型输出（8.0 文本格式）：</p>
+  <pre class="code" data-lang="sql"><code>+----+-------------+-------+------+-------------------+-------------+---------+
+| id | select_type | table | type | possible_keys     | key         | rows    |
++----+-------------+-------+------+-------------------+-------------+---------+
+|  1 | SIMPLE      | u     | ref  | PRIMARY,idx_city  | idx_city    |     150 |
+|  1 | SIMPLE      | o     | ref  | idx_user_status   | idx_user    |      10 |
++----+-------------+-------+------+-------------------+-------------+---------+
+Extra:
+u:  Using index condition
+o:  Using where; Using filesort</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+    <thead><tr><th>列</th><th>含义（一句话）</th></tr></thead>
+    <tbody>
+      <tr><td>id</td><td>SELECT 的序号；多表/子查询时越大越先执行（NULL 为派生表）</td></tr>
+      <tr><td>select_type</td><td>SIMPLE（无子查询）/ PRIMARY / SUBQUERY / DERIVED 等</td></tr>
+      <tr><td>table</td><td>这一行在查哪张表</td></tr>
+      <tr><td>type</td><td><strong>最重要</strong>：访问类型，直接反映走索引的好坏（见 24.2）</td></tr>
+      <tr><td>possible_keys</td><td>优化器"可选"的索引清单</td></tr>
+      <tr><td>key</td><td>实际选中的索引；NULL 表示没走索引</td></tr>
+      <tr><td>key_len</td><td>索引用到的字节数，越长 = 用了索引的越多列</td></tr>
+      <tr><td>ref</td><td>与索引列比较的是常量还是哪个表的列（const / u.id）</td></tr>
+      <tr><td>rows</td><td>优化器估算要扫描的行数（越大越慢）</td></tr>
+      <tr><td>filtered</td><td>扫描后剩余行占比（%），100 表示基本无浪费</td></tr>
+      <tr><td>Extra</td><td>附加信息：回不回表、排不排序、用不用临时表（见 24.4）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">24.2</span> type 列：从好到坏的等级</h2>
+  <p class="lead">type 是判断"这条查询走没走索引"的第一指标，从好到坏分七档。</p>
+  <pre class="code" data-lang="sql"><code>-- 从好到坏（性能依次下降）：
+-- system &gt; const &gt; eq_ref &gt; ref &gt; range &gt; index &gt; ALL</code></pre>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>type</th><th>含义</th><th>出现场景</th></tr></thead>
+    <tbody>
+      <tr><td>system</td><td>表只有一行</td><td>系统表，极少见</td></tr>
+      <tr><td>const</td><td>主键/唯一索引等值匹配，最多一行</td><td>WHERE id = 1（主键）</td></tr>
+      <tr><td>eq_ref</td><td>JOIN 时用主键/唯一索引，每表匹配一行</td><td>多表关联主键关联</td></tr>
+      <tr><td>ref</td><td>普通索引等值匹配，可能多行</td><td>WHERE city = '成都'</td></tr>
+      <tr><td>range</td><td>索引范围扫描</td><td>BETWEEN、&gt;、IN</td></tr>
+      <tr><td>index</td><td>整棵索引树都扫一遍（比 ALL 稍好）</td><td>覆盖索引扫全索引</td></tr>
+      <tr><td>ALL</td><td><strong>全表扫描</strong>，最坏档</td><td>没走索引 / 索引失效</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">红线：<strong>看到 type=ALL 就要警惕</strong>（小表除外）；<code>Using filesort</code>、<code>Using temporary</code> 出现也要扣分。生产 SQL 的 type 至少要达到 ref 或 range。</div>
+  <div class="key-sentence">看 EXPLAIN 先扫 type：const/eq_ref 优秀，ref/range 及格，index/ALL 必须回去查索引。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">24.3</span> key / key_len / ref / rows</h2>
+  <p class="lead">这四列回答三个问题：走了哪个索引、用了几列、比什么、扫多少行。</p>
+  <pre class="code" data-lang="sql"><code>-- key：实际用的索引。NULL = 没走
+-- key_len：判断联合索引用到了第几列
+--   BIGINT 主键 = 8 字节；VARCHAR(20) utf8mb4 ≈ 20*4+2 = 82 字节
+--   若 (city, age) 索引 key_len=82，说明只用了 city 这一列
+
+-- ref：索引列在跟什么比
+--   const  → 跟常量比（WHERE city='成都'）
+--   u.id   → 跟 u 表的 id 列比（JOIN ON o.user_id = u.id）
+
+-- rows：估算扫描行数，是粗估不是精确值
+--   rows=150 比 rows=100000 好一个数量级</code></pre>
+  <p>实战用法：联合索引 (a, b, c) 的 key_len 告诉你<strong>最左前缀走到了哪一列</strong>——key_len 只算到 a 的字节数，说明 b、c 断档了（第 21 章）。这是验证"索引到底用了几列"的硬证据。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">24.4</span> Extra 列：每个 Using 的含义</h2>
+  <p class="lead">Extra 是执行计划的"隐藏代价表"，每个关键字都对应一笔开销。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:41%"><col style="width:25%"></colgroup>
+    <thead><tr><th>Extra 值</th><th>含义</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td>Using index</td><td>覆盖索引，不回表</td><td>优秀</td></tr>
+      <tr><td>Using where</td><td>Server 层再过滤（回表后判断）</td><td>可接受</td></tr>
+      <tr><td>Using index condition</td><td>索引下推（第 21 章）</td><td>已优化</td></tr>
+      <tr><td>Using filesort</td><td>额外排序（没走索引顺序）</td><td><strong>扣分</strong></td></tr>
+      <tr><td>Using temporary</td><td>用了临时表（常见于 GROUP BY / DISTINCT）</td><td><strong>扣分</strong></td></tr>
+      <tr><td>Using join buffer</td><td>关联没走索引，用了内存缓冲</td><td>要加索引</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="sql"><code>-- Using filesort 怎么治：ORDER BY 的列要能走索引
+SELECT * FROM orders WHERE user_id = 1 ORDER BY created_at;
+-- 索引 (user_id, created_at) 让取出即有序，filesort 消失
+
+-- Using temporary 怎么治：GROUP BY 的列尽量走联合索引
+SELECT city, COUNT(*) FROM user GROUP BY city;
+-- idx_city 让分组有序，免临时表</code></pre>
+  <div class="pit-sentence">两个必治的信号：<strong>Using filesort</strong>（排序没走索引）、<strong>Using temporary</strong>（建了临时表）。数据量大时它们是慢查询的直接凶手。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">24.5</span> JSON / TREE 格式与实战排查</h2>
+  <p class="lead">文本表格看不全时，8.0 给了 JSON 与 TREE 两种格式，还能看真实耗时。</p>
+  <pre class="code" data-lang="sql"><code>-- 8.0：结构化 JSON，能看到代价数字
+EXPLAIN FORMAT=JSON SELECT * FROM orders WHERE user_id = 1;
+
+-- 8.0.18+：TREE 树形输出，多表关联一眼看清驱动顺序
+EXPLAIN FORMAT=TREE SELECT ... ;
+
+-- 8.0.18+ 王炸：EXPLAIN ANALYZE 真实执行并报每步耗时
+EXPLAIN ANALYZE SELECT * FROM orders WHERE user_id = 1;
+-- 输出里每一步带 actual time=0.123..0.456 ms，慢在哪一步一目了然</code></pre>
+  <p>排查心法：先 <code>EXPLAIN</code> 看 type 是不是 ALL、key 是不是 NULL；再看 Extra 有没有 filesort/temporary；最后拿 <code>EXPLAIN ANALYZE</code>（8.0.18+）看真实耗时定位到具体那一步。</p>
+  <div class="note"><strong>版本提示</strong>：<code>EXPLAIN ANALYZE</code> 是 MySQL 8.0.18 才引入的老版本（5.7）没有；5.7 用户用 <code>EXPLAIN FORMAT=JSON</code> 看 cost_info。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>type 等级</td><td>system&gt;const&gt;eq_ref&gt;ref&gt;range&gt;index&gt;ALL，ALL 是红线</td></tr>
+      <tr><td>key / key_len</td><td>看走了哪个索引、联合索引用到第几列</td></tr>
+      <tr><td>rows / filtered</td><td>估算扫描行数与剩余占比，评估浪费程度</td></tr>
+      <tr><td>Extra</td><td>Using index 好；filesort、temporary、join buffer 要治</td></tr>
+      <tr><td>EXPLAIN ANALYZE</td><td>8.0.18+ 真实执行并报每步耗时，慢在哪一步直接可见</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>对任意一条 <code>SELECT * FROM orders WHERE user_id=1</code> 执行 <code>EXPLAIN</code>，指出 type、key、rows、Extra 四列的值，并判断这条查询走没走索引。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>造一张带 <code>ORDER BY</code> 的查询表，先让它的 Extra 出现 <code>Using filesort</code>，再设计一条联合索引让 filesort 消失，用 EXPLAIN 验证前后差异。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>在 MySQL 8.0.18+ 环境对一条真实慢查询跑 <code>EXPLAIN ANALYZE</code>，读出每一步的 actual time，说出耗时最高的是哪一步（是扫描、回表还是排序），并给出对应的优化方向。</div>
+  <p class="note">会读执行计划了，下一章上真刀真枪：慢查询日志怎么开、怎么从成千上万条慢 SQL 里揪出最该优化的那条。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="023_第23章_索引失效的N种场景.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="025_第25章_慢查询定位_slowlog与分析.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 24 章 EXPLAIN 全字段解读</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

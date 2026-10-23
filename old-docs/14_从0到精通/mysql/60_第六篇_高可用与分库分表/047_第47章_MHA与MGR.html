@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 47 章 MHA 与 MGR｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第六篇 高可用与分库分表</p>
+    <h1>第 47 章 MHA 与 MGR</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 47 章 / 共 72 章 · 预计 40 分钟</span>
+    </div>
+    <p class="hero-desc">两条技术路线：MHA 是外挂在传统主从之上的"自动切换管家"，MGR 是 MySQL 原生的"组复制"，多节点靠 Paxos 协议选主。对比着看，选型就清楚了。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="046_第46章_高可用架构总览.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="048_第48章_读写分离与路由中间件.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">47.1 MHA：外挂式自动切换</a></li>
+    <li><a href="#sec3">47.2 MGR：原生组复制</a></li>
+    <li><a href="#sec4">47.3 MHA vs MGR 选型</a></li>
+    <li><a href="#sec5">47.4 常见坑清单</a></li>
+    <li><a href="#sec6">本章小结</a></li>
+    <li><a href="#sec7">本章习题</a></li>
+  <li><a href="#secX">47.5 MGR 节点数为何奇数</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清 MHA Manager 与 MHA Node 的分工，以及它如何选"数据最新的从库"；</li>
+    <li>理解 MGR 组复制基于 Paxos、多数派提交的工作方式；</li>
+    <li>知道 MGR 单主模式与多主模式的差别；</li>
+    <li>会对比 MHA 与 MGR 的优缺点，做出选型判断；</li>
+    <li>认识 MGR 的关键参数与启动方式。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">47.1</span> MHA：外挂式自动切换</h2>
+  <p class="lead">MHA（Master High Availability）由一个 Manager 管理多台 Node，主库挂了它来挑数据最新的从库升主。</p>
+  <ul>
+    <li><span class="tag-key">MHA Manager</span>独立部署，监控整个主从集群，负责故障判定与切换；</li>
+    <li><span class="tag-key">MHA Node</span>装在每台 MySQL 机器上，被 Manager 调用做具体操作；</li>
+    <li>切换时它会对比各从库的 relay log，<strong>把最接近主库的那台选作新主</strong>，并让其他从库追上新主。</li>
+  </ul>
+  <div class="note">MHA 依赖 GTID 或位点复制，切换通常在几十秒级。它的优点是对现有主从侵入小，缺点是 Manager 本身要高可用、且项目维护节奏慢。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">47.2</span> MGR：原生组复制</h2>
+  <p class="lead">MGR（MySQL Group Replication）把多台 MySQL 组成一个组，事务提交要组内多数派认可。</p>
+  <ul>
+    <li><strong>组复制</strong>：每个事务的提交要在组内广播，多数节点认可才算成功——天然防脑裂；</li>
+    <li><span class="tag-point">单主模式</span>组里只有一个主接受写，其余只读，主挂了组自动选新主（最常用）；</li>
+    <li><span class="tag-pit">多主模式</span>多节点都可写，冲突由内部检测解决，性能与复杂度都高。</li>
+  </ul>
+  <pre class="code" data-lang="sql"><code>-- MGR 单主模式关键配置（my.cnf，组内每台类似）
+# transaction_write_set_extraction = XXHASH64
+# loose-group_replication_group_name = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+# loose-group_replication_local_address = '10.0.0.11:33061'
+# loose-group_replication_group_seeds = '10.0.0.11:33061,10.0.0.12:33061,10.0.0.13:33061'
+# loose-group_replication_single_primary_mode = ON
+
+-- 启动组复制（在已建组的节点上）
+START GROUP_REPLICATION;</code></pre>
+  <div class="key-sentence">MGR 的核心价值：选主与一致性由 MySQL 原生保证，不依赖外部管家；代价是至少 3 节点、网络要求高、吞吐受多数派投票影响。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">47.3</span> MHA vs MGR 选型</h2>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>维度</th><th>MHA</th><th>MGR</th></tr></thead>
+    <tbody>
+      <tr><td>定位</td><td>外挂式管理传统主从</td><td>MySQL 原生组复制</td></tr>
+      <tr><td>选主</td><td>Manager 挑选数据最新从库</td><td>组内 Paxos 多数派自动选</td></tr>
+      <tr><td>脑裂</td><td>靠 Manager 仲裁，有误判风险</td><td>多数派机制，天然防脑裂</td></tr>
+      <tr><td>节点数</td><td>一主多从即可</td><td>至少 3 节点</td></tr>
+      <tr><td>适用</td><td>存量主从平滑加 HA</td><td>新建、想要原生强一致</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">别为了"新"而盲目上 MGR：它对网络延迟敏感、写吞吐受投票制约。存量主从系统用 MHA 平滑升级往往更划算；新项目且愿意接受 3 节点最小规模再考虑 MGR。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">47.4</span> 常见坑清单</h2>
+  <ul>
+    <li><span class="tag-pit">坑</span><strong>MHA Manager 单点</strong>：Manager 自己挂了就没人管切换，要给它做高可用；</li>
+    <li><span class="tag-pit">坑</span><strong>MGR 节点数为偶数</strong>：2 节点组一旦分裂两边都凑不齐多数派，集群直接不可用，务必 3/5 奇数；</li>
+    <li><span class="tag-pit">坑</span><strong>MGR 跨机房网络差</strong>：多数派投票跨高延迟网络，写性能骤降；</li>
+    <li><span class="tag-pit">坑</span><strong>把 MGR 当传统主从写</strong>：它要求统一的引擎、binlog 格式与一致性约束，配置不全会起不来组。</li>
+  </ul>
+</section>
+
+<section id="sec6" class="card">
+</section>
+
+<section id="secX" class="card">
+  <h2><span class="num">47.5</span> MGR 为什么要求奇数节点</h2>
+  <p class="lead">组复制靠多数派达成共识，偶数节点在网络分区时会两边都凑不齐多数。</p>
+  <ul>
+    <li>3 节点：挂 1 台剩 2 票，仍超半数（2/3）可服务；</li>
+    <li>4 节点：挂 2 台剩 2 票，未过半（2/4），集群不可用；</li>
+    <li>所以生产用 3/5 奇数，而不是 2/4。</li>
+  </ul>
+  <div class="key-sentence">多数派机制同时是防脑裂的武器：少数派那侧无法当选主，自然不会双主并写。</div>
+</section>
+
+<section id="secX4" class="card">
+  <h2><span class="num">复盘</span> 易错点回顾</h2>
+  <p class="lead">把本章最容易答错的点再过一遍。</p>
+  <ul>
+    <li>先分清概念，再写配置：概念不清时敲命令只会复制粘贴；</li>
+    <li>每个参数都要知道"不设置时默认是什么"；</li>
+    <li>出现异常先看状态变量（SHOW STATUS / SHOW REPLICA STATUS），再猜原因。</li>
+  </ul>
+  <div class="note">建议合上书本，用自己的话复述本章主线，卡壳处即为薄弱点。</div>
+</section>
+<section id="secX3" class="card">
+  <h2><span class="num">延伸</span> 动手实验建议</h2>
+  <p class="lead">本章内容偏原理，靠动手才能真正吃透。</p>
+  <ul>
+    <li>在测试环境把本章命令逐条跑一遍，记录每一步输出；</li>
+    <li>故意制造一次故障（如停掉从库线程），观察监控与告警；</li>
+    <li>把现象与本章原理对照，写出自己的实验小结；</li>
+    <li>回到本章习题，不看答案先口述，再核对。</li>
+  </ul>
+  <div class="pit-sentence">看会了不等于做会了：数据库这门手艺，是在实验台上长出来的。</div>
+</section>
+<section id="secX2" class="card">
+  <h2><span class="num">速记</span> 一句话要点</h2>
+  <p class="lead">把本章最容易忘的结论压成一句话。</p>
+  <ul>
+    <li><span class="tag-point">要点</span>MHA 是"外挂式"故障转移，MGR 是"内置组复制"；前者兼容存量主从，后者要整个组一起升级改造。</li>
+    <li>本章所有命令均在 MySQL 8.0 验证，老版本语法以官方手册为准。</li>
+    <li>动手跑一遍本章的 SQL，胜过读十遍解释。</li>
+  </ul>
+  <div class="note">这一条结论，建议在面试前默写一遍。</div>
+</section>
+<section id="secSum" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>MHA</td><td>Manager + Node，外挂式挑数据最新从库升主</td></tr>
+      <tr><td>MGR</td><td>原生组复制，Paxos 多数派提交与选主</td></tr>
+      <tr><td>单主/多主</td><td>单主模式最常用，多主冲突复杂少用</td></tr>
+      <tr><td>选型</td><td>存量主从选 MHA，新建且接受 3 节点选 MGR</td></tr>
+      <tr><td>铁律</td><td>集群节点用奇数，保证多数派可达成</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出 MHA Manager 与 MHA Node 的分工，并说明 MHA 选新主时依据什么挑从库。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>列出 MGR 单主模式与多主模式的区别，并解释为什么 MGR 天然不容易脑裂。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>你的团队有一套跑了三年的一主三从系统，主库偶尔抖动。现在要加自动高可用，你会选 MHA 还是 MGR？写出三点理由，并说明为什么节点数要保持奇数。</div>
+  <p class="note">高可用底座讲完了，下一章让读流量分摊到从库：读写分离与路由中间件。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="046_第46章_高可用架构总览.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="048_第48章_读写分离与路由中间件.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 47 章 MHA 与 MGR</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

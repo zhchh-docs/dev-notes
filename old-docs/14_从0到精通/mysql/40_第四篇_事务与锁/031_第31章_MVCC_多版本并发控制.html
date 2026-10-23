@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 31 章 MVCC：多版本并发控制｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第四篇 事务与锁</p>
+    <h1>第 31 章 MVCC：多版本并发控制</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 31 章 / 共 72 章 · 预计 45 分钟</span>
+    </div>
+    <p class="hero-desc">为什么读和写能互不阻塞？答案是 MVCC：每行数据背后藏着一串"版本"，读的人挑自己快照那一刻的版本看，写的人只管追加新版本。本章拆解隐藏列、undo 版本链、ReadView 三件套，把"可重复读"从现象变成原理。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="030_第30章_四个隔离级别与现象实验.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="032_第32章_锁的分类_全局表行.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">31.1 一句话理解 MVCC</a></li>
+    <li><a href="#sec3">31.2 隐藏列与 undo 版本链</a></li>
+    <li><a href="#sec4">31.3 ReadView：快照的判定规则</a></li>
+    <li><a href="#sec5">31.4 RC 与 RR 的差别：何时拍快照</a></li>
+    <li><a href="#sec6">31.5 快照读与当前读</a></li>
+    <li><a href="#sec7">本章小结</a></li>
+    <li><a href="#sec8">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>用一句话说清 MVCC 解决"读写互不阻塞"的原理；</li>
+    <li>认识 InnoDB 为每行加的两个隐藏列（trx_id、roll_pointer）；</li>
+    <li>画出 undo log 构成的<strong>版本链</strong>；</li>
+    <li>说清 ReadView 如何判断一个版本"我能不能看见"；</li>
+    <li>区分快照读与当前读，知道哪些语句是当前读。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">31.1</span> 一句话理解 MVCC</h2>
+  <p class="lead">MVCC（Multi-Version Concurrency Control）= 一行数据保留多个版本，读操作挑合适的版本看，不加锁。</p>
+  <p>没有 MVCC 时，写的人给行加锁，读的人就得等——读写互相阻塞。有了 MVCC：<strong>写操作不覆盖旧值，而是追加一个新版本；读操作根据自己的快照，挑历史版本读</strong>。于是读不阻塞写、写不阻塞读，并发性能大幅提升。</p>
+  <div class="key-sentence">MVCC 的核心：<strong>读快照、写新版</strong>。读的人永远不被写的人挡住，因为它读的是"自己那一刻"的版本。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">31.2</span> 隐藏列与 undo 版本链</h2>
+  <p class="lead">InnoDB 偷偷给每一行加了两个隐藏列，版本链就靠它们串起来。</p>
+  <ul>
+    <li><span class="tag-key">关键</span><strong>trx_id</strong>：最后修改这一行的<strong>事务 ID</strong>。谁改的，记在这；</li>
+    <li><span class="tag-key">关键</span><strong>roll_pointer</strong>：指向这一行的<strong>上一个版本</strong>（存在 undo log 里）。</li>
+  </ul>
+  <p>每次 UPDATE，旧值被写进 undo log 存一份，新行的 roll_pointer 指向这份旧值。多次修改，旧版本用 roll_pointer 一环扣一环，形成一条<strong>版本链</strong>。</p>
+  <div class="diagram" style="text-align:center;margin:18px 0">
+  <svg viewBox="0 0 760 210" width="100%" style="max-width:760px;height:auto;background:#ffffff;border:1px solid #d8e2cc;border-radius:10px">
+    <rect x="30" y="70" width="200" height="80" rx="8" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="130" y="98" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">当前行</text>
+    <text x="130" y="120" text-anchor="middle" font-size="11" fill="#1f2e1f" font-family="monospace">balance=50 trx_id=300</text>
+    <text x="130" y="138" text-anchor="middle" font-size="11" fill="#7a8a70">roll_pointer →</text>
+    <rect x="290" y="70" width="200" height="80" rx="8" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="390" y="98" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">undo 版本 v2</text>
+    <text x="390" y="120" text-anchor="middle" font-size="11" fill="#1f2e1f" font-family="monospace">balance=100 trx_id=200</text>
+    <text x="390" y="138" text-anchor="middle" font-size="11" fill="#7a8a70">roll_pointer →</text>
+    <rect x="550" y="70" width="180" height="80" rx="8" fill="#ffffff" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="640" y="98" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="bold">undo 版本 v1</text>
+    <text x="640" y="120" text-anchor="middle" font-size="11" fill="#1f2e1f" font-family="monospace">balance=200 trx_id=100</text>
+    <line x1="230" y1="110" x2="290" y2="110" stroke="#2d6a3f" stroke-width="1.5"/>
+    <line x1="490" y1="110" x2="550" y2="110" stroke="#2d6a3f" stroke-width="1.5"/>
+    <text x="380" y="180" text-anchor="middle" font-size="12" fill="#7a8a70">版本链：roll_pointer 把每次修改的旧值串成一条链</text>
+  </svg>
+  <p class="diagram-caption" style="font-size:13px;color:#7a8a70;margin:8px 0 0">图 31-1 一行数据的版本链：当前行 + undo log 里的历史版本，按 trx_id 排好</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">31.3</span> ReadView：快照的判定规则</h2>
+  <p class="lead">版本链上挂着好几个版本，读操作怎么知道"我能看哪个"？靠 ReadView。</p>
+  <p>ReadView 是事务在某个瞬间拍下的"活跃事务清单"，核心记录四个值：</p>
+  <ul>
+    <li><strong>m_ids</strong>：此刻<strong>还没提交</strong>的事务 ID 列表；</li>
+    <li><strong>min_trx_id</strong>：m_ids 里最小的 ID；</li>
+    <li><strong>max_trx_id</strong>：下一个要分配的事务 ID；</li>
+    <li><strong>creator_trx_id</strong>：我自己的事务 ID。</li>
+  </ul>
+  <p>判定规则（沿版本链从新往旧找）：</p>
+  <pre class="code" data-lang="sql"><code>-- 对版本链上某个版本的 trx_id：
+-- ① trx_id == 我自己            → 可见（自己改的）
+-- ② trx_id &lt; min_trx_id        → 可见（快照前已提交）
+-- ③ trx_id &gt;= max_trx_id       → 不可见（快照后才开始）
+-- ④ trx_id 在 m_ids 里          → 不可见（拍下时它还没提交）
+-- 不可见就顺着 roll_pointer 找下一个更老的版本，直到找到可见的</code></pre>
+  <div class="note">一句话：<strong>在我拍快照那一刻已经提交的版本我能看，还没提交的、以及之后才改的我都看不见</strong>——于是同一事务里多次读，看到的永远是同一份快照。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">31.4</span> RC 与 RR 的差别：何时拍快照</h2>
+  <p class="lead">两个级别用的是同一套 MVCC，差别只在于"多久拍一次 ReadView"。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>隔离级别</th><th>ReadView 何时建</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td>RC 读已提交</td><td><strong>每次 SELECT 都新建</strong> ReadView</td><td>每次读都能看到最新已提交值 → 不可重复读</td></tr>
+      <tr><td>RR 可重复读</td><td>事务<strong>第一次 SELECT 时建</strong>，之后复用</td><td>整个事务看同一份快照 → 可重复读</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">RC 和 RR 底层都是 MVCC，唯一区别：<strong>RC 每读一次拍一张快照，RR 只读第一次、以后一直用它</strong>。这就是为什么 RR 能重复读、RC 不能。</div>
+  <p>延伸理解：RC 每次 SELECT 都新建 ReadView，所以它能读到"别的事务刚提交的新值"——这正是 RC 叫"读已提交"的原因。RR 只建一次快照，所以整个事务看到的世界冻结在开始那一刻，别的提交它统统"看不见"。</p>
+  <div class="note">ReadView 不是无限保存的：事务一结束（COMMIT/ROLLBACK），它的 ReadView 就销毁，它引用的旧版本如果再没有别人需要，purge 线程就能清理了——这就是长事务拖住 undo 的完整链条。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">31.5</span> 快照读与当前读</h2>
+  <p class="lead">MVCC 只对"快照读"生效；某些语句必须读最新数据，叫"当前读"。</p>
+  <pre class="code" data-lang="sql"><code>-- 快照读：普通 SELECT，走 MVCC 快照，不锁、不阻塞
+SELECT * FROM account WHERE id = 1;
+
+-- 当前读：必须读最新已提交版本，并且要加锁
+SELECT * FROM account WHERE id = 1 FOR UPDATE;   -- 加排他锁
+SELECT * FROM account WHERE id = 1 LOCK IN SHARE MODE;  -- 加共享锁（8.0 用 FOR SHARE）
+UPDATE account SET balance = balance - 100 WHERE id = 1;  -- 写，天然当前读
+DELETE FROM account WHERE id = 1;                         -- 写，当前读</code></pre>
+  <p>为什么写操作是当前读？因为你要基于"最新值"改，不能基于快照——否则两个事务都基于旧值更新，会丢更新。这也解释了 RR 下幻读为什么基本被杜绝：<strong>快照读看快照，当前读靠 next-key 锁挡住新插入</strong>（第 33 章）。</p>
+  <div class="pit-sentence">易混点：RR 下普通 SELECT 是快照读（看不到新插入），但 <code>SELECT ... FOR UPDATE</code> 或 UPDATE 是当前读（能看到新插入）。同一条范围查询，两种读法结果可能不同，排查幻读时先分清你用的是哪种读。</div>
+  <div class="key-sentence">MVCC 的收益一句话：<strong>读操作走快照、不加锁，写操作追加新版本、不阻塞读</strong>。这就是 InnoDB 读写并发远高于"锁表"年代的根本原因。</div>
+  <div class="note"><strong>代价也要知道</strong>：MVCC 不是免费的——版本链要靠 undo log 维持，长事务不提交就会让旧版本清理不掉（第 35 章长事务治理）。所以 MVCC 高效的前提，仍是事务要短。</div>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>读类型</th><th>哪些语句</th><th>读的是</th></tr></thead>
+    <tbody>
+      <tr><td>快照读</td><td>普通 SELECT</td><td>MVCC 快照，不加锁</td></tr>
+      <tr><td>当前读</td><td>SELECT ... FOR UPDATE / UPDATE / DELETE</td><td>最新已提交版本，加锁</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>ReadView 不是永久免费</strong>：事务一结束（COMMIT/ROLLBACK），它的 ReadView 就销毁；它引用的旧版本如果再没有别人需要，purge 线程才能清理。长事务不提交，整串旧版本都被它"钉住"不敢删——这就是 MVCC 副作用的完整链条。</div>
+  <div class="note"><strong>快照读 vs 当前读混着用</strong>：同一个事务里，普通 SELECT 看快照、FOR UPDATE/UPDATE 看最新值。代码里若先 SELECT 再 FOR UPDATE 同一行，结果可能不同，这是 MVCC 的设计而非 bug。</div>
+</section>
+<!--CONT2-->
+<section id="sec7" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>MVCC</td><td>读快照、写新版；读不阻塞写、写不阻塞读</td></tr>
+      <tr><td>隐藏列</td><td>trx_id 记谁改的、roll_pointer 指向上个版本</td></tr>
+      <tr><td>版本链</td><td>undo log 把旧值串成链，读操作沿链找可见版本</td></tr>
+      <tr><td>ReadView</td><td>按活跃事务清单判断版本是否可见</td></tr>
+      <tr><td>RC vs RR</td><td>RC 每次 SELECT 建快照，RR 只在第一次建、复用</td></tr>
+      <tr><td>快照读/当前读</td><td>普通 SELECT 读快照；FOR UPDATE / 写操作读最新并加锁</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话解释：为什么 RR 级别下同一事务两次 SELECT 同一行结果一样？结合 ReadView"什么时候建快照"说明。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在 RR 下做实验：会话 A 第一次 SELECT balance=100；会话 B 改成 50 并提交；会话 A 分别跑普通 SELECT 和 <code>SELECT ... FOR UPDATE</code>，对比两次结果的差异并解释（快照读 vs 当前读）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>画出一行数据被三个事务依次修改后的版本链（标出每条的 trx_id），并模拟一个 ReadView（活跃事务=[200,300]），判断该事务沿链能看到哪个版本。</div>
+  <p class="note">MVCC 解决了"读"的并发，下一章看"写"的并发怎么管——锁的分类：全局锁、表锁、行锁。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="030_第30章_四个隔离级别与现象实验.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="032_第32章_锁的分类_全局表行.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 31 章 MVCC：多版本并发控制</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

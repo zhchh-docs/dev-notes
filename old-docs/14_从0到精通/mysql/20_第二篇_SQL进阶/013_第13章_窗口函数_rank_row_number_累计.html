@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 13 章 窗口函数：rank/row_number/累计｜MySQL 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 var(--font);-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 24px;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 36px;margin:26px 0}
+section.card h2{font-size:23px;margin:0 0 20px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:1px}
+section.card h3{font-size:18px;margin:28px 0 10px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2)}
+section.card h4{font-size:16px;margin:22px 0 8px;padding-left:8px;border-left:3px solid var(--line-2)}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul>li::marker{color:var(--accent)}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;white-space:pre;word-break:normal;overflow-wrap:normal}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(29,78,216,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  .container{padding:0 12px}
+  .hero{padding:26px 0 22px}
+  .hero h1{font-size:22px}
+  .toc ol{grid-template-columns:1fr}
+  section.card{padding:20px 16px}
+  section.card h2{font-size:19px}
+  pre.code{font-size:12.5px;padding:12px}
+  .code-copy{position:static;display:block;width:max-content;margin:0 0 10px auto}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《MySQL 从 0 到精通》 · 第二篇 SQL 进阶</p>
+    <h1>第 13 章 窗口函数：rank/row_number/累计</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 13 章 / 共 72 章 · 预计 50 分钟</span>
+    </div>
+    <p class="hero-desc">"每个类目销量前 3 的商品""本月到今天的累计销售额""和上一笔订单比涨了多少"——这些报表需求在 8.0 之前要写嵌套子查询，现在一条 OVER() 解决。窗口函数是 MySQL 8.0 最重磅的新特性，本章给出可直接跑通的完整实验脚本。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="012_第12章_UNION与集合运算.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="014_第14章_CTE公用表表达式与递归查询.html">下一章 →</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">13.1 准备实验表（可复现）</a></li>
+    <li><a href="#sec3">13.2 语法骨架：OVER 三件套</a></li>
+    <li><a href="#sec4">13.3 row_number / rank / dense_rank</a></li>
+    <li><a href="#sec5">13.4 累计与滑动窗口</a></li>
+    <li><a href="#sec6">13.5 LAG / LEAD 环比</a></li>
+    <li><a href="#sec7">13.6 实战：组内 TopN</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解窗口函数与 GROUP BY 的本质差别：<strong>不折行</strong>，每行都保留；</li>
+    <li>背熟语法骨架 <code>函数() OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN ...)</code>；</li>
+    <li>分清 <code>row_number</code>、<code>rank</code>、<code>dense_rank</code> 三种排名的差；</li>
+    <li>用 <code>SUM() OVER</code> 写累计销售额、用 <code>LAG/LEAD</code> 写环比；</li>
+    <li>写出"组内 TopN"经典报表（每个类目销量前 3）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">13.1</span> 准备实验表（可复现）</h2>
+  <p class="lead">本章所有 SQL 都基于下面这张销售明细表，先建表插数，边读边跑。</p>
+  <pre class="code" data-lang="sql"><code>-- 建表：商品销售流水（类目、商品、日期、销售额）
+DROP TABLE IF EXISTS sales_demo;
+CREATE TABLE sales_demo (
+  id          INT PRIMARY KEY AUTO_INCREMENT,
+  category    VARCHAR(20) NOT NULL,     -- 类目
+  product     VARCHAR(50) NOT NULL,      -- 商品
+  sale_date   DATE NOT NULL,             -- 销售日期
+  amount      DECIMAL(10,2) NOT NULL     -- 当日销售额
+);
+
+INSERT INTO sales_demo (category, product, sale_date, amount) VALUES
+  ('键盘', '机械键盘A', '2026-10-01', 1200.00),
+  ('键盘', '机械键盘A', '2026-10-02', 1500.00),
+  ('键盘', '机械键盘B', '2026-10-01',  800.00),
+  ('键盘', '机械键盘B', '2026-10-02',  800.00),   -- 故意并列，演示 rank 差异
+  ('键盘', '薄膜键盘C', '2026-10-02',  300.00),
+  ('鼠标', '游戏鼠标X', '2026-10-01',  900.00),
+  ('鼠标', '游戏鼠标X', '2026-10-02', 1100.00),
+  ('鼠标', '办公鼠标Y', '2026-10-01',  400.00),
+  ('鼠标', '办公鼠标Y', '2026-10-02',  450.00),
+  ('鼠标', '静音鼠标Z', '2026-10-02',  200.00);</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">13.2</span> 语法骨架：OVER 三件套</h2>
+  <p class="lead">窗口函数 = 聚合/排名函数 + OVER()。OVER 里可以写三样东西：分区、排序、窗口范围。</p>
+  <pre class="code" data-lang="sql"><code>SELECT
+  product,
+  amount,
+  SUM(amount) OVER ()                                   AS total_all,  -- 全表总和
+  SUM(amount) OVER (PARTITION BY category)              AS total_cat,  -- 本类目总和
+  SUM(amount) OVER (PARTITION BY category ORDER BY sale_date) AS cum_cat -- 本类目累计
+FROM sales_demo
+ORDER BY category, sale_date;</code></pre>
+  <div class="diagram" style="margin:18px 0;text-align:center">
+    <svg viewBox="0 0 760 240" width="100%" style="background:#fff;border:1px solid #d8e2cc;border-radius:10px;padding:10px">
+      <rect x="40" y="50" width="300" height="160" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="190" y="75" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">PARTITION BY category（分区）</text>
+      <rect x="60" y="90" width="120" height="100" rx="6" fill="#2d6a3f"/>
+      <text x="120" y="130" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">键盘 区</text>
+      <text x="120" y="155" text-anchor="middle" font-size="11" fill="#d8e8c8">5 行各自保留</text>
+      <text x="120" y="175" text-anchor="middle" font-size="11" fill="#d8e8c8">窗口只在区内算</text>
+      <rect x="200" y="90" width="120" height="100" rx="6" fill="#4f8a63"/>
+      <text x="260" y="130" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">鼠标 区</text>
+      <text x="260" y="155" text-anchor="middle" font-size="11" fill="#fff">5 行各自保留</text>
+      <text x="260" y="175" text-anchor="middle" font-size="11" fill="#fff">窗口只在区内算</text>
+      <rect x="400" y="50" width="320" height="160" rx="10" fill="#f8faf0" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="560" y="75" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">关键：不折行</text>
+      <text x="560" y="110" text-anchor="middle" font-size="13" fill="#4f6348">GROUP BY：10 行 → 2 行</text>
+      <text x="560" y="140" text-anchor="middle" font-size="13" fill="#2d6a3f" font-weight="700">窗口函数：10 行 → 10 行</text>
+      <text x="560" y="175" text-anchor="middle" font-size="13" fill="#4f6348">每行旁边多一列"窗口算出来的值"</text>
+      <text x="380" y="230" text-anchor="middle" font-size="13" fill="#4f6348">图 13-1　窗口 = PARTITION 分区 + 区内逐行计算，行不减少</text>
+    </svg>
+  </div>
+  <div class="key-sentence">和 GROUP BY 的核心区别：GROUP BY 把多行压成一行；窗口函数<strong>一行不少</strong>，只是在每行旁边挂上"它所在分区"的聚合结果。这就是它能出 TopN、累计、环比的根本原因。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">13.3</span> row_number / rank / dense_rank</h2>
+  <p class="lead">三种排名函数处理"并列"的方式不同——上一节故意插了两条 800.00 的并列，就是为了演示。</p>
+  <pre class="code" data-lang="sql"><code>SELECT
+  product,
+  amount,
+  ROW_NUMBER() OVER (ORDER BY amount DESC) AS rn,   -- 1,2,3,4,5... 不重复
+  RANK()       OVER (ORDER BY amount DESC) AS rnk, -- 并列同名次，后续跳号：1,2,2,4
+  DENSE_RANK() OVER (ORDER BY amount DESC) AS drnk  -- 并列同名次，不跳号：1,2,2,3
+FROM sales_demo
+WHERE category = '键盘'
+ORDER BY amount DESC;</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:30%"><col style="width:48%"></colgroup>
+    <thead><tr><th>函数</th><th>并列时的名次</th><th>典型用途</th></tr></thead>
+    <tbody>
+      <tr><td>ROW_NUMBER()</td><td>硬排，绝不重复（并列也给不同号）</td><td>分页去重、"每组只取第一条"（需先定好排序 tie-break）</td></tr>
+      <tr><td>RANK()</td><td>并列同名次，下一名跳号（1,2,2,4）</td><td>"并列第 2 名后，下一个就是第 4 名"的比赛榜</td></tr>
+      <tr><td>DENSE_RANK()</td><td>并列同名次，不跳号（1,2,2,3）</td><td>"金额档位"：第 3 名就是第 3 高的金额</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>为什么 ROW_NUMBER 翻页最稳</strong>：第 7 章分页的"排序键带唯一主键"原则，在窗口函数里同样适用——OVER (ORDER BY amount) 若并列，加 <code>, id</code> 兜底，名次才确定。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">13.4</span> 累计与滑动窗口</h2>
+  <p class="lead">OVER 里再加 ROWS BETWEEN，就从"分区聚合"升级为"累计/滑动"计算。</p>
+  <pre class="code" data-lang="sql"><code>-- ① 累计：从分区第一行累计到当前行（默认窗口 = ROWS UNBOUNDED PRECEDING）
+SELECT
+  sale_date, product, amount,
+  SUM(amount) OVER (
+    PARTITION BY category
+    ORDER BY sale_date
+  ) AS cum_amount
+FROM sales_demo
+WHERE category = '鼠标';
+
+-- ② 滑动：当前行 + 前一行（相邻两笔的滚动和，常用于近 N 期均值）
+SELECT
+  sale_date, product, amount,
+  AVG(amount) OVER (
+    PARTITION BY category
+    ORDER BY sale_date
+    ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+  ) AS avg_2rows
+FROM sales_demo;</code></pre>
+  <table>
+    <colgroup><col style="width:38%"><col style="width:62%"></colgroup>
+    <thead><tr><th>窗口框架写法</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td>ROWS UNBOUNDED PRECEDING</td><td>从分区第一行到当前行（累计）</td></tr>
+      <tr><td>ROWS BETWEEN 1 PRECEDING AND CURRENT ROW</td><td>上一行 + 当前行（滚动 2 行）</td></tr>
+      <tr><td>ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING</td><td>上一行 + 当前行 + 下一行（三行居中滑动）</td></tr>
+      <tr><td>RANGE BETWEEN ...（按值范围）</td><td>按列值范围限定窗口，用于"同日期合并"等高级场景</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">不带 ORDER BY 的 OVER (PARTITION BY x) 窗口默认覆盖整个分区——这既是特性（分区总额）也是陷阱（忘了 ORDER BY 时"累计"变成"全区总和"，每行都一样）。写累计一定带 ORDER BY。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">13.5</span> LAG / LEAD 环比</h2>
+  <p class="lead">LAG 取上一行、LEAD 取下一行——环比、同比、"和上一笔比涨多少"的最简写法。</p>
+  <pre class="code" data-lang="sql"><code>SELECT
+  sale_date, product, amount,
+  LAG(amount)       OVER (PARTITION BY product ORDER BY sale_date) AS prev_amount,   -- 上一日销售额
+  amount - LAG(amount) OVER (PARTITION BY product ORDER BY sale_date) AS diff_vs_prev,
+  LEAD(amount)      OVER (PARTITION BY product ORDER BY sale_date) AS next_amount    -- 下一日销售额
+FROM sales_demo
+WHERE product = '机械键盘A'
+ORDER BY sale_date;</code></pre>
+  <ul>
+    <li><code>LAG(列)</code>：取分区内按 ORDER BY 排好序后，当前行<strong>上一行</strong>的该列值；第一行没有上一行，返回 NULL；</li>
+    <li><code>LAG(列, 2)</code>：往上数两行；<code>LAG(列, 2, 0)</code>：没有时给默认值 0（避免 NULL 参与计算）；</li>
+    <li>环比增长率 <code>(amount - LAG(amount)) / LAG(amount)</code> 一行搞定，不用再自连接。</li>
+  </ul>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">13.6</span> 实战：组内 TopN</h2>
+  <p class="lead">窗口函数最有名的应用：每个类目取累计销售额前 3 的商品。</p>
+  <pre class="code" data-lang="sql"><code>-- 第一步：先按 (类目, 商品) 汇总
+-- 第二步：在每个类目内按销售额排名
+-- 第三步：外层筛 rank &lt;= 3
+SELECT category, product, total_amount, rn
+FROM (
+  SELECT
+    category,
+    product,
+    SUM(amount) AS total_amount,
+    ROW_NUMBER() OVER (
+      PARTITION BY category
+      ORDER BY SUM(amount) DESC, product ASC    -- 并列时按商品名定序
+    ) AS rn
+  FROM sales_demo
+  GROUP BY category, product
+) t
+WHERE rn &lt;= 3
+ORDER BY category, rn;</code></pre>
+  <div class="note"><strong>SQL 执行顺序提醒</strong>：窗口函数在 WHERE/GROUP BY 之后、ORDER BY 之前计算——所以"用窗口结果筛行"必须包一层子查询/CTE（下一章），直接写 <code>WHERE rn &lt;= 3</code> 放在同一层是报错的。这也是它和 HAVING 的区别。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:72%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>本质</td><td>行不减少，每行挂上分区聚合结果</td></tr>
+      <tr><td>语法</td><td>函数() OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN ...)</td></tr>
+      <tr><td>三种排名</td><td>row_number 不并列、rank 跳号、dense_rank 不跳号</td></tr>
+      <tr><td>累计/滑动</td><td>带 ORDER BY 才是累计；ROWS BETWEEN 定义窗口范围</td></tr>
+      <tr><td>LAG/LEAD</td><td>取上一行/下一行，环比同比免自连接</td></tr>
+      <tr><td>组内 TopN</td><td>内层排名外层筛 rn &lt;= N</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>基于 sales_demo，查出每个商品按日期升序的累计销售额（含商品名、日期、当日额、累计额）。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写出每个类目"销售额排名第 1 的商品名称及其总额"——用 ROW_NUMBER + 外层筛 rn=1，思考为什么用 ROW_NUMBER 而不是 RANK。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>给每个商品算"次日环比增长率"（(当日-上一日)/上一日），上一日为 NULL 时显示 0；并尝试用 LAG(amount, 1, 0) 处理首行 NULL。</div>
+  <p class="note">窗口函数会用了，下一章 CTE：把上面这种"子查询包子查询"写成 WITH 链式结构，还要用递归 CTE 遍历组织树。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="012_第12章_UNION与集合运算.html">← 上一章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="014_第14章_CTE公用表表达式与递归查询.html">下一章 →</a>
+</nav>
+<footer>从 0 到精通 · 《MySQL 从 0 到精通》 · 第 13 章 窗口函数：rank/row_number/累计</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>
