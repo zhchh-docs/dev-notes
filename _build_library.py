@@ -55,10 +55,10 @@ TUTORIAL_BOOKS = {
         ("第七篇 JVM", 10, "done"), ("第八篇 数据库与 JDBC", 8, "done"),
         ("第九篇 Spring 核心", 10, "done"), ("第十篇 SpringBoot 与 Web", 10, "done"),
         ("第十一篇 工程化与测试", 8, "done"), ("第十二篇 综合项目收官", 8, "done")]},
-    "python": {"planned": 60, "status": "plan", "parts": [
-        ("第一篇 入门与语法", 9, "plan"), ("第二篇 函数与进阶语法", 10, "plan"),
-        ("第三篇 面向对象与标准库", 10, "plan"), ("第四篇 工程化", 9, "plan"),
-        ("第五篇 Web 开发", 12, "plan"), ("第六篇 并发与性能", 10, "plan")]},
+    "python": {"planned": 60, "status": "done", "parts": [
+        ("第一篇 入门与语法", 9, "done"), ("第二篇 函数与进阶语法", 10, "done"),
+        ("第三篇 面向对象与标准库", 10, "done"), ("第四篇 工程化", 9, "done"),
+        ("第五篇 Web 开发", 12, "done"), ("第六篇 并发与性能", 10, "done")]},
     "vue": {"planned": 73, "status": "done", "parts": [
         ("第一篇 入门", 9, "done"), ("第二篇 组件化", 10, "done"),
         ("第三篇 组合式 API", 9, "done"), ("第四篇 响应式原理", 9, "done"),
@@ -94,7 +94,7 @@ BOOKS = [
     ("14_从0到精通/typescript",   "tutorial", "《TypeScript 从 0 到精通》", "🔷", "6 篇 · 52 章完稿 · 全书完", "#33608C", "tree:14_从0到精通/typescript"),
     ("14_从0到精通/java",         "tutorial", "《Java 从 0 到精通》",      "☕", "12 篇 · 112 章完稿 · 全书完", "#B4552D", "tree:14_从0到精通/java"),
     ("14_从0到精通/mysql",        "tutorial", "《MySQL 从 0 到精通》",     "🐬", "8 篇 · 72 章完稿 + 3 附录 · 全书完", "#2E7D74", "tree:14_从0到精通/mysql"),
-    ("14_从0到精通/python",       "tutorial", "《Python 从 0 到精通》",    "🐍", "6 篇 · 规划 60 章 · 撰写中", "#3A6B9C", "tree:14_从0到精通/python"),
+    ("14_从0到精通/python",       "tutorial", "《Python 从 0 到精通》",    "🐍", "6 篇 · 60 章完稿 + 3 附录 · 全书完", "#3A6B9C", "tree:14_从0到精通/python"),
     ("14_从0到精通/vue",          "tutorial", "《Vue 从 0 到精通》",       "💚", "8 篇 · 73 章完稿 + 3 附录 · 全书完", "#4A8B5C", "tree:14_从0到精通/vue"),
     ("14_从0到精通/react",        "tutorial", "《React 从 0 到精通》",     "⚛️", "7 篇 · 规划 74 章 · 撰写中", "#2E8FA3", "tree:14_从0到精通/react"),
     ("14_从0到精通/git",          "tutorial", "《Git 从 0 到精通》",       "🌿", "4 篇 · 规划 40 章 · 撰写中", "#C07A2E", "tree:14_从0到精通/git"),

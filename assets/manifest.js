@@ -2703,7 +2703,7 @@ window.KB_MANIFEST = {
       "group": "tutorial",
       "name": "《Python 从 0 到精通》",
       "icon": "🐍",
-      "desc": "6 篇 · 规划 60 章 · 撰写中",
+      "desc": "6 篇 · 60 章完稿 + 3 附录 · 全书完",
       "color": "#3A6B9C",
       "chapters": [
         {
@@ -2845,43 +2845,351 @@ window.KB_MANIFEST = {
           "u": "old-docs/14_从0到精通/python/20_第二篇_函数与进阶语法/019_第19章_模块与包.html",
           "d": "std",
           "n": 19
+        },
+        {
+          "t": "类与实例：self 的真相｜Python 从 0 到精通",
+          "f": "020_第20章_类与实例.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/020_第20章_类与实例.html",
+          "d": "std",
+          "n": 20
+        },
+        {
+          "t": "继承与魔法方法｜Python 从 0 到精通",
+          "f": "021_第21章_继承与魔法方法.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/021_第21章_继承与魔法方法.html",
+          "d": "std",
+          "n": 21
+        },
+        {
+          "t": "dataclass：数据载体｜Python 从 0 到精通",
+          "f": "022_第22章_dataclass.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/022_第22章_dataclass.html",
+          "d": "std",
+          "n": 22
+        },
+        {
+          "t": "属性与描述符协议｜Python 从 0 到精通",
+          "f": "023_第23章_属性与描述符协议.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/023_第23章_属性与描述符协议.html",
+          "d": "std",
+          "n": 23
+        },
+        {
+          "t": "抽象基类与协议（鸭子类型）｜Python 从 0 到精通",
+          "f": "024_第24章_抽象基类与协议.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/024_第24章_抽象基类与协议.html",
+          "d": "std",
+          "n": 24
+        },
+        {
+          "t": "文件操作与 with 上下文｜Python 从 0 到精通",
+          "f": "025_第25章_文件操作与with上下文.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/025_第25章_文件操作与with上下文.html",
+          "d": "std",
+          "n": 25
+        },
+        {
+          "t": "pathlib 与 json 处理｜Python 从 0 到精通",
+          "f": "026_第26章_pathlib与json处理.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/026_第26章_pathlib与json处理.html",
+          "d": "std",
+          "n": 26
+        },
+        {
+          "t": "collections 与 itertools 宝库｜Python 从 0 到精通",
+          "f": "027_第27章_collections与itertools宝库.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/027_第27章_collections与itertools宝库.html",
+          "d": "std",
+          "n": 27
+        },
+        {
+          "t": "datetime 与 logging｜Python 从 0 到精通",
+          "f": "028_第28章_datetime与logging.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/028_第28章_datetime与logging.html",
+          "d": "std",
+          "n": 28
+        },
+        {
+          "t": "re 正则表达式｜Python 从 0 到精通",
+          "f": "029_第29章_re正则表达式.html",
+          "u": "old-docs/14_从0到精通/python/30_第三篇_面向对象与标准库/029_第29章_re正则表达式.html",
+          "d": "std",
+          "n": 29
+        },
+        {
+          "t": "虚拟环境 venv：隔离的意义｜Python 从 0 到精通",
+          "f": "030_第30章_虚拟环境venv.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/030_第30章_虚拟环境venv.html",
+          "d": "std",
+          "n": 30
+        },
+        {
+          "t": "pip 与依赖管理｜Python 从 0 到精通",
+          "f": "031_第31章_pip与依赖管理.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/031_第31章_pip与依赖管理.html",
+          "d": "std",
+          "n": 31
+        },
+        {
+          "t": "pyproject.toml 项目配置｜Python 从 0 到精通",
+          "f": "032_第32章_pyproject.toml项目配置.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/032_第32章_pyproject.toml项目配置.html",
+          "d": "std",
+          "n": 32
+        },
+        {
+          "t": "uv 与 poetry：现代工具链｜Python 从 0 到精通",
+          "f": "033_第33章_uv与poetry.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/033_第33章_uv与poetry.html",
+          "d": "std",
+          "n": 33
+        },
+        {
+          "t": "pytest 单元测试｜Python 从 0 到精通",
+          "f": "034_第34章_pytest单元测试.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/034_第34章_pytest单元测试.html",
+          "d": "std",
+          "n": 34
+        },
+        {
+          "t": "类型注解与 mypy 检查｜Python 从 0 到精通",
+          "f": "035_第35章_类型注解与mypy检查.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/035_第35章_类型注解与mypy检查.html",
+          "d": "std",
+          "n": 35
+        },
+        {
+          "t": "ruff 与 black：规范自动化｜Python 从 0 到精通",
+          "f": "036_第36章_ruff与black.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/036_第36章_ruff与black.html",
+          "d": "std",
+          "n": 36
+        },
+        {
+          "t": "打包与发布：构建分发包｜Python 从 0 到精通",
+          "f": "037_第37章_打包与发布.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/037_第37章_打包与发布.html",
+          "d": "std",
+          "n": 37
+        },
+        {
+          "t": "标准项目结构实战｜Python 从 0 到精通",
+          "f": "038_第38章_标准项目结构实战.html",
+          "u": "old-docs/14_从0到精通/python/40_第四篇_工程化/038_第38章_标准项目结构实战.html",
+          "d": "std",
+          "n": 38
+        },
+        {
+          "t": "HTTP 快速回顾（后端视角）｜Python 从 0 到精通",
+          "f": "039_第39章_HTTP快速回顾.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/039_第39章_HTTP快速回顾.html",
+          "d": "std",
+          "n": 39
+        },
+        {
+          "t": "FastAPI 入门：第一个接口｜Python 从 0 到精通",
+          "f": "040_第40章_FastAPI入门.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/040_第40章_FastAPI入门.html",
+          "d": "std",
+          "n": 40
+        },
+        {
+          "t": "路由与参数：路径/查询/请求体｜Python 从 0 到精通",
+          "f": "041_第41章_路由与参数.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/041_第41章_路由与参数.html",
+          "d": "std",
+          "n": 41
+        },
+        {
+          "t": "Pydantic：注解即校验｜Python 从 0 到精通",
+          "f": "042_第42章_Pydantic.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/042_第42章_Pydantic.html",
+          "d": "std",
+          "n": 42
+        },
+        {
+          "t": "中间件与依赖注入｜Python 从 0 到精通",
+          "f": "043_第43章_中间件与依赖注入.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/043_第43章_中间件与依赖注入.html",
+          "d": "std",
+          "n": 43
+        },
+        {
+          "t": "数据库接入：SQLAlchemy 入门｜Python 从 0 到精通",
+          "f": "044_第44章_数据库接入SQLAlchemy入门.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/044_第44章_数据库接入SQLAlchemy入门.html",
+          "d": "std",
+          "n": 44
+        },
+        {
+          "t": "ORM 实战：模型与迁移｜Python 从 0 到精通",
+          "f": "045_第45章_ORM实战模型与迁移.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/045_第45章_ORM实战模型与迁移.html",
+          "d": "std",
+          "n": 45
+        },
+        {
+          "t": "认证与 JWT｜Python 从 0 到精通",
+          "f": "046_第46章_认证与JWT.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/046_第46章_认证与JWT.html",
+          "d": "std",
+          "n": 46
+        },
+        {
+          "t": "异步路由与后台任务｜Python 从 0 到精通",
+          "f": "047_第47章_异步路由与后台任务.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/047_第47章_异步路由与后台任务.html",
+          "d": "std",
+          "n": 47
+        },
+        {
+          "t": "接口测试：TestClient 与 pytest｜Python 从 0 到精通",
+          "f": "048_第48章_接口测试TestClient与pytest.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/048_第48章_接口测试TestClient与pytest.html",
+          "d": "std",
+          "n": 48
+        },
+        {
+          "t": "部署：uvicorn/gunicorn/容器｜Python 从 0 到精通",
+          "f": "049_第49章_部署.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/049_第49章_部署.html",
+          "d": "std",
+          "n": 49
+        },
+        {
+          "t": "项目实战：Todo API 完整实现｜Python 从 0 到精通",
+          "f": "050_第50章_项目实战TodoAPI完整实现.html",
+          "u": "old-docs/14_从0到精通/python/50_第五篇_Web开发/050_第50章_项目实战TodoAPI完整实现.html",
+          "d": "std",
+          "n": 50
+        },
+        {
+          "t": "GIL：限制什么不限制什么｜Python 从 0 到精通",
+          "f": "051_第51章_GIL.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/051_第51章_GIL.html",
+          "d": "std",
+          "n": 51
+        },
+        {
+          "t": "threading 多线程｜Python 从 0 到精通",
+          "f": "052_第52章_threading多线程.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/052_第52章_threading多线程.html",
+          "d": "std",
+          "n": 52
+        },
+        {
+          "t": "线程池与进程池统一接口｜Python 从 0 到精通",
+          "f": "053_第53章_线程池与进程池统一接口.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/053_第53章_线程池与进程池统一接口.html",
+          "d": "std",
+          "n": 53
+        },
+        {
+          "t": "multiprocessing 多进程｜Python 从 0 到精通",
+          "f": "054_第54章_multiprocessing多进程.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/054_第54章_multiprocessing多进程.html",
+          "d": "std",
+          "n": 54
+        },
+        {
+          "t": "asyncio 基础：协程与 await｜Python 从 0 到精通",
+          "f": "055_第55章_asyncio基础.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/055_第55章_asyncio基础.html",
+          "d": "basic",
+          "n": 55
+        },
+        {
+          "t": "事件循环与阻塞铁律｜Python 从 0 到精通",
+          "f": "056_第56章_事件循环与阻塞铁律.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/056_第56章_事件循环与阻塞铁律.html",
+          "d": "std",
+          "n": 56
+        },
+        {
+          "t": "异步生态：aiohttp/httpx｜Python 从 0 到精通",
+          "f": "057_第57章_异步生态aiohttp与httpx.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/057_第57章_异步生态aiohttp与httpx.html",
+          "d": "std",
+          "n": 57
+        },
+        {
+          "t": "协程与进程混合架构｜Python 从 0 到精通",
+          "f": "058_第58章_协程与进程混合架构.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/058_第58章_协程与进程混合架构.html",
+          "d": "std",
+          "n": 58
+        },
+        {
+          "t": "性能调优：cProfile 与 py-spy｜Python 从 0 到精通",
+          "f": "059_第59章_性能调优cProfile与py-spy.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/059_第59章_性能调优cProfile与py-spy.html",
+          "d": "std",
+          "n": 59
+        },
+        {
+          "t": "面试知识体系梳理与延伸路线｜Python 从 0 到精通",
+          "f": "060_第60章_面试知识体系梳理与延伸路线.html",
+          "u": "old-docs/14_从0到精通/python/60_第六篇_并发与性能/060_第60章_面试知识体系梳理与延伸路线.html",
+          "d": "std",
+          "n": 60
+        },
+        {
+          "t": "附录 A 语法与标准库速查｜Python 从 0 到精通",
+          "f": "附录A_语法与标准库速查.html",
+          "u": "old-docs/14_从0到精通/python/99_附录/附录A_语法与标准库速查.html",
+          "d": "std",
+          "n": 62
+        },
+        {
+          "t": "附录 B 术语表（中英对照）｜Python 从 0 到精通",
+          "f": "附录B_术语表中英对照.html",
+          "u": "old-docs/14_从0到精通/python/99_附录/附录B_术语表中英对照.html",
+          "d": "std",
+          "n": 63
+        },
+        {
+          "t": "附录 C 习题参考答案｜Python 从 0 到精通",
+          "f": "附录C_习题参考答案.html",
+          "u": "old-docs/14_从0到精通/python/99_附录/附录C_习题参考答案.html",
+          "d": "std",
+          "n": 64
         }
       ],
       "planned": 60,
-      "status": "plan",
+      "status": "done",
       "parts": [
         {
           "name": "第一篇 入门与语法",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第二篇 函数与进阶语法",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第三篇 面向对象与标准库",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第四篇 工程化",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第五篇 Web 开发",
           "chapters": 12,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第六篇 并发与性能",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         }
       ],
-      "done": 19
+      "done": 63
     },
     {
       "key": "14_从0到精通/vue",
@@ -5670,5 +5978,5 @@ window.KB_MANIFEST = {
       ]
     }
   ],
-  "total": 712
+  "total": 756
 };
