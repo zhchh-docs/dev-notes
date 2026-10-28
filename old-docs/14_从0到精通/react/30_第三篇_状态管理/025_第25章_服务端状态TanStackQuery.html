@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 25 章 服务端状态：TanStack Query｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第三篇 状态管理</p>
+    <h1>第 25 章 服务端状态：TanStack Query</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 25 章 / 共 64 章 · 预计 55 分钟 · v5 标准查询 hook，缓存三态开箱即用</span>
+    </div>
+    <p class="hero-desc">TanStack Query v5 把服务端状态的缓存、去重、失效、重试与状态机标准化为 QueryClient 与 useQuery / useMutation。本章覆盖接入方式、核心参数、状态字段、基础失效写法，并明确 v5 中 gcTime 替代 cacheTime 等版本口径。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="024_第24章_RTKQuery概念与取舍.html">第 24 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="026_第26章_缓存失效与刷新策略.html">第 26 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">25.1 为什么服务端状态需要专门的查询库</a></li>
+    <li><a href="#sec3">25.2 接入：QueryClient 与 Provider</a></li>
+    <li><a href="#sec4">25.3 useQuery：queryKey、queryFn 与常用参数</a></li>
+    <li><a href="#sec5">25.4 查询状态机与返回字段</a></li>
+    <li><a href="#sec6">25.5 useMutation 与基础失效</a></li>
+    <li><a href="#sec7">25.6 v5 版本口径与迁移注意点</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 TanStack Query v5 在服务端状态层的职责：缓存、去重、失效、重试、三态标准化；</li>
+    <li>会用 <code>QueryClient</code> 与 <code>QueryClientProvider</code> 完成应用接入；</li>
+    <li>掌握 <code>useQuery</code> 的核心参数 <code>queryKey</code>、<code>queryFn</code>、<code>staleTime</code>、<code>gcTime</code>、<code>placeholderData</code>；</li>
+    <li>读懂 v5 状态机字段：<code>status</code>、<code>isPending</code>、<code>isError</code>、<code>isSuccess</code>、<code>isFetching</code>；</li>
+    <li>会用 <code>useMutation</code> 发起变更并在成功后失效相关查询；记住 v5 中 <code>cacheTime</code> 已更名为 <code>gcTime</code>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">25.1</span> 为什么服务端状态需要专门的查询库</h2>
+  <div class="lead">服务端状态与客户端状态的本质区别：<strong>真相在后端</strong>，前端保存的只是一份副本。副本需要缓存复用、多组件共享、过期判断、失败重试与变更后刷新——这些能力手写一遍就是重复造轮子，TanStack Query 把它们标准化为 hook 配置。</div>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>能力</th><th>手写 useEffect + useState</th><th>TanStack Query v5</th></tr></thead>
+    <tbody>
+      <tr><td>同参数多组件共享缓存</td><td>各组件独立请求，无法复用</td><td>按 <code>queryKey</code> 自动共享缓存与去重</td></tr>
+      <tr><td>过期判断与后台刷新</td><td>无概念，刷新页面即重取</td><td><code>staleTime</code> 区分新鲜 / 过期，后台静默重取</td></tr>
+      <tr><td>缓存回收</td><td>组件卸载即丢失</td><td><code>gcTime</code> 控制无订阅缓存的回收时机</td></tr>
+      <tr><td>失败重试</td><td>逐处手写 catch 与重试</td><td><code>retry</code> 次数与延迟策略声明式配置</td></tr>
+      <tr><td>竞态与取消</td><td>手写 ignore 标记 / AbortController</td><td><code>queryFn</code> 接收 <code>signal</code>，过期查询自动取消</td></tr>
+      <tr><td>三态字段</td><td>每个组件维护多个布尔值</td><td>hook 返回标准化状态字段，UI 分支统一</td></tr>
+    </tbody>
+  </table>
+  <div class="note">与第 24 章对照：RTK Query 面向 Redux 技术栈，TanStack Query 框架无关；本章及后续两章围绕 v5 展开，版本参数以官方文档为准。</div>
+  <div class="key-sentence">手写请求解决的是「这次调用有没有发出」，查询库解决的是「这份数据在整个应用里如何被缓存、共享与刷新」——两者不是替代关系，而是层级关系。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">25.2</span> 接入：QueryClient 与 Provider</h2>
+  <pre class="code" data-lang="bash"><code>npm install @tanstack/react-query</code></pre>
+  <p>应用根部创建一个 <code>QueryClient</code> 实例（缓存的全局容器），通过 <code>QueryClientProvider</code> 注入组件树。全局默认选项可以在这里集中配置，单个查询再按需覆盖。</p>
+  <pre class="code" data-lang="jsx"><code>import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,          // 1 分钟内视为新鲜
+      gcTime: 5 * 60_000,         // 无订阅 5 分钟后回收
+      retry: 2,                   // 失败重试 2 次
+    },
+  },
+});
+
+export default function App() {
+  return (
+    &lt;QueryClientProvider client={queryClient}&gt;
+      &lt;RootRoutes /&gt;
+    &lt;/QueryClientProvider&gt;
+  );
+}</code></pre>
+  <div class="warn-box"><code>QueryClient</code> 实例应在组件模块级创建一次，不要写在组件函数体内反复 new；否则每次渲染都会得到一个全新缓存，等于没有缓存。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">25.3</span> useQuery：queryKey、queryFn 与常用参数</h2>
+  <div class="lead">useQuery 的配置对象里，<code>queryKey</code> 回答「这份缓存是谁」，<code>queryFn</code> 回答「怎么取到它」；两者配合，缓存的复用、去重与失效都由查询库自动完成。</div>
+  <p><code>useQuery</code> 接收配置对象：<code>queryKey</code> 是缓存的唯一标识，结构即依赖维度；<code>queryFn</code> 是返回 Promise 的取数函数。参数变化时 hook 自动判定需要新的缓存条目。</p>
+  <pre class="code" data-lang="jsx"><code>import { useQuery } from '@tanstack/react-query';
+
+async function fetchPosts() {
+  const res = await fetch('/api/posts');
+  if (!res.ok) throw new Error('请求失败');
+  return res.json();
+}
+
+function PostList() {
+  const { data: posts, isPending, isError, error, refetch } = useQuery({
+    queryKey: ['posts'],
+    queryFn: fetchPosts,
+  });
+
+  if (isPending) return &lt;p&gt;加载中…&lt;/p&gt;;
+  if (isError) return &lt;p&gt;出错了：{error.message}&lt;/p&gt;;
+
+  return (
+    &lt;ul&gt;
+      {posts.map((post) =&gt; (
+        &lt;li key={post.id}&gt;{post.title}&lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <p>详情类查询把路由参数放进 <code>queryKey</code>；<code>queryFn</code> 接收上下文对象，其中 <code>signal</code> 用于取消过期请求；<code>select</code> 对返回数据做派生变换，<code>enabled</code> 控制查询是否启用。</p>
+  <pre class="code" data-lang="jsx"><code>function PostDetail({ id }) {
+  const post = useQuery({
+    queryKey: ['post', id],
+    queryFn: ({ signal }) =&gt;
+      fetch(`/api/posts/${id}`, { signal }).then((r) =&gt; r.json()),
+    staleTime: 30_000,
+    enabled: Boolean(id),
+    select: (data) =&gt; ({
+      title: data.title,
+      excerpt: data.body.slice(0, 80),
+    }),
+  });
+  // post.data 即变换后的 { title, excerpt }
+}</code></pre>
+  <div class="pit-sentence"><code>queryFn</code> 不要在闭包里直接引用过期的 props 或 state：参数应通过 <code>queryKey</code> 传入并从上下文读取，避免参数变化后仍使用旧值发请求。</div>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>参数</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td><code>queryKey</code></td><td>缓存键，数组结构即依赖维度；参数变化生成新缓存条目，前缀匹配用于批量失效</td></tr>
+      <tr><td><code>queryFn</code></td><td>返回 Promise 的取数函数；接收 <code>{ queryKey, signal }</code> 上下文</td></tr>
+      <tr><td><code>staleTime</code></td><td>数据视为新鲜的时长（毫秒），期间重新挂载不重取</td></tr>
+      <tr><td><code>gcTime</code></td><td>无任何订阅后缓存保留时长（毫秒），到期从缓存回收；v5 原名 <code>cacheTime</code></td></tr>
+      <tr><td><code>placeholderData</code></td><td>挂载瞬间展示的占位数据，如 <code>keepPreviousData</code> 保留上一页列表</td></tr>
+      <tr><td><code>enabled</code></td><td>是否启用查询；依赖参数未就绪时设为 <code>false</code> 避免无效请求</td></tr>
+      <tr><td><code>select</code></td><td>对成功数据做派生变换，只影响本组件读取结果，不改变缓存原始数据</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">25.4</span> 查询状态机与返回字段</h2>
+  <p>每个查询在缓存中处于一个标准状态机：<code>pending</code>（无数据、首次取数中）、<code>success</code>（取数成功）、<code>error</code>（取数失败）。hook 同时返回派生布尔字段，UI 按字段分支即可，不需要自己组合条件。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="TanStack Query 查询状态机">
+      <rect x="60" y="90" width="170" height="60" rx="10" fill="#fef3c7" stroke="#b45309"/>
+      <text x="145" y="116" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">pending</text>
+      <text x="145" y="138" text-anchor="middle" font-size="11" fill="#4f6348">isPending · 无历史数据</text>
+      <rect x="330" y="30" width="190" height="60" rx="10" fill="#d1fae5" stroke="#047857"/>
+      <text x="425" y="56" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">success</text>
+      <text x="425" y="78" text-anchor="middle" font-size="11" fill="#4f6348">isSuccess · data 可用</text>
+      <rect x="330" y="150" width="190" height="60" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="425" y="176" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="700">error</text>
+      <text x="425" y="198" text-anchor="middle" font-size="11" fill="#4f6348">isError · error 可用</text>
+      <line x1="230" y1="108" x2="328" y2="62" stroke="#3d7a4f" stroke-width="1.5" marker-end="url(#arr25)"/>
+      <text x="280" y="76" text-anchor="middle" font-size="11" fill="#4f6348">取数成功</text>
+      <line x1="230" y1="132" x2="328" y2="178" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#arr25)"/>
+      <text x="280" y="166" text-anchor="middle" font-size="11" fill="#b91c1c">取数失败</text>
+      <line x1="520" y1="60" x2="660" y2="60" stroke="#7a8a70" stroke-width="1.3" stroke-dasharray="5 4"/>
+      <text x="590" y="50" text-anchor="middle" font-size="11" fill="#4f6348">过期后后台重取</text>
+      <text x="590" y="80" text-anchor="middle" font-size="11" fill="#4f6348">isFetching = true</text>
+      <line x1="520" y1="180" x2="660" y2="180" stroke="#7a8a70" stroke-width="1.3" stroke-dasharray="5 4"/>
+      <text x="590" y="170" text-anchor="middle" font-size="11" fill="#4f6348">重试 / 手动 refetch</text>
+      <defs>
+        <marker id="arr25" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 25-1 TanStack Query 查询状态机：pending → success / error，success 后可后台重取</p>
+  </div>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>字段</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>status</code></td><td>查询状态机：<code>'pending'</code> / <code>'success'</code> / <code>'error'</code></td></tr>
+      <tr><td><code>isPending</code></td><td>处于 pending 且尚无成功数据，渲染首次加载态</td></tr>
+      <tr><td><code>isSuccess</code></td><td>处于 success，<code>data</code> 可用</td></tr>
+      <tr><td><code>isError</code></td><td>处于 error，<code>error</code> 可用</td></tr>
+      <tr><td><code>isFetching</code></td><td>正在发起任意一次取数（首次或后台刷新），可用于骨架屏指示</td></tr>
+      <tr><td><code>data</code> / <code>error</code></td><td>最近一次成功数据 / 错误对象，未就绪时为 <code>undefined</code> / <code>null</code></td></tr>
+      <tr><td><code>refetch</code></td><td>手动触发一次取数的函数</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">区分 <code>isPending</code> 与 <code>isFetching</code>：首次无数据用 <code>isPending</code> 渲染整页骨架；后台刷新用 <code>isFetching</code> 显示局部指示，不要让旧数据被加载态覆盖。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">25.5</span> useMutation 与基础失效</h2>
+  <p>写操作（新增、修改、删除）使用 <code>useMutation</code>：<code>mutationFn</code> 发起请求，成功后通过 <code>useQueryClient</code> 拿到缓存实例，调用 <code>invalidateQueries</code> 让相关列表缓存过期，触发后台重取。</p>
+  <pre class="code" data-lang="jsx"><code>import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+function NewPost() {
+  const queryClient = useQueryClient();
+
+  const addPost = useMutation({
+    mutationFn: (body) =&gt;
+      fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then((r) =&gt; r.json()),
+    onSuccess: () =&gt; {
+      // 让 ['posts'] 前缀下的缓存过期，触发重取
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+
+  const submit = async () =&gt; {
+    await addPost.mutateAsync({ title: '新文章' });
+  };
+
+  return (
+    &lt;button onClick={submit} disabled={addPost.isPending}&gt;
+      {addPost.isPending ? '提交中…' : '新增文章'}
+    &lt;/button&gt;
+  );
+}</code></pre>
+  <p>mutation 同样返回 <code>isPending</code>、<code>isError</code>、<code>error</code>、<code>data</code> 等状态字段；乐观更新、快照回滚等进阶流程在第 27 章展开。</p>
+  <div class="warn-box">本章的 <code>onSuccess</code> 只做基础失效；点赞、收藏这类需要即时反馈的轻量操作，其乐观更新与快照回滚流程在第 27 章展开，不要在 mutation 里手写半套缓存替换逻辑。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">25.6</span> v5 版本口径与迁移注意点</h2>
+  <p>本档按 TanStack Query v5 编写，以下名称与行为与旧版存在差异，开发时以官方迁移指南为准，不要混用旧参数。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>概念</th><th>v5 现行写法</th><th>旧版 / 易混写法</th></tr></thead>
+    <tbody>
+      <tr><td>缓存回收时长</td><td><code>gcTime</code></td><td>v4 的 <code>cacheTime</code> 已更名，不再使用</td></tr>
+      <tr><td>首次加载态</td><td><code>isPending</code></td><td>旧版 <code>isInitialLoading</code> 概念由 <code>isPending</code> 承接</td></tr>
+      <tr><td>保留上一页数据</td><td><code>placeholderData: keepPreviousData</code></td><td>旧版 <code>keepPreviousData: true</code> 配置项已移除</td></tr>
+      <tr><td>取数上下文</td><td><code>queryFn({ queryKey, signal })</code></td><td>不要在闭包里直接引用已过期的参数</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">记忆口径：<strong>v5 里是 <code>gcTime</code> 不是 <code>cacheTime</code>；首次加载看 <code>isPending</code>，后台刷新看 <code>isFetching</code></strong>。第 26 章继续讲缓存失效与刷新策略，第 27 章讲乐观更新与回滚。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>职责定位</td><td>服务端状态库负责缓存、去重、失效、重试、取消与三态标准化</td></tr>
+      <tr><td>接入方式</td><td>模块级创建 <code>QueryClient</code>，<code>QueryClientProvider</code> 注入根部</td></tr>
+      <tr><td>useQuery 核心</td><td><code>queryKey</code> 标识缓存，<code>queryFn</code> 取数，<code>staleTime</code> / <code>gcTime</code> 管生命周期</td></tr>
+      <tr><td>状态机</td><td>pending / success / error；<code>isPending</code> 管首载，<code>isFetching</code> 管后台刷新</td></tr>
+      <tr><td>useMutation</td><td>写操作 hook，成功后 <code>invalidateQueries</code> 让相关缓存过期重取</td></tr>
+      <tr><td>v5 口径</td><td><code>gcTime</code> 替代 <code>cacheTime</code>；<code>placeholderData</code> 替代旧 <code>keepPreviousData</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>接入 <code>QueryClientProvider</code> 并配置全局默认：<code>staleTime</code> 30 秒、<code>gcTime</code> 10 分钟、失败重试 1 次；用 <code>useQuery</code> 获取 <code>/api/users</code>，分别渲染 <code>isPending</code> 加载态、<code>isError</code> 错误态与成功列表。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现用户详情查询：<code>queryKey</code> 为 <code>['user', id]</code>，<code>queryFn</code> 使用 <code>signal</code> 取消过期请求；当 <code>id</code> 为空时 <code>enabled: false</code>；用 <code>select</code> 只暴露 <code>name</code> 与 <code>email</code> 两个字段。写出完整 hook 调用片段并说明 <code>isPending</code> 与 <code>isFetching</code> 在本组件各自用于什么 UI。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为「评论列表 + 发表评论」设计 TanStack Query 方案：列表用 <code>useQuery</code>，发表用 <code>useMutation</code>，成功后失效评论列表；讨论 <code>queryKey</code> 应如何组织（文章 id 维度），使新增评论只刷新当前文章的评论而不波及其他文章；再说明 <code>staleTime</code> 设为 0 与 60 秒分别带来什么用户体验差异。</div>
+  <p class="note">参考答案见附录 C。下一章：缓存失效与刷新策略——staleTime / gcTime 时间轴、invalidateQueries 前缀匹配与自动刷新配置。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="024_第24章_RTKQuery概念与取舍.html">← 第 24 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="026_第26章_缓存失效与刷新策略.html">第 26 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 25 章 服务端状态：TanStack Query</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

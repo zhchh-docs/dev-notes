@@ -1,6 +1,6 @@
 // 自动生成的书房清单（由 _build_library.py 生成，请勿手动编辑）
 window.KB_MANIFEST = {
-  "generated": "2026-10-23",
+  "generated": "2026-10-28",
   "groups": [
     {
       "key": "tutorial",
@@ -3790,7 +3790,7 @@ window.KB_MANIFEST = {
       "group": "tutorial",
       "name": "《React 从 0 到精通》",
       "icon": "⚛️",
-      "desc": "7 篇 · 规划 74 章 · 撰写中",
+      "desc": "7 篇 · 64 章完稿 + 3 附录 · 全书完",
       "color": "#2E8FA3",
       "chapters": [
         {
@@ -3876,48 +3876,440 @@ window.KB_MANIFEST = {
           "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/011_第11章_依赖数组与cleanup三时机.html",
           "d": "std",
           "n": 11
+        },
+        {
+          "t": "第 12 章 useLayoutEffect 与绘制时机｜React 从 0 到精通",
+          "f": "012_第12章_useLayoutEffect与绘制时机.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/012_第12章_useLayoutEffect与绘制时机.html",
+          "d": "std",
+          "n": 12
+        },
+        {
+          "t": "第 13 章 useRef：DOM 引用与可变值｜React 从 0 到精通",
+          "f": "013_第13章_useRefDOM引用与可变值.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/013_第13章_useRefDOM引用与可变值.html",
+          "d": "std",
+          "n": 13
+        },
+        {
+          "t": "第 14 章 useContext 与 Provider｜React 从 0 到精通",
+          "f": "014_第14章_useContext与Provider.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/014_第14章_useContext与Provider.html",
+          "d": "std",
+          "n": 14
+        },
+        {
+          "t": "第 15 章 useReducer：复杂状态机｜React 从 0 到精通",
+          "f": "015_第15章_useReducer复杂状态机.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/015_第15章_useReducer复杂状态机.html",
+          "d": "std",
+          "n": 15
+        },
+        {
+          "t": "第 16 章 自定义 Hook：逻辑复用｜React 从 0 到精通",
+          "f": "016_第16章_自定义Hook逻辑复用.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/016_第16章_自定义Hook逻辑复用.html",
+          "d": "std",
+          "n": 16
+        },
+        {
+          "t": "第 17 章 常用自定义集：useDebounce 等｜React 从 0 到精通",
+          "f": "017_第17章_常用自定义集useDebounce等.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/017_第17章_常用自定义集useDebounce等.html",
+          "d": "std",
+          "n": 17
+        },
+        {
+          "t": "第 18 章 Hooks 规则背后的原理：调用顺序｜React 从 0 到精通",
+          "f": "018_第18章_Hooks规则背后的原理调用顺序.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/018_第18章_Hooks规则背后的原理调用顺序.html",
+          "d": "std",
+          "n": 18
+        },
+        {
+          "t": "第 19 章 严格模式与双重调用｜React 从 0 到精通",
+          "f": "019_第19章_严格模式与双重调用.html",
+          "u": "old-docs/14_从0到精通/react/20_第二篇_Hooks核心/019_第19章_严格模式与双重调用.html",
+          "d": "std",
+          "n": 19
+        },
+        {
+          "t": "第 20 章 状态分层：先分类再选工具｜React 从 0 到精通",
+          "f": "020_第20章_状态分层先分类再选工具.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/020_第20章_状态分层先分类再选工具.html",
+          "d": "std",
+          "n": 20
+        },
+        {
+          "t": "第 21 章 Context 的正确粒度｜React 从 0 到精通",
+          "f": "021_第21章_Context的正确粒度.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/021_第21章_Context的正确粒度.html",
+          "d": "std",
+          "n": 21
+        },
+        {
+          "t": "第 22 章 Zustand 快速上手｜React 从 0 到精通",
+          "f": "022_第22章_Zustand快速上手.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/022_第22章_Zustand快速上手.html",
+          "d": "std",
+          "n": 22
+        },
+        {
+          "t": "第 23 章 Redux Toolkit 全解｜React 从 0 到精通",
+          "f": "023_第23章_ReduxToolkit全解.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/023_第23章_ReduxToolkit全解.html",
+          "d": "std",
+          "n": 23
+        },
+        {
+          "t": "第 24 章 RTK Query 概念与取舍｜React 从 0 到精通",
+          "f": "024_第24章_RTKQuery概念与取舍.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/024_第24章_RTKQuery概念与取舍.html",
+          "d": "std",
+          "n": 24
+        },
+        {
+          "t": "第 25 章 服务端状态：TanStack Query｜React 从 0 到精通",
+          "f": "025_第25章_服务端状态TanStackQuery.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/025_第25章_服务端状态TanStackQuery.html",
+          "d": "std",
+          "n": 25
+        },
+        {
+          "t": "第 26 章 缓存失效与刷新策略｜React 从 0 到精通",
+          "f": "026_第26章_缓存失效与刷新策略.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/026_第26章_缓存失效与刷新策略.html",
+          "d": "std",
+          "n": 26
+        },
+        {
+          "t": "第 27 章 乐观更新与回滚｜React 从 0 到精通",
+          "f": "027_第27章_乐观更新与回滚.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/027_第27章_乐观更新与回滚.html",
+          "d": "std",
+          "n": 27
+        },
+        {
+          "t": "第 28 章 状态的可测试性｜React 从 0 到精通",
+          "f": "028_第28章_状态的可测试性.html",
+          "u": "old-docs/14_从0到精通/react/30_第三篇_状态管理/028_第28章_状态的可测试性.html",
+          "d": "std",
+          "n": 28
+        },
+        {
+          "t": "第 29 章 React Router 基础：createBrowserRouter｜React 从 0 到精通",
+          "f": "029_第29章_ReactRouter基础createBrowserRouter.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/029_第29章_ReactRouter基础createBrowserRouter.html",
+          "d": "basic",
+          "n": 29
+        },
+        {
+          "t": "第 30 章 嵌套路由与 Outlet｜React 从 0 到精通",
+          "f": "030_第30章_嵌套路由与Outlet.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/030_第30章_嵌套路由与Outlet.html",
+          "d": "std",
+          "n": 30
+        },
+        {
+          "t": "第 31 章 动态路由与参数｜React 从 0 到精通",
+          "f": "031_第31章_动态路由与参数.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/031_第31章_动态路由与参数.html",
+          "d": "std",
+          "n": 31
+        },
+        {
+          "t": "第 32 章 守卫与重定向｜React 从 0 到精通",
+          "f": "032_第32章_守卫与重定向.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/032_第32章_守卫与重定向.html",
+          "d": "std",
+          "n": 32
+        },
+        {
+          "t": "第 33 章 路由懒加载与 Suspense｜React 从 0 到精通",
+          "f": "033_第33章_路由懒加载与Suspense.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/033_第33章_路由懒加载与Suspense.html",
+          "d": "std",
+          "n": 33
+        },
+        {
+          "t": "第 34 章 数据加载模式：从 useEffect 到 loader｜React 从 0 到精通",
+          "f": "034_第34章_数据加载模式从useEffect到loader.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/034_第34章_数据加载模式从useEffect到loader.html",
+          "d": "std",
+          "n": 34
+        },
+        {
+          "t": "第 35 章 表单：react-hook-form｜React 从 0 到精通",
+          "f": "035_第35章_表单react-hook-form.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/035_第35章_表单react-hook-form.html",
+          "d": "std",
+          "n": 35
+        },
+        {
+          "t": "第 36 章 校验：zod 与类型安全｜React 从 0 到精通",
+          "f": "036_第36章_校验zod与类型安全.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/036_第36章_校验zod与类型安全.html",
+          "d": "std",
+          "n": 36
+        },
+        {
+          "t": "第 37 章 错误边界与降级 UI｜React 从 0 到精通",
+          "f": "037_第37章_错误边界与降级UI.html",
+          "u": "old-docs/14_从0到精通/react/40_第四篇_路由与数据/037_第37章_错误边界与降级UI.html",
+          "d": "std",
+          "n": 37
+        },
+        {
+          "t": "第 38 章 虚拟 DOM 与 diff 入门｜React 从 0 到精通",
+          "f": "038_第38章_虚拟DOM与diff入门.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/038_第38章_虚拟DOM与diff入门.html",
+          "d": "std",
+          "n": 38
+        },
+        {
+          "t": "第 39 章 Fiber 架构：可中断的渲染｜React 从 0 到精通",
+          "f": "039_第39章_Fiber架构可中断的渲染.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/039_第39章_Fiber架构可中断的渲染.html",
+          "d": "std",
+          "n": 39
+        },
+        {
+          "t": "第 40 章 调度与优先级｜React 从 0 到精通",
+          "f": "040_第40章_调度与优先级.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/040_第40章_调度与优先级.html",
+          "d": "std",
+          "n": 40
+        },
+        {
+          "t": "第 41 章 函数组件的执行过程｜React 从 0 到精通",
+          "f": "041_第41章_函数组件的执行过程.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/041_第41章_函数组件的执行过程.html",
+          "d": "std",
+          "n": 41
+        },
+        {
+          "t": "第 42 章 协调（Reconcile）与提交｜React 从 0 到精通",
+          "f": "042_第42章_协调Reconcile与提交.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/042_第42章_协调Reconcile与提交.html",
+          "d": "std",
+          "n": 42
+        },
+        {
+          "t": "第 43 章 key 与节点复用｜React 从 0 到精通",
+          "f": "043_第43章_key与节点复用.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/043_第43章_key与节点复用.html",
+          "d": "std",
+          "n": 43
+        },
+        {
+          "t": "第 44 章 不可变更新：为什么必须｜React 从 0 到精通",
+          "f": "044_第44章_不可变更新为什么必须.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/044_第44章_不可变更新为什么必须.html",
+          "d": "std",
+          "n": 44
+        },
+        {
+          "t": "第 45 章 Concurrent 特性：useTransition｜React 从 0 到精通",
+          "f": "045_第45章_Concurrent特性useTransition.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/045_第45章_Concurrent特性useTransition.html",
+          "d": "std",
+          "n": 45
+        },
+        {
+          "t": "第 46 章 Suspense 机制初探｜React 从 0 到精通",
+          "f": "046_第46章_Suspense机制初探.html",
+          "u": "old-docs/14_从0到精通/react/50_第五篇_渲染原理/046_第46章_Suspense机制初探.html",
+          "d": "std",
+          "n": 46
+        },
+        {
+          "t": "第 47 章 性能度量：React Profiler｜React 从 0 到精通",
+          "f": "047_第47章_性能度量ReactProfiler.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/047_第47章_性能度量ReactProfiler.html",
+          "d": "std",
+          "n": 47
+        },
+        {
+          "t": "第 48 章 memo：什么时候包｜React 从 0 到精通",
+          "f": "048_第48章_memo什么时候包.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/048_第48章_memo什么时候包.html",
+          "d": "std",
+          "n": 48
+        },
+        {
+          "t": "第 49 章 useMemo/useCallback 边界｜React 从 0 到精通",
+          "f": "049_第49章_useMemo与useCallback边界.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/049_第49章_useMemo与useCallback边界.html",
+          "d": "std",
+          "n": 49
+        },
+        {
+          "t": "第 50 章 列表虚拟化：react-window｜React 从 0 到精通",
+          "f": "050_第50章_列表虚拟化react-window.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/050_第50章_列表虚拟化react-window.html",
+          "d": "std",
+          "n": 50
+        },
+        {
+          "t": "第 51 章 代码分割与预加载｜React 从 0 到精通",
+          "f": "051_第51章_代码分割与预加载.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/051_第51章_代码分割与预加载.html",
+          "d": "std",
+          "n": 51
+        },
+        {
+          "t": "第 52 章 服务器渲染概念：SSR/SSG｜React 从 0 到精通",
+          "f": "052_第52章_服务器渲染概念SSR与SSG.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/052_第52章_服务器渲染概念SSR与SSG.html",
+          "d": "std",
+          "n": 52
+        },
+        {
+          "t": "第 53 章 hydration 与流式渲染｜React 从 0 到精通",
+          "f": "053_第53章_hydration与流式渲染.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/053_第53章_hydration与流式渲染.html",
+          "d": "std",
+          "n": 53
+        },
+        {
+          "t": "第 54 章 长列表与动画性能｜React 从 0 到精通",
+          "f": "054_第54章_长列表与动画性能.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/054_第54章_长列表与动画性能.html",
+          "d": "std",
+          "n": 54
+        },
+        {
+          "t": "第 55 章 实战：慢页面优化全记录｜React 从 0 到精通",
+          "f": "055_第55章_实战慢页面优化全记录.html",
+          "u": "old-docs/14_从0到精通/react/60_第六篇_性能优化/055_第55章_实战慢页面优化全记录.html",
+          "d": "std",
+          "n": 55
+        },
+        {
+          "t": "第 56 章 组件库：Ant Design 体系｜React 从 0 到精通",
+          "f": "056_第56章_组件库AntDesign体系.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/056_第56章_组件库AntDesign体系.html",
+          "d": "std",
+          "n": 56
+        },
+        {
+          "t": "第 57 章 表格与表单页实战｜React 从 0 到精通",
+          "f": "057_第57章_表格与表单页实战.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/057_第57章_表格与表单页实战.html",
+          "d": "std",
+          "n": 57
+        },
+        {
+          "t": "第 58 章 权限方案：路由级与按钮级｜React 从 0 到精通",
+          "f": "058_第58章_权限方案路由级与按钮级.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/058_第58章_权限方案路由级与按钮级.html",
+          "d": "std",
+          "n": 58
+        },
+        {
+          "t": "第 59 章 国际化：react-i18next｜React 从 0 到精通",
+          "f": "059_第59章_国际化react-i18next.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/059_第59章_国际化react-i18next.html",
+          "d": "std",
+          "n": 59
+        },
+        {
+          "t": "第 60 章 图表集成：ECharts 封装｜React 从 0 到精通",
+          "f": "060_第60章_图表集成ECharts封装.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/060_第60章_图表集成ECharts封装.html",
+          "d": "std",
+          "n": 60
+        },
+        {
+          "t": "第 61 章 上传与文件处理｜React 从 0 到精通",
+          "f": "061_第61章_上传与文件处理.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/061_第61章_上传与文件处理.html",
+          "d": "std",
+          "n": 61
+        },
+        {
+          "t": "第 62 章 测试：React Testing Library｜React 从 0 到精通",
+          "f": "062_第62章_测试ReactTestingLibrary.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/062_第62章_测试ReactTestingLibrary.html",
+          "d": "std",
+          "n": 62
+        },
+        {
+          "t": "第 63 章 综合项目：管理后台全流程｜React 从 0 到精通",
+          "f": "063_第63章_综合项目管理后台全流程.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/063_第63章_综合项目管理后台全流程.html",
+          "d": "std",
+          "n": 63
+        },
+        {
+          "t": "第 64 章 面试知识体系梳理与延伸路线｜React 从 0 到精通",
+          "f": "064_第64章_面试知识体系梳理与延伸路线.html",
+          "u": "old-docs/14_从0到精通/react/70_第七篇_生态与实战/064_第64章_面试知识体系梳理与延伸路线.html",
+          "d": "std",
+          "n": 64
+        },
+        {
+          "t": "附录 A Hooks 与 API 速查｜React 从 0 到精通",
+          "f": "附录A_Hooks与API速查.html",
+          "u": "old-docs/14_从0到精通/react/99_附录/附录A_Hooks与API速查.html",
+          "d": "std",
+          "n": 66
+        },
+        {
+          "t": "附录 B 术语表（中英对照）｜React 从 0 到精通",
+          "f": "附录B_术语表中英对照.html",
+          "u": "old-docs/14_从0到精通/react/99_附录/附录B_术语表中英对照.html",
+          "d": "std",
+          "n": 67
+        },
+        {
+          "t": "附录 C 习题参考答案｜React 从 0 到精通",
+          "f": "附录C_习题参考答案.html",
+          "u": "old-docs/14_从0到精通/react/99_附录/附录C_习题参考答案.html",
+          "d": "std",
+          "n": 68
         }
       ],
-      "planned": 74,
-      "status": "plan",
+      "planned": 64,
+      "status": "done",
       "parts": [
         {
           "name": "第一篇 入门",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第二篇 Hooks 核心",
           "chapters": 10,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第三篇 状态管理",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第四篇 路由与数据",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第五篇 渲染原理",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第六篇 性能优化",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         },
         {
           "name": "第七篇 生态与实战",
           "chapters": 9,
-          "state": "plan"
+          "state": "done"
         }
       ],
-      "done": 11
+      "done": 67
     },
     {
       "key": "14_从0到精通/git",
@@ -5978,5 +6370,5 @@ window.KB_MANIFEST = {
       ]
     }
   ],
-  "total": 756
+  "total": 812
 };

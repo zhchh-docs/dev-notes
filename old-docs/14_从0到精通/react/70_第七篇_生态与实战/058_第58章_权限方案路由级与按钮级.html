@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 58 章 权限方案：路由级与按钮级｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第七篇 生态与实战</p>
+    <h1>第 58 章 权限方案：路由级与按钮级</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 58 章 / 共 64 章 · 预计 55 分钟 · 前端权限的两层粒度</span>
+    </div>
+    <p class="hero-desc">后台权限在前端分两层：路由级（能不能进这个页面）与按钮级（页面上这个操作能不能点）。本章讲权限数据从哪来、如何与路由/菜单联动、如何用权限 Context 与组件封装按钮级控制，以及"前端权限只是体验，安全靠后端"这条边界。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="057_第57章_表格与表单页实战.html">第 57 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="059_第59章_国际化react-i18next.html">第 59 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">58.1 权限模型与数据来源</a></li>
+    <li><a href="#sec3">58.2 登录态与用户信息获取</a></li>
+    <li><a href="#sec4">58.3 路由级权限：守卫与动态路由</a></li>
+    <li><a href="#sec5">58.4 菜单与路由的同源过滤</a></li>
+    <li><a href="#sec6">58.5 按钮级权限：Context + useAuth</a></li>
+    <li><a href="#sec7">58.6 权限组件与指令封装</a></li>
+    <li><a href="#sec8">58.7 边界：前端权限 vs 后端安全</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 RBAC 模型（角色-权限-资源）在后台的落地，知道权限数据通常来自后端；</li>
+    <li>会用守卫组件实现"未登录 → 跳登录、无权限 → 403/404"的路由级控制；</li>
+    <li>掌握动态路由与菜单同源过滤，避免菜单和路由表各写一份导致不同步；</li>
+    <li>会用权限 Context 提供 <code>useAuth</code>，实现按钮级显隐与禁用两种控制；</li>
+    <li>建立"前端权限只是交互体验，真正的安全校验必须由后端做"的清醒边界。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">58.1</span> 权限模型与数据来源</h2>
+  <p>后台最常见的权限模型是 <strong>RBAC</strong>（基于角色的访问控制）：用户拥有角色，角色拥有权限点，权限点对应到"能否访问某路由 / 能否执行某操作"。登录后后端返回当前用户的<strong>权限点集合</strong>，前端据此渲染。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="RBAC 权限模型">
+      <text x="400" y="28" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="600">RBAC：用户 → 角色 → 权限点 → 资源</text>
+      <rect x="40" y="60" width="150" height="46" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="115" y="90" text-anchor="middle" font-size="12" fill="#047857">用户 user</text>
+      <line x1="192" y1="83" x2="250" y2="83" stroke="#2d6a3f" stroke-width="2" marker-end="url(#a)"/>
+      <rect x="252" y="60" width="150" height="46" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="327" y="90" text-anchor="middle" font-size="12" fill="#047857">角色 role</text>
+      <line x1="404" y1="83" x2="462" y2="83" stroke="#2d6a3f" stroke-width="2" marker-end="url(#b)"/>
+      <rect x="464" y="60" width="150" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="539" y="90" text-anchor="middle" font-size="12" fill="#2d6a3f">权限点 permission</text>
+      <line x1="616" y1="83" x2="674" y2="83" stroke="#2d6a3f" stroke-width="2" marker-end="url(#c)"/>
+      <rect x="676" y="60" width="100" height="46" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="726" y="90" text-anchor="middle" font-size="12" fill="#047857">资源 resource</text>
+      <text x="400" y="150" text-anchor="middle" font-size="11.5" fill="#7a8a70">权限点示例：order:view（看列表）/ order:edit（编辑）/ order:delete（删除）</text>
+      <text x="400" y="178" text-anchor="middle" font-size="11.5" fill="#4f6348">前端拿 permissions 集合，用它过滤菜单、路由与按钮</text>
+      <defs>
+        <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2d6a3f"/></marker>
+        <marker id="b" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2d6a3f"/></marker>
+        <marker id="c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2d6a3f"/></marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 58-1 RBAC 权限模型</p>
+  </div>
+  <div class="key-sentence">权限点的命名约定很关键：多用「资源:动作」的形如 <code>order:edit</code>，让权限点既可用于路由（<code>order:view</code>）又可用于按钮（<code>order:delete</code>），一套集合管两层粒度。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">58.2</span> 登录态与用户信息获取</h2>
+  <p>登录后后端返回 token，前端存入 storage；用户信息（含 permissions）通过接口获取，放进全局 Context。这里不展开鉴权协议细节（JWT 见第 46 章），聚焦权限数据的前端管理：</p>
+  <pre class="code" data-lang="jsx"><code>import { createContext, useContext, useState } from 'react';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null); // { id, name, permissions: [...] }
+
+  async function login(credentials) {
+    const { token, user } = await loginApi(credentials);
+    localStorage.setItem('token', token);
+    setUser(user);
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    setUser(null);
+  }
+
+  return (
+    &lt;AuthContext.Provider value={{ user, login, logout }}&gt;
+      {children}
+    &lt;/AuthContext.Provider&gt;
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth 必须在 AuthProvider 内使用');
+  return ctx;
+}</code></pre>
+  <div class="pit-sentence">不要把 token 和用户信息混存、也不要在多个地方各存一份权限；<strong>权限集合应只存在 AuthProvider 这一份权威状态</strong>，菜单、路由、按钮都从它派生，改一处全局生效，避免"菜单有权限但按钮漏了"的状态漂移。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">58.3</span> 路由级权限：守卫与动态路由</h2>
+  <p>路由级权限用<strong>守卫组件</strong>实现：在渲染路由前检查"是否登录 + 是否拥有该路由所需权限"，不满足则重定向。结合 React Router 的 <code>Navigate</code> 与 <code>Outlet</code>：</p>
+  <pre class="code" data-lang="jsx"><code>import { Navigate, Outlet, useLocation } from 'react-router-dom';
+
+function RequireAuth({ permission }) {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (!user) {
+    return &lt;Navigate to="/login" state={{ from: location }} replace /&gt;;
+  }
+  if (permission && !user.permissions.includes(permission)) {
+    return &lt;Navigate to="/403" replace /&gt;;
+  }
+  return &lt;Outlet /&gt;;
+}
+
+// 路由配置里按需包裹
+const routes = [
+  {
+    element: &lt;RequireAuth /&gt;,
+    children: [
+      { path: '/orders', element: &lt;OrderListPage /&gt; },
+      {
+        element: &lt;RequireAuth permission="finance:view" /&gt;,
+        children: [{ path: '/finance', element: &lt;FinancePage /&gt; }],
+      },
+    ],
+  },
+];</code></pre>
+  <div class="warn-box"><span class="tag-pit">403 与 404 别混</span>没登录 → 跳登录页并记住来源；登录了但没权限 → 跳 403（不是 404）。把"未登录"和"无权限"混成一个重定向，用户会困惑"我明明登录了为什么又被踢回去"。</div>
+  <p>更灵活的方案是<strong>动态路由</strong>：登录后按权限点过滤出一份可见路由表再注册。适合"不同角色看到完全不同的菜单"的场景，代价是路由注册时机依赖登录态。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">58.4</span> 菜单与路由的同源过滤</h2>
+  <p>后台最常见的维护痛点是菜单与路由表各写一份，加页面要改两处、权限要改两处。规范做法是<strong>同一份"路由配置"同时生成菜单与注册路由</strong>：每条配置带 <code>path</code>、<code>label</code>、<code>icon</code>、<code>permission</code>，渲染前统一按 permissions 过滤。</p>
+  <pre class="code" data-lang="jsx"><code>const routeConfig = [
+  { path: '/dashboard', label: '仪表盘', icon: &lt;DashboardOutlined /&gt;, permission: 'dashboard:view' },
+  {
+    path: '/orders', label: '订单', icon: &lt;TableOutlined /&gt;, permission: 'order:view',
+    children: [
+      { path: '/orders/list', label: '订单列表', permission: 'order:view' },
+      { path: '/orders/audit', label: '订单审核', permission: 'order:audit' },
+    ],
+  },
+];
+
+// 1) 按权限过滤出可见配置
+function filterByPermission(configs, perms) {
+  return configs
+    .filter((c) =&gt; !c.permission || perms.includes(c.permission))
+    .map((c) =&gt; ({
+      ...c,
+      children: c.children ? filterByPermission(c.children, perms) : undefined,
+    }));
+}
+
+// 2) 可见配置 → 菜单项（antd Menu items）
+// 3) 可见配置 → 路由表（createBrowserRouter）</code></pre>
+  <div class="key-sentence">"一份配置，两处消费"：<strong>菜单项和路由都由同一份 routeConfig 派生</strong>，权限过滤只做一次。这样加页面只改配置，删权限只改后端返回，前端不会出现"菜单不显示但直接输 URL 能进"这类不同步。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">58.5</span> 按钮级权限：Context + useAuth</h2>
+  <p>按钮级权限粒度更细：同一页面内，有的用户能"删除"，有的只能"查看"。用 <code>useAuth</code> 拿权限集合判断即可：</p>
+  <pre class="code" data-lang="jsx"><code>function OrderActions({ record }) {
+  const { user } = useAuth();
+  const canEdit = user.permissions.includes('order:edit');
+  const canDelete = user.permissions.includes('order:delete');
+
+  return (
+    &lt;Space&gt;
+      {canEdit &amp;&amp; &lt;Button onClick={() =&gt; onEdit(record)}&gt;编辑&lt;/Button&gt;}
+      {canDelete ? (
+        &lt;Button danger onClick={() =&gt; onDelete(record)}&gt;删除&lt;/Button&gt;
+      ) : (
+        &lt;Tooltip title="无删除权限"&gt;
+          &lt;Button danger disabled&gt;删除&lt;/Button&gt;
+        &lt;/Tooltip&gt;
+      )}
+    &lt;/Space&gt;
+  );
+}</code></pre>
+  <div class="lead">显隐 vs 禁用：无权限时<strong>直接隐藏</strong>最简洁；但"用户知道有这个功能但没权限"的运营场景，更合适是<strong>显示但禁用</strong> + Tooltip 提示。两种都保留判断能力，按产品语义选。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">58.6</span> 权限组件与指令封装</h2>
+  <p>为让按钮级判断不散落在每个组件里，可封装一个 <code>&lt;Auth permission="order:delete"&gt;</code> 包裹组件：无权限时渲染 fallback 或不渲染，有权限时渲染 children。再配一个 <code>usePermission</code> hooks 返回判断函数：</p>
+  <pre class="code" data-lang="jsx"><code>function Auth({ permission, fallback = null, children }) {
+  const { user } = useAuth();
+  const ok = !permission || user.permissions.includes(permission);
+  return ok ? children : fallback;
+}
+
+function usePermission() {
+  const { user } = useAuth();
+  return (p) =&gt; user.permissions.includes(p);
+}
+
+// 使用
+function OrderActions({ record }) {
+  const has = usePermission();
+  return (
+    &lt;Auth permission="order:delete" fallback={&lt;Tooltip title="无删除权限"&gt;&lt;Button disabled&gt;删除&lt;/Button&gt;&lt;/Tooltip&gt;}&gt;
+      &lt;Button danger onClick={() =&gt; onDelete(record)}&gt;删除&lt;/Button&gt;
+    &lt;/Auth&gt;
+  );
+}</code></pre>
+  <div class="note"><strong>衔接说明</strong>：权限判断本质是"根据 Context 中的权限集合做条件渲染"，与第 6 章条件渲染、第 14 章 Context 一脉相承；<code>Auth</code> 组件就是条件渲染在权限场景的封装。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">58.7</span> 边界：前端权限 vs 后端安全</h2>
+  <div class="danger-box"><strong>铁律：前端权限只是交互体验，不是安全屏障。</strong>任何人打开 DevTools 都能改前端判断、伪造请求。真正的权限校验必须在后端：接口要校验操作人是否有该权限，数据行要校验所属权（越权访问他人数据）。前端只做"让界面符合权限的呈现"。</div>
+  <p>因此前端权限的定位是：<strong>提升体验与减少无效交互</strong>（没权限就不显示入口、不给按钮），但绝不依赖它保护数据。后端接口的 401/403 响应前端也要正确处理——权限点过期、被收回时，前端要根据接口错误刷新用户信息或踢回登录。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:40%"><col style="width:34%"></colgroup>
+    <thead><tr><th>层级</th><th>前端负责</th><th>后端必须负责</th></tr></thead>
+    <tbody>
+      <tr><td>路由级</td><td>菜单/路由按权限过滤、守卫跳转</td><td>接口鉴权，未授权返回 401/403</td></tr>
+      <tr><td>按钮级</td><td>显隐/禁用操作入口</td><td>对应接口校验操作权限</td></tr>
+      <tr><td>数据级</td><td>展示当前用户可看的数据</td><td>行级数据隔离与归属校验</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">前端"隐藏了删除按钮"不等于"用户不能删除"——只要后端没校验，他手动发一个 DELETE 请求照样成功。所有权限安全责任在后端，前端做的只是呈现。</div>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>模型</td><td>RBAC：用户→角色→权限点→资源，权限集合一份权威状态</td></tr>
+      <tr><td>路由级</td><td>RequireAuth 守卫：未登录跳登录、无权限跳 403，动态路由按需</td></tr>
+      <tr><td>菜单联动</td><td>路由与菜单同源一份配置，统一按权限过滤</td></tr>
+      <tr><td>按钮级</td><td>useAuth 判断 + Auth 组件封装，显隐/禁用按产品语义选</td></tr>
+      <tr><td>边界</td><td>前端是体验，后端是安全；接口 401/403 要正确处理</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>解释 RBAC 模型，并说明权限点命名用「资源:动作」（如 <code>order:delete</code>）的好处；写出一个 <code>RequireAuth</code> 守卫在"未登录"与"无权限"两种情形下的不同重定向。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给出"同一份 routeConfig 同时生成菜单项与路由表、并统一按 permissions 过滤"的代码结构；说明为什么菜单与路由必须同源，不同源会带来什么问题。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个 <code>&lt;Auth permission&gt;</code> 权限组件（含 fallback）与 <code>usePermission</code> hooks；再讨论：用户登录后权限被后台收回，前端应如何在收到接口 403 时刷新用户信息或踢回登录，写出这个联动处理思路。</div>
+  <p class="note">参考答案见附录 C。下一章：国际化——用 react-i18next 让后台支持多语言。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="057_第57章_表格与表单页实战.html">← 第 57 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="059_第59章_国际化react-i18next.html">第 59 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 58 章 权限方案：路由级与按钮级</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

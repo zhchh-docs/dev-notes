@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 60 章 图表集成：ECharts 封装｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.doc-nav-btn.hidden{visibility:hidden}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第七篇 生态与实战</p>
+    <h1>第 60 章 图表集成：ECharts 封装</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 60 章 / 共 64 章 · 预计 50 分钟 · 把图表库封装成 React 组件</span>
+    </div>
+    <p class="hero-desc">后台 BI、看板离不开图表。本章讲 ECharts 在 React 里的正确集成方式：为什么 option 驱动、如何用 useEffect 管理实例生命周期、数据变化如何 setOption、容器 resize 如何处理，以及如何封装成带主题与按需引入的可复用组件。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="059_第59章_国际化react-i18next.html">第 59 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="061_第61章_上传与文件处理.html">第 61 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">60.1 ECharts 定位与引入方式</a></li>
+    <li><a href="#sec3">60.2 option 驱动的图表本质</a></li>
+    <li><a href="#sec4">60.3 实例生命周期：初始化与销毁</a></li>
+    <li><a href="#sec5">60.4 数据变化：setOption 与 notMerge</a></li>
+    <li><a href="#sec6">60.5 resize 与容器自适应</a></li>
+    <li><a href="#sec7">60.6 封装成可复用 React 组件</a></li>
+    <li><a href="#sec8">60.7 按需引入与主题</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 ECharts 是"option 驱动"的声明式图表库，实例与 React 生命周期需自己管理；</li>
+    <li>掌握 <code>echarts.init</code>、<code>setOption</code>、<code>resize</code>、<code>dispose</code> 的时机与用途；</li>
+    <li>会用 useEffect 挂载实例、在依赖变化时 setOption、在卸载时 dispose；</li>
+    <li>正确处理容器 resize（窗口、折叠面板、路由切换）对图表的影响；</li>
+    <li>会做按需引入（echarts/core）控制包体积，并封装带主题与 loading 的复用组件。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">60.1</span> ECharts 定位与引入方式</h2>
+  <p>ECharts 是 Apache 基金会下的开源图表库，生态成熟、中后台 BI 用得最多。它和 React 没有"原生绑定"——<code>echarts.init(dom, theme, opts)</code> 直接操作一个 DOM 容器，实例生命周期由开发者管理。正因为此，React 里集成 ECharts 的核心就是：<strong>把实例生命周期对齐到 React 的挂载/更新/卸载</strong>。</p>
+  <pre class="code" data-lang="bash"><code>npm install echarts
+# 如需 React 封装，可加 echarts-for-react（常用），本章讲更透明的自封装</code></pre>
+  <div class="lead">两种路线：用现成封装 <code>echarts-for-react</code>（省事、把生命周期和 resize 都处理了）；或自封装（更可控、更贴合项目主题与按需）。本章以自封装讲透原理，你掌握后两种都能理解。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">60.2</span> option 驱动的图表本质</h2>
+  <p>ECharts 是<strong>声明式</strong>的：你描述一份 <code>option</code>（series 系列、xAxis 横轴、tooltip 提示等），它负责画出来。改图表就是改 option 再 <code>setOption</code>。这与 React 声明式 UI 的心智高度一致——所以数据是 option，组件只是载体。</p>
+  <pre class="code" data-lang="js"><code>const option = {
+  xAxis: { type: 'category', data: ['周一', '周二', '周三'] },
+  yAxis: { type: 'value' },
+  series: [
+    {
+      name: '订单量',
+      type: 'bar',
+      data: [120, 200, 150],
+      itemStyle: { color: '#2d6a3f' },
+    },
+  ],
+  tooltip: { trigger: 'axis' },
+};</code></pre>
+  <div class="key-sentence">理解 ECharts 的关键是"<strong>option 就是图表的全部</strong>"：类型（bar/line/pie…）、数据、样式、交互都在 option 里。React 组件只需负责"option 变了就 setOption"，这是封装的基础。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">60.3</span> 实例生命周期：初始化与销毁</h2>
+  <p>在 <code>useEffect</code> 里 <code>init</code> 实例，并把实例存 ref；清理函数里 <code>dispose</code> 释放。注意：<strong>init 只做一次</strong>（依赖空数组），不要因为数据变化重新 init，否则会产生多个实例、内存泄漏。</p>
+  <pre class="code" data-lang="jsx"><code>import * as echarts from 'echarts';
+import { useEffect, useRef } from 'react';
+
+function SimpleChart({ option }) {
+  const domRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() =&gt; {
+    // 仅挂载时创建实例一次
+    chartRef.current = echarts.init(domRef.current);
+    chartRef.current.setOption(option);
+    return () =&gt; {
+      chartRef.current.dispose(); // 卸载时释放，防内存泄漏
+      chartRef.current = null;
+    };
+  }, []); // 注意：不依赖 option
+
+  // 数据变化时更新（下面小节细讲）
+
+  return &lt;div ref={domRef} style={{ width: '100%', height: 360 }} /&gt;;
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">实例重复创建的坑</span>若把 init 放进依赖 <code>option</code> 的 effect，option 一变就重新 init + dispose，旧实例刚销毁又新建——不仅闪烁，折叠容器里还可能因旧实例未清理而累积。init 只跑一次，更新走 setOption。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">60.5</span> 数据变化：setOption 与 notMerge</h2>
+  <p>option 变化用第二个 effect 调 <code>setOption(option, notMerge)</code>。<code>notMerge</code> 决定是否合并旧配置：增量更新用 <code>false</code>（保留已有组件），完全重建用 <code>true</code>。多数看板场景传 <code>true</code> 更省心，避免残留旧 series。</p>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  const chart = chartRef.current;
+  if (!chart) return;
+  chart.setOption(option, true); // true = 不合并，直接按新 option 重建
+}, [option]);</code></pre>
+  <div class="pit-sentence">不要忘了在数据变化 effect 里判空（实例可能尚未 init 或已 dispose）。React 严格模式下 effect 会双执行，配合 <code>init 只跑一次 + setOption 判空</code> 才能稳定。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">60.6</span> resize 与容器自适应</h2>
+  <p>图表容器尺寸变化（窗口缩放、侧栏收起、折叠面板展开）时，ECharts 不会自动重排，必须调 <code>chart.resize()</code>。监听 <code>window.resize</code> 是基本做法；更稳妥用 <code>ResizeObserver</code> 观察容器本身（窗口没变但容器变了也生效）。</p>
+  <pre class="code" data-lang="jsx"><code>useEffect(() =&gt; {
+  const chart = chartRef.current;
+  if (!chart) return;
+  const ro = new ResizeObserver(() =&gt; chart.resize());
+  ro.observe(domRef.current);
+  return () =&gt; ro.disconnect();
+}, []);</code></pre>
+  <div class="note"><strong>衔接说明</strong>：容器自适应与前一篇性能优化里"长列表"同源——都是"元素进入视口/容器尺寸变化时再做昂贵操作"。用 ResizeObserver 而非简单监听 window 事件，能覆盖布局联动带来的容器变化。</div>
+  <div class="pit-sentence">折叠面板/路由切换隐藏图表时，容器宽度可能为 0，resize 会画成一条缝。隐藏前 dispose 或隐藏后 <code>resize</code>，配合"容器有宽度再渲染"判断，避免图表在不可见容器里被压扁。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">60.7</span> 封装成可复用 React 组件</h2>
+  <p>把上面的生命周期收进一个 <code>&lt;Chart option={...} height={...} /&gt;</code> 组件：接收 option 与高度，内部管理实例、resize、销毁，并提供 loading 与主题。业务只传 option，图表细节全部封装：</p>
+  <pre class="code" data-lang="jsx"><code>import { useEffect, useRef } from 'react';
+import * as echarts from 'echarts';
+
+export default function Chart({ option, height = 360, theme }) {
+  const domRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() =&gt; {
+    chartRef.current = echarts.init(domRef.current, theme);
+    return () =&gt; { chartRef.current.dispose(); chartRef.current = null; };
+  }, [theme]);
+
+  useEffect(() =&gt; {
+    chartRef.current?.setOption(option, true);
+  }, [option]);
+
+  useEffect(() =&gt; {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const ro = new ResizeObserver(() =&gt; chart.resize());
+    ro.observe(domRef.current);
+    return () =&gt; ro.disconnect();
+  }, []);
+
+  return &lt;div ref={domRef} style={{ width: '100%', height }} /&gt;;
+}
+
+// 业务用法
+&lt;Chart option={orderTrendOption} height={320} theme="forest" /&gt;;</code></pre>
+  <div class="key-sentence">封装的收益是把 ECharts 的"命令式生命周期"翻译成 React 的"声明式组件"：业务只管给 <code>option</code>，实例创建/更新/resize/销毁全部内部化。这是"库命令式 → 组件声明式"的标准封装模式。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">60.8</span> 按需引入与主题</h2>
+  <p>全量 <code>import * as echarts</code> 会打包全部图表类型，体积较大。按需引入用 <code>echarts/core</code> + 只注册用到的图表与组件：</p>
+  <pre class="code" data-lang="js"><code>import * as echarts from 'echarts/core';
+import { BarChart, LineChart, PieChart } from 'echarts/charts';
+import {
+  TitleComponent, TooltipComponent, GridComponent,
+  LegendComponent, DatasetComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+echarts.use([
+  BarChart, LineChart, PieChart,
+  TitleComponent, TooltipComponent, GridComponent, LegendComponent, DatasetComponent,
+  CanvasRenderer,
+]);</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>模块</th><th>作用</th></tr></thead>
+    <tbody>
+      <tr><td>echarts/core</td><td>核心入口，不含具体图表，需手动注册</td></tr>
+      <tr><td>echarts/charts</td><td>图表类型：Bar/Line/Pie/Scatter…</td></tr>
+      <tr><td>echarts/components</td><td>组件：Title/Tooltip/Grid/Legend/Dataset…</td></tr>
+      <tr><td>echarts/renderers</td><td>渲染器：CanvasRenderer / SVGRenderer</td></tr>
+    </tbody>
+  </table>
+  <p>主题可通过 <code>echarts.init(dom, theme)</code> 的第二个参数传入注册过的主题名；也可统一在 option 里用 <code>color</code> 数组定制色板，与项目森林绿视觉一致。记住：注册过的图表类型用不到时，会有运行时警告提示你补充 <code>use()</code>。</p>
+  <div class="pit-sentence">按需引入后，<strong>所有 option 里用到的图表类型与组件都要在 <code>echarts.use</code> 里注册</strong>，漏注册图表会白屏且控制台报 "not found: XXXChart"。新增图表类型时同步补注册。</div>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>定位</td><td>ECharts 是 option 驱动命令式库，生命周期需 React 自己管理</td></tr>
+      <tr><td>挂载</td><td>init 只跑一次（useEffect 空依赖），清理函数 dispose</td></tr>
+      <tr><td>更新</td><td>option 变化 setOption(option, true) 不合并重建，需判空</td></tr>
+      <tr><td>自适应</td><td>ResizeObserver 观察容器调 resize，处理隐藏容器的 0 宽度</td></tr>
+      <tr><td>封装</td><td>把命令式翻译成声明式组件，业务只传 option</td></tr>
+      <tr><td>体积</td><td>echarts/core 按需注册图表/组件/渲染器，控制包体积</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说明为什么 ECharts 是"option 驱动"的命令式库；写出 init 只执行一次、卸载时 dispose 的 useEffect 骨架，并解释为何 init 不能放进依赖 option 的 effect。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写出"数据变化时 setOption(option, true)"的 effect，并说明 notMerge 为 true 的意义；再写一个用 ResizeObserver 让图表随容器自适应 resize 的 effect。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>封装一个可复用 <code>&lt;Chart option height theme /&gt;</code> 组件：内部管理 init 一次、setOption 更新、ResizeObserver resize、dispose 释放；并给出按需引入（echarts/core + 只注册 Bar/Line/Pie 与 Tooltip/Grid/Legend）的注册代码。</div>
+  <p class="note">参考答案见附录 C。下一章：上传与文件处理——用 antd Upload 与文件流做文件管理。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="059_第59章_国际化react-i18next.html">← 第 59 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="061_第61章_上传与文件处理.html">第 61 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 60 章 图表集成：ECharts 封装</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

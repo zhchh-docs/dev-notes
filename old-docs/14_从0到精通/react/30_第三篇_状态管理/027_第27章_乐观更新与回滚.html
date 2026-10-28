@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 27 章 乐观更新与回滚｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第三篇 状态管理</p>
+    <h1>第 27 章 乐观更新与回滚</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 27 章 / 共 64 章 · 预计 50 分钟 · 先改 UI 后请求，失败快照还原</span>
+    </div>
+    <p class="hero-desc">乐观更新让点赞、收藏这类轻量操作即时响应，代价是必须写好快照回滚。本章区分悲观、乐观、静默三种体验，讲清 useMutation 的钩子顺序与标准回滚流程，覆盖并发防护、失败 UX 规范与常见错误清单。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="026_第26章_缓存失效与刷新策略.html">第 26 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="028_第28章_状态的可测试性.html">第 28 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">27.1 三种更新体验</a></li>
+    <li><a href="#sec3">27.2 useMutation 生命周期钩子</a></li>
+    <li><a href="#sec4">27.3 标准乐观更新与回滚流程</a></li>
+    <li><a href="#sec5">27.4 并发、竞态与防护写法</a></li>
+    <li><a href="#sec6">27.5 失败回滚后的 UX 规范</a></li>
+    <li><a href="#sec7">27.6 常见错误清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>区分悲观更新、乐观更新、静默更新三种交互体验与各自适用场景；</li>
+    <li>掌握 <code>useMutation</code> 的完整生命周期钩子：<code>onMutate</code>、<code>mutationFn</code>、<code>onSuccess</code>、<code>onError</code>、<code>onSettled</code>；</li>
+    <li>能写出标准乐观更新流程：取消并发查询、快照旧值、先写缓存、失败回滚、收尾失效；</li>
+    <li>识别并发提交、竞态、标签切换后回滚等风险点并给出防护写法；</li>
+    <li>建立失败时的 UX 规范：回滚还原、错误提示、重试入口与加载指示。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">27.1</span> 三种更新体验</h2>
+  <div class="lead">写操作的用户体验分三类：<strong>悲观更新</strong>先等请求成功再改界面；<strong>乐观更新</strong>先改界面再发请求，失败再回滚；<strong>静默更新</strong>后台发送、界面只做轻微指示。选择取决于操作失败的代价与延迟容忍度。</div>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:34%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <thead><tr><th>类型</th><th>流程</th><th>优点</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td>悲观更新</td><td>点击 → 发请求 → 成功后改 UI；失败保持原状</td><td>状态永远与后端一致，无需回滚逻辑</td><td>表单提交、支付、删除等高代价操作</td></tr>
+      <tr><td>乐观更新</td><td>点击 → 先改缓存与 UI → 发请求；失败回滚还原</td><td>响应即时，无等待感；点赞、收藏常用</td><td>点赞、收藏、关注、开关切换等轻量可逆操作</td></tr>
+      <tr><td>静默更新</td><td>后台发送，界面仅显示轻量状态指示，不立即反映结果</td><td>不打断用户当前操作</td><td>草稿自动保存、埋点上报、批量后台同步</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">高代价操作不要乐观：删除、支付、转账一旦失败再回滚，用户已经看到「成功」的假象，二次确认成本很高。乐观更新只适合<strong>轻量、可逆、失败可静默还原</strong>的操作。</div>
+  <p>三类体验可以在同一个产品里并存：表单提交走悲观保证一致性，点赞收藏走乐观追求即时反馈，草稿保存走静默不打断当前输入。判断顺序：先问操作失败的代价——代价高（删除、支付、提交）直接悲观；代价低且可逆（点赞、收藏、关注）再考虑乐观；后台自动保存、上报类需求默认静默。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">27.2</span> useMutation 生命周期钩子</h2>
+  <div class="lead">mutation 的钩子链把乐观更新拆成可测试的固定步骤：请求前快照与预写、请求中等待、成功或失败分支处理、最终统一收尾。按钩子分工写代码，回滚逻辑就不会散落在组件事件回调里。</div>
+  <p><code>useMutation</code> 在 <code>mutationFn</code> 前后提供一组钩子，正好对应乐观更新需要的每一步：<code>onMutate</code> 在请求发起前执行（快照与预写缓存），<code>onSuccess</code> 在成功后执行，<code>onError</code> 在失败后执行，<code>onSettled</code> 在成功或失败后都执行，用于收尾失效。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="乐观更新生命周期时序图">
+      <rect x="30" y="20" width="150" height="44" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="105" y="47" text-anchor="middle" font-size="12.5" fill="#1f2e1f">用户点击提交</text>
+      <rect x="240" y="20" width="170" height="44" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="325" y="40" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">onMutate</text>
+      <text x="325" y="58" text-anchor="middle" font-size="10.5" fill="#4f6348">快照旧值 · 先写缓存</text>
+      <rect x="470" y="20" width="160" height="44" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="550" y="40" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">mutationFn</text>
+      <text x="550" y="58" text-anchor="middle" font-size="10.5" fill="#4f6348">向后端发起请求</text>
+      <line x1="180" y1="42" x2="238" y2="42" stroke="#7a8a70" stroke-width="1.3" marker-end="url(#arr27)"/>
+      <line x1="410" y1="42" x2="468" y2="42" stroke="#7a8a70" stroke-width="1.3" marker-end="url(#arr27)"/>
+      <rect x="470" y="110" width="160" height="44" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="550" y="130" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">onSuccess</text>
+      <text x="550" y="148" text-anchor="middle" font-size="10.5" fill="#4f6348">成功后的副作用</text>
+      <rect x="470" y="186" width="160" height="44" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="550" y="206" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">onError</text>
+      <text x="550" y="224" text-anchor="middle" font-size="10.5" fill="#4f6348">用快照回滚缓存</text>
+      <line x1="550" y1="64" x2="550" y2="108" stroke="#047857" stroke-width="1.3" marker-end="url(#arr27)"/>
+      <line x1="550" y1="64" x2="550" y2="184" stroke="#b91c1c" stroke-width="1.3" marker-end="url(#arr27)"/>
+      <rect x="240" y="148" width="170" height="44" rx="8" fill="#eef3e8" stroke="#047857"/>
+      <text x="325" y="168" text-anchor="middle" font-size="12" fill="#1f2e1f" font-weight="700">onSettled</text>
+      <text x="325" y="186" text-anchor="middle" font-size="10.5" fill="#4f6348">无论成败，失效重取</text>
+      <line x1="470" y1="132" x2="412" y2="164" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arr27)"/>
+      <line x1="470" y1="208" x2="412" y2="180" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arr27)"/>
+      <text x="105" y="220" font-size="12" fill="#1f2e1f">顺序：onMutate → mutationFn → onSuccess / onError → onSettled</text>
+      <text x="105" y="248" font-size="12" fill="#4f6348">onMutate 的返回值作为 context 传入 onError 与 onSettled，承载回滚所需的快照</text>
+      <defs>
+        <marker id="arr27" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#7a8a70"/>
+        </marker>
+      </defs>
+    </svg>
+    <p class="diagram-caption">图 27-1 乐观更新生命周期：onMutate 预写缓存，成功或失败后由 onSettled 统一收尾</p>
+  </div>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+    <thead><tr><th>钩子</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td><code>onMutate(variables)</code></td><td>请求前执行；快照旧缓存、取消并发查询、预写乐观数据；返回值即 <code>context</code></td></tr>
+      <tr><td><code>mutationFn(variables)</code></td><td>实际发起后端请求，返回 Promise</td></tr>
+      <tr><td><code>onSuccess(data, variables, context)</code></td><td>请求成功后执行，可做后续副作用（提示、跳转）</td></tr>
+      <tr><td><code>onError(error, variables, context)</code></td><td>请求失败后执行，依据 <code>context</code> 快照回滚缓存</td></tr>
+      <tr><td><code>onSettled(data, error, variables, context)</code></td><td>成功或失败都执行；统一失效相关查询，让缓存与后端对齐</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">27.3</span> 标准乐观更新与回滚流程</h2>
+  <p>以「文章点赞」为例，标准流程分四步：<code>onMutate</code> 中先取消进行中的同类查询避免覆盖快照，读取旧缓存作为回滚快照，再把新状态写入缓存；<code>onError</code> 用快照还原；<code>onSettled</code> 失效相关查询，以服务端数据为准完成对齐。</p>
+  <pre class="code" data-lang="jsx"><code>import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+function useLikePost(postId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =&gt;
+      fetch(`/api/posts/${postId}/like`, { method: 'POST' }).then((r) =&gt; r.json()),
+
+    onMutate: async () =&gt; {
+      // ① 取消进行中的同类查询，避免旧响应覆盖乐观数据
+      await queryClient.cancelQueries({ queryKey: ['post', postId] });
+
+      // ② 读取快照，失败时用于回滚
+      const previous = queryClient.getQueryData(['post', postId]);
+
+      // ③ 先写缓存：界面立即反映点赞状态
+      queryClient.setQueryData(['post', postId], (old) =&gt;
+        old ? { ...old, liked: true, likes: old.likes + 1 } : old
+      );
+
+      return { previous };
+    },
+
+    onError: (error, variables, context) =&gt; {
+      // ④ 失败：用快照还原缓存
+      if (context?.previous) {
+        queryClient.setQueryData(['post', postId], context.previous);
+      }
+    },
+
+    onSettled: () =&gt; {
+      // ⑤ 无论成败，失效缓存并以服务端数据重新对齐
+      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+    },
+  });
+}</code></pre>
+  <div class="warn-box"><code>onMutate</code> 返回的 <code>context</code> 会作为第三个参数传给 <code>onError</code> 与 <code>onSettled</code>；回滚快照必须从这里取，不要在闭包变量里存旧值——闭包在多次并发调用间会互相覆盖。</div>
+  <p>快照记录的是缓存中的旧列表对象引用，不是组件界面；回滚时直接把快照写回缓存，组件由缓存驱动重新渲染，不需要手动遍历 DOM 还原界面状态。</p>
+  <p><code>onSettled</code> 统一失效的意义在于：失败回滚后也要让缓存与后端对齐——回滚只是临时还原界面，服务端真实状态仍需通过重取确认，避免乐观快照与后端长期不一致。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">27.4</span> 并发、竞态与防护写法</h2>
+  <p>乐观更新的风险集中在「短时间内多次点击」与「操作途中数据又被查询刷新覆盖」。防护手段包括：<code>onMutate</code> 内 <code>cancelQueries</code>、提交期间禁用按钮、等待 <code>mutateAsync</code> 完成后再开放操作。</p>
+  <pre class="code" data-lang="jsx"><code>function LikeButton({ postId }) {
+  const likePost = useLikePost(postId);
+
+  const handleClick = async () =&gt; {
+    // mutateAsync 等待请求结束，期间按钮禁用，防止重复点赞
+    await likePost.mutateAsync();
+  };
+
+  return (
+    &lt;button onClick={handleClick} disabled={likePost.isPending}&gt;
+      {likePost.isPending ? '提交中…' : '点赞'}
+    &lt;/button&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:34%"><col style="width:34%"></colgroup>
+    <thead><tr><th>风险场景</th><th>后果</th><th>防护手段</th></tr></thead>
+    <tbody>
+      <tr><td>连点多次提交按钮</td><td>多个 mutation 并发，状态互相覆盖</td><td><code>isPending</code> 期间禁用按钮，使用 <code>mutateAsync</code> 串行等待</td></tr>
+      <tr><td>操作途中后台查询返回旧数据</td><td>乐观结果被旧响应覆盖</td><td><code>onMutate</code> 先 <code>cancelQueries</code> 取消进行中查询</td></tr>
+      <tr><td>失败后闭包里存的旧值已被后续调用覆盖</td><td>回滚到错误状态</td><td>快照放在 <code>onMutate</code> 返回的 <code>context</code> 中传递给 <code>onError</code></td></tr>
+      <tr><td>切换路由 / 标签页后失败回滚</td><td>回调在卸载组件上操作缓存</td><td>缓存读写经 QueryClient 完成，与组件生命周期解耦；组件卸载后回滚仍作用于缓存层</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">乐观更新期间不要让用户离开当前上下文后再操作同一资源：组件卸载后按钮禁用状态随之消失；关键页面可在路由层锁定重复入口，或依赖 <code>isPending</code> 状态在重新挂载时恢复禁用。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">27.5</span> 失败回滚后的 UX 规范</h2>
+  <p>乐观更新失败不等于把错误吞掉。回滚完成后必须让用户知道操作没成功：给出错误提示、保留重试入口，必要时提供「稍后重试」的引导。界面状态在 <code>onError</code> 后应回到操作前的样子。</p>
+  <pre class="code" data-lang="jsx"><code>function LikeButton({ postId }) {
+  const likePost = useLikePost(postId);
+
+  return (
+    &lt;div&gt;
+      &lt;button onClick={() =&gt; likePost.mutate()} disabled={likePost.isPending}&gt;
+        {likePost.isPending ? '提交中…' : '点赞'}
+      &lt;/button&gt;
+      {likePost.isError &amp;&amp; (
+        &lt;span role="alert" style={{ color: '#b91c1c' }}&gt;
+          点赞失败，请稍后重试
+        &lt;/span&gt;
+      )}
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <div class="note">提示信息应来自 <code>error</code> 对应的业务状态，不要把网络错误堆栈直接展示给用户；后端返回的可读错误信息优先，通用失败兜底文案其次。</div>
+  <div class="pit-sentence">失败提示不要只显示「操作失败」而不说明资源与原因：用户需要知道是哪条内容、什么问题，才能决定重试还是稍后再试；提示文案应与后端业务错误码对应，而不是直接抛出网络异常文本。</div>
+  <p>重试入口可以直接复用同一个 mutation 的触发函数；回滚后的界面保持操作前状态，用户点击重试即重新发起请求，不需要先刷新页面。重试次数应有上限，避免接口故障时前端循环提交。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">27.6</span> 常见错误清单</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>现象</th><th>原因与修正</th></tr></thead>
+    <tbody>
+      <tr><td>点了点赞没反应，转圈很久</td><td>写成了悲观更新：先等请求成功才改 UI；轻量操作应乐观预写缓存</td></tr>
+      <tr><td>失败后点赞数停留在错误值</td><td>缺少 <code>onError</code> 回滚，或快照未通过 <code>context</code> 传递</td></tr>
+      <tr><td>回滚后界面与后端短暂不一致</td><td><code>onSettled</code> 未失效缓存；收尾调用 <code>invalidateQueries</code> 对齐服务端数据</td></tr>
+      <tr><td>多次连点产生重复请求与状态错乱</td><td>未禁用按钮；用 <code>isPending</code> 禁用并以 <code>mutateAsync</code> 串行</td></tr>
+      <tr><td>乐观数据被后台旧响应覆盖</td><td><code>onMutate</code> 忘记 <code>cancelQueries</code>；先取消同类进行中查询再写缓存</td></tr>
+      <tr><td>删除操作也用了乐观更新</td><td>高代价操作不应乐观；删除、支付等应走悲观流程并二次确认</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">判断一个操作是否适合乐观：<strong>可逆、轻量、失败可静默还原</strong>三个条件同时满足才选乐观；缺一就回到悲观更新，先请求成功再改变界面。</div>
+  <div class="key-sentence">一句话总结：<strong>轻量可逆操作乐观、高代价操作悲观；快照走 context、取消先行、回滚在 onError、对齐在 onSettled、失败必须可见</strong>。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>三类体验</td><td>悲观先请求后改 UI，乐观先改 UI 后请求，静默后台发送轻指示</td></tr>
+      <tr><td>钩子顺序</td><td>onMutate → mutationFn → onSuccess / onError → onSettled</td></tr>
+      <tr><td>标准流程</td><td>取消并发查询、快照旧值、预写缓存、失败回滚、收尾失效</td></tr>
+      <tr><td>快照载体</td><td>onMutate 返回的 context 传给 onError / onSettled，不用闭包变量</td></tr>
+      <tr><td>并发防护</td><td>isPending 禁用按钮，mutateAsync 串行，cancelQueries 防覆盖</td></tr>
+      <tr><td>失败 UX</td><td>回滚还原 + 错误提示 + 重试入口，错误信息对用户友好</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>判断下列操作分别应选悲观、乐观还是静默更新并说明理由：① 提交订单表单；② 文章收藏；③ 草稿每 30 秒自动保存；④ 删除一条评论；⑤ 跟随某个用户。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为「收藏文章」实现乐观更新：<code>queryKey</code> 为 <code>['post', id]</code>，收藏后 <code>collected</code> 变 true、收藏数 +1；按标准流程写出 <code>onMutate</code>（取消查询、快照、预写）、<code>onError</code>（回滚）、<code>onSettled</code>（失效重取），并在按钮上用 <code>isPending</code> 禁用、<code>isError</code> 显示失败提示。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>改造习题 B：连续快速点击收藏按钮时，要求无论成功失败都不会出现「状态跳来跳去」。分析需要补哪些防护（取消查询、禁用按钮、串行等待、快照隔离），写出完整代码；再回答：如果后端收藏接口有 2 秒延迟，乐观方案与悲观方案在这 2 秒内界面表现有何差异？失败时两种方案各自会暴露什么问题？</div>
+  <p class="note">参考答案见附录 C。下一章：状态的可测试性——纯函数逻辑、store 与组件解耦、服务端状态 mock 与测试金字塔。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="026_第26章_缓存失效与刷新策略.html">← 第 26 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="028_第28章_状态的可测试性.html">第 28 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 27 章 乐观更新与回滚</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 22 章 Zustand 快速上手｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第三篇 状态管理</p>
+    <h1>第 22 章 Zustand 快速上手</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 22 章 / 共 64 章 · 预计 55 分钟 · 零样板外部 store，selector 切片订阅</span>
+    </div>
+    <p class="hero-desc">Zustand v5 把状态放在组件树之外，用 create 定义 store、用 selector 订阅切片，不需要 Provider。本章覆盖 create、useStore、getState、setState、subscribe、useShallow、persist 中间件与 TypeScript 标准写法，并与 Pinia、Redux Toolkit 做概念对照。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="021_第21章_Context的正确粒度.html">第 21 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="023_第23章_ReduxToolkit全解.html">第 23 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">22.1 心智：组件树外的外部 store</a></li>
+    <li><a href="#sec3">22.2 安装与 create 定义 store</a></li>
+    <li><a href="#sec4">22.3 组件使用：useStore 与 selector</a></li>
+    <li><a href="#sec5">22.4 组件外读写：getState / setState / subscribe</a></li>
+    <li><a href="#sec6">22.5 selector 稳定性与 useShallow</a></li>
+    <li><a href="#sec7">22.6 TypeScript、store 拆分与持久化</a></li>
+    <li><a href="#sec8">22.7 与 Pinia、Redux 的概念对照</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 Zustand 的心智：store 位于<strong>组件树之外</strong>，组件通过 selector 订阅切片，不经过 Provider；</li>
+    <li>掌握 v5 标准 API：<code>create</code>、<code>useStore(selector)</code>、<code>getState</code>、<code>setState</code>、<code>subscribe</code>；</li>
+    <li>能写出带 state 与 actions 的 store，并在组件内按需订阅单个字段；</li>
+    <li>掌握对象 / 数组切片的浅比较工具 <code>useShallow</code>，避免无意义重渲染；</li>
+    <li>会用 <code>persist</code> 中间件做本地持久化，并能把 Zustand 与 Context、Pinia 的概念对应起来。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">22.1</span> 心智：组件树外的外部 store</h2>
+  <div class="lead">Context 的值挂在组件树上，随 Provider 广播；Zustand 的 store 是一个<strong>组件树之外的普通对象</strong>，组件直接订阅它，不需要 Provider 包裹，也不存在「根上挂一个大 Context」的问题。</div>
+  <p>第 21 章提到 Context 没有 selector、整值广播；Zustand 正好补上这两点：store 本身是外部状态容器，每个组件用 selector 声明自己需要哪一片，只有这一片变化时组件才重渲染。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>Context</th><th>Zustand</th></tr></thead>
+    <tbody>
+      <tr><td>状态位置</td><td>React 组件树内，由 Provider 持有</td><td>组件树外的外部 store 实例</td></tr>
+      <tr><td>订阅方式</td><td>读取整个 Context 值，无 selector</td><td>selector 函数提取切片，按切片比较</td></tr>
+      <tr><td>Provider</td><td>必须在祖先节点挂载</td><td>不需要 Provider，直接调用 Hook</td></tr>
+      <tr><td>组件外读写</td><td>无法脱离组件树读取</td><td><code>getState</code> / <code>setState</code> / <code>subscribe</code></td></tr>
+      <tr><td>中间件生态</td><td>无内置</td><td>persist、immer、devtools 等官方中间件</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">Zustand 的核心契约：<strong>状态在树外，订阅在组件内，更新走 set 函数，不可变返回新对象</strong>。它比 Redux 少了样板，比 Context 多了切片订阅。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">22.2</span> 安装与 create 定义 store</h2>
+  <pre class="code" data-lang="bash"><code>npm install zustand</code></pre>
+  <p>用 <code>create</code> 定义一个 store：传入一个 <code>(set, get) =&gt; ({ ... })</code> 函数，返回状态字段与更新动作（actions）。<code>set</code> 用来更新状态，支持函数形式接收旧状态；<code>get</code> 用来在 action 内部读取当前状态。</p>
+  <pre class="code" data-lang="js"><code>import { create } from 'zustand';
+
+const useCounterStore = create((set, get) =&gt; ({
+  count: 0,
+  step: 1,
+  increment: () =&gt; set((state) =&gt; ({ count: state.count + state.step })),
+  decrement: () =&gt; set((state) =&gt; ({ count: state.count - state.step })),
+  reset: () =&gt; set({ count: 0 }),
+  // action 内部需要读当前状态时用 get()
+  double: () =&gt; get().count * 2,
+}));</code></pre>
+  <p>注意 <code>set</code> 与 React 的 <code>setState</code> 一样要求不可变更新：传入部分字段即可合并，对象内部字段需要展开后返回新对象，不要原地修改。</p>
+  <pre class="code" data-lang="js"><code>const useCartStore = create((set) =&gt; ({
+  items: [],
+  addItem: (product) =&gt;
+    set((state) =&gt; ({ items: [...state.items, product] })),
+  removeItem: (id) =&gt;
+    set((state) =&gt; ({ items: state.items.filter((it) =&gt; it.id !== id) })),
+}));</code></pre>
+  <div class="warn-box">不要在 action 里原地改数组或对象（如 <code>state.items.push(p)</code>）。Zustand 依赖引用变化判断是否通知订阅者，原地修改后引用不变，组件不会重渲染。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">22.3</span> 组件使用：useStore 与 selector</h2>
+  <div class="lead">组件接入 store 只需要一行调用：Hook 接收 selector，声明「我要哪一片」。订阅粒度由你写的 selector 决定，这正是 Zustand 相对 Context 整值广播的核心优势。</div>
+  <p>store 创建出来本身就是一个 Hook。在组件里调用它并传入 selector 函数，只提取需要的切片；selector 返回的值变化时组件才重渲染。</p>
+  <pre class="code" data-lang="jsx"><code>import { useCounterStore } from './stores/counterStore';
+
+function Counter() {
+  const count = useCounterStore((s) =&gt; s.count);
+  const increment = useCounterStore((s) =&gt; s.increment);
+
+  return (
+    &lt;div&gt;
+      &lt;span&gt;{count}&lt;/span&gt;
+      &lt;button onClick={increment}&gt;+1&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <div class="pit-sentence">常见错误：调用 <code>useCounterStore()</code> 不传 selector，这会订阅<strong>整个 store</strong>——任何字段变化都触发本组件重渲染，等于退回 Context 的整值广播。selector 永远要写。</div>
+  <pre class="code" data-lang="jsx"><code>// ✗ 不传 selector：订阅整个 store，step 变化也会让本组件重渲染
+const state = useCounterStore();
+
+// ✓ 只订阅需要的切片
+const count = useCounterStore((s) =&gt; s.count);</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 260" role="img" aria-label="Zustand 外部 store 订阅模型">
+      <rect x="280" y="20" width="240" height="64" rx="10" fill="#2d6a3f"/>
+      <text x="400" y="46" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="700">外部 store（组件树之外）</text>
+      <text x="400" y="70" text-anchor="middle" font-size="12" fill="#d8e8c8">count · step · items · actions</text>
+      <line x1="330" y1="84" x2="150" y2="150" stroke="#3d7a4f" stroke-width="1.4"/>
+      <line x1="400" y1="84" x2="400" y2="150" stroke="#3d7a4f" stroke-width="1.4"/>
+      <line x1="470" y1="84" x2="650" y2="150" stroke="#3d7a4f" stroke-width="1.4"/>
+      <rect x="70" y="150" width="160" height="52" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="150" y="172" text-anchor="middle" font-size="12" fill="#1f2e1f">组件 A</text>
+      <text x="150" y="192" text-anchor="middle" font-size="11" fill="#4f6348">selector: s.count</text>
+      <rect x="320" y="150" width="160" height="52" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="172" text-anchor="middle" font-size="12" fill="#1f2e1f">组件 B</text>
+      <text x="400" y="192" text-anchor="middle" font-size="11" fill="#4f6348">selector: s.step</text>
+      <rect x="570" y="150" width="160" height="52" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="650" y="172" text-anchor="middle" font-size="12" fill="#1f2e1f">组件 C</text>
+      <text x="650" y="192" text-anchor="middle" font-size="11" fill="#4f6348">selector: s.items</text>
+      <text x="400" y="236" text-anchor="middle" font-size="12" fill="#4f6348">count 变化只重渲染组件 A；step 变化只重渲染组件 B；互不牵连</text>
+    </svg>
+    <p class="diagram-caption">图 22-1 Zustand 外部 store 模型：每个组件按 selector 订阅独立切片，变化互不牵连</p>
+  </div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">22.4</span> 组件外读写：getState / setState / subscribe</h2>
+  <p>因为 store 在组件树之外，非组件代码（工具函数、请求拦截器、路由守卫、事件回调）也能直接读写，不需要把状态塞进 Context 再层层传递。</p>
+  <pre class="code" data-lang="js"><code>// 读取当前状态（不订阅，不触发重渲染）
+const currentCount = useCounterStore.getState().count;
+
+// 直接更新状态（会通知所有订阅组件）
+useCounterStore.setState({ count: 0 });
+
+// 订阅状态变化，返回取消订阅函数
+const unsubscribe = useCounterStore.subscribe((state, prevState) =&gt; {
+  if (state.count !== prevState.count) {
+    console.log('count 从', prevState.count, '变为', state.count);
+  }
+});
+
+// 不再需要时取消订阅
+unsubscribe();</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>API</th><th>使用位置</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td><code>useStore(selector)</code></td><td>组件内</td><td>订阅切片，切片变化触发重渲染</td></tr>
+      <tr><td><code>useStore.getState()</code></td><td>组件内外均可</td><td>读取当前快照，不订阅、不重渲染</td></tr>
+      <tr><td><code>useStore.setState(partial)</code></td><td>组件内外均可</td><td>合并更新状态并通知订阅者</td></tr>
+      <tr><td><code>useStore.subscribe(listener)</code></td><td>组件内外均可</td><td>监听状态变化，返回取消订阅函数</td></tr>
+    </tbody>
+  </table>
+  <p>注意 <code>getState</code> 返回的是当前快照引用，后续状态变化不会更新这个局部变量：组件内需要响应变化必须走 <code>useStore</code> 订阅，组件外逻辑才在事件回调里用 <code>getState</code> 读取最新值。</p>
+  <div class="note">在 <code>useEffect</code> 里订阅 store 时，cleanup 中必须调用返回的取消订阅函数，否则离开组件后监听器仍在执行（呼应第 10 章 cleanup 三时机）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">22.5</span> selector 稳定性与 useShallow</h2>
+  <p>selector 返回原始值（数字、字符串、布尔）时，Zustand 用严格相等比较即可。一旦 selector 返回<strong>对象或数组字面量</strong>，每次渲染都会产生新引用，即使内容相同也会判定为变化，导致组件反复重渲染。</p>
+  <pre class="code" data-lang="jsx"><code>// ✗ selector 返回新对象字面量：引用每次都变，组件反复重渲染
+const cart = useCartStore((s) =&gt; ({ items: s.items, total: s.items.length }));</code></pre>
+  <p>v5 提供 <code>useShallow</code>（来自 <code>zustand/react/shallow</code>），对返回的对象 / 数组做浅比较：内容一致就不触发重渲染。</p>
+  <pre class="code" data-lang="jsx"><code>import { useShallow } from 'zustand/react/shallow';
+
+// ✓ 浅比较：items 引用与 total 数值都没变时不重渲染
+const cart = useCartStore(
+  useShallow((s) =&gt; ({ items: s.items, total: s.items.length }))
+);</code></pre>
+  <div class="pit-sentence">selector 里不要放昂贵的派生计算：每次状态变化都会重新执行 selector；复杂派生应在组件内用 <code>useMemo</code> 完成，或交给专门的记忆化选择器处理。</div>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>selector 返回类型</th><th>比较方式</th><th>写法建议</th></tr></thead>
+    <tbody>
+      <tr><td>原始值（number / string / boolean）</td><td>严格相等 <code>===</code></td><td>直接写 selector，无需额外处理</td></tr>
+      <tr><td>单个对象 / 数组字段</td><td>引用相等</td><td>selector 直接返回该字段，不要包新字面量</td></tr>
+      <tr><td>多字段组合成对象</td><td>需要浅比较</td><td>用 <code>useShallow</code> 包裹 selector</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">22.6</span> TypeScript、store 拆分与持久化</h2>
+  <h3>22.6.1 TypeScript 标准写法</h3>
+  <p>v5 推荐使用柯里化形式 <code>create&lt;State&gt;()((set, get) =&gt; ...)</code>，让 state 与 actions 的类型在整个 store 内自动推断。</p>
+  <pre class="code" data-lang="ts"><code>type CounterState = {
+  count: number;
+  increment: () =&gt; void;
+  decrement: () =&gt; void;
+};
+
+const useCounterStore = create&lt;CounterState&gt;()((set) =&gt; ({
+  count: 0,
+  increment: () =&gt; set((s) =&gt; ({ count: s.count + 1 })),
+  decrement: () =&gt; set((s) =&gt; ({ count: s.count - 1 })),
+}));</code></pre>
+  <h3>22.6.2 按领域拆分多个 store</h3>
+  <p>与第 20 章分层一致：不同领域各建一个 store（counter、cart、user、theme），而不是把所有状态塞进一个巨型 store。store 之间需要联动时，在 action 内通过 <code>getState</code> 读取其他 store，或用事件回调解耦。</p>
+  <h3>22.6.3 persist 中间件持久化</h3>
+  <p>需要刷新后保留的共享状态（主题、语言、登录偏好），用官方 <code>persist</code> 中间件把指定字段写入 <code>localStorage</code>，并通过 <code>name</code> 指定存储键名。</p>
+  <pre class="code" data-lang="js"><code>import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+const useThemeStore = create(
+  persist(
+    (set) =&gt; ({
+      theme: 'light',
+      toggle: () =&gt;
+        set((s) =&gt; ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
+    }),
+    { name: 'theme-storage' }
+  )
+);</code></pre>
+  <div class="warn-box">持久化只适合非敏感的偏好类状态；登录令牌等敏感信息不应明文写入 <code>localStorage</code>，应由后端会话或 HttpOnly Cookie 管理。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">22.7</span> 与 Pinia、Redux 的概念对照</h2>
+  <p>熟悉 Vue Pinia 的读者可以按下表迁移心智；注意 Zustand 的 action 直接调用 <code>set</code>，而 Pinia 的 action 内允许直接修改 state，写法习惯并不相同。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:26%"><col style="width:25%"><col style="width:25%"></colgroup>
+    <thead><tr><th>概念</th><th>Zustand</th><th>Pinia（Vue）</th><th>Redux Toolkit</th></tr></thead>
+    <tbody>
+      <tr><td>状态容器</td><td><code>create</code> 生成的 Hook store</td><td><code>defineStore</code></td><td><code>configureStore</code> 单一 store</td></tr>
+      <tr><td>读取切片</td><td><code>useStore(selector)</code></td><td><code>storeToRefs</code></td><td><code>useSelector(selector)</code></td></tr>
+      <tr><td>更新状态</td><td>action 内调用 <code>set</code></td><td>action 内直接改 state</td><td>reducer 内不可变更新（Immer 语法）</td></tr>
+      <tr><td>异步逻辑</td><td>action 内直接写 async</td><td>action 内直接写 async</td><td><code>createAsyncThunk</code> 标准流程</td></tr>
+      <tr><td>持久化</td><td><code>persist</code> 中间件</td><td><code>pinia-plugin-persistedstate</code></td><td>redux-persist</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">选型结论：中小到中大型应用、追求少样板与切片订阅，Zustand 是默认选择；大型团队需要严格 action 规范、中间件与协作约束时，再上 Redux Toolkit（第 23 章）。</div>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>store 位置</td><td>状态在组件树外，不需要 Provider，组件直接订阅</td></tr>
+      <tr><td>create 契约</td><td><code>(set, get) =&gt; ({ state, actions })</code>，set 做不可变合并更新</td></tr>
+      <tr><td>selector 必写</td><td>不传 selector 会订阅整个 store，退回整值广播</td></tr>
+      <tr><td>组件外读写</td><td><code>getState</code> / <code>setState</code> / <code>subscribe</code>，cleanup 取消订阅</td></tr>
+      <tr><td>浅比较</td><td>对象 / 数组切片用 <code>useShallow</code>，避免引用变化导致重渲染</td></tr>
+      <tr><td>持久化</td><td><code>persist</code> 中间件保存偏好类状态，敏感令牌不入 localStorage</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 <code>create</code> 实现一个待办 store：包含 <code>todos</code> 数组、<code>addTodo(text)</code>、<code>toggleTodo(id)</code>、<code>clearCompleted()</code> 三个 action，全部使用不可变更新；再写出一个组件，分别订阅 <code>todos</code> 数量与 <code>addTodo</code>。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>下面这段组件代码会在每次 store 任意字段变化时重渲染，且组合切片写法会造成引用抖动。指出两处问题并改写：<code>const user = useUserStore(); const profile = useUserStore((s) =&gt; ({ name: s.name, email: s.email }));</code> 要求写出修正后的两行代码并说明 <code>useShallow</code> 的作用。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为「购物车」设计 Zustand store：条目含 <code>id / name / price / qty</code>，提供加购、改数量、移除、清空；实现「加购后若用户已登录则把购物车同步到后端」的联动（在 action 内读取 user store 状态判断）；再用 <code>persist</code> 把购物车持久化到本地，说明刷新后与后端数据冲突时应优先以哪一方为准。</div>
+  <p class="note">参考答案见附录 C。下一章：Redux Toolkit 全解——configureStore、createSlice、createAsyncThunk 与大型团队的状态工程化方案。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="021_第21章_Context的正确粒度.html">← 第 21 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="023_第23章_ReduxToolkit全解.html">第 23 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 22 章 Zustand 快速上手</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 26 章 缓存失效与刷新策略｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第三篇 状态管理</p>
+    <h1>第 26 章 缓存失效与刷新策略</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 26 章 / 共 64 章 · 预计 50 分钟 · 生命周期、失效键与分页面刷新策略</span>
+    </div>
+    <p class="hero-desc">本章把 TanStack Query 缓存的 fresh → stale → inactive → 回收时间轴讲透，区分 invalidateQueries、removeQueries、setQueryData 三个操作的语义，梳理挂载、聚焦、重连、轮询四类自动刷新开关，并给出后台列表、详情、看板、静态配置等典型页面的策略对照表。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="025_第25章_服务端状态TanStackQuery.html">第 25 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="027_第27章_乐观更新与回滚.html">第 27 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">26.1 缓存生命周期时间轴</a></li>
+    <li><a href="#sec3">26.2 主动失效：三个 API 的语义差异</a></li>
+    <li><a href="#sec4">26.3 自动刷新配置</a></li>
+    <li><a href="#sec5">26.4 手动刷新与轮询</a></li>
+    <li><a href="#sec6">26.5 两套失效体系对照</a></li>
+    <li><a href="#sec7">26.6 典型页面策略选型</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理清缓存从 fresh 到 stale 再到回收的完整生命周期与时间轴；</li>
+    <li>掌握三个主动操作：<code>invalidateQueries</code>、<code>removeQueries</code>、<code>setQueryData</code> 的语义差异；</li>
+    <li>会配置自动刷新：<code>refetchOnMount</code>、<code>refetchOnWindowFocus</code>、<code>refetchOnReconnect</code>、<code>refetchInterval</code>；</li>
+    <li>理解查询键前缀匹配规则，能精准失效一类缓存而不误伤；</li>
+    <li>能为列表、详情、实时看板、低频配置等典型页面选出合适的刷新策略。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">26.1</span> 缓存生命周期时间轴</h2>
+  <div class="lead">每个查询缓存条目都经历四个阶段：<strong>fresh（新鲜）→ stale（过期）→ inactive（无订阅）→ 被回收</strong>。两个时间阈值决定阶段切换：<code>staleTime</code> 决定多久算过期，<code>gcTime</code> 决定无订阅后保留多久。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 290" role="img" aria-label="缓存生命周期时间轴">
+      <line x1="60" y1="120" x2="740" y2="120" stroke="#7a8a70" stroke-width="2"/>
+      <rect x="60" y="96" width="220" height="48" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="170" y="118" text-anchor="middle" font-size="13" fill="#047857" font-weight="700">fresh 新鲜</text>
+      <text x="170" y="138" text-anchor="middle" font-size="11" fill="#4f6348">staleTime 内：挂载不重取</text>
+      <rect x="280" y="96" width="260" height="48" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="410" y="118" text-anchor="middle" font-size="13" fill="#b45309" font-weight="700">stale 过期</text>
+      <text x="410" y="138" text-anchor="middle" font-size="11" fill="#4f6348">展示旧数据，后台按需静默重取</text>
+      <rect x="540" y="96" width="200" height="48" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="640" y="118" text-anchor="middle" font-size="13" fill="#b91c1c" font-weight="700">inactive → 回收</text>
+      <text x="640" y="138" text-anchor="middle" font-size="11" fill="#4f6348">无订阅满 gcTime 后移除缓存</text>
+      <line x1="280" y1="70" x2="280" y2="166" stroke="#b45309" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="280" y="62" text-anchor="middle" font-size="11" fill="#b45309">staleTime 到期</text>
+      <line x1="540" y1="70" x2="540" y2="166" stroke="#b91c1c" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="540" y="62" text-anchor="middle" font-size="11" fill="#b91c1c">组件卸载 + gcTime 到期</text>
+      <text x="60" y="210" font-size="12" fill="#1f2e1f">规则要点：</text>
+      <text x="60" y="234" font-size="12" fill="#4f6348">① fresh 期间组件重新挂载直接用缓存，不发请求；stale 后挂载会先展示旧数据，同时后台发起新请求。</text>
+      <text x="60" y="258" font-size="12" fill="#4f6348">② 缓存被主动失效（invalidate）后进入 stale；没有任何组件订阅时开始倒计时 gcTime，到期从缓存删除。</text>
+    </svg>
+    <p class="diagram-caption">图 26-1 缓存生命周期：staleTime 划分新鲜 / 过期，gcTime 划分无订阅保留 / 回收</p>
+  </div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>阶段</th><th>触发条件</th><th>行为</th></tr></thead>
+    <tbody>
+      <tr><td>fresh</td><td>成功取数后 <code>staleTime</code> 内</td><td>重新挂载、窗口聚焦都不重取，直接展示缓存</td></tr>
+      <tr><td>stale</td><td>超过 <code>staleTime</code> 或被 <code>invalidateQueries</code> 标记</td><td>当前活跃订阅组件后台重取；无订阅时等待下次挂载再取</td></tr>
+      <tr><td>inactive</td><td>最后一个订阅组件卸载</td><td>不再重取，缓存进入 <code>gcTime</code> 倒计时</td></tr>
+      <tr><td>已回收</td><td>无订阅时长超过 <code>gcTime</code></td><td>缓存条目被删除；再次访问等同于首次加载</td></tr>
+    </tbody>
+  </table>
+  <p>两个阈值的经验取值：<code>staleTime</code> 按数据新鲜度要求设定，低频配置可拉长到数分钟；<code>gcTime</code> 取 5 分钟左右即可，过短会导致用户返回页面时重复请求，过长则让长时间离开的页面残留旧缓存。阈值不是全局统一参数，先设全局默认，再按查询逐个覆盖。</p>
+  <p>两条时间线并行计数：fresh / stale 取决于上一次取数时间与 <code>staleTime</code>；inactive / 回收取决于最后一个订阅者卸载时刻与 <code>gcTime</code>。两者互不影响——缓存处于 fresh 但组件已卸载，照样进入回收倒计时。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">26.2</span> 主动失效：三个 API 的语义差异</h2>
+  <div class="lead">主动操作缓存的三个 API 语义差别很大：一个负责「标记过期等重取」，一个负责「直接删除」，一个负责「直接写入」。混用是列表不刷新、旧数据残留的常见原因，先分清再调用。</div>
+  <p>需要在变更后手动干预缓存时，<code>QueryClient</code> 提供三个操作，语义不可混淆：<code>invalidateQueries</code> 标记过期并触发活跃组件重取；<code>removeQueries</code> 直接删除缓存；<code>setQueryData</code> 直接写入缓存（不触发重取，常用于乐观更新）。</p>
+  <pre class="code" data-lang="jsx"><code>import { useQueryClient } from '@tanstack/react-query';
+
+function usePostActions() {
+  const queryClient = useQueryClient();
+
+  const afterCreate = () =&gt; {
+    // ① 让 ['posts'] 前缀下的缓存全部过期，活跃组件后台重取
+    queryClient.invalidateQueries({ queryKey: ['posts'] });
+  };
+
+  const resetPostCache = () =&gt; {
+    // ② 直接删除缓存；下次挂载按首次加载流程取数
+    queryClient.removeQueries({ queryKey: ['posts'] });
+  };
+
+  const patchPost = (id, updater) =&gt; {
+    // ③ 直接写缓存：不发请求、不标记过期，乐观更新时使用
+    queryClient.setQueryData(['post', id], (old) =&gt;
+      old ? { ...old, ...updater } : old
+    );
+  };
+
+  return { afterCreate, resetPostCache, patchPost };
+}</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>API</th><th>语义</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>invalidateQueries</code></td><td>把匹配缓存标记为 stale，活跃订阅组件自动重取；非活跃缓存等待挂载</td><td>新增 / 修改 / 删除成功后刷新列表与详情</td></tr>
+      <tr><td><code>removeQueries</code></td><td>直接删除匹配缓存，等同于从没访问过</td><td>退出登录清空用户数据；切换账号清理旧缓存</td></tr>
+      <tr><td><code>setQueryData</code></td><td>直接写入或更新缓存条目，不发请求、不改变 stale 状态</td><td>乐观更新先改 UI；手动合并服务端返回的新数据</td></tr>
+      <tr><td><code>getQueryData</code></td><td>同步读取当前缓存快照，不触发订阅</td><td>乐观更新前读取旧值用于回滚（第 27 章）</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">键匹配规则：<code>queryKey</code> 按前缀匹配。<code>['posts']</code> 会同时命中 <code>['posts']</code>、<code>['posts', userId]</code>、<code>['post', id]</code> 之外同前缀条目；加 <code>exact: true</code> 才做精确匹配。失效前先确认前缀不会误伤其他数据。</div>
+  <div class="pit-sentence">失效前先把 <code>queryKey</code> 前缀画出来：<code>['post']</code> 与 <code>['posts']</code> 仅差一个字母，前者不会命中后者；前缀写错时缓存静默不失效，表现为「新增后列表不更新」。</div>
+  <p>实践中变更动作集中放在 mutation 的 <code>onSuccess</code> / <code>onSettled</code> 钩子内调用失效 API，组件事件只负责触发 mutation；这样失效逻辑与业务操作绑定，不会因为漏写某个组件的成功回调而残留旧缓存。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">26.3</span> 自动刷新配置</h2>
+  <p>除手动失效外，查询库提供一组声明式自动刷新开关，可在 <code>QueryClient</code> 全局默认配置，也可在单个 <code>useQuery</code> 上覆盖。v5 默认开启窗口聚焦与网络恢复重取。</p>
+  <pre class="code" data-lang="js"><code>const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnMount: true,          // 组件挂载时，stale 数据是否重取
+      refetchOnWindowFocus: true,    // 窗口重新聚焦时重取
+      refetchOnReconnect: true,      // 网络恢复时重取
+      refetchInterval: false,        // 不开启轮询
+    },
+  },
+});</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>配置项</th><th>行为说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>refetchOnMount</code></td><td>组件挂载时，缓存已 stale 是否重取；<code>true</code> 总是检查，<code>false</code> 只在无缓存时取数</td></tr>
+      <tr><td><code>refetchOnWindowFocus</code></td><td>用户切走标签页再切回时，活跃查询自动重取，保证页面回到前台时数据新鲜</td></tr>
+      <tr><td><code>refetchOnReconnect</code></td><td>网络断开后恢复连接时重取活跃查询</td></tr>
+      <tr><td><code>refetchInterval</code></td><td>固定轮询间隔（毫秒）；看板、消息计数等实时场景使用</td></tr>
+      <tr><td><code>retry</code> / <code>retryDelay</code></td><td>失败重试次数与退避延迟策略，接口抖动时避免用户立即看到错误</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">自动刷新不是越多越好：高频列表开启窗口聚焦重取会造成不必要的请求量；静态配置类数据应把 <code>staleTime</code> 拉长甚至永不失效。刷新策略要按页面业务选择，见 26.6。</div>
+  <p>全局默认只设基线，特殊查询在 <code>useQuery</code> 配置对象里逐项覆盖，避免把每个参数都复制到 hook 调用中。</p>
+  <pre class="code" data-lang="jsx"><code>function ProductList({ category }) {
+  const list = useQuery({
+    queryKey: ['products', category],
+    queryFn: fetchProducts,
+    // 单查询覆盖全局默认：该列表 20 秒内视为新鲜
+    staleTime: 20_000,
+    refetchOnWindowFocus: true,
+  });
+  // …
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">26.4</span> 手动刷新与轮询</h2>
+  <p><code>useQuery</code> 返回的 <code>refetch</code> 函数用于手动触发一次取数，常见于「刷新」按钮与下拉刷新；<code>refetchInterval</code> 用于固定轮询，适合订单状态、实时看板这类需要主动跟踪变化的页面。</p>
+  <pre class="code" data-lang="jsx"><code>function OrderStatus({ orderId }) {
+  const { data, isFetching, refetch } = useQuery({
+    queryKey: ['order', orderId],
+    queryFn: ({ signal }) =&gt;
+      fetch(`/api/orders/${orderId}`, { signal }).then((r) =&gt; r.json()),
+    refetchInterval: 15_000,   // 每 15 秒轮询一次订单状态
+    staleTime: 10_000,
+  });
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;当前状态：{data?.status}&lt;/p&gt;
+      &lt;button onClick={refetch} disabled={isFetching}&gt;
+        {isFetching ? '刷新中…' : '手动刷新'}
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <div class="note">轮询间隔应结合业务变化频率选择：订单状态 10–30 秒可接受，实时消息通知才考虑秒级；长时间停留在页面上时可配合组件卸载停止轮询——<code>refetchInterval</code> 会随组件卸载自动停止。</div>
+  <div class="warn-box">轮询不要默认开启：只有订单状态、消息计数等需要主动跟踪变化的页面才使用 <code>refetchInterval</code>；普通列表依赖窗口聚焦与挂载重取即可，轮询会在后台持续消耗请求量。</div>
+  <p><code>refetch</code> 的触发时机分两类：用户主动点击刷新按钮，或钩子检测到 stale 数据在挂载、聚焦、重连等时机被访问；轮询则是时间驱动，与用户操作无关。二者可以并存，但轮询间隔决定后台请求的最低频率。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">26.5</span> 两套失效体系对照</h2>
+  <p>第 24 章讲过 RTK Query 的标签失效，本章讲的是 TanStack Query 的键前缀失效；两者思想相同（声明缓存归属、变更后通知归属集合），实现载体不同。下表并列对照，便于跨项目迁移。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>RTK Query 标签体系</th><th>TanStack Query 查询键</th></tr></thead>
+    <tbody>
+      <tr><td>归属声明</td><td><code>providesTags</code> 把缓存挂到标签 / 实体 id 上</td><td><code>queryKey</code> 数组层级天然构成前缀归属</td></tr>
+      <tr><td>失效触发</td><td>mutation 内 <code>invalidatesTags</code></td><td>mutation 成功后 <code>invalidateQueries</code> 按前缀匹配</td></tr>
+      <tr><td>精准失效</td><td><code>{ type: 'Post', id }</code> 实体标签</td><td><code>['post', id]</code> 键路径 + <code>exact: true</code></td></tr>
+      <tr><td>覆盖范围</td><td>标签可跨多个 endpoint 共享归属</td><td>前缀层级可跨多个查询共享归属</td></tr>
+      <tr><td>风险点</td><td>标签漏声明导致缓存不失效</td><td>前缀过宽导致一批无关缓存被重取</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">跨技术栈迁移时不要照搬标签名：RTK Query 的 <code>providesTags</code> 声明在 query 上，TanStack Query 的归属由键前缀天然形成；把前者的标签清单思维直接套到后者，容易漏掉前缀层级导致失效范围错误。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">26.6</span> 典型页面策略选型</h2>
+  <p>下表把常见页面形态映射到具体参数组合，作为项目初始化时的默认值参考；页面特殊需求再在单查询上覆盖。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>页面形态</th><th>staleTime</th><th>自动刷新倾向</th><th>失效时机</th></tr></thead>
+    <tbody>
+      <tr><td>后台列表（高频变动）</td><td>0–30 秒</td><td>开启窗口聚焦重取</td><td>新增 / 修改 / 删除成功后 invalidate 前缀</td></tr>
+      <tr><td>详情页</td><td>30–60 秒</td><td>默认聚焦重取</td><td>自身变更后按 id 精准失效</td></tr>
+      <tr><td>实时看板 / 订单状态</td><td>5–10 秒</td><td><code>refetchInterval</code> 轮询</td><td>状态推进后失效对应键</td></tr>
+      <tr><td>低频静态配置（字典、权限菜单）</td><td>数分钟到永不失效</td><td>关闭聚焦重取</td><td>登录 / 切换角色时 removeQueries 清空</td></tr>
+      <tr><td>个人草稿 / 表单暂存</td><td>不进入查询缓存</td><td>—</td><td>提交成功即移除本地草稿状态</td></tr>
+    </tbody>
+  </table>
+  <p>落地顺序建议：先在 <code>QueryClient</code> 全局设定一组保守默认值（适中的 <code>staleTime</code>、开启聚焦重取、关闭轮询），再逐类页面覆盖；遇到反馈「数据旧」的页面先查 <code>staleTime</code> 与失效键，遇到「请求太多」的页面先查轮询与前缀范围。</p>
+  <ul>
+    <li>把全局 <code>staleTime</code> 设为 0：每次挂载都重取，缓存形同虚设；</li>
+    <li>所有列表开启 <code>refetchInterval</code>：后台请求量随打开页面数量线性增长；</li>
+    <li>失效键写成根前缀：一次失效清空全部模块缓存，应按业务模块组织前缀层级。</li>
+  </ul>
+  <div class="key-sentence">策略判断顺序：<strong>先问数据变化频率，再定 <code>staleTime</code>；先问用户是否需要看到最新值，再定自动刷新；先问变更影响哪些键，再定失效前缀</strong>。不要把 <code>staleTime</code> 全设为 0 换来每次挂载都请求。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>生命周期</td><td>fresh → stale → inactive → 回收，阈值由 staleTime 与 gcTime 决定</td></tr>
+      <tr><td>invalidateQueries</td><td>标记过期并让活跃组件重取，用于变更后刷新</td></tr>
+      <tr><td>removeQueries</td><td>直接删除缓存，用于登出、切账号等场景</td></tr>
+      <tr><td>setQueryData</td><td>直写缓存不发请求，用于乐观更新与手动合并</td></tr>
+      <tr><td>自动刷新</td><td>挂载、窗口聚焦、网络恢复、轮询四类开关，按页面频率配置</td></tr>
+      <tr><td>策略选型</td><td>频率定 staleTime，新鲜度要求定自动刷新，变更范围定失效前缀</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为商品列表配置查询：<code>queryKey: ['products', category]</code>，<code>staleTime</code> 20 秒，开启窗口聚焦重取；在新增商品成功后失效该前缀缓存，并写出对应 <code>invalidateQueries</code> 调用。说明为什么这里不使用 <code>exact: true</code>。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>对比 <code>invalidateQueries</code>、<code>removeQueries</code>、<code>setQueryData</code> 三者语义，分别写出适用场景；再为「用户退出登录」选择应使用哪个 API 清空用户资料、权限与购物车相关缓存，写出键前缀列表。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计一个「实时订单跟踪」页面的缓存策略：订单列表与订单详情两个查询；要求列表 20 秒内不重复请求，详情每 10 秒轮询，切换订单详情时不刷新列表；给出 <code>queryKey</code> 结构、各查询的 <code>staleTime</code> / <code>refetchInterval</code> 配置与失效调用，并回答：轮询详情时为什么不会顺带刷新列表缓存？</div>
+  <p class="note">参考答案见附录 C。下一章：乐观更新与回滚——先改 UI 再发请求，失败时如何用快照还原并提示用户。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="025_第25章_服务端状态TanStackQuery.html">← 第 25 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="027_第27章_乐观更新与回滚.html">第 27 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 26 章 缓存失效与刷新策略</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

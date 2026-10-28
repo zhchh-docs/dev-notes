@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 40 章 调度与优先级｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第五篇 渲染原理</p>
+    <h1>第 40 章 调度与优先级</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 40 章 / 共 64 章 · 预计 50 分钟 · 决定谁先渲染</span>
+    </div>
+    <p class="hero-desc">Fiber 解决了"渲染可以被切片"，调度器解决"切片按什么顺序喂给主线程"。本章讲清更新任务的优先级分层、Scheduler 的合作式时间片思路、lane 模型的原理概念，以及插队、过期提升、后台让位这些行为表现；具体 API（useTransition）留到第 45 章展开。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="039_第39章_Fiber架构可中断的渲染.html">第 39 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="041_第41章_函数组件的执行过程.html">第 41 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">40.1 更新不是平等的：为什么需要优先级</a></li>
+    <li><a href="#sec3">40.2 Scheduler：合作式调度与时间片</a></li>
+    <li><a href="#sec4">40.3 优先级分层与 lane 概念</a></li>
+    <li><a href="#sec5">40.4 一次更新如何进入调度队列</a></li>
+    <li><a href="#sec6">40.5 行为表现：插队、过期提升、后台让位</a></li>
+    <li><a href="#sec7">40.6 常见误解与边界</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解为什么交互更新与后台更新不能使用同一种紧迫程度；</li>
+    <li>说清 Scheduler 的角色：<strong>合作式调度</strong>、按时间片把主线程交还给浏览器；</li>
+    <li>建立优先级分层概念：<strong>同步紧急、过渡、空闲</strong>，理解 lane 作为任务分组标识的原理；</li>
+    <li>描述一次 <code>setState</code> 从产生更新到进入队列、被调度执行的过程；</li>
+    <li>记住插队、过期提升、后台让位三种行为表现，并知道优先级不是开发者可以随意指定的。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">40.1</span> 更新不是平等的：为什么需要优先级</h2>
+  <div class="lead">用户敲键盘、点击按钮这类更新必须立刻反映到界面，晚几十毫秒就会觉得"卡"；而搜索结果过滤、大列表重排、图表刷新这类更新晚一两百毫秒通常感知不到。把两类更新混在一个队列里按先来后到处理，紧急更新就会被后台任务堵在后面。</div>
+  <p>调度器的职责正是给每一次更新标注紧迫程度，并在主线程上安排执行顺序：先处理紧急更新，让界面保持响应；非紧急更新在空闲间隙推进，必要时让出主线程。这与操作系统里进程调度"前台任务优先、后台任务分时"的思路相通。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>任务类型</th><th>典型场景</th><th>紧迫程度与期望表现</th></tr></thead>
+    <tbody>
+      <tr><td>交互紧急更新</td><td>输入框受控值、按钮点击切换开关、滚动位置相关状态</td><td>必须立即渲染，界面不能有可感知延迟</td></tr>
+      <tr><td>过渡更新</td><td>搜索词变化后过滤长列表、选项切换后刷新详情区</td><td>可以延后一小段时间；旧界面保留到新界面准备好</td></tr>
+      <tr><td>后台 / 空闲更新</td><td>离线统计、非可视区域内容预计算、低优先级刷新</td><td>主线程空闲时再做，不影响交互响应</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">优先级调度的目标不是"让所有更新都更快"，而是<strong>让用户正在感知的那部分更新不被其他更新阻塞</strong>。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">40.2</span> Scheduler：合作式调度与时间片</h2>
+  <p>浏览器主线程不支持抢占式中断一段正在执行的 JavaScript：一旦函数开始跑，只能等它返回。React 内部的调度器（Scheduler）采用<strong>合作式调度</strong>思路：React 自己在每个工作单元结束后检查时间片是否用完，用完就主动把主线程交还给浏览器，让浏览器先处理输入、绘制与动画，下一轮再继续剩余单元。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 260" role="img" aria-label="时间片交替让出主线程">
+      <text x="400" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">时间片内：React 工作 → 检查 → 让出 → 浏览器处理 → 下一轮继续</text>
+      <rect x="40" y="56" width="110" height="36" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="95" y="79" text-anchor="middle" font-size="11.5" fill="#1f2e1f">React 工作单元</text>
+      <rect x="166" y="56" width="90" height="36" rx="6" fill="#f0f5e6" stroke="#7a8a70" stroke-dasharray="4 3"/>
+      <text x="211" y="79" text-anchor="middle" font-size="11.5" fill="#7a8a70">检查时间片</text>
+      <rect x="272" y="56" width="110" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="327" y="79" text-anchor="middle" font-size="11.5" fill="#b45309">浏览器处理输入</text>
+      <rect x="398" y="56" width="110" height="36" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="453" y="79" text-anchor="middle" font-size="11.5" fill="#1f2e1f">React 继续单元</text>
+      <rect x="524" y="56" width="90" height="36" rx="6" fill="#f0f5e6" stroke="#7a8a70" stroke-dasharray="4 3"/>
+      <text x="569" y="79" text-anchor="middle" font-size="11.5" fill="#7a8a70">检查时间片</text>
+      <rect x="630" y="56" width="110" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="685" y="79" text-anchor="middle" font-size="11.5" fill="#b45309">浏览器绘制动画</text>
+      <line x1="150" y1="74" x2="164" y2="74" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="256" y1="74" x2="270" y2="74" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="382" y1="74" x2="396" y2="74" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="508" y1="74" x2="522" y2="74" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="614" y1="74" x2="628" y2="74" stroke="#7a8a70" stroke-width="1.2"/>
+      <rect x="40" y="130" width="700" height="96" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="58" y="158" font-size="12" fill="#1f2e1f">合作式调度：React 不被浏览器强制打断，而是在单元边界主动检查"本轮时间片是否用完"，用完就交还控制权。</text>
+      <text x="58" y="184" font-size="12" fill="#2d6a3f">下一轮调度再从 Fiber 链表记录的进度继续，已完成的工作单元不重复执行。</text>
+      <text x="58" y="210" font-size="12" fill="#7a8a70">概念边界：时间片的具体长度、队列实现细节属于 React 内部策略，随版本调整；开发者只需理解"分片让出"的行为。</text>
+    </svg>
+    <p class="diagram-caption">图 40-1 合作式时间片：React 在单元边界主动让出主线程，浏览器穿插处理输入与绘制</p>
+  </div>
+  <pre class="code" data-lang="js"><code>// 概念化示意：Scheduler 在每个工作单元后检查是否该让出主线程
+// 仅用于理解调度思路，不是 React 内部源码
+function shouldYieldToHost(deadline) {
+  // 本轮时间片剩余时间耗尽，或有更高优先级任务等待时返回 true
+  return deadline.timeRemaining() &lt;= 0 || hasHigherPriorityTask();
+}
+
+function schedulerLoop(deadline) {
+  while (currentFiber &amp;&amp; !shouldYieldToHost(deadline)) {
+    currentFiber = performUnitOfWork(currentFiber);
+  }
+  if (currentFiber) {
+    // 未完成：注册下一轮回调，稍后继续
+    requestNextCallback(schedulerLoop);
+  }
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">不要背内部参数</span>具体时间片毫秒数、任务队列的内部数据结构会随 React 版本演进；面试与学习中讲到原理即可，不要把示意代码里的函数名当成公开 API。</div>
+  <p>这里的"合作"是相对于操作系统的"抢占"而言：浏览器不能在函数执行到一半时强行接管主线程，只能等 JavaScript 返回；React 因此选择在每个工作单元边界主动检查并交还控制权，配合浏览器的空闲回调机制完成分片。理解这一点就能明白：可中断性依赖 Fiber 先把渲染拆成独立单元（第 39 章），没有单元边界，合作式检查就无处下手。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">40.3</span> 优先级分层与 lane 概念</h2>
+  <p>React 把更新任务划分为若干优先级档位。开发者日常能感知到的主要是两档：<strong>普通（同步紧急）更新</strong>与 <strong>过渡（Transition）更新</strong>；此外还有内部使用的空闲档位用于后台工作。React 内部用 <strong>lane</strong>（车道）这一概念给任务分组：每个 lane 对应一组具有相似紧迫程度的更新，便于批量判断"当前有没有高优先级任务等待""哪些 lane 的任务已经过期需要提升"。</p>
+  <div class="lead">优先级档位不是 React 暴露给开发者的"分数参数"，而是由<strong>更新的触发方式</strong>决定：事件回调里的普通 <code>setState</code> 自动归入紧急档，被 <code>startTransition</code> 包裹的更新归入过渡档；开发者能做的是选择用哪种方式发起更新，而不是手动指定档位高低。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 240" role="img" aria-label="优先级层级与 lane 分组">
+      <rect x="60" y="40" width="680" height="36" rx="8" fill="#2d6a3f"/>
+      <text x="80" y="63" font-size="13" fill="#fff">最高 · 同步紧急：输入受控、点击响应，必须立即渲染，可打断进行中的过渡渲染</text>
+      <rect x="60" y="96" width="680" height="36" rx="8" fill="#4f8a63"/>
+      <text x="80" y="119" font-size="13" fill="#fff">过渡 · Transition：可延后渲染，旧界面保持展示，新界面就绪后再切换（第 45 章）</text>
+      <rect x="60" y="152" width="680" height="36" rx="8" fill="#c2cfb4"/>
+      <text x="80" y="175" font-size="13" fill="#1f2e1f">空闲 · 后台：主线程完全空闲时再执行，用于不影响交互的内部工作</text>
+      <text x="400" y="222" text-anchor="middle" font-size="12" fill="#7a8a70">lane 是分组标识：同档位任务放在同一组，调度时按组比较先后、批量处理过期提升。</text>
+    </svg>
+    <p class="diagram-caption">图 40-2 优先级由高到低分层；lane 把相近紧迫程度的更新归为一组</p>
+  </div>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:30%"><col style="width:25%"><col style="width:25%"></colgroup>
+    <thead><tr><th>档位</th><th>典型触发方式</th><th>能否被更高优先级打断</th><th>过期策略</th></tr></thead>
+    <tbody>
+      <tr><td>同步紧急</td><td>普通事件回调中的 <code>setState</code>、受控输入</td><td>基本不被打断；渲染与提交连贯完成</td><td>不允许长时间排队，需要立即响应</td></tr>
+      <tr><td>过渡 Transition</td><td>用 <code>startTransition</code> 或 <code>useTransition</code> 包裹的更新</td><td>可以被新的紧急更新打断并丢弃草稿</td><td>等待过久会被提升，避免任务永远排不上</td></tr>
+      <tr><td>空闲后台</td><td>React 内部工作；业务侧无直接对应 API</td><td>随时让位给前两档</td><td>长时间饥饿后由内部策略提升优先级</td></tr>
+    </tbody>
+  </table>
+  <p class="note">关于 lane：可以把它理解为"用一组编号给任务分组"的调度思想，类似把任务分到不同车道。本章只需理解分组与比较的原理，不需要记忆内部 lane 的具体命名与位值；它们属于 React 实现细节，且会随版本调整。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">40.4</span> 一次更新如何进入调度队列</h2>
+  <p>以组件内一次普通 <code>setState</code> 为例，更新从产生到被调度的过程可以概括为四步：记录新状态 → 标注优先级档位 → 加入对应队列 → 通知调度器安排执行。组件函数此时并不会立刻重新执行。</p>
+  <pre class="code" data-lang="jsx"><code>function SearchBox() {
+  const [keyword, setKeyword] = useState('');
+
+  // 输入：普通事件回调中的更新 → 同步紧急档位
+  function onInput(e) {
+    setKeyword(e.target.value);   // 记录更新、标注紧急优先级、进入队列
+  }
+
+  return (
+    &lt;input
+      value={keyword}
+      onInput={onInput}
+      placeholder="输入关键词"
+    /&gt;
+  );
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>import { useTransition } from 'react';
+
+function FilterPanel() {
+  const [keyword, setKeyword] = useState('');
+  const [list, setList] = useState([]);
+  const [isPending, startTransition] = useTransition();
+
+  function onChange(e) {
+    setKeyword(e.target.value);   // 紧急：输入框立刻响应
+    startTransition(() =&gt; {       // 过渡：过滤大列表归入低一档队列
+      setList(filterHeavyList(e.target.value));
+    });
+  }
+
+  return &lt;input value={keyword} onChange={onChange} /&gt;;
+}</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>步骤</th><th>做什么</th><th>对应第 39 章的结构</th></tr></thead>
+    <tbody>
+      <tr><td>记录更新</td><td>把新状态挂到组件对应的 Fiber 上，排队等待处理</td><td>写入 memoizedState 对应的更新队列</td></tr>
+      <tr><td>标注档位</td><td>按触发方式确定属于紧急还是过渡档位</td><td>更新带上对应的 lane 分组信息</td></tr>
+      <tr><td>进入队列</td><td>调度器按优先级把待处理任务纳入本轮调度</td><td>与 workInProgress 树的构建衔接</td></tr>
+      <tr><td>执行渲染</td><td>时间片内推进 Fiber 遍历，完成后统一提交</td><td>beginWork / completeWork → commit 阶段</td></tr>
+    </tbody>
+  </table>
+  <p>还要注意：一次事件回调里可能发起多次 <code>setState</code>，它们会被归入同一轮调度，而不是每次都触发一轮独立渲染。React 先把更新收集到队列，再统一安排一次协调与提交，这就是"批处理"的基本形态，第 42 章会结合 commit 阶段再展开。</p>
+  <pre class="code" data-lang="jsx"><code>// 同一个事件回调里的多次更新会被批量归入本轮调度
+function onSearchChange(e) {
+  const value = e.target.value;
+  setKeyword(value);                 // 紧急：输入框立刻响应
+  setSuggestions(quickMatch(value));
+  startTransition(() =&gt; {
+    setList(filterHeavyList(value)); // 过渡：大列表延后渲染
+  });
+}</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">40.5</span> 行为表现：插队、过期提升、后台让位</h2>
+  <p>理解调度后，可以解释界面上三类常见的实际表现：</p>
+  <h4>① 紧急更新插队</h4>
+  <p>正在渲染过渡内容时，用户开始打字。输入属于紧急档位，可以中断当前过渡渲染（workInProgress 草稿丢弃，见第 39 章），先把输入状态渲染到屏幕；输入稳定后，过渡任务再重新构建新草稿。用户看到的是输入立刻响应，而不是先等长列表刷完。</p>
+  <h4>② 过期提升，避免饥饿</h4>
+  <p>过渡任务如果一直排在后面迟迟轮不到，会等待过久。React 的内部策略会把等待时间过长的低优先级任务提升到较高档位尽快执行，避免低优先级任务被新任务无限挤出队列。业务上感知到的现象是：延后的内容最终一定会出现，不会永久停在旧界面。</p>
+  <h4>③ 后台让位</h4>
+  <p>低档位任务在主线程忙碌时主动等待，只在空闲间隙推进；紧急事件一来立刻让位。这保证了后台计算不会与交互争抢主线程时间片。</p>
+  <p>从用户视角看，三种表现叠加起来就是：打字、点击始终跟手；被推迟的长列表不会把界面卡死；排在后面的任务也不会被新任务永远挤出队列。这些行为默认开启，开发者只在需要区分紧急与过渡时才显式使用 <code>useTransition</code>（第 45 章）。</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>表现</th><th>调度机制</th><th>用户可观察到的现象</th></tr></thead>
+    <tbody>
+      <tr><td>插队</td><td>高优先级任务可中断进行中的低优先级渲染</td><td>输入框打字流畅，长列表刷新被推迟</td></tr>
+      <tr><td>过期提升</td><td>等待过久的低优先级任务被临时提高档位</td><td>延后内容不会永久"卡住"，最终会显示出来</td></tr>
+      <tr><td>后台让位</td><td>低档位任务在主线程忙碌时主动排队等待</td><td>后台计算期间滚动、点击仍保持响应</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">调度器保证的是<strong>响应性</strong>：紧急操作不被阻塞；它并不承诺"低优先级任务总被推迟"，过期提升兜底保证它们最终被执行。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">40.6</span> 常见误解与边界</h2>
+  <div class="pit-sentence"><span class="tag-pit">误解 1</span>优先级不是开发者可以自由指定的分数。普通事件里的 <code>setState</code> 默认走紧急档位；只有用 <code>startTransition</code> / <code>useTransition</code> 显式包裹的更新才归入过渡档位。不存在"把这个 state 调到最高优先级"之类的手动参数。</div>
+  <div class="pit-sentence"><span class="tag-pit">误解 2</span>调度只优化 render 阶段。一旦进入 commit 阶段（真实 DOM 变更，第 42 章），任务不可中断；调度的可中断能力止步于提交之前。</div>
+  <div class="warn-box"><span class="tag-pit">误解 3</span>"用了 Transition 就一定会快"是错的。优先级调度只是让紧急操作不被长渲染阻塞；如果组件本身计算量巨大、列表缺少优化，过渡渲染仍然耗时。组件级优化（<code>memo</code>、<code>useMemo</code>、虚拟化）是第六篇的主题。</div>
+  <p class="note">本章的 <code>startTransition</code> 代码仅用于说明优先级归属；API 的完整签名、<code>isPending</code> 用法与实际场景对照在第 45 章系统讲解。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>为什么要调度</td><td>交互更新必须立即响应，后台更新可以等待，混在一个队列会互相阻塞</td></tr>
+      <tr><td>Scheduler 思路</td><td>合作式调度：在工作单元边界主动检查时间片，用完交还主线程</td></tr>
+      <tr><td>优先级分层</td><td>同步紧急 > 过渡 Transition > 空闲后台</td></tr>
+      <tr><td>lane 概念</td><td>按紧迫程度把任务分组，便于比较先后与批量过期提升</td></tr>
+      <tr><td>更新流程</td><td>记录状态 → 标注档位 → 进入队列 → 时间片内渲染并提交</td></tr>
+      <tr><td>三种表现</td><td>紧急插队、过期提升防饥饿、后台主动让位</td></tr>
+      <tr><td>边界</td><td>优先级由触发方式决定；commit 阶段不可中断；调度不替代组件优化</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>列出两类"必须立即渲染"的更新与两类"可以延后渲染"的更新，并说明调度器按什么标准把它们分到不同档位。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>解释"合作式调度"为什么需要 React 自己在单元边界检查时间片，而不能由浏览器强制中断一段正在运行的函数？被让出的渲染任务下一轮如何知道从哪里继续？</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>一个搜索页面：输入框受控值与"过滤后的商品列表"放在同一次事件回调的两个 <code>setState</code> 中。描述它们默认分别属于什么档位；若希望列表过滤延后渲染，应该用什么 API 包裹第二个更新（只说明思路，不要求写出完整组件）。再说明为什么输入框的值仍然必须走紧急档位。</div>
+  <p class="note">参考答案见附录 C。下一章：函数组件被 React 执行时，内部到底发生了什么。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="039_第39章_Fiber架构可中断的渲染.html">← 第 39 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="041_第41章_函数组件的执行过程.html">第 41 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 40 章 调度与优先级</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 52 章 服务器渲染概念：SSR/SSG｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第六篇 性能优化</p>
+    <h1>第 52 章 服务器渲染概念：SSR/SSG</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 52 章 / 共 64 章 · 预计 50 分钟 · HTML 何时生成、由谁生成</span>
+    </div>
+    <p class="hero-desc">CSR 的空白外壳要等脚本与数据才出内容，SSR 在请求时由服务器生成 HTML，SSG 在构建时生成静态页面，ISR 在后台按需再生。本章用对照表理清四种模式在生成时机、数据时机、首屏速度、成本与适用场景上的差别，并明确 React 只是库、渲染模式由框架编排的边界。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="051_第51章_代码分割与预加载.html">第 51 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="053_第53章_hydration与流式渲染.html">第 53 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">52.1 CSR 流程与痛点</a></li>
+    <li><a href="#sec3">52.2 SSR：请求时在服务器生成 HTML</a></li>
+    <li><a href="#sec4">52.3 SSG：构建时生成静态 HTML</a></li>
+    <li><a href="#sec5">52.4 四种模式完整对照</a></li>
+    <li><a href="#sec6">52.5 框架层面：React 只是库</a></li>
+    <li><a href="#sec7">52.6 取舍：什么时候不必上 SSR</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清客户端渲染（CSR）的完整流程，以及它在首屏时间、SEO 上的痛点；</li>
+    <li>理解 SSR：请求到达时由服务器把 React 树渲染成 HTML，<code>renderToString</code> 与 <code>renderToPipeableStream</code> 的分工；</li>
+    <li>理解 SSG：构建时生成静态 HTML，以及 ISR（增量静态再生）的概念；</li>
+    <li>能用对照表区分 CSR、SSR、SSG、ISR 的数据时机、缓存能力与适用场景；</li>
+    <li>明确 React 本身只是库，渲染模式由框架（如 Next.js）提供，并能在架构选型时做成本取舍。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">52.1</span> CSR 流程与痛点</h2>
+  <p>本书前面章节写的浏览器端应用属于客户端渲染（Client-Side Rendering，CSR）：服务器返回一个几乎空白的 HTML 外壳，浏览器下载 JS bundle，React 在浏览器里挂载、再请求业务数据，最后才渲染出界面。</p>
+  <ol>
+    <li>浏览器请求页面，服务器返回带空 <code>root</code> 节点的 HTML；</li>
+    <li>浏览器下载、解析、执行 JS bundle；</li>
+    <li>React 挂载完成后发起数据请求；</li>
+    <li>数据返回，组件渲染出首屏内容。</li>
+  </ol>
+  <pre class="code" data-lang="jsx"><code>// 典型 CSR 入口：root 节点初始为空，等待 JS 执行后才有内容
+import { createRoot } from 'react-dom/client';
+import App from './App';
+
+const root = createRoot(document.getElementById('root'));
+root.render(&lt;App /&gt;);</code></pre>
+  <p>这套模式在内部后台系统表现良好，因为用户已经登录、对首屏白屏容忍度高。但在面向公网的内容型页面上，它带来两类典型问题：</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>痛点</th><th>成因</th><th>受影响场景</th></tr></thead>
+    <tbody>
+      <tr><td>首屏可见时间长</td><td>必须等 bundle 下载、执行、再等数据返回，页面才有内容</td><td>弱网、低端机、bundle 体积大的站点</td></tr>
+      <tr><td>搜索引擎抓取困难</td><td>初始 HTML 没有正文内容，爬虫未必等待 JS 执行与异步数据</td><td>资讯、电商、文档、营销页等需要收录的站点</td></tr>
+      <tr><td>社交分享卡片缺失</td><td>抓取初始 HTML 的社交平台读不到标题、摘要、封面图</td><td>文章、商品、活动链接分享到 IM 与社交平台</td></tr>
+      <tr><td>初始骨架空档</td><td>接口与脚本未就绪期间只能展示骨架或空白</td><td>网络条件不稳定的移动端体验</td></tr>
+    </tbody>
+  </table>
+  <div class="lead">SSR 与 SSG 都在解决同一个问题：<strong>让浏览器拿到 HTML 时里面已经有可见内容</strong>；区别只在于 HTML 是在"每次请求时"生成，还是在"构建时"生成。</div>
+  <p>补充理解两个首屏阶段的关系，便于后续判断优化方向：</p>
+  <ul>
+    <li><strong>首屏可见（FCP/LCP）</strong>：浏览器第一次画出有意义内容的时间；CSR 要等脚本与数据，SSR/SSG 在 HTML 到达后即可绘制；</li>
+    <li><strong>可交互</strong>：页面事件能被响应的时间；无论哪种模式，都要等客户端 JS 完成水合（第 53 章）；</li>
+    <li>因此"内容先到"与"可以操作"是两个阶段，选型时不要混为一谈。</li>
+  </ul>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">52.2</span> SSR：请求时在服务器生成 HTML</h2>
+  <p>服务器端渲染（Server-Side Rendering，SSR）指：用户请求某个路由时，服务器（Node.js 等运行时）把当前路由对应的 React 组件渲染成 HTML，连同初始数据一起返回；浏览器先展示这份 HTML，之后再下载 JS 并完成 hydration（水合，第 53 章），应用才具备交互能力。</p>
+  <pre class="code" data-lang="js"><code>// 服务端概念示例：把 React 树渲染成 HTML 字符串
+import { renderToString } from 'react-dom/server';
+import HomePage from './pages/HomePage';
+
+export function renderHomePage(initialData) {
+  // 服务器上渲染组件，得到一份包含标记的 HTML 字符串
+  const html = renderToString(&lt;HomePage data={initialData} /&gt;);
+  // 把 html 嵌入页面模板，连同初始数据一并返回给浏览器
+  return `
+    &lt;html&gt;
+      &lt;body&gt;
+        &lt;div id="root"&gt;${html}&lt;/div&gt;
+        &lt;script&gt;window.__INITIAL_DATA__ = ${JSON.stringify(initialData)}&lt;/script&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+  `;
+}</code></pre>
+  <p>React 提供两套服务端渲染 API：</p>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:36%"><col style="width:36%"></colgroup>
+    <thead><tr><th>API</th><th>行为</th><th>特点与适用</th></tr></thead>
+    <tbody>
+      <tr><td><code>renderToString</code></td><td>同步把整棵 React 树渲染成一个 HTML 字符串</td><td>实现简单；整棵树必须先渲染完才开始输出，请求耗时随页面规模增长</td></tr>
+      <tr><td><code>renderToPipeableStream</code></td><td>React 18 提供的流式渲染，按结构分块把 HTML 推给响应流</td><td>浏览器可先接收首块内容，配合 Suspense 边界实现流式下发（第 53 章展开）</td></tr>
+      <tr><td><code>renderToReadableStream</code></td><td>面向 Web Streams 的流式服务端渲染 API</td><td>适配边缘运行时等 Web 标准环境，概念与上一行同源</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">SSR 的核心收益：<strong>HTML 在响应里就带内容，浏览器不必等整份 JS 执行完才显示页面</strong>；代价是每次请求都要在服务器上完成一轮渲染，服务器成本与响应延迟随之上升。</div>
+  <div class="warn-box"><span class="tag-pit">数据与代码环境</span>服务端渲染期间没有浏览器对象（<code>window</code>、<code>document</code>），直接访问会报错；浏览器相关 API 要推迟到客户端 effect 或交互阶段执行。本书第 10 章的 effect 时机模型在 SSR 下同样适用。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">52.3</span> SSG：构建时生成静态 HTML</h2>
+  <p>静态站点生成（Static Site Generation，SSG）在<strong>项目构建阶段</strong>就把每个路由渲染成静态 HTML 文件，部署到静态托管或 CDN。用户请求时直接返回现成 HTML，服务器不需要实时渲染；内容更新后重新构建，页面才随之刷新。</p>
+  <p>与 SSG 相关的进阶概念是 <strong>ISR（Incremental Static Regeneration，增量静态再生）</strong>：页面先以静态形式对外服务，后台在指定间隔或按需重新生成页面，生成成功后替换旧版本；兼顾静态缓存性能与内容时效性。这一能力由框架与托管层提供，React 本身不负责。</p>
+  <div class="key-sentence">SSG 的取舍本质：<strong>用"重新构建才更新"换取"服务器几乎零渲染成本"</strong>；内容固定、可定期重建的页面最适合，强实时页面则应回到 SSR 或客户端取数。</div>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>概念</th><th>HTML 生成时机</th><th>内容新鲜度与缓存</th></tr></thead>
+    <tbody>
+      <tr><td>CSR</td><td>浏览器端，脚本执行后生成</td><td>无服务端 HTML 缓存；每次加载走客户端渲染流程</td></tr>
+      <tr><td>SSR</td><td>每次请求到达时，服务器实时生成</td><td>数据最新；无法在边缘节点长期缓存完整页面</td></tr>
+      <tr><td>SSG</td><td>构建时一次性生成静态文件</td><td>内容随构建版本更新；可被 CDN 长期缓存，响应最快</td></tr>
+      <tr><td>ISR</td><td>构建时生成初版，后台按需/定时再生</td><td>在静态性能与数据新鲜度之间折中，过期后后台刷新</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">SSG 不等于"纯静态、没有 JS"：静态 HTML 只是首屏内容，交互仍然需要客户端 JS 完成 hydration；SSG 解决的是 HTML 生成时机，不消除客户端脚本体积。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">52.4</span> 四种模式完整对照</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="CSR SSR SSG 时序对比">
+      <g font-size="11.5">
+        <text x="20" y="34" fill="#1f2e1f" font-weight="600">CSR：空白外壳 → 下载 JS → 执行 → 取数 → 渲染</text>
+        <rect x="20" y="44" width="120" height="22" rx="4" fill="#fef3c7" stroke="#b45309"/><text x="80" y="59" text-anchor="middle" fill="#b45309">空 HTML 到达</text>
+        <rect x="150" y="44" width="150" height="22" rx="4" fill="#fef3c7" stroke="#b45309"/><text x="225" y="59" text-anchor="middle" fill="#b45309">下载 + 执行 bundle</text>
+        <rect x="310" y="44" width="110" height="22" rx="4" fill="#fef3c7" stroke="#b45309"/><text x="365" y="59" text-anchor="middle" fill="#b45309">请求数据</text>
+        <rect x="430" y="44" width="120" height="22" rx="4" fill="#d1fae5" stroke="#047857"/><text x="490" y="59" text-anchor="middle" fill="#047857">内容可见</text>
+
+        <text x="20" y="110" fill="#1f2e1f" font-weight="600">SSR：服务器渲染 → HTML 带内容到达 → JS 下载 → hydration</text>
+        <rect x="20" y="120" width="150" height="22" rx="4" fill="#fef3c7" stroke="#b45309"/><text x="95" y="135" text-anchor="middle" fill="#b45309">服务器渲染 + 取数</text>
+        <rect x="180" y="120" width="140" height="22" rx="4" fill="#d1fae5" stroke="#047857"/><text x="250" y="135" text-anchor="middle" fill="#047857">内容 HTML 到达</text>
+        <rect x="330" y="120" width="150" height="22" rx="4" fill="#fef3c7" stroke="#b45309"/><text x="405" y="135" text-anchor="middle" fill="#b45309">下载 JS + 水合</text>
+        <rect x="490" y="120" width="100" height="22" rx="4" fill="#d1fae5" stroke="#047857"/><text x="540" y="135" text-anchor="middle" fill="#047857">可交互</text>
+
+        <text x="20" y="186" fill="#1f2e1f" font-weight="600">SSG：构建时生成 → 请求直接命中静态 HTML</text>
+        <rect x="20" y="196" width="170" height="22" rx="4" fill="#d8e8c8" stroke="#2d6a3f"/><text x="105" y="211" text-anchor="middle" fill="#1f2e1f">构建时渲染生成 HTML 文件</text>
+        <rect x="210" y="196" width="140" height="22" rx="4" fill="#d1fae5" stroke="#047857"/><text x="280" y="211" text-anchor="middle" fill="#047857">静态 HTML 命中 CDN</text>
+        <rect x="360" y="196" width="150" height="22" rx="4" fill="#fef3c7" stroke="#b45309"/><text x="435" y="211" text-anchor="middle" fill="#b45309">下载 JS + 水合</text>
+
+        <rect x="20" y="252" width="760" height="34" rx="6" fill="#f0f5e6" stroke="#d8e2cc"/>
+        <text x="36" y="273" font-size="11" fill="#4f6348">横向对比：SSR 内容最新但每次请求消耗服务器；SSG 响应最快但内容受构建版本约束；CSR 实现最简单但首屏等待最久</text>
+      </g>
+    </svg>
+    <p class="diagram-caption">图 52-1 CSR、SSR、SSG 的内容可见时机对比</p>
+  </div>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:22%"></colgroup>
+    <thead><tr><th>维度</th><th>CSR</th><th>SSR</th><th>SSG</th><th>ISR</th></tr></thead>
+    <tbody>
+      <tr><td>HTML 生成时机</td><td>浏览器端</td><td>每次请求实时</td><td>构建时</td><td>构建时 + 后台再生</td></tr>
+      <tr><td>数据获取时机</td><td>客户端交互后</td><td>服务端渲染前</td><td>构建时</td><td>构建时 + 再生时</td></tr>
+      <tr><td>首屏可见速度</td><td>慢（等脚本与数据）</td><td>较快（HTML 先到）</td><td>最快（静态命中）</td><td>快（静态命中为主）</td></tr>
+      <tr><td>SEO 友好度</td><td>弱</td><td>好</td><td>好</td><td>好</td></tr>
+      <tr><td>服务器成本</td><td>低</td><td>高（每次渲染）</td><td>低（静态托管）</td><td>低到中</td></tr>
+      <tr><td>内容新鲜度</td><td>实时</td><td>实时</td><td>随构建版本</td><td>定时/按需刷新</td></tr>
+      <tr><td>典型适用</td><td>后台管理系统</td><td>个性化、实时数据页面</td><td>文档、博客、营销页</td><td>内容型站点兼顾时效</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">52.5</span> 框架层面：React 只是库</h2>
+  <p>需要明确：<strong>React 本身只负责组件渲染与交互</strong>，路由约定、服务端打包、数据获取时机、页面缓存策略都不是 React 提供的。生产环境的 SSR/SSG 通常由框架统一编排，Next.js 是 React 生态中最常见的代表。</p>
+  <pre class="code" data-lang="jsx"><code>// Next.js Pages Router 概念示例：getStaticProps 在构建时取数并生成静态页
+export async function getStaticProps() {
+  const posts = await fetchPosts();
+  return { props: { posts } };
+}
+
+export default function BlogList({ posts }) {
+  return (
+    &lt;ul&gt;
+      {posts.map((post) =&gt; (
+        &lt;li key={post.id}&gt;{post.title}&lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>// Next.js Pages Router 概念示例：getServerSideProps 在每次请求时取数（SSR）
+export async function getServerSideProps() {
+  const user = await fetchCurrentUser();
+  return { props: { user } };
+}
+
+export default function Dashboard({ user }) {
+  return &lt;h1&gt;欢迎，{user.name}&lt;/h1&gt;;
+}</code></pre>
+  <p>在 Next.js App Router 等较新的体系中，组件默认可作为服务端组件运行，框架在服务端完成渲染与数据读取，再把结果下发；具体 API 与配置以对应框架官方文档为准，本章只建立概念层面的对应关系。</p>
+  <div class="note"><strong>选型提示</strong>：阅读框架文档时，先判断它把页面归为 SSR、SSG 还是 ISR，再看数据获取函数与缓存配置；不要把框架约定误记为 React 核心 API。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">52.6</span> 取舍：什么时候不必上 SSR</h2>
+  <p>SSR/SSG 不是默认最优解。引入服务端渲染会带来部署形态变化（Node 运行时或边缘环境）、数据获取链路改造、水合成本与调试复杂度。决策时对照下表：</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>判断问题</th><th>倾向结论</th></tr></thead>
+    <tbody>
+      <tr><td>是否需要搜索引擎收录与社交分享摘要</td><td>需要 → 考虑 SSR/SSG；内部后台、登录后系统通常不需要</td></tr>
+      <tr><td>首屏慢是否由 JS 体积导致</td><td>先做代码分割（第 51 章）与资源瘦身；未必需要服务端渲染</td></tr>
+      <tr><td>内容是否相对固定、可定期重建</td><td>固定内容优先 SSG/ISR，服务器成本最低</td></tr>
+      <tr><td>页面是否强个性化、强实时</td><td>SSR 更合适；但要评估服务器渲染耗时与并发成本</td></tr>
+      <tr><td>团队是否具备服务端部署与调试能力</td><td>能力不足时，先用 CSR + 静态优化把体验做到位，避免架构过度设计</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">常见误解</span>"上了 SSR 页面就一定快"并不成立：水合开销、服务端等待、流式配置不当都可能让整体体验不如优化充分的 CSR。选型与验收时要以真实指标（LCP、交互响应）为准，而不是模式名称。</div>
+  <div class="pit-sentence">内部后台、员工系统、登录后才能访问的页面通常不需要 SSR/SSG：用户身份与个性化状态在客户端才完整，强行服务端渲染只会增加部署复杂度，收益应让位于代码分割、资源压缩等 CSR 侧优化。</div>
+  <div class="lead">本章收口：CSR、SSR、SSG、ISR 的差别集中在 HTML 与数据"何时生成、由谁生成、缓存多久"；理解这张对照表，第 53 章再进入水合与流式渲染的细节。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>CSR 痛点</td><td>空白外壳等脚本与数据，首屏慢、SEO 弱、分享摘要缺失</td></tr>
+      <tr><td>SSR</td><td>请求时服务器渲染 HTML 下发，renderToString 同步、renderToPipeableStream 流式</td></tr>
+      <tr><td>SSG</td><td>构建时生成静态 HTML，可被 CDN 长期缓存；ISR 后台再生兼顾时效</td></tr>
+      <tr><td>对照维度</td><td>生成时机、数据时机、首屏速度、SEO、服务器成本、新鲜度、适用场景</td></tr>
+      <tr><td>框架职责</td><td>React 是库，路由、数据获取与缓存策略由 Next.js 等框架编排</td></tr>
+      <tr><td>取舍</td><td>先排除代码体积问题；按需选择模式，用真实指标验证收益</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>列出 CSR 从请求到内容可见的四个阶段，并指出其中哪些阶段在 SSR 中被提前到了服务器侧；再说明 SSR 为什么仍然需要下载 JS bundle。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为以下三个页面分别选择 CSR / SSR / SSG / ISR 并说明理由：① 员工内部报销后台；② 企业官网产品介绍页；③ 实时行情仪表盘；④ 每日更新的博客文章列表。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>某营销页首屏 LCP 较差，团队讨论是否上 SSR。请写出你的评估清单：先度量哪些指标、检查哪些非服务端原因（代码分割、图片、缓存等），再给出什么条件下才建议引入 SSR 或 SSG，以及引入后如何验收。</div>
+  <p class="note">参考答案见附录 C。下一章：hydration 与流式渲染——浏览器如何把服务端 HTML 变成可交互应用，以及 React 18 的流式下发与选择性水合。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="051_第51章_代码分割与预加载.html">← 第 51 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="053_第53章_hydration与流式渲染.html">第 53 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 52 章 服务器渲染概念：SSR/SSG</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 38 章 虚拟 DOM 与 diff 入门｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第五篇 渲染原理</p>
+    <h1>第 38 章 虚拟 DOM 与 diff 入门</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 38 章 / 共 64 章 · 预计 50 分钟 · 进入渲染原理篇</span>
+    </div>
+    <p class="hero-desc">从本章起进入渲染原理篇。先回答最基础的问题：组件状态一变，React 凭什么只更新变化的那一小块 DOM？答案是虚拟 DOM 与 diff 算法。本章讲清虚拟 DOM 是什么、diff 按什么假设比较、比较之后产出什么变更，为后面 Fiber、调度、协调打下地基。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../40_第四篇_路由与数据/037_第37章_错误边界与降级UI.html">第 37 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="039_第39章_Fiber架构可中断的渲染.html">第 39 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">38.1 为什么不能每次重绘整棵 DOM</a></li>
+    <li><a href="#sec3">38.2 虚拟 DOM：一棵描述界面的对象树</a></li>
+    <li><a href="#sec4">38.3 diff 的三个前提假设</a></li>
+    <li><a href="#sec5">38.4 同层比较与组件类型判断</a></li>
+    <li><a href="#sec6">38.5 手写一个迷你 diff（示意）</a></li>
+    <li><a href="#sec7">38.6 旧栈的瓶颈：不可中断</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清<strong>直接操作真实 DOM 为什么昂贵</strong>，虚拟 DOM 方案把问题转移到哪一层；</li>
+    <li>能描述虚拟 DOM 的本质：<strong>一棵用 JavaScript 对象描述界面结构的树</strong>，与第 3 章 JSX 编译产物对应；</li>
+    <li>记住 diff 算法的<strong>三个前提假设</strong>，理解为什么 React 不做跨层级移动的比较；</li>
+    <li>理解同层比较时<strong>类型相同复用、类型不同销毁重建</strong>的基本规则；</li>
+    <li>能读懂一个简化版 diff 示意代码，并知道旧栈递归渲染"不可中断"的局限，自然引出下一章 Fiber。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">38.1</span> 为什么不能每次重绘整棵 DOM</h2>
+  <div class="lead">浏览器里最贵的操作不是 JavaScript 计算，而是 <strong>DOM 操作</strong>：每一次 <code>appendChild</code>、<code>setAttribute</code>、文本改写都可能触发浏览器的样式计算、布局（reflow）与绘制（repaint），而且真实 DOM 节点是浏览器内部的重型对象，属性远多于开发者日常用到的部分。</div>
+  <p>如果状态一变就把整个界面用 <code>innerHTML</code> 重写一遍，哪怕界面只有一个数字变化，浏览器也要销毁旧节点、创建新节点、重新计算样式与布局，交互密集时主线程会被反复占用，表现为输入卡顿、动画掉帧。早期框架与原生 jQuery 时代的很多性能问题，都来自"命令式地逐节点手动改 DOM"：开发者既要保证改对，又要保证改得少，负担全压在业务代码上。</p>
+  <pre class="code" data-lang="js"><code>// 反例：命令式手动操作，节点一多就难以维护且容易漏改
+function renderCount(n) {
+  const el = document.getElementById('count');
+  el.textContent = n;
+  // 还要手动更新颜色、类名、相邻提示文字……每加一个状态就要改这里
+  el.style.color = n &gt;= 10 ? '#b45309' : '#1f2e1f';
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>对照项</th><th>直接操作真实 DOM</th><th>虚拟 DOM 方案</th></tr></thead>
+    <tbody>
+      <tr><td>变更方式</td><td>开发者手动选择节点、手动改属性</td><td>框架根据新旧描述树自动算出最小变更集</td></tr>
+      <tr><td>比较成本</td><td>无比较，直接改；但容易改多、改漏</td><td>先在内存里比较两棵轻量对象树，再批量改 DOM</td></tr>
+      <tr><td>DOM 操作次数</td><td>随代码写法波动，可能频繁触发布局</td><td>变更被收集后批量提交，减少中间态布局抖动</td></tr>
+      <tr><td>开发心智</td><td>命令式：关心"怎么一步步改"</td><td>声明式：关心"状态对应什么界面"</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>注意</strong>：虚拟 DOM 并不比"手工优化到极致的直接 DOM 操作"绝对更快；它的价值在于<strong>让声明式开发成为可能</strong>，同时由框架兜底保证变更集尽量小。Vue 的虚拟 DOM 与 React 在这一点上思路一致，可对照《Vue 从 0 到精通》渲染篇阅读。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">38.2</span> 虚拟 DOM：一棵描述界面的对象树</h2>
+  <p>所谓虚拟 DOM（Virtual DOM，简称 VDOM），本质就是<strong>普通 JavaScript 对象</strong>：用 <code>type</code> 描述节点类型，用 <code>props</code> 描述属性与事件，用 <code>children</code> 描述子节点，整棵树递归对应界面结构。组件函数被调用后返回的正是这样一棵树的描述，而不是浏览器里的真实节点。</p>
+  <pre class="code" data-lang="jsx"><code>// JSX 源码（第 3 章已讲过编译产物）
+function Hello({ name }) {
+  return (
+    &lt;section className="card"&gt;
+      &lt;h2&gt;你好，{name}&lt;/h2&gt;
+      &lt;p&gt;欢迎来到 React 渲染原理篇&lt;/p&gt;
+    &lt;/section&gt;
+  );
+}</code></pre>
+  <pre class="code" data-lang="js"><code>// 编译后等价的对象描述（示意结构，字段名仅为讲解）
+const vnode = {
+  type: 'section',
+  props: { className: 'card' },
+  children: [
+    { type: 'h2', props: {}, children: ['你好，', 'Alice'] },
+    { type: 'p', props: {}, children: ['欢迎来到 React 渲染原理篇'] },
+  ],
+};</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 280" role="img" aria-label="虚拟 DOM 与真实 DOM 对照">
+      <text x="200" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">虚拟 DOM：内存中的对象树（轻量）</text>
+      <text x="600" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">真实 DOM：浏览器内部节点（重型）</text>
+      <rect x="120" y="50" width="160" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="200" y="72" text-anchor="middle" font-size="12" fill="#1f2e1f">section 对象</text>
+      <rect x="70" y="120" width="110" height="30" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="125" y="140" text-anchor="middle" font-size="11.5" fill="#1f2e1f">h2 对象</text>
+      <rect x="220" y="120" width="110" height="30" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="275" y="140" text-anchor="middle" font-size="11.5" fill="#1f2e1f">p 对象</text>
+      <line x1="170" y1="84" x2="130" y2="118" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="230" y1="84" x2="270" y2="118" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="340" y1="95" x2="470" y2="95" stroke="#2d6a3f" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <text x="405" y="88" text-anchor="middle" font-size="11" fill="#2d6a3f">diff 后批量提交</text>
+      <rect x="520" y="50" width="160" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="600" y="72" text-anchor="middle" font-size="12" fill="#1f2e1f">&lt;section&gt; 节点</text>
+      <rect x="470" y="120" width="110" height="30" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="525" y="140" text-anchor="middle" font-size="11.5" fill="#b45309">&lt;h2&gt; 节点</text>
+      <rect x="620" y="120" width="110" height="30" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="675" y="140" text-anchor="middle" font-size="11.5" fill="#1f2e1f">&lt;p&gt; 节点</text>
+      <line x1="570" y1="84" x2="530" y2="118" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="630" y1="84" x2="670" y2="118" stroke="#7a8a70" stroke-width="1.2"/>
+      <rect x="70" y="190" width="660" height="66" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="86" y="216" font-size="12" fill="#1f2e1f">内存比较（纯计算，快）：旧对象树 与 新对象树逐项比对，只找出真正变化的部分；</text>
+      <text x="86" y="240" font-size="12" fill="#2d6a3f">浏览器操作（重）：只对变化的节点执行属性更新 / 插入 / 删除，其余节点原样保留。</text>
+    </svg>
+    <p class="diagram-caption">图 38-1 虚拟 DOM 在内存中完成比较，最后只把最小变更集交给真实 DOM</p>
+  </div>
+  <div class="key-sentence">虚拟 DOM 不是"不渲染 DOM"，而是<strong>先用轻量对象树描述界面、在内存里完成比较，再把必要的变更同步到真实 DOM</strong>。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">38.3</span> diff 的三个前提假设</h2>
+  <p>两棵任意树之间做"最小移动距离"的比较，复杂度高到工程上不可接受。React 的 diff 算法在准确性与性能之间做了明确取舍，依赖三个经验假设：绝大多数界面变更都是<strong>局部的、层级不变的、组件类型稳定的</strong>。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:40%"><col style="width:38%"></colgroup>
+    <thead><tr><th>假设</th><th>含义</th><th>推论 / 影响</th></tr></thead>
+    <tbody>
+      <tr><td>① 同层比较</td><td>只比较同一父节点下、同一层级的两个节点，不跨层移动子树</td><td>若节点层级发生变化（如从 <code>&lt;div&gt;</code> 移到 <code>&lt;aside&gt;</code> 内），React 视为旧节点删除、新节点创建</td></tr>
+      <tr><td>② 类型不同直接重建</td><td>旧节点类型与新节点类型不同（元素标签不同，或组件类型不同），直接销毁旧子树、挂载新子树</td><td>类型相同才进入属性与子节点的逐项复用比较</td></tr>
+      <tr><td>③ 同层子节点用 key 标识身份</td><td>一组同级子节点靠 <code>key</code> 配对旧节点与新节点，而不是按下标顺序硬配</td><td>key 的规则在第 43 章专门展开；本章先建立"有身份才谈复用"的概念</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span>假设 ① 意味着：把一段 JSX 从外层 <code>&lt;div&gt;</code> 挪到内层另一个 <code>&lt;div&gt;</code>，即便内容完全相同，React 也会走"删除 + 新建"，组件内部状态一并丢失。需要保留状态时，应当保持层级位置不变，而不是指望 diff 帮你"搬运"。</div>
+  <div class="warn-box"><span class="tag-pit">为什么不做跨层比较</span>两棵完整树的最优匹配在算法上代价很高，而真实业务里跨层搬移子树极少出现；React 用"放弃跨层复用"换取 O(n) 级别的同层比较速度，这是一个被实践验证过的工程取舍。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">38.4</span> 同层比较与组件类型判断</h2>
+  <p>进入同层比较后，React 先看类型，再看 key，最后逐项比对属性与子节点。下表把最常见的几种配对结果列清楚：</p>
+  <div class="lead">比较顺序是固定的三道闸门：<strong>先比类型 → 再比 key → 最后逐项比对属性与子节点</strong>；前两道闸门任何一道不通过，就直接走"销毁旧节点、创建新节点"的分支，不会回头补救属性差异。</div>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:24%"><col style="width:46%"></colgroup>
+    <thead><tr><th>新旧节点关系</th><th>React 动作</th><th>状态与 DOM 表现</th></tr></thead>
+    <tbody>
+      <tr><td>元素标签相同、key 相同</td><td>复用同一 DOM 节点</td><td>保留节点，只更新发生变化的属性、事件监听器与子节点</td></tr>
+      <tr><td>组件类型相同、key 相同</td><td>复用同一组件实例</td><td>保留组件 state 与内部 DOM，重新执行渲染函数，按新 props 调整输出</td></tr>
+      <tr><td>元素标签不同 / 组件类型不同</td><td>销毁旧子树，挂载新子树</td><td>旧组件卸载（执行 cleanup 等），新组件挂载；旧 state 不复用</td></tr>
+      <tr><td>标签相同但 key 不同</td><td>判定为两个不同身份</td><td>旧节点删除、新节点创建，不复用 DOM 与状态</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 类型不同 → 整棵子树重建（假设条件切换了外层标签）
+{showCard
+  ? &lt;div className="card"&gt;&lt;Panel /&gt;&lt;/div&gt;
+  : &lt;aside className="side"&gt;&lt;Panel /&gt;&lt;/aside&gt;}
+
+// 类型相同 → 复用 Panel 实例，state 保留
+{showCard
+  ? &lt;div className="card"&gt;&lt;Panel title="详情" /&gt;&lt;/div&gt;
+  : &lt;div className="card"&gt;&lt;Panel title="预览" /&gt;&lt;/div&gt;}</code></pre>
+  <p class="key-sentence">"类型相同才可能复用，类型不同一律重建"是协调阶段的第一道闸门；<code>key</code> 是第二道闸门，决定同级一组节点里谁和谁配对。两道闸门都通过，才谈得上属性级的增量更新。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">38.5</span> 手写一个迷你 diff（示意）</h2>
+  <p>下面用一小段 JavaScript 演示同层比较的核心思路：类型不同记为替换；类型相同则比对属性差异；子节点按 key 配对后递归比较。代码是<strong>教学简化版</strong>，不代表 React 内部真实实现，但足以把"比较两棵对象树、产出变更补丁"的过程讲清楚。</p>
+  <pre class="code" data-lang="js"><code>// 迷你 diff 示意：返回需要提交到 DOM 的变更描述
+function diff(oldVnode, newVnode) {
+  // ① 类型不同：直接替换整棵子树
+  if (oldVnode.type !== newVnode.type) {
+    return { op: 'replace', old: oldVnode, next: newVnode };
+  }
+
+  // ② 类型相同：比对属性差异
+  const propPatches = {};
+  const keys = new Set([
+    ...Object.keys(oldVnode.props || {}),
+    ...Object.keys(newVnode.props || {}),
+  ]);
+  keys.forEach((k) =&gt; {
+    if (oldVnode.props?.[k] !== newVnode.props?.[k]) {
+      propPatches[k] = newVnode.props?.[k];
+    }
+  });
+
+  // ③ 子节点按 key 配对（简化：只处理同类型子节点数组）
+  const oldMap = new Map((oldVnode.children || []).map((c) =&gt; [c.key, c]));
+  const childPatches = (newVnode.children || []).map((child) =&gt; {
+    const oldChild = oldMap.get(child.key);
+    if (!oldChild) return { op: 'create', node: child };
+    return diff(oldChild, child);
+  });
+
+  return { op: 'update', props: propPatches, children: childPatches };
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>// 触发一次重渲染的最小业务场景
+function App() {
+  const [count, setCount] = useState(0);
+  return (
+    &lt;main&gt;
+      &lt;h1&gt;计数：{count}&lt;/h1&gt;
+      &lt;button onClick={() =&gt; setCount((n) =&gt; n + 1)}&gt;加一&lt;/button&gt;
+    &lt;/main&gt;
+  );
+}</code></pre>
+  <div class="note">真实 React 的协调发生在 Fiber 节点上（第 39、42 章展开），子节点配对、删除、移动的规则比这段示意复杂得多；但"先比描述树、再产出补丁、最后提交 DOM"的整体方向与上面完全一致。</div>
+  <div class="warn-box"><span class="tag-pit">不要据此猜内部实现</span>示意代码中的 <code>oldVnode.props</code>、<code>key</code> 字段名只是讲解命名。阅读本章时请记住"是什么、为什么、行为表现"，不要把示意结构当成 React 源码 API 去记忆或背诵。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">38.6</span> 旧栈的瓶颈：不可中断</h2>
+  <p>在 Fiber 架构出现之前，React 用的是基于递归的协调器（旧栈协调器）：状态更新触发后，从根节点开始递归遍历整棵虚拟 DOM 树，组件函数一层层执行、子节点一层层比较，直到整棵树走完才回到主线程准备提交。这条递归链路一旦启动就<strong>无法中途暂停</strong>。</p>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span>旧栈的卡顿不能简单归因为"diff 算得慢"：真正的结构性问题是<strong>整棵树必须一口气走完才允许回到主线程</strong>，节点越多单次任务越长。排查长任务时要区分"比较算法耗时"与"任务不可分割"，下一章 Fiber 正是从"把遍历拆成可中断单元"入手解决后者。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="旧栈递归不可中断与新架构可中断对照">
+      <text x="400" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#b45309">旧栈协调：一次递归到底，中间让出不了主线程</text>
+      <rect x="60" y="50" width="120" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="120" y="73" text-anchor="middle" font-size="11.5" fill="#b45309">递归遍历节点 1</text>
+      <rect x="196" y="50" width="120" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="256" y="73" text-anchor="middle" font-size="11.5" fill="#b45309">节点 2 …</text>
+      <rect x="332" y="50" width="120" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="392" y="73" text-anchor="middle" font-size="11.5" fill="#b45309">节点 N</text>
+      <rect x="468" y="50" width="120" height="36" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="528" y="73" text-anchor="middle" font-size="11.5" fill="#b91c1c">主线程被占用</text>
+      <rect x="604" y="50" width="130" height="36" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="669" y="73" text-anchor="middle" font-size="11.5" fill="#b45309">走完才提交</text>
+      <line x1="182" y1="68" x2="194" y2="68" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="318" y1="68" x2="330" y2="68" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="454" y1="68" x2="466" y2="68" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="590" y1="68" x2="602" y2="68" stroke="#7a8a70" stroke-width="1.2"/>
+      <text x="400" y="118" text-anchor="middle" font-size="12" fill="#4f6348">界面越大，单次遍历时间越长；期间输入、动画、滚动都在排队等待，长任务造成掉帧。</text>
+      <text x="400" y="170" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">Fiber 架构：把渲染拆成可暂停、可恢复、可丢弃的单元（下一章展开）</text>
+      <rect x="80" y="190" width="100" height="34" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="130" y="212" text-anchor="middle" font-size="11.5" fill="#1f2e1f">工作单元 A</text>
+      <rect x="210" y="190" width="100" height="34" rx="6" fill="#f0f5e6" stroke="#7a8a70" stroke-dasharray="4 3"/>
+      <text x="260" y="212" text-anchor="middle" font-size="11.5" fill="#7a8a70">让出主线程</text>
+      <rect x="340" y="190" width="100" height="34" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="390" y="212" text-anchor="middle" font-size="11.5" fill="#1f2e1f">工作单元 B</text>
+      <rect x="470" y="190" width="100" height="34" rx="6" fill="#f0f5e6" stroke="#7a8a70" stroke-dasharray="4 3"/>
+      <text x="520" y="212" text-anchor="middle" font-size="11.5" fill="#7a8a70">让出主线程</text>
+      <rect x="600" y="190" width="120" height="34" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="660" y="212" text-anchor="middle" font-size="11.5" fill="#1f2e1f">剩余单元继续</text>
+    </svg>
+    <p class="diagram-caption">图 38-2 旧栈递归必须一口气走完；Fiber 把渲染切分为可中断的工作单元</p>
+  </div>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>对照项</th><th>旧栈协调器</th><th>Fiber 架构（39 章起）</th></tr></thead>
+    <tbody>
+      <tr><td>遍历方式</td><td>函数递归调用栈</td><td>可遍历、可回退的链表结构</td></tr>
+      <tr><td>中断能力</td><td>一旦开始不能暂停</td><td>工作间隙可让出主线程，稍后恢复</td></tr>
+      <tr><td>优先级感知</td><td>所有更新一视同仁</td><td>可按任务优先级安排执行顺序（第 40 章）</td></tr>
+      <tr><td>典型症状</td><td>大列表渲染时输入卡顿、动画掉帧</td><td>紧急交互保持响应，后台渲染可被打断</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">本章的落脚点：虚拟 DOM 与 diff 解决了"改什么"的问题；而<strong>怎么在不卡住浏览器的前提下把树走完</strong>，就是 Fiber 架构要解决的问题。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>虚拟 DOM 本质</td><td>用 JavaScript 对象树描述界面，在内存里比较后再提交真实 DOM</td></tr>
+      <tr><td>方案价值</td><td>让声明式开发成为可能，框架兜底产出尽量小的变更集</td></tr>
+      <tr><td>三个假设</td><td>同层比较、类型不同重建、同级子节点靠 key 标识身份</td></tr>
+      <tr><td>复用闸门</td><td>类型相同才可能复用，key 相同才确定配对，之后才做属性级增量更新</td></tr>
+      <tr><td>diff 流程</td><td>旧树 / 新树比较 → 变更补丁 → 批量同步到真实 DOM</td></tr>
+      <tr><td>旧栈局限</td><td>递归不可中断，长任务阻塞主线程，引出 Fiber 架构</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话说明：为什么"状态一变就用 <code>innerHTML</code> 重写整段界面"在交互密集的页面上容易卡顿？虚拟 DOM 方案把这部分工作转移到了哪里？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>给出一段组件代码：外层条件在 <code>&lt;main&gt;</code> 与 <code>&lt;section&gt;</code> 之间切换，内部都是同一个 <code>&lt;Panel /&gt;</code>，且 Panel 内部持有 <code>useState</code>。说明切换时 Panel 的 state 会不会保留，并依据"类型不同直接重建"的假设给出解释；再写出一种保留 Panel state 的改法。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>对照 38.5 的迷你 diff 思路，写出一段判断逻辑：给定新旧两个对象（标签相同、key 相同），输出它们需要更新的属性名清单（只列出值发生变化的属性）。思考：为什么类型不同时不需要再逐项比较属性？</div>
+  <p class="note">参考答案见附录 C。下一章：Fiber 架构——把渲染拆成可中断、可恢复的工作单元。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="../40_第四篇_路由与数据/037_第37章_错误边界与降级UI.html">← 第 37 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="039_第39章_Fiber架构可中断的渲染.html">第 39 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 38 章 虚拟 DOM 与 diff 入门</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 17 章 常用自定义集：useDebounce 等｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第二篇 Hooks 核心</p>
+    <h1>第 17 章 常用自定义集：useDebounce 等</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 17 章 / 共 64 章 · 预计 50 分钟 · 生产项目里出现频率最高的工具 Hook</span>
+    </div>
+    <p class="hero-desc">搜索框防抖、滚动节流、记住上一次值、持久化到本地存储、点击外部关闭弹层、媒体查询响应式……这些需求在每个项目里反复出现。本章给出它们的标准 Hook 实现与时序原理，讲清防抖与节流的边界，最后说明自研工具集与 ahooks、react-use 等成熟库之间的选型关系。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="016_第16章_自定义Hook逻辑复用.html">第 16 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="018_第18章_Hooks规则背后的原理调用顺序.html">第 18 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+  <li><a href="#sec1">本章目标</a></li>
+  <li><a href="#sec2">17.1 useDebounce：搜索输入防抖</a></li>
+  <li><a href="#sec3">17.2 useThrottle：滚动与尺寸节流</a></li>
+  <li><a href="#sec4">17.3 usePrevious：记住上一次值</a></li>
+  <li><a href="#sec5">17.4 useLocalStorage 持久化 Hook</a></li>
+  <li><a href="#sec6">17.5 工具集：点击外部、媒体查询、只跑一次</a></li>
+  <li><a href="#sec7">17.6 自研与成熟库选型及排查清单</a></li>
+  <li><a href="#sec8">本章小结</a></li>
+  <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解<strong>防抖（debounce）</strong>与<strong>节流（throttle）</strong>的时序差异，能按场景选择；</li>
+    <li>掌握 <code>useDebounce</code>、<code>useThrottle</code>、<code>usePrevious</code> 的标准实现与 cleanup 写法；</li>
+    <li>写出与 <code>localStorage</code> 双向同步的 <code>useLocalStorage</code>；</li>
+    <li>积累点击外部、媒体查询、只执行一次等小型工具 Hook；</li>
+    <li>知道什么时候自己写、什么时候直接采用 ahooks / react-use 等成熟库。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">17.1</span> useDebounce：搜索输入防抖</h2>
+  <div class="lead">防抖 Hook 解决的是「高频连续事件只关心最后一次结果」的问题：它内部用一个状态保存采纳值、一个计时器管理延迟窗口，调用方拿到的始终是停顿之后的最新值。</div>
+  <p>用户在搜索框敲入「react hooks」，每敲一个字符都发一次请求，会产生大量即将被覆盖的无效请求。防抖的做法是：<strong>记录最新值，延迟 delay 毫秒再采纳；期间新值到来就取消旧计时、重新等待</strong>。最终只在输入停顿之后发出一次请求。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 230" role="img" aria-label="防抖时序图">
+      <text x="400" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">输入事件与防抖触发（delay = 300ms）</text>
+      <line x1="40" y1="80" x2="760" y2="80" stroke="#7a8a70" stroke-width="1.2"/>
+      <g font-size="11" fill="#1f2e1f" text-anchor="middle">
+        <rect x="70" y="66" width="14" height="28" rx="3" fill="#4f8a63"/><text x="77" y="118">r</text>
+        <rect x="130" y="66" width="14" height="28" rx="3" fill="#4f8a63"/><text x="137" y="118">re</text>
+        <rect x="190" y="66" width="14" height="28" rx="3" fill="#4f8a63"/><text x="197" y="118">rea</text>
+        <rect x="250" y="66" width="14" height="28" rx="3" fill="#4f8a63"/><text x="257" y="118">react</text>
+        <rect x="330" y="66" width="14" height="28" rx="3" fill="#4f8a63"/><text x="337" y="118">空格</text>
+        <rect x="400" y="66" width="14" height="28" rx="3" fill="#4f8a63"/><text x="407" y="118">h</text>
+      </g>
+      <path d="M 264 96 Q 300 150 337 150" fill="none" stroke="#b45309" stroke-width="1.3" stroke-dasharray="5 3"/>
+      <path d="M 344 96 Q 370 150 407 150" fill="none" stroke="#b45309" stroke-width="1.3" stroke-dasharray="5 3"/>
+      <rect x="430" y="150" width="150" height="34" rx="6" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="505" y="172" text-anchor="middle" font-size="12" fill="#1f2e1f">停顿 300ms 后发出请求</text>
+      <text x="400" y="214" text-anchor="middle" font-size="12" fill="#4f6348">每次新输入都取消上一个计时器；只有最后一次延迟结束后才采纳值</text>
+    </svg>
+    <p class="diagram-caption">图 17-1 防抖时序：密集输入被合并，停顿 delay 后只触发一次副作用</p>
+  </div>
+  <pre class="code" data-lang="jsx"><code>import { useState, useEffect } from 'react';
+
+function useDebounce(value, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() =&gt; {
+    const timer = setTimeout(() =&gt; setDebounced(value), delay);
+    return () =&gt; clearTimeout(timer);   // 新值到来 / 卸载时取消旧计时
+  }, [value, delay]);
+
+  return debounced;
+}
+
+// 搜索框
+function SearchBox() {
+  const [keyword, setKeyword] = useState('');
+  const debouncedKeyword = useDebounce(keyword, 300);
+
+  useEffect(() =&gt; {
+    if (!debouncedKeyword) return;
+    let ignore = false;
+    fetch(`/api/search?q=${debouncedKeyword}`)
+      .then((r) =&gt; r.json())
+      .then((data) =&gt; { if (!ignore) setResults(data); });
+    return () =&gt; { ignore = true; };
+  }, [debouncedKeyword]);
+
+  return &lt;input value={keyword} onChange={(e) =&gt; setKeyword(e.target.value)} /&gt;;
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>搜索请求本身的竞态处理不能省：防抖只减少请求数量，不解决「先发出的老请求后返回覆盖新结果」的问题，仍需第 11 章的 <code>ignore</code> 标记或 <code>AbortController</code>。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">17.2</span> useThrottle：滚动与尺寸节流</h2>
+  <p>节流与防抖容易混淆：<strong>节流是固定时间窗口内最多执行一次</strong>，窗口内的新事件被忽略；防抖是等事件停下来再执行。滚动位置更新、窗口尺寸重算、鼠标拖拽都属于高频连续事件，适合节流。</p>
+  <pre class="code" data-lang="jsx"><code>import { useState, useEffect, useRef } from 'react';
+
+function useThrottle(value, interval = 200) {
+  const [throttled, setThrottled] = useState(value);
+  const lastRunRef = useRef(Date.now());
+
+  useEffect(() =&gt; {
+    const now = Date.now();
+    const elapsed = now - lastRunRef.current;
+    if (elapsed &gt;= interval) {
+      lastRunRef.current = now;
+      setThrottled(value);
+    } else {
+      const timer = setTimeout(() =&gt; {
+        lastRunRef.current = Date.now();
+        setThrottled(value);
+      }, interval - elapsed);
+      return () =&gt; clearTimeout(timer);
+    }
+  }, [value, interval]);
+
+  return throttled;
+}
+
+// 使用方式：先监听窗口尺寸变化，再把高频的 width 节流后交给样式判断
+function ResponsiveSidebar() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() =&gt; {
+    const onResize = () =&gt; setWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () =&gt; window.removeEventListener('resize', onResize);
+  }, []);
+
+  const throttledWidth = useThrottle(width, 200);
+  return &lt;aside className={throttledWidth &lt; 768 ? 'mini' : 'full'}&gt;菜单&lt;/aside&gt;;
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>对比项</th><th>防抖 debounce</th><th>节流 throttle</th></tr></thead>
+    <tbody>
+      <tr><td>核心规则</td><td>停止触发后再等 N 毫秒执行一次</td><td>每 N 毫秒最多执行一次</td></tr>
+      <tr><td>事件模型</td><td>合并密集事件，只采纳最后一次</td><td>按时间窗采样，中间事件丢弃</td></tr>
+      <tr><td>典型场景</td><td>搜索建议、表单校验、窗口 resize 后布局计算</td><td>滚动监听、拖拽进度、鼠标移动统计</td></tr>
+      <tr><td>即时反馈需求</td><td>不适合：用户等待停顿才有反应</td><td>适合：滑动过程中保持阶段性反馈</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">选型口诀：<strong>「停下来才算数」用防抖，「隔一会儿来一下」用节流</strong>。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">17.3</span> usePrevious：记住上一次值</h2>
+  <p>组件有时需要对比当前 props/state 与上一次的值：判断用户是否切换了档案、记录动画方向、检测某个布尔开关从关到开的跳变。这正是第 13 章 ref「保存上一次值」身份的标准封装。</p>
+  <pre class="code" data-lang="jsx"><code>import { useRef, useEffect } from 'react';
+
+function usePrevious(value) {
+  const prevRef = useRef(undefined);
+  useEffect(() =&gt; {
+    prevRef.current = value;      // 提交后记录当前值，下一轮读到的就是上一次
+  }, [value]);
+  return prevRef.current;
+}
+
+function Profile({ userId }) {
+  const prevUserId = usePrevious(userId);
+  const switched = prevUserId !== undefined &amp;&amp; prevUserId !== userId;
+  return (
+    &lt;div className={switched ? 'profile flash' : 'profile'}&gt;
+      当前用户 {userId}
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <div class="pit-sentence">注意读取顺序：ref 在 effect 提交后才写入，因此首次渲染返回 <code>undefined</code>；判断「是否发生过切换」时必须先排除首次渲染，不能直接假定上一次值存在。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">17.4</span> useLocalStorage 持久化 Hook</h2>
+  <div class="lead">持久化 Hook 把「读缓存 → 改状态 → 写回存储」这条链路封装起来：调用方像使用普通 <code>useState</code> 一样取值与赋值，存储细节、异常降级与 key 变更处理都藏在 Hook 内部。</div>
+  <p>让 state 与 <code>localStorage</code> 双向同步：初始化时读取缓存，setter 更新时写回存储，key 变化时重新读取。组件卸载不影响持久化数据本身。</p>
+  <pre class="code" data-lang="jsx"><code>import { useState, useCallback } from 'react';
+
+function useLocalStorage(key, initialValue) {
+  const [stored, setStored] = useState(() =&gt; {
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw !== null ? JSON.parse(raw) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  const setValue = useCallback((value) =&gt; {
+    setStored((prev) =&gt; {
+      const next = typeof value === 'function' ? value(prev) : value;
+      try {
+        window.localStorage.setItem(key, JSON.stringify(next));
+      } catch { /* 隐私模式等写入失败时静默降级 */ }
+      return next;
+    });
+  }, [key]);
+
+  return [stored, setValue];
+}
+
+// 使用
+function ThemeSwitch() {
+  const [mode, setMode] = useLocalStorage('theme', 'light');
+  return (
+    &lt;button onClick={() =&gt; setMode(mode === 'light' ? 'dark' : 'light')}&gt;
+      当前：{mode}
+    &lt;/button&gt;
+  );
+}</code></pre>
+  <div class="key-sentence">选择持久化位置的原则：<strong>跨会话保留的偏好放 <code>localStorage</code>，仅当前向导流程需要的中间状态放 <code>sessionStorage</code>，只在组件内存里流转的临时值留在 <code>useState</code></strong>；不要把表单草稿之外的业务数据塞进浏览器存储充当后端数据库。</div>
+  <div class="warn-box"><span class="tag-pit">注意</span>写入存储时要捕获异常：隐私模式、存储配额满、序列化失败都会让 <code>setItem</code> 抛错；Hook 内部静默降级为仅内存状态，避免一次存储错误拖垮整棵组件树。</div>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>存储方案</th><th>生命周期</th><th>适用数据</th></tr></thead>
+    <tbody>
+      <tr><td><code>localStorage</code></td><td>持久保留，关闭浏览器后仍在</td><td>主题偏好、侧边栏折叠状态、表单草稿</td></tr>
+      <tr><td><code>sessionStorage</code></td><td>标签页会话内有效，关闭即清</td><td>一次性向导进度、暂存的路由状态</td></tr>
+      <tr><td>组件内 <code>useState</code></td><td>组件生命周期内有效</td><td>临时输入、hover 状态、表单中间值</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">17.5</span> 工具集：点击外部、媒体查询、只跑一次</h2>
+  <h4>useOnClickOutside：点击弹层外部时关闭</h4>
+  <pre class="code" data-lang="jsx"><code>import { useEffect } from 'react';
+
+function useOnClickOutside(ref, handler) {
+  useEffect(() =&gt; {
+    const listener = (event) =&gt; {
+      if (!ref.current || ref.current.contains(event.target)) return;
+      handler(event);
+    };
+    document.addEventListener('pointerdown', listener);
+    return () =&gt; document.removeEventListener('pointerdown', listener);
+  }, [ref, handler]);
+}</code></pre>
+  <h4>useMediaQuery：响应式断点 Hook</h4>
+  <pre class="code" data-lang="jsx"><code>import { useState, useEffect } from 'react';
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() =&gt;
+    window.matchMedia(query).matches
+  );
+
+  useEffect(() =&gt; {
+    const mql = window.matchMedia(query);
+    const onChange = (e) =&gt; setMatches(e.matches);
+    mql.addEventListener('change', onChange);
+    setMatches(mql.matches);
+    return () =&gt; mql.removeEventListener('change', onChange);
+  }, [query]);
+
+  return matches;
+}
+
+// 使用
+function Layout() {
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  return isMobile ? &lt;MobileNav /&gt; : &lt;DesktopNav /&gt;;
+}</code></pre>
+  <h4>useEffectOnce：仅在挂载后执行一次</h4>
+  <pre class="code" data-lang="jsx"><code>import { useEffect } from 'react';
+
+function useEffectOnce(fn) {
+  useEffect(() =&gt; fn(), []);   // 空依赖：挂载一次；StrictMode 下开发期会双跑（第 19 章）
+}</code></pre>
+  <div class="pit-sentence">不要把「只在挂载时跑一次」理解成可以省略 cleanup：<code>useEffectOnce</code> 包裹的订阅、定时器在卸载时仍然必须释放；StrictMode 开发期的「挂载 → 清理 → 再挂载」会立刻暴露漏写 cleanup 的问题（第 19 章）。</div>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:40%"><col style="width:32%"></colgroup>
+    <thead><tr><th>Hook</th><th>职责</th><th>关键 cleanup / 边界</th></tr></thead>
+    <tbody>
+      <tr><td>useDebounce</td><td>延迟采纳最新值</td><td>cleanup 取消计时器</td></tr>
+      <tr><td>useThrottle</td><td>按时间窗采样</td><td>窗口计时到期回调可被清理</td></tr>
+      <tr><td>usePrevious</td><td>保存上一次渲染值</td><td>首次渲染值为 undefined，需判空</td></tr>
+      <tr><td>useOnClickOutside</td><td>外部点击关闭弹层</td><td>卸载时移除 document 监听</td></tr>
+      <tr><td>useMediaQuery</td><td>订阅断点匹配状态</td><td>卸载时移除 change 监听</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">17.6</span> 自研与成熟库选型及排查清单</h2>
+  <p>上面这些 Hook 逻辑短小、需求稳定，自研一遍有助于理解原理；但生产项目中，边界情况（SSR 环境、销毁竞态、自定义比较、服务端首屏值）需要反复打磨。<strong>复杂交互直接采用成熟库的经过验证的实现</strong>是更稳妥的工程决策。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>判断维度</th><th>自研 Hook</th><th>采用成熟库（ahooks / react-use）</th></tr></thead>
+    <tbody>
+      <tr><td>逻辑规模</td><td>状态 + 单 effect + 单一 cleanup</td><td>多参数、多模式、边界分支多</td></tr>
+      <tr><td>SSR 兼容</td><td>需自己判断 window 是否存在</td><td>库已处理服务端环境</td></tr>
+      <tr><td>测试覆盖</td><td>项目内补单元测试</td><td>库自带测试矩阵与语义版本承诺</td></tr>
+      <tr><td>依赖体积</td><td>零额外依赖</td><td>按需引入，注意 tree-shaking</td></tr>
+    </tbody>
+  </table>
+  <ol>
+    <li><strong>防抖 Hook 改动后旧计时器仍在跑</strong> → 检查 effect cleanup 是否清理了上一个 <code>setTimeout</code>；</li>
+    <li><strong>useLocalStorage 读取到旧缓存</strong> → 确认初始化用了惰性函数 <code>useState(() =&gt; …)</code>，避免每次渲染重复解析；</li>
+    <li><strong>点击外部 Hook 在弹层打开瞬间误触发关闭</strong> → 监听 <code>pointerdown</code> 而非 <code>click</code>，并在打开按钮事件中阻止冒泡；</li>
+    <li><strong>自定义 Hook 在条件分支里被调用而报错</strong> → 第 18 章将从底层原理解释这个错误为什么无法绕过；</li>
+    <li>本章所有 Hook 都遵守「顶层调用、cleanup 成对」的规则，下一章拆开 React 内部实现，看规则背后的 Hook 链表。</li>
+  </ol>
+  <div class="note"><strong>小结口诀</strong>：停下来用防抖，隔一阵用节流；ref 存上次值，存储写双向同步；简单逻辑自己写，复杂交互交给成熟库。</div>
+</section>
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>防抖</td><td>事件停止触发后延迟 N 毫秒才执行一次；适合输入搜索、表单校验</td></tr>
+      <tr><td>节流</td><td>固定时间窗内最多执行一次；适合滚动、resize、拖拽</td></tr>
+      <tr><td>usePrevious</td><td>用 ref 保存上一次渲染的值，effect 提交后记录</td></tr>
+      <tr><td>持久化 Hook</td><td>state 与 localStorage 双向同步，key 变化重新读取</td></tr>
+      <tr><td>选型</td><td>通用交互逻辑自研成本低；复杂场景直接用 ahooks / react-use 成熟实现</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>实现 <code>useDebounce(value, delay)</code>：返回延迟后的等值；当 <code>value</code> 在 delay 内再次变化时，重置计时器。在搜索框中把延迟值作为请求关键词使用。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现 <code>useOnClickOutside(ref, handler)</code>：监听 <code>pointerdown</code>，事件目标不在 ref 节点内时调用回调；组件卸载时移除监听。说明为什么这里需要在 effect 依赖里判断 <code>ref.current</code> 的存在时机。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为 <code>useLocalStorage</code> 增加跨标签页同步能力：监听 <code>storage</code> 事件，其他标签页修改同一 key 时当前组件同步更新；再讨论与 Zustand 这类状态持久化方案相比，这套手写方案的能力边界在哪里。</div>
+  <p class="note">参考答案见附录 C。下一章：Hooks 规则背后的原理：为什么调用顺序必须稳定不变。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="016_第16章_自定义Hook逻辑复用.html">← 第 16 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="018_第18章_Hooks规则背后的原理调用顺序.html">第 18 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 17 章 常用自定义集：useDebounce 等</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

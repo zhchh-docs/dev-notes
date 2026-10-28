@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 32 章 守卫与重定向｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第四篇 路由与数据</p>
+    <h1>第 32 章 守卫与重定向</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 32 章 / 共 64 章 · 预计 40 分钟 · 登录态与权限的入口检查</span>
+    </div>
+    <p class="hero-desc">后台管理、个人中心、订单详情都不能对匿名用户敞开。本章在 React Router v7 数据路由上实现守卫：loader 内抛 <code>redirect</code>、受保护布局组合公共路由、<code>Navigate</code> 声明式重定向，以及路由级、组件级、按钮级权限的分层职责。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="031_第31章_动态路由与参数.html">第 31 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="033_第33章_路由懒加载与Suspense.html">第 33 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">32.1 守卫解决什么问题</a></li>
+    <li><a href="#sec3">32.2 loader 内守卫：throw redirect</a></li>
+    <li><a href="#sec4">32.3 组合守卫：受保护布局包裹子路由</a></li>
+    <li><a href="#sec5">32.4 Navigate 组件与声明式重定向</a></li>
+    <li><a href="#sec6">32.5 权限分级：路由级、组件级、按钮级</a></li>
+    <li><a href="#sec7">32.6 常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解前端守卫的职责边界：<strong>改善体验、减少无效渲染</strong>，真正的鉴权必须由服务端完成；</li>
+    <li>能在路由 <code>loader</code> 中检查登录态，未登录时 <code>throw redirect('/login?from=...')</code>；</li>
+    <li>会用受保护布局路由把公共页面与受保护页面分组，统一执行角色检查；</li>
+    <li>掌握 <code>redirect()</code> 函数、<code>&lt;Navigate&gt;</code> 组件、<code>useNavigate</code> 三种重定向入口的区别；</li>
+    <li>能区分路由级、组件级、按钮级权限检查各自的位置与失效风险。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">32.1</span> 守卫解决什么问题</h2>
+  <p>守卫（guard）回答一个问题：<strong>当前用户有没有资格进入这条路由？</strong>典型检查包括：是否登录、是否具备角色、是否属于资源所有者、是否满足访问条件。React Router v7 没有 vue-router 那样独立的 <code>beforeEach</code> 全局钩子，守卫逻辑落在路由 <code>loader</code> 与受保护布局上——loader 在组件渲染之前执行，天然适合做进入前检查。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>体系</th><th>守卫入口</th><th>检查失败动作</th></tr></thead>
+    <tbody>
+      <tr><td>Vue vue-router</td><td><code>router.beforeEach</code> 全局前置守卫、路由独享 <code>beforeEnter</code></td><td><code>next('/login')</code> 中断并跳转</td></tr>
+      <tr><td>React Router v7</td><td>路由 <code>loader</code> 或受保护布局 <code>loader</code></td><td><code>throw redirect('/login')</code> 中断进入流程</td></tr>
+      <tr><td>Spring MVC</td><td>拦截器 <code>HandlerInterceptor</code>、方法级 <code>@PreAuthorize</code></td><td>返回 401 / 403 响应，跳转登录页</td></tr>
+      <tr><td>组件内判断</td><td>渲染前 <code>if (!user) return &lt;Login /&gt;</code></td><td>本页内切换内容，不中断路由匹配</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><strong>前端守卫不是安全边界。</strong>用户可以直接改 URL、绕过前端路由调用接口；登录态校验、角色鉴权、资源归属判断必须在服务端接口独立完成。前端守卫的价值是：避免匿名用户看到受保护页面的骨架、减少无效请求、给出明确的登录引导。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">32.2</span> loader 内守卫：throw redirect</h2>
+  <p>先封装一个读取当前会话的工具（真实工程中可结合第 22、23 章的状态管理或第 25 章的服务端状态），再在受保护路由的 <code>loader</code> 中检查：未登录就抛出 <code>redirect</code>，并把当前路径作为回跳参数带给登录页。</p>
+  <pre class="code" data-lang="js"><code>// auth.js —— 会话读取工具（示意实现，真实工程对接状态管理或接口）
+export function getCurrentUser() {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  // 解析本地缓存的用户信息；过期判断由服务端接口兜底
+  const raw = localStorage.getItem('user')
+  return raw ? JSON.parse(raw) : null
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>import { createBrowserRouter, redirect } from 'react-router-dom'
+import { getCurrentUser } from './auth'
+import Profile from './pages/Profile'
+import Login from './pages/Login'
+
+const router = createBrowserRouter([
+  {
+    path: '/profile',
+    loader: ({ request }) =&gt; {
+      const user = getCurrentUser()
+      if (!user) {
+        // 记录来源路径，登录成功后回跳；search 由 request.url 解析得到
+        const from = new URL(request.url).searchParams.get('from') ?? ''
+        const target = from ? `/login?from=${encodeURIComponent(from)}` : '/login'
+        throw redirect(target)
+      }
+      return user
+    },
+    element: &lt;Profile /&gt;,
+  },
+  { path: '/login', element: &lt;Login /&gt; },
+])</code></pre>
+  <p>登录页提交成功后，读取 <code>from</code> 参数回跳原页面：</p>
+  <pre class="code" data-lang="jsx"><code>import { useNavigate, useSearchParams } from 'react-router-dom'
+
+export default function Login() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  async function onSubmit(values) {
+    await api.login(values)
+    const from = searchParams.get('from')
+    navigate(from ?? '/', { replace: true })
+  }
+
+  return &lt;form onSubmit={...}&gt;{/* 表单字段见第 35 章 */}&lt;/form&gt;
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>拦截位置</th><th>执行时机</th><th>特点与风险</th></tr></thead>
+    <tbody>
+      <tr><td>路由 <code>loader</code></td><td>组件渲染之前，路由匹配阶段</td><td>推荐：可中断进入流程、可携带回跳参数；失败走 <code>redirect</code> 或错误边界</td></tr>
+      <tr><td>受保护布局 <code>loader</code></td><td>父级匹配阶段，覆盖整组子路由</td><td>守卫逻辑集中一份，适合后台整组页面（见 32.3）</td></tr>
+      <tr><td>组件内 <code>if</code> 判断</td><td>组件渲染期间</td><td>页面骨架先渲染再跳转，存在短暂闪现；不适合做整组路由守卫</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence"><code>redirect(to)</code> 在 <code>loader</code> 或 <code>action</code> 中是<strong>抛出</strong>的：<code>throw redirect('/login')</code>，它中断当前路由的数据加载流程并触发跳转；写成普通 <code>return redirect(...)</code> 不会产生中断效果。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 280" role="img" aria-label="守卫检查流程">
+      <rect x="300" y="20" width="200" height="40" rx="8" fill="#2d6a3f" stroke="#1f2e1f"/>
+      <text x="400" y="45" text-anchor="middle" font-size="13" fill="#f8faf0">访问受保护路由</text>
+      <line x1="400" y1="62" x2="400" y2="88" stroke="#4f8a63" stroke-width="1.6"/>
+      <polygon points="395,86 405,86 400,94" fill="#4f8a63"/>
+      <rect x="300" y="96" width="200" height="44" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="123" text-anchor="middle" font-size="13" fill="#1f2e1f">loader 检查登录态</text>
+      <line x1="300" y1="118" x2="150" y2="118" stroke="#7a8a70" stroke-width="1.4"/>
+      <text x="225" y="110" text-anchor="middle" font-size="11" fill="#b45309">未登录</text>
+      <rect x="40" y="150" width="220" height="44" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="150" y="177" text-anchor="middle" font-size="12" fill="#b45309">redirect('/login?from=...')</text>
+      <line x1="400" y1="142" x2="400" y2="170" stroke="#7a8a70" stroke-width="1.4"/>
+      <text x="430" y="162" font-size="11" fill="#047857">已登录</text>
+      <rect x="300" y="172" width="200" height="44" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="199" text-anchor="middle" font-size="13" fill="#1f2e1f">检查角色 / 资源归属</text>
+      <line x1="500" y1="194" x2="650" y2="194" stroke="#7a8a70" stroke-width="1.4"/>
+      <text x="575" y="186" text-anchor="middle" font-size="11" fill="#b45309">角色不足</text>
+      <rect x="560" y="226" width="200" height="40" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="660" y="251" text-anchor="middle" font-size="12" fill="#b45309">redirect('/forbidden')</text>
+      <line x1="400" y1="218" x2="400" y2="244" stroke="#7a8a70" stroke-width="1.4"/>
+      <text x="430" y="238" font-size="11" fill="#047857">通过</text>
+      <rect x="300" y="246" width="200" height="28" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="400" y="265" text-anchor="middle" font-size="12" fill="#1f2e1f">渲染受保护页面</text>
+    </svg>
+    <p class="diagram-caption">图 32-1 守卫检查流程：登录态与角色在 loader 阶段依次判定，失败即中断跳转</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">32.3</span> 组合守卫：受保护布局包裹子路由</h2>
+  <p>后台系统通常是一整组页面都需要登录。把守卫放进父级布局路由的 <code>loader</code>，公共页面与受保护页面在路由表中分块排列，子路由自动继承父级检查，无需逐条重复判断。</p>
+  <pre class="code" data-lang="jsx"><code>import { createBrowserRouter, redirect } from 'react-router-dom'
+import { getCurrentUser } from './auth'
+import AdminLayout from './layouts/AdminLayout'
+import Dashboard from './pages/admin/Dashboard'
+import MemberList from './pages/admin/MemberList'
+import Login from './pages/Login'
+import Home from './pages/Home'
+
+const router = createBrowserRouter([
+  // 公共页面：无需登录
+  { path: '/', element: &lt;Home /&gt; },
+  { path: '/login', element: &lt;Login /&gt; },
+
+  // 受保护分组：父级 loader 统一守卫
+  {
+    path: '/admin',
+    loader: ({ request }) =&gt; {
+      const user = getCurrentUser()
+      if (!user) {
+        const from = new URL(request.url).pathname
+        throw redirect(`/login?from=${encodeURIComponent(from)}`)
+      }
+      if (user.role !== 'admin') {
+        // 已登录但角色不足：进入 403 提示页
+        throw redirect('/forbidden')
+      }
+      return user
+    },
+    element: &lt;AdminLayout /&gt;,
+    children: [
+      { index: true, element: &lt;Dashboard /&gt; },
+      { path: 'members', element: &lt;MemberList /&gt; },
+    ],
+  },
+  { path: '/forbidden', element: &lt;Forbidden /&gt; },
+])</code></pre>
+  <div class="lead">这与 vue-router 的嵌套 <code>children</code> 守卫、Spring MVC 的拦截器按路径前缀匹配是同一思路：<strong>把检查规则挂在分组入口，组内成员自动获得保护</strong>。新增后台页面时只需在 <code>children</code> 中追加路由，不必重复写登录判断。</div>
+  <div class="note">父级 <code>loader</code> 返回的用户信息可通过 <code>useRouteLoaderData</code> 在子页面读取（第 30 章 30.5）；守卫失败抛出的 <code>redirect</code> 会中断整组子路由的进入流程。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">32.4</span> Navigate 组件与声明式重定向</h2>
+  <p>除了在 loader 中 <code>throw redirect</code>，还有两类重定向入口：组件内渲染 <code>&lt;Navigate&gt;</code> 做声明式跳转，事件回调中 <code>useNavigate</code> 做编程式跳转。三者使用场景不同。</p>
+  <pre class="code" data-lang="jsx"><code>import { Navigate } from 'react-router-dom'
+
+// 旧路径永久迁移：访问 /home 直接跳到新路径
+export default function HomeRedirect() {
+  return &lt;Navigate to="/" replace /&gt;
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:34%"><col style="width:42%"></colgroup>
+    <thead><tr><th>入口</th><th>写法</th><th>典型场景</th></tr></thead>
+    <tbody>
+      <tr><td><code>redirect()</code> 函数</td><td><code>throw redirect(to, init?)</code></td><td>loader / action 中的守卫、提交成功后跳转、数据不存在时转 404</td></tr>
+      <tr><td><code>&lt;Navigate&gt;</code> 组件</td><td><code>&lt;Navigate to="/new" replace /&gt;</code></td><td>组件渲染期间的声明式跳转，如旧路径迁移、条件渲染兜底</td></tr>
+      <tr><td><code>useNavigate()</code></td><td><code>navigate(to, { replace, state })</code></td><td>事件回调、异步操作完成后的编程式跳转</td></tr>
+    </tbody>
+  </table>
+  <div class="lead">选型顺序先看触发位置：<strong>loader / action 内的中断跳转用 <code>redirect()</code>；组件渲染期间的声明式兜底用 <code>&lt;Navigate&gt;</code>；事件回调与异步完成后的跳转用 <code>useNavigate</code>。</strong>三者最终都操作 History API，差别只在调用时机与上下文。</div>
+  <div class="pit-sentence">重定向默认在历史记录中留下新条目；登录成功、旧路径迁移、守卫跳转都应加 <code>replace: true</code>（<code>redirect(to, { replace: true })</code> 或 <code>&lt;Navigate replace /&gt;</code>），否则用户点返回键会再次触发守卫，形成「登录页 ↔ 受保护页」来回弹跳。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">32.5</span> 权限分级：路由级、组件级、按钮级</h2>
+  <p>权限检查不止「能不能进页面」，还包括「页面内看到哪些区块」「能不能点某个按钮」。三层检查位置不同，失效风险也不同。</p>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:36%"><col style="width:44%"></colgroup>
+    <thead><tr><th>层级</th><th>实现位置</th><th>职责与风险</th></tr></thead>
+    <tbody>
+      <tr><td>路由级</td><td>父级 / 路由 <code>loader</code> 守卫</td><td>决定能否进入整组页面；只做入口引导，不替代接口鉴权</td></tr>
+      <tr><td>组件级</td><td>页面组件内按角色渲染区块、表格列、弹窗入口</td><td>控制可见范围；角色判断来自父级 loader 数据或状态管理</td></tr>
+      <tr><td>按钮级</td><td>操作按钮按角色 <code>disabled</code> 或不渲染</td><td>减少误操作；按钮隐藏不代表接口安全，删除、修改等接口必须服务端鉴权</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>import { useRouteLoaderData } from 'react-router-dom'
+
+export default function MemberList() {
+  const me = useRouteLoaderData('admin-root')
+
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;成员列表&lt;/h2&gt;
+      {/* 组件级：非管理员不展示批量操作区 */}
+      {me.role === 'admin' &amp;&amp; (
+        &lt;div className="bulk-actions"&gt;
+          &lt;button&gt;批量导出&lt;/button&gt;
+          {/* 按钮级：仅超级管理员可见删除入口 */}
+          {me.role === 'superadmin' &amp;&amp; &lt;button&gt;批量删除&lt;/button&gt;}
+        &lt;/div&gt;
+      )}
+    &lt;/section&gt;
+  )
+}</code></pre>
+  <div class="key-sentence">权限粒度由粗到细分层落地：<strong>路由级决定进不进得来，组件级决定看得到哪些区块，按钮级决定点不点得了操作。</strong>三层前端检查只负责展示收敛，真正的授权判断在服务端接口逐次复核。</div>
+  <div class="warn-box">前端隐藏按钮只是体验优化：用户可以通过控制台、抓包直接调用接口。写操作接口必须在服务端校验角色与资源归属；前端三层检查与服务端鉴权是<strong>叠加关系</strong>，不是替代关系。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">32.6</span> 常见坑清单</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>现象</th><th>原因</th><th>解法</th></tr></thead>
+    <tbody>
+      <tr><td>受保护页面骨架先闪一下再跳登录页</td><td>守卫写在组件内 <code>if</code> 判断，渲染后才跳转</td><td>上移到路由 <code>loader</code>，渲染前完成检查</td></tr>
+      <tr><td>点返回键在登录页与受保护页之间来回弹</td><td>守卫跳转未使用 <code>replace</code>，历史记录残留受保护页</td><td><code>redirect(to, { replace: true })</code> 或 <code>&lt;Navigate replace /&gt;</code></td></tr>
+      <tr><td>登录成功后回跳路径丢失</td><td>未把 <code>from</code> 写入查询参数，或登录页跳转时未读取</td><td>守卫抛出 <code>/login?from=当前路径</code>，登录成功后 <code>navigate(from, { replace: true })</code></td></tr>
+      <tr><td>角色不足仍能进入页面</td><td>只在前端判断角色，服务端接口未鉴权</td><td>接口层独立校验角色与资源归属，前端只做展示层控制</td></tr>
+      <tr><td>守卫顺序错乱导致误放行</td><td>公共路由与受保护分组排列顺序、路径前缀冲突</td><td>公共路由前置，受保护分组集中排列；前缀路径保持明确层级</td></tr>
+      <tr><td>刷新受保护页被踢回登录页</td><td>会话仅存内存状态，刷新后丢失；本地 token 过期未处理</td><td>持久化 token 与用户信息，接口 401 时统一跳登录（第 25 章拦截器思路）</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">守卫只校验「当前有没有登录、角色是什么」，不要在 loader 里维护业务表单状态或发起写操作；跳转回跳参数 <code>from</code> 必须经过 <code>encodeURIComponent</code>，且登录成功后用 <code>replace: true</code> 落地，避免历史记录里残留未授权条目。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>守卫定位</td><td>前端守卫改善体验，服务端接口才是真正的鉴权边界</td></tr>
+      <tr><td>loader 守卫</td><td>渲染前检查登录态，失败 <code>throw redirect('/login?from=...')</code></td></tr>
+      <tr><td>分组守卫</td><td>受保护布局父级 loader 统一检查，子路由自动继承</td></tr>
+      <tr><td>三种重定向</td><td><code>redirect()</code> 用于 loader/action，<code>&lt;Navigate&gt;</code> 声明式，<code>useNavigate</code> 事件回调</td></tr>
+      <tr><td>权限分层</td><td>路由级控入口、组件级控区块、按钮级控操作，服务端逐层复核</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为 <code>/profile</code> 路由编写 loader 守卫：未登录时跳转到 <code>/login</code> 并携带 <code>from</code> 参数；登录页读取 <code>from</code>，登录成功后 <code>replace</code> 回跳原页面。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>把 <code>/admin</code> 整组页面收进受保护布局路由：父级 loader 校验登录与 <code>role === 'admin'</code>，子路由包含索引页与成员列表；角色不足时重定向到 <code>/forbidden</code>；在成员列表中按角色条件渲染「批量导出」按钮。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现资源归属守卫：<code>/orders/:orderId</code> 进入前校验当前用户是否为订单所有者，不属于则跳 403；写出 loader 校验流程，并列出哪些环节仍必须由服务端接口复核，说明仅靠前端守卫会留下哪些可被绕过的路径。</div>
+  <p class="note">参考答案见附录 C。下一章：路由懒加载与 Suspense——把每个页面拆成独立 chunk，缩短首屏加载时间。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="031_第31章_动态路由与参数.html">← 第 31 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="033_第33章_路由懒加载与Suspense.html">第 33 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 32 章 守卫与重定向</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 39 章 Fiber 架构：可中断的渲染｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第五篇 渲染原理</p>
+    <h1>第 39 章 Fiber 架构：可中断的渲染</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 39 章 / 共 64 章 · 预计 55 分钟 · 从旧栈走向 Fiber</span>
+    </div>
+    <p class="hero-desc">第 38 章末尾留下的问题是"递归渲染不可中断"。本章回答 Fiber 架构如何解决：把整棵界面树拆成一个个可独立处理的 Fiber 节点，用链表代替函数调用栈，在内存里同时维护两棵树（current 与 workInProgress），让渲染可以暂停、恢复，甚至丢弃重做。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="038_第38章_虚拟DOM与diff入门.html">第 38 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="040_第40章_调度与优先级.html">第 40 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">39.1 旧栈为什么撑不住长任务</a></li>
+    <li><a href="#sec3">39.2 Fiber 节点：链表化的工作单元</a></li>
+    <li><a href="#sec4">39.3 双缓冲：current 树与 workInProgress 树</a></li>
+    <li><a href="#sec5">39.4 可中断：暂停、恢复、丢弃</a></li>
+    <li><a href="#sec6">39.5 render 阶段：beginWork 与 completeWork</a></li>
+    <li><a href="#sec7">39.6 与其他框架调度思路对照</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清旧栈协调器"递归一旦开始就停不下来"的结构性原因；</li>
+    <li>理解 <strong>Fiber 节点</strong>是 React 内部的最小工作单元，以及 child / sibling / return 三个指针构成的链表关系；</li>
+    <li>掌握<strong>双缓冲</strong>概念：界面展示用 current 树，正在渲染用 workInProgress 树，提交后两棵树指针交换；</li>
+    <li>能描述可中断渲染的三种状态：<strong>暂停、恢复、丢弃重做</strong>，以及它们对主线程意味着什么；</li>
+    <li>建立 render 阶段两个动作 <code>beginWork</code>、<code>completeWork</code> 的概念印象（细节在第 42 章展开）。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">39.1</span> 旧栈为什么撑不住长任务</h2>
+  <div class="lead">浏览器主线程在同一时刻只能做一件事：执行 JavaScript、处理样式布局、绘制画面、响应输入，彼此排队。旧栈协调器的递归遍历是一段<strong>不可分割的长任务</strong>，树越大，主线程被占住的时间越长。</div>
+  <p>旧栈协调器的执行方式与函数递归一致：处理根节点 → 处理第一个子节点 → 递归进入孙节点 → 回溯到兄弟节点……整棵树的遍历状态保存在 JavaScript 调用栈里。调用栈一旦压入，就必须一层层返回才能退出，中途没有"先停一下去响应用户输入"的位置。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>对照项</th><th>旧栈协调器（递归）</th><th>Fiber 架构（链表）</th></tr></thead>
+    <tbody>
+      <tr><td>遍历状态保存位置</td><td>JavaScript 函数调用栈</td><td>每个 Fiber 节点自身保存遍历指针与进度</td></tr>
+      <tr><td>能否中途暂停</td><td>不能；递归返回前栈帧无法释放</td><td>能；记录当前节点即可稍后从原地继续</td></tr>
+      <tr><td>能否丢弃重做</td><td>中途放弃后状态难以恢复</td><td>放弃 workInProgress 树，重新从根开始即可</td></tr>
+      <tr><td>对主线程的影响</td><td>整段渲染期间阻塞输入与动画</td><td>每个工作单元结束后可检查是否该让出主线程</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">场景感知</span>在大列表、复杂表单、嵌套层级深的页面上，旧栈表现为：点击按钮后界面"冻"几百毫秒，输入框打字断断续续，动画明显掉帧。这不是业务代码写得慢，而是<strong>结构上没有让出主线程的机会</strong>。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">39.2</span> Fiber 节点：链表化的工作单元</h2>
+  <p>Fiber 架构把"一个组件实例 / 一个 DOM 元素"对应的内部记录称为 <strong>Fiber 节点</strong>。它不再只是一棵父子树，而是同时挂着三个指针：<code>child</code> 指向第一个子节点，<code>sibling</code> 指向下一个兄弟节点，<code>return</code> 指回父节点。有了这三个指针，遍历过程可以在任意节点停下，也能顺着指针回到上一层。</p>
+  <div class="lead">可以把 Fiber 链表理解成<strong>把递归调用栈"摊平"成节点上的指针</strong>：调用栈里"我是谁、我从哪来、下一个轮到谁"，分别落到 <code>return</code>、<code>child</code>、<code>sibling</code> 三个字段上，遍历进度因此不再受函数栈帧生命周期的约束。</div>
+  <pre class="code" data-lang="js"><code>// Fiber 节点概念字段（教学示意，非 React 源码结构）
+const fiber = {
+  type: 'section',          // 元素标签或组件类型
+  key: 'list',              // 同级身份标识（第 43 章）
+  stateNode: null,          // 对应的真实 DOM 节点或组件实例
+  child: null,              // 第一个子 Fiber
+  sibling: null,            // 下一个兄弟 Fiber
+  return: null,             // 父 Fiber
+  pendingProps: null,       // 本次渲染待处理的 props
+  memoizedProps: null,      // 上一次提交时的 props
+  memoizedState: null,      // 上一次提交时的 state 与 Hooks 队列
+  effectTag: null,          // 本节点需要执行的副作用标记（第 42 章）
+};</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 280" role="img" aria-label="Fiber 链表结构示意">
+      <rect x="330" y="30" width="140" height="42" rx="8" fill="#2d6a3f"/>
+      <text x="400" y="56" text-anchor="middle" font-size="13" fill="#fff">Root Fiber</text>
+      <rect x="150" y="120" width="150" height="42" rx="8" fill="#4f8a63"/>
+      <text x="225" y="146" text-anchor="middle" font-size="13" fill="#fff">Fiber A（child）</text>
+      <rect x="370" y="120" width="150" height="42" rx="8" fill="#4f8a63"/>
+      <text x="445" y="146" text-anchor="middle" font-size="13" fill="#fff">Fiber B（sibling）</text>
+      <rect x="590" y="120" width="150" height="42" rx="8" fill="#4f8a63"/>
+      <text x="665" y="146" text-anchor="middle" font-size="13" fill="#fff">Fiber C（sibling）</text>
+      <rect x="150" y="210" width="150" height="42" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="225" y="236" text-anchor="middle" font-size="13" fill="#1f2e1f">A 的子节点</text>
+      <line x1="370" y1="72" x2="245" y2="118" stroke="#3d7a4f" stroke-width="1.6"/>
+      <text x="286" y="100" font-size="11" fill="#3d7a4f">child</text>
+      <line x1="300" y1="141" x2="368" y2="141" stroke="#3d7a4f" stroke-width="1.6"/>
+      <text x="334" y="132" text-anchor="middle" font-size="11" fill="#3d7a4f">sibling</text>
+      <line x1="520" y1="141" x2="588" y2="141" stroke="#3d7a4f" stroke-width="1.6"/>
+      <text x="554" y="132" text-anchor="middle" font-size="11" fill="#3d7a4f">sibling</text>
+      <line x1="225" y1="162" x2="225" y2="208" stroke="#3d7a4f" stroke-width="1.6"/>
+      <text x="252" y="190" font-size="11" fill="#3d7a4f">child</text>
+      <line x1="180" y1="120" x2="350" y2="74" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="170" y="96" font-size="11" fill="#7a8a70">return（指回父节点）</text>
+      <rect x="430" y="210" width="320" height="42" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="590" y="228" text-anchor="middle" font-size="11.5" fill="#1f2e1f">遍历可沿 child 深入、沿 sibling 平推、沿 return 回退；</text>
+      <text x="590" y="246" text-anchor="middle" font-size="11.5" fill="#1f2e1f">停在任意节点后，进度都由这些指针记录，不依赖调用栈。</text>
+    </svg>
+    <p class="diagram-caption">图 39-1 Fiber 的 child / sibling / return 三指针构成可暂停、可回退的链表</p>
+  </div>
+  <div class="key-sentence">Fiber 的核心价值不是"换了一种数据结构"本身，而是<strong>把遍历进度外置到节点上</strong>，从而获得暂停与恢复的能力。</div>
+  <p class="note">业务代码里你不会直接接触 Fiber 对象；它是 React 在渲染期间内部创建和维护的记录。本章按"是什么、为什么、行为表现"理解即可，不需要记忆内部字段名，更不要在组件里访问它们。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">39.3</span> 双缓冲：current 树与 workInProgress 树</h2>
+  <p>界面上正在展示的内容对应一棵已经提交完成的 Fiber 树，称为 <strong>current 树</strong>。状态更新到来后，React 不会直接改动 current 树，而是在内存里另外构建一棵新树，称为 <strong>workInProgress 树</strong>（进行中的工作树）。两棵树通过对应 Fiber 上的指针互相引用，提交时再把 current 指针切换到新树。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="current 与 workInProgress 双缓冲">
+      <text x="200" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#2d6a3f">current 树：当前展示给用户</text>
+      <rect x="130" y="50" width="140" height="38" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="200" y="74" text-anchor="middle" font-size="12" fill="#1f2e1f">current 根</text>
+      <rect x="80" y="120" width="100" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="130" y="142" text-anchor="middle" font-size="11.5" fill="#1f2e1f">旧节点 A</text>
+      <rect x="220" y="120" width="100" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="270" y="142" text-anchor="middle" font-size="11.5" fill="#1f2e1f">旧节点 B</text>
+      <line x1="170" y1="88" x2="135" y2="118" stroke="#3d7a4f" stroke-width="1.4"/>
+      <line x1="230" y1="88" x2="265" y2="118" stroke="#3d7a4f" stroke-width="1.4"/>
+      <text x="600" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#b45309">workInProgress 树：正在构建</text>
+      <rect x="530" y="50" width="140" height="38" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="600" y="74" text-anchor="middle" font-size="12" fill="#b45309">新根（待提交）</text>
+      <rect x="480" y="120" width="100" height="34" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="530" y="142" text-anchor="middle" font-size="11.5" fill="#b45309">新节点 A'</text>
+      <rect x="620" y="120" width="100" height="34" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="670" y="142" text-anchor="middle" font-size="11.5" fill="#b45309">新节点 B'</text>
+      <line x1="570" y1="88" x2="535" y2="118" stroke="#d97706" stroke-width="1.4"/>
+      <line x1="630" y1="88" x2="665" y2="118" stroke="#d97706" stroke-width="1.4"/>
+      <line x1="300" y1="137" x2="478" y2="137" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="389" y="129" text-anchor="middle" font-size="11" fill="#7a8a70">可复用节点互相引用、就地更新</text>
+      <rect x="150" y="210" width="500" height="66" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="170" y="236" font-size="12" fill="#1f2e1f">render 阶段只在 workInProgress 树上推进；中途被更高优先级打断时，这棵树可以整体丢弃。</text>
+      <text x="170" y="258" font-size="12" fill="#2d6a3f">整棵新树构建完成并进入 commit 后，current 指针切换到新树，旧树退入待回收状态。</text>
+    </svg>
+    <p class="diagram-caption">图 39-2 双缓冲：current 树稳定展示，workInProgress 树允许随时重来</p>
+  </div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>对照项</th><th>current 树</th><th>workInProgress 树</th></tr></thead>
+    <tbody>
+      <tr><td>角色</td><td>界面当前真实状态的镜像</td><td>本次更新正在计算中的新镜像</td></tr>
+      <tr><td>能否被修改</td><td>展示期间保持稳定，不会被中途改动</td><td>可继续补全、也可整棵丢弃重建</td></tr>
+      <tr><td>完成后动作</td><td>提交完成后被新树替换为新的 current</td><td>提交成功后成为新的 current 树</td></tr>
+      <tr><td>对应的业务感受</td><td>用户看到的始终是完整、旧的或新的一版界面</td><td>用户看不到构建中的半成品</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence"><span class="tag-pit">不要误解</span>双缓冲不是"预渲染两页界面"，也不是为了视觉上的渐变过渡；它的真正目的是<strong>给可中断渲染提供一个可以安全扔掉的草稿本</strong>。草稿写坏了重写，桌面上的正式版本一直完好。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">39.4</span> 可中断：暂停、恢复、丢弃</h2>
+  <p>基于链表进度与双缓冲，Fiber 渲染具备三种状态切换能力。理解它们，就能解释后续所有 Concurrent 行为（第 45、46 章）。</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:42%"><col style="width:40%"></colgroup>
+    <thead><tr><th>状态</th><th>含义</th><th>触发条件与结果</th></tr></thead>
+    <tbody>
+      <tr><td>暂停</td><td>当前工作单元处理完后，暂时不再继续向下遍历，把主线程交还给浏览器</td><td>时间片用完，或发现有更高优先级任务等待；暂停位置记在 Fiber 指针里</td></tr>
+      <tr><td>恢复</td><td>浏览器空闲后，从暂停的 Fiber 节点继续构建 workInProgress 树</td><td>被让出的任务再次获得执行机会；已完成的节点不重复计算</td></tr>
+      <tr><td>丢弃</td><td>本次渲染的 workInProgress 树被放弃，已做的协调工作作废</td><td>出现更高优先级的新更新，旧草稿不再需要；重新从根开始构建新草稿</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="js"><code>// 概念化的工作循环：每处理一个 Fiber 节点就检查一次是否该让出主线程
+// 仅用于理解"暂停—恢复"的结构，不是 React 内部实现
+function workLoop() {
+  while (nextUnitOfWork !== null &amp;&amp; !shouldYield()) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+  }
+  if (nextUnitOfWork !== null) {
+    // 时间片用完：暂停，等待下一次调度再从 nextUnitOfWork 继续
+    scheduleNextUnitOfWork(nextUnitOfWork);
+  }
+}</code></pre>
+  <div class="note">为什么 render 阶段可以丢弃、而提交阶段不行？因为草稿只存在于内存，不触碰真实 DOM；一旦开始改真实 DOM，界面就处于新旧混杂的中间态，必须一口气改完。这条分界线在第 42 章重点展开。</div>
+  <p>三种状态切换并不需要开发者显式调用：调度器在每个工作单元结束后检查时间片是否用完、有没有更高优先级任务等待，再决定继续、暂停还是丢弃。业务代码只通过 <code>useTransition</code> 等 API 表达"这次更新不紧急"（第 45 章），其余暂停、恢复与丢弃动作都由框架在内部自动完成。</p>
+  <p>还要注意"暂停"不是"后台并行执行"：Fiber 渲染仍然运行在浏览器主线程上，只是把长任务切成小段穿插进行，浏览器在小段之间获得机会去响应用户输入、绘制画面；它不会另开线程同时渲染两棵树。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">39.5</span> render 阶段：beginWork 与 completeWork</h2>
+  <p>单个 Fiber 节点的处理分两个方向。先从上往下（自顶向下）进入节点，这个动作在 React 内部称为 <code>beginWork</code>；处理完子节点后再从下往上回溯收尾，称为 <code>completeWork</code>。这两个名字是 React 内部使用的术语，本章先建立概念印象。</p>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span><code>beginWork</code> 与 <code>completeWork</code> 是 React 内部术语，<strong>不是供业务代码调用的 API</strong>：组件函数里既不会出现这两个名字，也不需要手动触发。阅读源码时能说出"自上而下进入、自下而上收尾"即可，不要在组件代码里臆造同名函数或在文档里把它们写成公开接口。</div>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th>动作</th><th>方向与职责</th><th>典型工作（概念层）</th></tr></thead>
+    <tbody>
+      <tr><td><code>beginWork</code></td><td>自顶向下进入节点；判断是复用、新建还是跳过该 Fiber</td><td>读取最新 props / state，调用函数组件产出新元素树，比对类型与 key，决定子节点如何协调</td></tr>
+      <tr><td><code>completeWork</code></td><td>自底向上回溯；给 Fiber 节点标记本次需要提交的副作用</td><td>为 DOM 元素准备属性，收集插入、更新、删除等标记，把副作用汇总到提交队列</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 业务视角：Fiber 的创建、beginWork、completeWork 全部由 React 自动完成
+// 开发者写的只是组件函数本身
+function ProfileCard({ user }) {
+  // 本次渲染时被调用，返回新的元素树供 beginWork 协调
+  return (
+    &lt;article className="profile"&gt;
+      &lt;img src={user.avatar} alt={user.name} /&gt;
+      &lt;h3&gt;{user.name}&lt;/h3&gt;
+      &lt;p&gt;{user.bio}&lt;/p&gt;
+    &lt;/article&gt;
+  );
+}</code></pre>
+  <div class="key-sentence">整条 render 阶段都是<strong>纯计算</strong>：读状态、比新旧、打标记，不碰真实 DOM；正因如此它才可以被打断、被重做。真实 DOM 变更只发生在随后的 commit 阶段。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">39.6</span> 与其他框架调度思路对照</h2>
+  <p>不同框架对"渲染不卡主线程"的解法方向相近，但程度与默认行为不同，对照着看更容易理解 React 的取舍。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>对照项</th><th>React Fiber</th><th>其他框架常见思路</th></tr></thead>
+    <tbody>
+      <tr><td>响应式追踪粒度</td><td>由 React 重新渲染组件，再经 Fiber 链表协调</td><td>Vue 等基于响应式系统收集依赖，精确到组件或细粒度效果</td></tr>
+      <tr><td>时间切片能力</td><td>render 阶段可暂停、恢复、丢弃，配合优先级调度</td><td>部分框架依赖微任务批量刷新，不做任务级时间切片</td></tr>
+      <tr><td>开发者可见控制</td><td>通过 <code>useTransition</code> 等 API 声明非紧急更新（第 45 章）</td><td>多数场景自动批量刷新，暴露给开发者的调度开关较少</td></tr>
+      <tr><td>设计动机</td><td>兼顾组件模型的灵活性与主线程可响应性</td><td>在各自响应式模型内追求更新合并与触发效率</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">边界提醒</span>对照只是帮助建立直觉：不要把 Vue 的响应式收集与 React 的 Fiber 协调当成同一件事的两种说法。前者解决"谁该更新"，后者解决"更新过程如何被切片与调度"，二者在 React 体系里前后衔接。</div>
+  <p class="note">本章讲的是 Fiber 的结构与可中断能力；"哪些更新先渲染、哪些可以等"由下一章的调度与优先级决定。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>旧栈局限</td><td>递归状态压在调用栈里，中途无法暂停，长任务阻塞主线程</td></tr>
+      <tr><td>Fiber 节点</td><td>最小工作单元，child / sibling / return 三指针保存遍历进度</td></tr>
+      <tr><td>双缓冲</td><td>current 树稳定展示，workInProgress 树作为可丢弃的草稿</td></tr>
+      <tr><td>三种状态</td><td>暂停（让出主线程）、恢复（原地继续）、丢弃（草稿作废重来）</td></tr>
+      <tr><td>beginWork</td><td>自顶向下进入节点，判断复用 / 新建 / 跳过并产出新元素树</td></tr>
+      <tr><td>completeWork</td><td>自底向上收尾，标记副作用并汇总到提交队列</td></tr>
+      <tr><td>纯计算边界</td><td>render 阶段不碰真实 DOM，所以可中断、可丢弃</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用自己的话回答：旧栈协调器为什么不能在遍历到一半时去响应用户输入？Fiber 的哪三个指针让"暂停后从原地继续"成为可能？</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>解释双缓冲：当一次渲染进行到一半时，用户在屏幕上看到的是哪棵树？被更高优先级更新打断后，workInProgress 树会发生什么？为什么这样做不会让用户看到半成品界面？</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>结合 beginWork 与 completeWork 的方向，描述一组父子组件（父组件先渲染、子组件渲染完成后回到父组件收尾）在 Fiber 遍历中的先后顺序；再说明为什么 completeWork 阶段收集到的副作用必须等到 render 全部结束后才统一提交。</div>
+  <p class="note">参考答案见附录 C。下一章：调度与优先级——哪些更新优先渲染，哪些可以排队等待。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="038_第38章_虚拟DOM与diff入门.html">← 第 38 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="040_第40章_调度与优先级.html">第 40 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 39 章 Fiber 架构：可中断的渲染</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

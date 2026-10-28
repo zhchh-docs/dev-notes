@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 37 章 错误边界与降级 UI｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第四篇 路由与数据</p>
+    <h1>第 37 章 错误边界与降级 UI</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 37 章 / 共 64 章 · 预计 45 分钟 · 崩溃隔离与分级兜底</span>
+    </div>
+    <p class="hero-desc">组件渲染期抛错会沿着组件树冒泡，没有边界拦截时整站白屏。本章讲清错误边界的捕获范围、类组件两个生命周期方法、函数组件封装用法，路由级 <code>errorElement</code> 的分工，以及局部、面板、整页三级降级 UI 的设计与重试重置。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="036_第36章_校验zod与类型安全.html">第 36 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../50_第五篇_渲染原理/038_第38章_虚拟DOM与diff入门.html">第 38 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">37.1 React 错误处理的盲区</a></li>
+    <li><a href="#sec3">37.2 类错误边界：两个生命周期方法</a></li>
+    <li><a href="#sec4">37.3 函数组件思路与第三方封装</a></li>
+    <li><a href="#sec5">37.4 路由级 errorElement 与错误归属</a></li>
+    <li><a href="#sec6">37.5 降级 UI 的分级设计</a></li>
+    <li><a href="#sec7">37.6 常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>分清渲染错误、事件处理器错误、异步错误各自的捕获路径，知道错误边界<strong>抓不到</strong>哪些错误；</li>
+    <li>能用类组件实现 <code>getDerivedStateFromError</code> 与 <code>componentDidCatch</code> 组成的错误边界；</li>
+    <li>理解官方边界仍需类组件的原因，会用 <code>react-error-boundary</code> 在函数组件工程中封装复用；</li>
+    <li>掌握路由 <code>errorElement</code> 对 loader、action、渲染错误的归属，会用 <code>useRouteError</code> 分级展示；</li>
+    <li>能按局部卡片、面板、整页三级设计降级 UI，并处理重试时的状态重置。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">37.1</span> React 错误处理的盲区</h2>
+  <p>组件渲染期间读取 <code>user.name</code> 而 <code>user</code> 为 <code>null</code>、第三方图表初始化失败，这类异常默认会沿组件树冒泡到根部，React 卸载整棵组件树，页面白屏。错误边界（Error Boundary）就是在组件树上设置「拦截网」：子树渲染抛错时，边界捕获错误并渲染降级 UI，避免整站崩溃。</p>
+  <div class="lead">对照其他体系：<strong>vue-router</strong> 提供 <code>onErrorCaptured</code> 钩子拦截子树渲染错误；<strong>Java Spring MVC</strong> 用 <code>@ControllerAdvice</code> 全局异常处理器兜底；React 错误边界属于「组件树层级的 try/catch」，只作用于渲染阶段的子树，而不是全包络的异常处理器。</div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>错误类型</th><th>抛出位置</th><th>捕获方式</th></tr></thead>
+    <tbody>
+      <tr><td>渲染错误</td><td>组件函数体、渲染表达式、子组件渲染期间</td><td>被最近祖先错误边界捕获，渲染降级 UI</td></tr>
+      <tr><td>事件处理器错误</td><td><code>onClick</code> 等回调内部抛出</td><td>不冒泡到错误边界；用 <code>try/catch</code> 自行处理或交给全局上报</td></tr>
+      <tr><td>异步错误</td><td><code>setTimeout</code>、Promise 回调、接口 then 中抛出</td><td>不受边界管辖；<code>try/catch</code> 或 <code>.catch</code> 处理，必要时设置全局未捕获监听</td></tr>
+      <tr><td>资源加载错误</td><td>图片、脚本、chunk 加载失败</td><td>浏览器 <code>error</code> 事件或路由 chunk 兜底（第 33 章），不属于渲染边界</td></tr>
+      <tr><td>边界自身错误</td><td>错误边界组件渲染降级 UI 时抛错</td><td>向上冒泡到更外层边界，最终根部兜底</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 270" role="img" aria-label="错误冒泡层级">
+      <rect x="270" y="18" width="260" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="400" y="46" text-anchor="middle" font-size="13" fill="#1f2e1f">根部错误边界：全局降级页 + 强制上报</text>
+      <line x1="400" y1="64" x2="400" y2="88" stroke="#4f8a63" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <rect x="220" y="92" width="360" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="120" text-anchor="middle" font-size="13" fill="#1f2e1f">路由 errorElement：404 / 整页加载失败兜底</text>
+      <line x1="400" y1="138" x2="400" y2="162" stroke="#4f8a63" stroke-width="1.6" stroke-dasharray="5 3"/>
+      <rect x="170" y="166" width="460" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="194" text-anchor="middle" font-size="13" fill="#1f2e1f">面板 / 卡片局部边界：区块降级，其余内容保持可用</text>
+      <line x1="400" y1="212" x2="400" y2="232" stroke="#7a8a70" stroke-width="1.4"/>
+      <text x="400" y="250" text-anchor="middle" font-size="12" fill="#b45309">渲染错误自下而上冒泡；被任一层拦截即渲染该层降级 UI，不再继续上冒。</text>
+    </svg>
+    <p class="diagram-caption">图 37-1 错误冒泡与分级拦截：局部边界先隔离区块，未被拦截的错误逐层上交到路由边界与根部边界</p>
+  </div>
+  <div class="warn-box">记住边界的能力边界：<strong>它不是全局 try/catch</strong>。事件回调里的异常、Promise 拒绝、定时器异常不会触发错误边界；这些场景必须显式捕获后展示错误提示或写入状态。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">37.2</span> 类错误边界：两个生命周期方法</h2>
+  <p>官方错误边界必须是类组件，由两个静态 / 生命周期方法配合：<code>static getDerivedStateFromError(error)</code> 在捕获错误后返回状态更新，让边界切换到降级 UI；<code>componentDidCatch(error, info)</code> 用于副作用——错误上报、日志记录、埋点。</p>
+  <pre class="code" data-lang="jsx"><code>import { Component } from 'react'
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, message: '' }
+  }
+
+  // 捕获子树渲染错误：返回新状态，驱动降级 UI
+  static getDerivedStateFromError(error) {
+    return { hasError: true, message: error.message }
+  }
+
+  // 副作用场所：上报日志、埋点、刷新监控
+  componentDidCatch(error, info) {
+    console.error('组件树崩溃：', error, info.componentStack)
+    reportError(error, info.componentStack)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        &lt;div className="error-fallback"&gt;
+          &lt;p&gt;这部分内容暂时无法显示&lt;/p&gt;
+          &lt;p className="error-detail"&gt;{this.state.message}&lt;/p&gt;
+        &lt;/div&gt;
+      )
+    }
+    return this.props.children
+  }
+}
+
+export default ErrorBoundary</code></pre>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:34%"><col style="width:38%"></colgroup>
+    <thead><tr><th>方法</th><th>调用时机</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td><code>static getDerivedStateFromError(error)</code></td><td>子树渲染抛错后、重渲染之前</td><td>返回状态对象；保持纯函数，不做副作用与上报</td></tr>
+      <tr><td><code>componentDidCatch(error, info)</code></td><td>错误捕获后的提交阶段</td><td>执行副作用：上报、日志、告警；<code>info.componentStack</code> 提供组件堆栈</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">错误边界捕获的是<strong>子树</strong>的渲染错误，不是自身：边界组件自己渲染时抛错，会向上传递；把边界放在需要隔离的区块外层，而不是出错组件内部。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">37.3</span> 函数组件思路与第三方封装</h2>
+  <p>React 官方尚未提供函数组件形式的错误边界 Hooks（<code>useEffect</code> 捕获不到渲染期错误，模型上无法替代）。工程实践中普遍使用社区封装 <code>react-error-boundary</code>：底层仍是类边界，对外暴露 <code>ErrorBoundary</code> 组件与 <code>useErrorBoundary</code> 钩子，函数组件工程直接包裹使用。</p>
+  <pre class="code" data-lang="bash"><code>npm install react-error-boundary</code></pre>
+  <pre class="code" data-lang="jsx"><code>import { ErrorBoundary } from 'react-error-boundary'
+
+function Fallback({ error, resetBoundary }) {
+  return (
+    &lt;div className="error-fallback"&gt;
+      &lt;p&gt;区块加载失败&lt;/p&gt;
+      &lt;p className="error-detail"&gt;{error.message}&lt;/p&gt;
+      &lt;button onClick={resetBoundary}&gt;重试&lt;/button&gt;
+    &lt;/div&gt;
+  )
+}
+
+export default function Dashboard() {
+  return (
+    &lt;section&gt;
+      &lt;ErrorBoundary FallbackComponent={Fallback} onError={reportError}&gt;
+        &lt;ChartPanel /&gt;
+      &lt;/ErrorBoundary&gt;
+      &lt;ErrorBoundary FallbackComponent={Fallback} onError={reportError}&gt;
+        &lt;MemberTable /&gt;
+      &lt;/ErrorBoundary&gt;
+    &lt;/section&gt;
+  )
+}</code></pre>
+  <p><code>resetBoundary</code> 把边界状态恢复为无错误，再次渲染子树；<code>resetKeys</code> 可在依赖数据变化时自动重置边界，避免上一次崩溃的状态长期卡住区块。</p>
+  <div class="note">不引入第三方库时，把 37.2 的类边界封装成一次，全工程复用即可；函数组件业务代码只负责声明「这块区域被谁包裹」，不需要再接触类生命周期。</div>
+  <div class="pit-sentence"><code>react-error-boundary</code> 的 <code>FallbackComponent</code> 每次渲染都会收到新的 <code>error</code> 与 <code>resetBoundary</code> 对象；不要在降级组件内把 <code>error.message</code> 复制进本地 <code>useState</code>，否则 <code>resetBoundary</code> 之后旧错误文案仍停留在界面上。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">37.4</span> 路由级 errorElement 与错误归属</h2>
+  <p>数据路由为每条路由提供 <code>errorElement</code>：loader / action 抛错、路由组件渲染抛错，都会被归到对应路由的错误边界；未在本路由拦截时向上冒泡到祖先路由的 <code>errorElement</code>。边界内用 <code>useRouteError()</code> 读取抛出的错误对象，区分响应状态码与普通异常。</p>
+  <pre class="code" data-lang="jsx"><code>import {
+  createBrowserRouter, RouterProvider, useRouteError, useLoaderData,
+} from 'react-router-dom'
+
+function PostDetail() {
+  const post = useLoaderData()
+  return &lt;article&gt;{post.title}&lt;/article&gt;
+}
+
+function PostError() {
+  const error = useRouteError()
+  const status = error.status ?? 500
+  const message = error.statusText ?? error.message ?? '页面异常'
+
+  if (status === 404) return &lt;h2&gt;文章不存在&lt;/h2&gt;
+  return (
+    &lt;div className="error-page"&gt;
+      &lt;h2&gt;加载失败（{status}）&lt;/h2&gt;
+      &lt;p&gt;{message}&lt;/p&gt;
+    &lt;/div&gt;
+  )
+}
+
+const router = createBrowserRouter([
+  {
+    path: '/posts/:postId',
+    loader: async ({ params }) =&gt; {
+      const res = await fetch(`/api/posts/${params.postId}`)
+      if (!res.ok) throw new Response('Not Found', { status: res.status })
+      return res.json()
+    },
+    element: &lt;PostDetail /&gt;,
+    errorElement: &lt;PostError /&gt;,
+  },
+])</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>React 错误边界</th><th>路由 errorElement</th></tr></thead>
+    <tbody>
+      <tr><td>捕获范围</td><td>包裹子树的渲染错误</td><td>当前路由 loader、action、组件渲染错误，可向上冒泡到祖先路由</td></tr>
+      <tr><td>错误读取</td><td>类边界 state 持有 <code>error</code></td><td><code>useRouteError()</code> 返回抛出对象，可识别 Response 状态码</td></tr>
+      <tr><td>配置位置</td><td>组件树中声明式包裹</td><td>路由表 <code>errorElement</code> 字段，与 loader、action 同层</td></tr>
+      <tr><td>典型用途</td><td>页面内局部区块隔离（卡片、图表、面板）</td><td>整页加载失败、404、403、服务端错误的路由级降级</td></tr>
+      <tr><td>组合关系</td><td>可嵌入路由组件内部做二次细分隔离</td><td>作为路由层级的最后一道拦截网</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">两套边界按层级分工：<strong>路由 <code>errorElement</code> 归属页面级失败（loader、action、主组件），React 错误边界归属页面内局部区块失败</strong>；页面路由边界兜底整页，组件边界兜底卡片与面板，二者可以嵌套组合。</div>
+  <div class="warn-box">loader 抛出的 <code>Response</code> 与普通 <code>Error</code> 形状不同：状态码在 <code>error.status</code>，状态文本在 <code>error.statusText</code>；展示前先判空，避免读取 undefined 的 message。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">37.5</span> 降级 UI 的分级设计</h2>
+  <p>错误隔离不是「全部换成整页报错」。按影响范围分级兜底：小区块失败不影响整页浏览，面板失败保留外壳导航，整页崩溃才展示全局降级。设计时同时明确重试入口与错误上报责任。</p>
+  <div class="lead">分级设计的判断顺序：<strong>先看失败是否波及页面主任务</strong>——单个图表失败只替换卡片，面板失败保留导航与其他分组，主数据不可用才进入整页降级；每一级降级都要带返回路径或重试入口，不能只展示一句「出错了」。</div>
+  <table>
+    <colgroup><col style="width:20%"><col style="width:34%"><col style="width:46%"></colgroup>
+    <thead><tr><th>级别</th><th>触发场景</th><th>降级策略</th></tr></thead>
+    <tbody>
+      <tr><td>局部卡片</td><td>单个图表、评论流、推荐位抛错</td><td>卡片内部显示精简占位 + 重试按钮，周围内容保持可用</td></tr>
+      <tr><td>面板区块</td><td>设置页某分组、侧边组件失败</td><td>区块替换为提示条，导航与其余面板保留</td></tr>
+      <tr><td>整页路由</td><td>loader 失败、主组件渲染崩溃、404 / 403</td><td><code>errorElement</code> 展示状态化提示，提供返回首页入口</td></tr>
+      <tr><td>根部兜底</td><td>未被任何层级拦截的崩溃</td><td>根部边界展示全局错误页，强制上报后刷新页面</td></tr>
+    </tbody>
+  </table>
+  <p>降级组件需要处理「重试」：边界拦截错误后，内部错误状态不会自动消失；重置方式是改变组件 <code>key</code> 重新挂载，或调用封装库提供的 <code>resetBoundary</code>。</p>
+  <pre class="code" data-lang="jsx"><code>import { ErrorBoundary } from 'react-error-boundary'
+
+function ProfilePanel({ userId }) {
+  return (
+    &lt;ErrorBoundary
+      FallbackComponent={ProfileFallback}
+      resetKeys={[userId]}
+      onError={(err) =&gt; reportError(err, 'ProfilePanel')}
+    &gt;
+      &lt;ProfileContent userId={userId} /&gt;
+    &lt;/ErrorBoundary&gt;
+  )
+}
+
+function ProfileFallback({ error, resetBoundary }) {
+  return (
+    &lt;div className="panel-error"&gt;
+      &lt;p&gt;个人资料加载失败&lt;/p&gt;
+      &lt;button onClick={resetBoundary}&gt;重新加载&lt;/button&gt;
+      &lt;a href="/"&gt;返回首页&lt;/a&gt;
+    &lt;/div&gt;
+  )
+}</code></pre>
+  <div class="note">错误上报应在 <code>componentDidCatch</code>、<code>onError</code> 或全局未捕获监听中完成，附带页面路径、用户标识、组件堆栈与接口状态；本地开发时控制台输出堆栈便于定位，生产环境上报聚合平台供复盘。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">37.6</span> 常见坑清单</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>现象</th><th>原因</th><th>解法</th></tr></thead>
+    <tbody>
+      <tr><td>写了边界但事件回调抛错仍白屏</td><td>错误边界只拦截渲染期错误，事件与异步不在范围</td><td>事件内 <code>try/catch</code> 展示提示；Promise 加 <code>.catch</code></td></tr>
+      <tr><td>错误被静默吞掉，线上无感知</td><td>降级 UI 只渲染文案，未调用上报接口</td><td><code>componentDidCatch</code> / <code>onError</code> 中上报错误与堆栈</td></tr>
+      <tr><td>一个区块崩溃导致整页不可用</td><td>边界只挂在根部，粒度过大</td><td>按卡片、面板拆分多个边界，局部隔离</td></tr>
+      <tr><td>点重试后仍停留在错误页</td><td>边界错误状态未重置，组件未重新挂载</td><td>调用 <code>resetBoundary</code>，或用 <code>key</code> 变更强制重建</td></tr>
+      <tr><td>路由错误提示读不到状态码</td><td>把 <code>Response</code> 当普通 <code>Error</code> 读取 message</td><td>优先取 <code>error.status</code>、<code>error.statusText</code>，再回退 <code>error.message</code></td></tr>
+      <tr><td>异步 chunk 加载失败后无兜底</td><td>懒加载失败未纳入边界处理（第 33 章）</td><td>外层 Suspense + 错误边界组合，必要时配置重新加载入口</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">错误边界不是用来「保证不出错」的：它的价值是<strong>把崩溃限制在最小范围，给用户可理解的兜底界面，同时把现场上报给开发者</strong>。分支预判、空值保护、类型校验（第 36 章）才是减少崩溃数量的前置工作。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>捕获范围</td><td>边界只拦截子树渲染错误，事件与异步错误需显式 try/catch</td></tr>
+      <tr><td>类边界实现</td><td><code>getDerivedStateFromError</code> 切状态，<code>componentDidCatch</code> 做上报</td></tr>
+      <tr><td>函数组件封装</td><td>官方边界仍需类组件，工程内一次封装或用 <code>react-error-boundary</code></td></tr>
+      <tr><td>路由错误归属</td><td><code>errorElement</code> 拦截本路由 loader / action / 渲染错误，<code>useRouteError</code> 读取</td></tr>
+      <tr><td>分级兜底</td><td>卡片、面板、整页、根部逐级隔离，配重试入口与错误上报</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>实现一个类错误边界 <code>ErrorBoundary</code>：捕获子树渲染错误后显示「区块暂时无法显示」与错误信息，在 <code>componentDidCatch</code> 中调用 <code>console.error</code> 上报；用它包裹一个故意读取空对象属性的演示组件，观察降级 UI 是否生效。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为 <code>/posts/:postId</code> 路由配置 <code>errorElement</code>：404 显示「文章不存在」，其他状态码显示「加载失败」与状态码；用 <code>useRouteError</code> 区分 Response 与普通异常；再在页面内用局部边界包裹一个评论图表组件，演示局部失败不影响文章主体。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为后台首页设计三级降级方案：推荐位卡片失败、统计面板失败、整页崩溃各自展示什么 UI、边界挂在哪一层、重试如何重置、错误上报携带哪些现场信息；再找出本方案中三个「错误边界抓不到」的场景，分别写出对应的 try/catch 或 .catch 处理代码。</div>
+  <p class="note">参考答案见附录 C。下一章：进入第五篇渲染原理——从虚拟 DOM 与 diff 入门，理解 React 提交界面的内部过程。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="036_第36章_校验zod与类型安全.html">← 第 36 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="../50_第五篇_渲染原理/038_第38章_虚拟DOM与diff入门.html">第 38 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 37 章 错误边界与降级 UI</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

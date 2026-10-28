@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 44 章 不可变更新：为什么必须｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第五篇 渲染原理</p>
+    <h1>第 44 章 不可变更新：为什么必须</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 44 章 / 共 64 章 · 预计 50 分钟 · 引用相等的底层约束</span>
+    </div>
+    <p class="hero-desc">"不要直接修改 state"是最早背下的规则，本章回答为什么必须如此：React 用引用相等（Object.is）判断状态与 props 是否变化，原地修改让引用保持不变，协调阶段会认为没变化而跳过更新。本章讲清比较规则、正确的不可变写法、嵌套对象处理与常见误区。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="043_第43章_key与节点复用.html">第 43 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="045_第45章_Concurrent特性useTransition.html">第 45 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">44.1 状态快照与引用相等</a></li>
+    <li><a href="#sec3">44.2 Object.is：React 的比较规则</a></li>
+    <li><a href="#sec4">44.3 原地修改为什么让更新失效</a></li>
+    <li><a href="#sec5">44.4 正确写法：对象与数组的不可变更新</a></li>
+    <li><a href="#sec6">44.5 嵌套对象与 Immer 概念</a></li>
+    <li><a href="#sec7">44.6 常见误区清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 React 保存的是<strong>状态引用</strong>，渲染快照读取的是本次保存的引用；</li>
+    <li>掌握比较规则 <code>Object.is</code>，知道它与 <code>===</code> 的两处细微差别；</li>
+    <li>说清原地修改对象 / 数组后引用不变，协调阶段为什么会跳过更新；</li>
+    <li>熟练写出对象、数组的不可变更新（展开、<code>map</code>、<code>filter</code>、<code>slice</code>）；</li>
+    <li>会逐层处理嵌套状态，了解 Immer 用代理减少样板的思路；能识别常见可变修改误区。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">44.1</span> 状态快照与引用相等</h2>
+  <div class="lead">第 41 章讲过，每次渲染都是一份独立快照。React 在 Fiber 上保存的不是对象内容的"深拷贝"，而是<strong>当时的值引用</strong>：基本类型保存值本身，对象与数组保存内存引用。下一次渲染比较新旧状态时，先比较引用是否相同。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 260" role="img" aria-label="引用比较决定是否更新">
+      <text x="400" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">引用相同：React 认为状态未变化，跳过该节点更新</text>
+      <rect x="150" y="50" width="200" height="56" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="250" y="74" text-anchor="middle" font-size="12" fill="#b45309">旧 state 引用 → 对象 A（内容被原地改过）</text>
+      <text x="250" y="94" text-anchor="middle" font-size="11" fill="#b45309">新 state 引用 = 同一引用 A</text>
+      <rect x="470" y="50" width="200" height="56" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="570" y="74" text-anchor="middle" font-size="12" fill="#1f2e1f">比较结果：引用相等</text>
+      <text x="570" y="94" text-anchor="middle" font-size="11" fill="#3d7a4f">跳过协调，DOM 不刷新</text>
+      <text x="400" y="156" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">引用不同：React 判定状态变化，进入协调更新</text>
+      <rect x="150" y="180" width="200" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="250" y="204" text-anchor="middle" font-size="12" fill="#1f2e1f">旧 state 引用 → 对象 A</text>
+      <text x="250" y="224" text-anchor="middle" font-size="11" fill="#4f6348">新 state 引用 → 新对象 B（内容来自 A 的复制）</text>
+      <rect x="470" y="180" width="200" height="56" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="570" y="204" text-anchor="middle" font-size="12" fill="#1f2e1f">比较结果：引用不同</text>
+      <text x="570" y="224" text-anchor="middle" font-size="11" fill="#3d7a4f">协调并提交新内容到 DOM</text>
+    </svg>
+    <p class="diagram-caption">图 44-1 引用相等则跳过更新；生成新引用才会触发协调与提交</p>
+  </div>
+  <p class="key-sentence">不可变更新的核心要求：<strong>改变状态时给出一个新的引用</strong>，让 React 通过引用比较识别出"这一版变了"。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">44.2</span> Object.is：React 的比较规则</h2>
+  <p>React 在判断 state、props 是否变化时使用 <code>Object.is</code> 做相等比较。它与严格相等 <code>===</code> 绝大多数情况一致，只有两处特例需要了解：<code>NaN</code> 与自身相等；<code>-0</code> 与 <code>+0</code> 不相等。</p>
+  <div class="lead">比较规则只有一个朴素的事实：<strong>基本类型按值比，对象与数组按引用比</strong>；React 不会递归比较对象内部字段。所以"内容看起来一样"并不等于 React 认为状态没变，关键在于你交出的引用是不是同一个。</div>
+  <pre class="code" data-lang="js"><code>// Object.is 与 === 的两处差别（其余行为一致）
+Object.is(NaN, NaN);     // true   —— === 为 false
+Object.is(-0, +0);       // false  —— === 为 true
+Object.is(1, 1);         // true
+Object.is('a', 'a');     // true
+const objA = { n: 1 };
+const objB = { n: 1 };
+Object.is(objA, objB);   // false  —— 内容相同但引用不同
+Object.is(objA, objA);   // true   —— 同一引用</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>比较场景</th><th>Object.is 结果</th><th>=== 结果</th></tr></thead>
+    <tbody>
+      <tr><td><code>NaN === NaN</code></td><td>相等（true）</td><td>不相等（false）</td></tr>
+      <tr><td><code>-0 === +0</code></td><td>不相等（false）</td><td>相等（true）</td></tr>
+      <tr><td>两个内容相同的对象 / 数组</td><td colspan="2">都按引用比较：引用不同即不相等</td></tr>
+      <tr><td>基本类型值相同</td><td colspan="2">两者一致，均判定相等</td></tr>
+    </tbody>
+  </table>
+  <div class="note">日常开发几乎不会遇到 <code>NaN</code>、<code>-0</code> 引发的更新判断问题；需要记住的重点是<strong>对象与数组按引用比较</strong>，这也是 44.3 节问题的根源。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">44.3</span> 原地修改为什么让更新失效</h2>
+  <p>对象与数组是引用类型：<code>push</code>、<code>splice</code>、直接给属性赋值等操作改的是内存中同一个对象，变量里保存的引用没有变。此时即使调用 <code>setState</code> 传入同一个对象，<code>Object.is(旧引用, 新引用)</code> 结果为相等，React 判定没有变化，协调阶段跳过该节点，界面不刷新。</p>
+  <pre class="code" data-lang="jsx"><code>// ✗ 反例一：原地改对象后再 setState，界面不更新
+function Profile() {
+  const [user, setUser] = useState({ name: '张三', age: 20 });
+
+  function growUp() {
+    user.age = user.age + 1;   // 原地修改同一对象，引用未变
+    setUser(user);             // 传入同一引用，React 判定未变化
+  }
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;{user.name} · {user.age} 岁&lt;/p&gt;
+      &lt;button onClick={growUp}&gt;长一岁&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>// ✗ 反例二：push / splice 原地改数组
+function Cart() {
+  const [items, setItems] = useState(['牛奶']);
+
+  function add() {
+    items.push('面包');        // 原数组被修改，引用未变
+    setItems(items);
+  }
+
+  function removeFirst() {
+    items.splice(0, 1);        // 同样是原地修改
+    setItems(items);
+  }
+
+  return (
+    &lt;ul&gt;
+      {items.map((it, i) =&gt; &lt;li key={i}&gt;{it}&lt;/li&gt;)}
+      &lt;button onClick={add}&gt;加入面包&lt;/button&gt;
+      &lt;button onClick={removeFirst}&gt;移除第一项&lt;/button&gt;
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>原地修改有时"看起来生效"，往往是因为另一次正常更新触发了整棵子树重渲染，巧合读到了被改过的内容；这掩盖了引用比较的问题，在 <code>memo</code> 等依赖引用跳过更新的场景下会立刻暴露 bug（第 48 章）。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">44.4</span> 正确写法：对象与数组的不可变更新</h2>
+  <p>标准做法是基于旧值复制一份新对象 / 新数组，只改动需要变化的部分，再把新引用交给 <code>setState</code>。</p>
+  <h4>对象：展开复制后覆盖目标属性</h4>
+  <pre class="code" data-lang="jsx"><code>function Profile() {
+  const [user, setUser] = useState({ name: '张三', age: 20 });
+
+  function growUp() {
+    setUser((prev) =&gt; ({ ...prev, age: prev.age + 1 }));
+  }
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;{user.name} · {user.age} 岁&lt;/p&gt;
+      &lt;button onClick={growUp}&gt;长一岁&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <h4>数组：追加、更新、删除的不可变写法</h4>
+  <pre class="code" data-lang="js"><code>const items = [{ id: 1, text: '牛奶', done: false }];
+
+// 追加：展开旧数组 + 新元素，返回新数组
+const added = [...items, { id: 2, text: '面包', done: false }];
+
+// 更新某一项：map 返回新数组，命中项生成新对象
+const toggled = items.map((it) =&gt;
+  it.id === 1 ? { ...it, done: true } : it
+);
+
+// 删除某一项：filter 返回新数组
+const removed = items.filter((it) =&gt; it.id !== 1);
+
+// 头部插入：新元素 + 旧数组
+const prepended = [{ id: 0, text: '鸡蛋' }, ...items];</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>操作意图</th><th>可变方法（禁止用于 state）</th><th>不可变替代（正确写法）</th></tr></thead>
+    <tbody>
+      <tr><td>追加元素</td><td><code>arr.push(x)</code></td><td><code>[...arr, x]</code></td></tr>
+      <tr><td>头部插入</td><td><code>arr.unshift(x)</code></td><td><code>[x, ...arr]</code></td></tr>
+      <tr><td>删除指定项</td><td><code>arr.splice(i, 1)</code></td><td><code>arr.filter(...)</code> 或 <code>arr.slice(0, i).concat(arr.slice(i + 1))</code></td></tr>
+      <tr><td>更新指定项</td><td>直接改 <code>arr[i].x = v</code></td><td><code>arr.map(...)</code>，命中项返回新对象</td></tr>
+      <tr><td>对象改属性</td><td><code>obj.x = v</code></td><td><code>{ ...obj, x: v }</code></td></tr>
+      <tr><td>删除对象属性</td><td><code>delete obj.x</code></td><td>展开后不复制该属性，再交给新状态</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">注意</span>不要把不可变理解成"把整个对象深拷贝一遍"。未变化的字段继续复用旧引用，只让被改动的层级生成新对象：这既保证根引用发生变化，又减少复制开销，也是 44.5 节 Immer 结构共享的基本思路。</div>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span>展开只是<strong>浅复制</strong>：新对象的顶层属性是新引用，但嵌套对象仍与旧对象共享引用。更新到嵌套层时必须逐层展开（见 44.5）。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">44.5</span> 嵌套对象与 Immer 概念</h2>
+  <p>状态嵌套较深时，逐层展开会写出很长的复制链。理解原理后，可以在复杂状态上使用 Immer 库：它用代理（Proxy）包裹状态，允许你"看起来原地修改"，最终产出一份结构共享的不可变新状态。</p>
+  <pre class="code" data-lang="js"><code>// 嵌套对象的不可变更新：逐层展开
+const state = {
+  profile: { name: '张三', address: { city: '成都', street: '春熙路' } },
+  tags: ['前端'],
+};
+
+const next = {
+  ...state,
+  profile: {
+    ...state.profile,
+    address: { ...state.profile.address, city: '杭州' },
+  },
+};</code></pre>
+  <pre class="code" data-lang="jsx"><code>// Immer 的 useImmer：写作风格接近原地修改，产出仍是不可变新状态
+import { useImmer } from 'use-immer';
+
+function Profile() {
+  const [user, setUser] = useImmer({
+    name: '张三',
+    address: { city: '成都' },
+  });
+
+  function changeCity(city) {
+    setUser((draft) =&gt; {
+      draft.address.city = city;   // 在 draft 上"原地改"，Immer 生成新状态
+    });
+  }
+
+  return (
+    &lt;div&gt;
+      {user.name} · {user.address.city}
+      &lt;button onClick={() =&gt; changeCity('杭州')}&gt;搬到杭州&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>对照项</th><th>手工不可变更新</th><th>Immer 方案</th></tr></thead>
+    <tbody>
+      <tr><td>写法</td><td>逐层展开复制，样板代码多</td><td>在 draft 上直接赋值，由代理记录变更</td></tr>
+      <tr><td>产出</td><td>新对象 / 新数组引用</td><td>结构共享的新状态，未改动部分复用旧引用</td></tr>
+      <tr><td>适用场景</td><td>扁平状态、浅层对象</td><td>嵌套深、更新分支多的表单与聚合状态</td></tr>
+      <tr><td>学习成本</td><td>无需第三方库，规则固定</td><td>需要理解 draft 概念，引入额外依赖</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="不可变更新的结构共享">
+      <text x="400" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">不可变更新：只替换被改动的路径，未改动部分共享旧引用</text>
+      <rect x="80" y="60" width="150" height="40" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="155" y="85" text-anchor="middle" font-size="11.5" fill="#1f2e1f">旧 state 对象 A</text>
+      <rect x="330" y="60" width="150" height="40" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="405" y="85" text-anchor="middle" font-size="11.5" fill="#1f2e1f">共享：未改动字段</text>
+      <rect x="580" y="60" width="150" height="40" rx="8" fill="#fef3c7" stroke="#d97706"/>
+      <text x="655" y="85" text-anchor="middle" font-size="11.5" fill="#b45309">新对象 B（改动层）</text>
+      <rect x="80" y="140" width="150" height="40" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="155" y="165" text-anchor="middle" font-size="11.5" fill="#b45309">新 state 根节点</text>
+      <rect x="330" y="140" width="150" height="40" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="405" y="165" text-anchor="middle" font-size="11.5" fill="#1f2e1f">共享：未改动字段</text>
+      <rect x="580" y="140" width="150" height="40" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="655" y="165" text-anchor="middle" font-size="11.5" fill="#1f2e1f">复用旧对象引用</text>
+      <line x1="230" y1="80" x2="328" y2="80" stroke="#3d7a4f" stroke-width="1.2"/>
+      <line x1="480" y1="80" x2="578" y2="80" stroke="#3d7a4f" stroke-width="1.2"/>
+      <line x1="230" y1="160" x2="328" y2="160" stroke="#3d7a4f" stroke-width="1.2"/>
+      <line x1="480" y1="160" x2="578" y2="160" stroke="#3d7a4f" stroke-width="1.2"/>
+      <text x="400" y="218" text-anchor="middle" font-size="12" fill="#4f6348">引用不同的只有根节点与被改动的嵌套层；其余节点继续指向旧对象，节省复制成本。</text>
+    </svg>
+    <p class="diagram-caption">图 44-2 不可变更新采用结构共享：改动路径生成新对象，未改动部分复用旧引用</p>
+  </div>
+  <div class="note">Immer 是第三方库，不属于 React 内置能力；选择与否取决于状态复杂度。<code>useMemo</code>、<code>useCallback</code> 对引用相等的依赖，在第六篇第 49 章展开。</div>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span>Immer 的 <code>draft</code> 只能在传入它的更新函数内部修改：函数执行结束后 draft 失效，不要把 draft 引用保存下来在别处继续使用；脱离 draft 直接改原始 state 对象，同样会违反不可变规则。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">44.6</span> 常见误区清单</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>误区</th><th>正确处理</th></tr></thead>
+    <tbody>
+      <tr><td><code>push</code> / <code>splice</code> / <code>sort</code> 后直接 <code>setState</code></td><td>先复制新数组再修改副本；排序也要先 <code>[...arr].sort(...)</code></td></tr>
+      <tr><td>把外部可变对象直接存进 state</td><td>存入时复制一份；外部对象后续变化不应影响组件快照</td></tr>
+      <tr><td>组件内修改 <code>props</code> 对象属性</td><td>props 是只读快照；需要修改时先复制到本地 state，或由父组件回调更新</td></tr>
+      <tr><td>解构后忘记嵌套层仍是共享引用</td><td>更新嵌套字段时逐层展开，保证被改层是新对象</td></tr>
+      <tr><td>数组元素直接改属性</td><td><code>map</code> 出命中项的新对象，未命中项保留原引用</td></tr>
+      <tr><td>在 <code>setState</code> 回调外部计算新对象却没基于前一次状态</td><td>同批次多次更新使用函数式更新 <code>setPrev =&gt; ...prev</code>，避免读到旧快照</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 正确的函数式更新：基于前一次排队值计算，避免同批次覆盖
+function CounterList() {
+  const [list, setList] = useState([]);
+
+  function addMany() {
+    setList((prev) =&gt; [...prev, '项一']);
+    setList((prev) =&gt; [...prev, '项二']);   // 基于上一次排队结果累加
+  }
+
+  return &lt;button onClick={addMany}&gt;连续追加两项&lt;/button&gt;;
+}</code></pre>
+  <div class="key-sentence">一句话规则：<strong>基本类型直接给新值；对象与数组永远给新引用；嵌套改动逐层生成新对象；同批次累加用函数式更新。</strong></div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>状态保存引用</td><td>对象与数组按引用保存，比较先看引用是否相同</td></tr>
+      <tr><td>比较规则</td><td>React 使用 Object.is；对象数组按引用相等判断，特例为 NaN 与 -0</td></tr>
+      <tr><td>原地修改失效</td><td>引用不变，Object.is 判定相等，协调阶段跳过更新</td></tr>
+      <tr><td>对象写法</td><td>展开复制后覆盖目标属性，返回新对象引用</td></tr>
+      <tr><td>数组写法</td><td>追加展开、更新 map、删除 filter，全部返回新数组</td></tr>
+      <tr><td>嵌套更新</td><td>逐层展开保证被改层是新对象；复杂场景可用 Immer 代理减少样板</td></tr>
+      <tr><td>函数式更新</td><td>同批次多次更新基于前一次排队值计算，避免覆盖</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>说明为什么 <code>setState(arr.push(x))</code> 这种写法不会触发界面更新；写出向数组尾部追加一个元素、删除指定 id 元素、更新指定 id 元素 <code>done</code> 字段的三条不可变表达式。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>下面状态嵌套了 <code>user.address.city</code>，写出不可变更新城市的新状态对象：<code>const state = { user: { name: '张三', address: { city: '成都' } }, list: [1, 2] };</code> 再指出"只展开了顶层 <code>{ ...state, user: { ...state.user } }</code> 而没有展开 address"会留下什么引用问题。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>解释 <code>memo</code> 包裹的子组件为什么在父组件传入"内容相同、引用不同的旧对象"时不会重渲染（引用比较视角），并说明这与本章 44.3 节原地修改 bug 在 <code>memo</code> 场景下如何互相印证；写出一个同时修复"原地修改"与"props 引用不稳定"的最小改造方案思路。</div>
+  <p class="note">参考答案见附录 C。下一章：Concurrent 特性 useTransition——把非紧急更新声明为可被打断的过渡任务。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="043_第43章_key与节点复用.html">← 第 43 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="045_第45章_Concurrent特性useTransition.html">第 45 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 44 章 不可变更新：为什么必须</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

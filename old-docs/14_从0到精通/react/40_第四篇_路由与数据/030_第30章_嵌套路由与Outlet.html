@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 30 章 嵌套路由与 Outlet｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第四篇 路由与数据</p>
+    <h1>第 30 章 嵌套路由与 Outlet</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 30 章 / 共 64 章 · 预计 40 分钟 · 布局壳与子路由插槽</span>
+    </div>
+    <p class="hero-desc">后台系统、电商站点都有共同的外壳：侧边栏、顶栏、面包屑只出现一次，中间内容随菜单切换。本章用 route 的 children 与 Outlet 把这套布局壳抽成父级路由，讲清索引路由、相对路径、父子数据共享与 Outlet context。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="029_第29章_ReactRouter基础createBrowserRouter.html">第 29 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="031_第31章_动态路由与参数.html">第 31 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">30.1 为什么需要嵌套路由</a></li>
+    <li><a href="#sec3">30.2 children 配置与 Outlet 占位</a></li>
+    <li><a href="#sec4">30.3 索引路由 index</a></li>
+    <li><a href="#sec5">30.4 嵌套层级中的相对路径</a></li>
+    <li><a href="#sec6">30.5 父子数据共享：父 loader 与 Outlet context</a></li>
+    <li><a href="#sec7">30.6 常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解嵌套路由解决的核心问题：<strong>公共外壳只渲染一次</strong>，子页面只替换中间内容区；</li>
+    <li>能用 <code>children</code> 配置父子路由，并在父布局中用 <code>&lt;Outlet /&gt;</code> 留出子路由插槽；</li>
+    <li>区分索引路由（<code>index: true</code>）与普通子路由的匹配时机；</li>
+    <li>掌握相对路径在 <code>Link</code>、<code>useNavigate</code> 中的拼接规则；</li>
+    <li>能用父级 <code>loader</code> + <code>useRouteLoaderData</code> 与 <code>Outlet context</code> 在父子路由之间共享数据。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">30.1</span> 为什么需要嵌套路由</h2>
+  <p>一个后台系统通常是这套结构：左侧菜单 + 顶部栏 + 右侧内容区。如果为每个页面单独写一个组件，就要在每个页面里重复粘贴菜单与顶栏；更隐蔽的问题是切换子页面时<strong>外壳被整体卸载重建</strong>，菜单滚动位置、折叠状态全部丢失。嵌套路由把外壳提升为父级路由，子页面只替换内容区。</p>
+  <div class="lead">这套心智在其他框架中同样存在：<strong>vue-router</strong> 的 <code>children</code> 数组配合 <code>&lt;router-view&gt;</code> 是同一模型；Spring MVC 站点常用布局模板（Thymeleaf layout / Sitemesh）把公共页眉页脚抽成装饰层。React Router 的父布局组件与 <code>Outlet</code> 扮演的正是装饰层角色。</div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>扁平路由（每页重复外壳）</th><th>嵌套路由（父级共享外壳）</th></tr></thead>
+    <tbody>
+      <tr><td>外壳代码</td><td>每个页面组件粘贴一份菜单与顶栏</td><td>父布局组件只写一次，子页面专注内容</td></tr>
+      <tr><td>切换行为</td><td>整页组件树重建，外壳状态丢失</td><td>外壳保持挂载，仅替换 <code>Outlet</code> 区域</td></tr>
+      <tr><td>菜单高亮</td><td>每页各自判断当前路径</td><td>父级导航统一根据当前层级高亮</td></tr>
+      <tr><td>公共数据</td><td>每个子页面重复请求用户信息</td><td>父级 loader 加载一次，子级共享读取</td></tr>
+      <tr><td>URL 层级</td><td>路径之间无父子语义</td><td><code>/settings/profile</code> 天然表达归属关系</td></tr>
+    </tbody>
+  </table>
+  <div class="note">本章示例以后台设置页为主线：父级 <code>/settings</code> 提供侧边菜单，子级 <code>profile</code>、<code>security</code>、<code>billing</code> 在内容区切换。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">30.2</span> children 配置与 Outlet 占位</h2>
+  <p>在 route 对象上声明 <code>children</code> 数组即可建立父子层级；父路由的 <code>element</code> 是布局组件，组件内部必须渲染 <code>&lt;Outlet /&gt;</code>——React Router 在匹配到子路由后，把子路由组件挂载到这个插槽位置。</p>
+  <pre class="code" data-lang="jsx"><code>import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import SettingsLayout from './pages/settings/SettingsLayout'
+import Profile from './pages/settings/Profile'
+import Security from './pages/settings/Security'
+import Billing from './pages/settings/Billing'
+import NotFound from './pages/NotFound'
+
+const router = createBrowserRouter([
+  {
+    path: '/settings',
+    element: &lt;SettingsLayout /&gt;,
+    children: [
+      { path: 'profile', element: &lt;Profile /&gt; },
+      { path: 'security', element: &lt;Security /&gt; },
+      { path: 'billing', element: &lt;Billing /&gt; },
+    ],
+  },
+  { path: '*', element: &lt;NotFound /&gt; },
+])
+
+export default function App() {
+  return &lt;RouterProvider router={router} /&gt;
+}</code></pre>
+  <p>父布局组件的职责是渲染外壳与菜单，中间用 <code>Outlet</code> 标出子路由落点：</p>
+  <pre class="code" data-lang="jsx"><code>import { NavLink, Outlet } from 'react-router-dom'
+
+export default function SettingsLayout() {
+  return (
+    &lt;div className="settings-shell"&gt;
+      &lt;aside className="settings-menu"&gt;
+        &lt;NavLink to="profile" end&gt;个人资料&lt;/NavLink&gt;
+        &lt;NavLink to="security" end&gt;账号安全&lt;/NavLink&gt;
+        &lt;NavLink to="billing" end&gt;账单订阅&lt;/NavLink&gt;
+      &lt;/aside&gt;
+      &lt;section className="settings-content"&gt;
+        {/* 子路由组件在这里渲染 */}
+        &lt;Outlet /&gt;
+      &lt;/section&gt;
+    &lt;/div&gt;
+  )
+}</code></pre>
+  <div class="key-sentence"><strong>父布局不渲染子组件，只提供插槽；</strong>插槽里放什么，由当前 URL 命中哪条子路由决定。没有 <code>&lt;Outlet /&gt;</code>，子路由组件永远不会显示——这是嵌套路由新手最常见的漏写项。</div>
+  <div class="warn-box">注意 29.5 讲过的 <code>end</code>：本例菜单 <code>to="profile"</code> 本身是叶子路径，加不加 <code>end</code> 影响不大；若菜单指向父路径（如 <code>to="/settings"</code>），必须加 <code>end</code>，否则进入子页面时父菜单依然保持高亮。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 260" role="img" aria-label="嵌套路由树状结构">
+      <rect x="300" y="24" width="200" height="46" rx="8" fill="#2d6a3f" stroke="#1f2e1f"/>
+      <text x="400" y="44" text-anchor="middle" font-size="13" fill="#f8faf0">/settings 父布局</text>
+      <text x="400" y="62" text-anchor="middle" font-size="11" fill="#d8e8c8">SettingsLayout + Outlet</text>
+      <line x1="400" y1="72" x2="400" y2="104" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="130" y1="104" x2="670" y2="104" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="130" y1="104" x2="130" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="310" y1="104" x2="310" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="490" y1="104" x2="490" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="670" y1="104" x2="670" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <rect x="40" y="128" width="180" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="130" y="150" text-anchor="middle" font-size="12" fill="#1f2e1f">index 索引路由</text>
+      <text x="130" y="170" text-anchor="middle" font-size="11" fill="#4f6348">/settings 默认内容</text>
+      <rect x="220" y="128" width="180" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="310" y="150" text-anchor="middle" font-size="12" fill="#1f2e1f">profile</text>
+      <text x="310" y="170" text-anchor="middle" font-size="11" fill="#4f6348">/settings/profile</text>
+      <rect x="400" y="128" width="180" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="490" y="150" text-anchor="middle" font-size="12" fill="#1f2e1f">security</text>
+      <text x="490" y="170" text-anchor="middle" font-size="11" fill="#4f6348">/settings/security</text>
+      <rect x="580" y="128" width="180" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="670" y="150" text-anchor="middle" font-size="12" fill="#1f2e1f">billing</text>
+      <text x="670" y="170" text-anchor="middle" font-size="11" fill="#4f6348">/settings/billing</text>
+      <rect x="40" y="216" width="720" height="30" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="56" y="236" font-size="12" fill="#4f6348">外壳在父级只渲染一次，四个子路由共享菜单与顶栏，切换时仅替换 Outlet 区域。</text>
+    </svg>
+    <p class="diagram-caption">图 30-1 嵌套路由树：父布局提供外壳与插槽，子路由挂载到 Outlet 位置</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">30.3</span> 索引路由 index</h2>
+  <p>访问 <code>/settings</code> 时，父路径精确匹配了父布局，但三条子路由（<code>profile</code>、<code>security</code>、<code>billing</code>）都没命中，<code>Outlet</code> 区域会渲染空白。<strong>索引路由</strong>就是为「父路径恰好匹配时渲染什么」准备的子路由：它配置 <code>index: true</code>，<strong>不写 <code>path</code></strong>。</p>
+  <pre class="code" data-lang="jsx"><code>const router = createBrowserRouter([
+  {
+    path: '/settings',
+    element: &lt;SettingsLayout /&gt;,
+    children: [
+      { index: true, element: &lt;SettingsHome /&gt; },
+      { path: 'profile', element: &lt;Profile /&gt; },
+      { path: 'security', element: &lt;Security /&gt; },
+    ],
+  },
+])</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>索引路由 <code>index: true</code></th><th>普通子路由 <code>path: 'xxx'</code></th></tr></thead>
+    <tbody>
+      <tr><td>匹配条件</td><td>父路径精确匹配、且未命中任何子路径</td><td>URL 片段与 <code>path</code> 匹配</td></tr>
+      <tr><td>URL 形态</td><td>沿用父路径，如 <code>/settings</code></td><td>拼接父路径，如 <code>/settings/profile</code></td></tr>
+      <tr><td>能否带路径参数</td><td>不携带子级参数</td><td>可声明 <code>:id</code> 等参数段（第 31 章）</td></tr>
+      <tr><td>典型用途</td><td>设置首页、欢迎面板、默认统计卡片</td><td>具体功能页面</td></tr>
+      <tr><td>与 <code>Outlet</code> 关系</td><td>占据父级 <code>Outlet</code> 的默认位置</td><td>命中后占据 <code>Outlet</code> 位置</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">一个父路由下最多一条索引路由；<code>index: true</code> 的路由不要再写 <code>path</code>，二者语义互斥。索引路由同样可以配置自己的 <code>loader</code>、<code>errorElement</code> 与 <code>lazy</code>。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">30.4</span> 嵌套层级中的相对路径</h2>
+  <p>子路由的 <code>path</code> 是<strong>相对父路径</strong>拼接的：父 <code>/settings</code> + 子 <code>profile</code> 得到 <code>/settings/profile</code>。配置时不要在子级重复写父前缀；组件内 <code>Link</code> 与 <code>navigate</code> 的 <code>to</code> 同样遵循相对规则，需要理解「相对谁」这层语义。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>写法</th><th>语义</th><th>注意点</th></tr></thead>
+    <tbody>
+      <tr><td>以 <code>/</code> 开头</td><td>绝对路径，从域名根开始拼接</td><td>跨层级跳转时使用，与当前位置无关</td></tr>
+      <tr><td>不以 <code>/</code> 开头</td><td>相对当前路由层级拼接</td><td>默认 <code>relative: 'route'</code>，按路由定义层级计算</td></tr>
+      <tr><td><code>navigate('..')</code></td><td>回到上一层级</td><td>完成子任务后返回父级常用；<code>relative: 'path'</code> 可按 URL 段回退</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>import { Link, useNavigate } from 'react-router-dom'
+
+export default function Profile() {
+  const navigate = useNavigate()
+
+  return (
+    &lt;div&gt;
+      {/* 相对父路径：当前在 /settings/profile，结果仍是 /settings/security */}
+      &lt;Link to="security"&gt;前往账号安全&lt;/Link&gt;
+
+      {/* 绝对路径：跨到顶层 /users/123 */}
+      &lt;Link to="/users/123"&gt;查看用户&lt;/Link&gt;
+
+      &lt;button onClick={() =&gt; navigate('..')}&gt;返回设置首页&lt;/button&gt;
+    &lt;/div&gt;
+  )
+}</code></pre>
+  <div class="key-sentence">嵌套配置里路径默认按层级拼接：父级前缀 + 子级片段；组件内 <code>Link</code> 与 <code>navigate</code> 的相对路径同样以路由定义层级为基准，而不是按 URL 当前段随意回退。</div>
+  <div class="warn-box"><strong>路径前缀最容易写反</strong>：子路由 <code>path: '/settings/profile'</code>（带前导斜杠）在嵌套配置中虽然能工作，但会让层级语义混乱；团队约定子级一律省略前导斜杠，路径拼装规则统一可预期。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">30.5</span> 父子数据共享：父 loader 与 Outlet context</h2>
+  <p>后台外壳常常需要当前登录用户、组织信息等公共数据。父路由配置 <code>loader</code> 后，数据随父级路由加载一次；子组件不必重新请求，通过两条官方通道读取。</p>
+  <h4>方式一：父级 loader + <code>useRouteLoaderData</code></h4>
+  <p>父路由配置 <code>id</code> 与 <code>loader</code>，子组件用 <code>useRouteLoaderData('root')</code> 按 id 取数；<code>useLoaderData</code> 只返回<strong>当前路由自己</strong>的 loader 数据。</p>
+  <pre class="code" data-lang="jsx"><code>const router = createBrowserRouter([
+  {
+    path: '/settings',
+    id: 'settings-root',
+    loader: async () =&gt; {
+      const res = await fetch('/api/me')
+      return res.json()
+    },
+    element: &lt;SettingsLayout /&gt;,
+    children: [{ index: true, element: &lt;SettingsHome /&gt; }],
+  },
+])</code></pre>
+  <pre class="code" data-lang="jsx"><code>import { useLoaderData, useRouteLoaderData } from 'react-router-dom'
+
+export default function Profile() {
+  // 当前路由自身的 loader 数据（本页没有 loader 时为 undefined）
+  const own = useLoaderData()
+  // 按 id 读取父级 loader 共享的用户信息
+  const me = useRouteLoaderData('settings-root')
+
+  return &lt;p&gt;当前账号：{me.name}（角色：{me.role}）&lt;/p&gt;
+}</code></pre>
+  <h4>方式二：<code>Outlet context</code> 透传布局级普通值</h4>
+  <p>不经过 loader 的本地状态（如侧边栏折叠状态、主题对象）由父布局通过 <code>&lt;Outlet context={{ ... }} /&gt;</code> 下发，子组件用 <code>useOutletContext</code> 读取：</p>
+  <pre class="code" data-lang="jsx"><code>import { useState, Outlet, useOutletContext } from 'react-router-dom'
+
+function SettingsLayout() {
+  const [collapsed, setCollapsed] = useState(false)
+  return (
+    &lt;div className="settings-shell"&gt;
+      &lt;Outlet context={{ collapsed, setCollapsed }} /&gt;
+    &lt;/div&gt;
+  )
+}
+
+function Profile() {
+  const { collapsed, setCollapsed } = useOutletContext()
+  return &lt;button onClick={() =&gt; setCollapsed(!collapsed)}&gt;折叠菜单&lt;/button&gt;
+}</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>取数方式</th><th>数据来源</th><th>适用内容</th></tr></thead>
+    <tbody>
+      <tr><td><code>useLoaderData()</code></td><td>当前路由自身的 loader</td><td>本页专属数据</td></tr>
+      <tr><td><code>useRouteLoaderData(id)</code></td><td>指定 id 的祖先路由 loader</td><td>父级用户信息、组织信息等共享模型数据</td></tr>
+      <tr><td><code>Outlet context</code> + <code>useOutletContext</code></td><td>父布局组件实例状态</td><td>折叠状态、主题、布局事件回调等本地值</td></tr>
+    </tbody>
+  </table>
+  <div class="lead">父子共享数据分两类归属：<strong>模型数据走父级 loader + <code>useRouteLoaderData</code></strong>，随路由进入阶段加载；<strong>本地布局状态走 <code>Outlet context</code></strong>，随父组件实例存活。两类通道不要混用——把用户信息塞进 context 会绕过 loader 的错误归属与缓存时机。</div>
+  <div class="note">loader 的完整执行时机、错误归属与缓存语义在第 34 章展开；本节只需理解「父级加载一次、子级按 id 读取」的共享模型。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">30.6</span> 常见坑清单</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>现象</th><th>原因</th><th>解法</th></tr></thead>
+    <tbody>
+      <tr><td>子路由点击后页面一片空白</td><td>父布局漏写 <code>&lt;Outlet /&gt;</code></td><td>在布局组件内容区补上插槽</td></tr>
+      <tr><td>访问父路径 <code>/settings</code> 空白无内容</td><td>缺少索引路由兜底</td><td>添加 <code>{ index: true, element: ... }</code></td></tr>
+      <tr><td>子路径拼接成 <code>/settings/settings/profile</code></td><td>子级 <code>path</code> 又写了父前缀</td><td>子级路径省略前导斜杠与重复前缀</td></tr>
+      <tr><td>父级菜单在子页面仍保持高亮</td><td><code>NavLink</code> 做前缀匹配未加 <code>end</code></td><td>父级导航项加 <code>end</code></td></tr>
+      <tr><td>子组件读到的父级数据是 undefined</td><td>id 写错，或误用 <code>useLoaderData</code> 读父级</td><td>核对路由 <code>id</code>，改用 <code>useRouteLoaderData(id)</code></td></tr>
+      <tr><td>切换子页面时父级用户信息重复请求</td><td>数据写在子级 loader 或组件 state 中</td><td>上移到父级 loader，子级共享读取</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">父级 <code>Outlet</code> 只渲染当前命中的子路由；如果子路由之间需要保留滚动位置或局部状态，应把状态提升到父级组件或状态管理工具，而不是期待子组件实例在切换间保留。</div>
+  <div class="warn-box">嵌套层级同样可以继续嵌套：三级后台（区域 → 部门 → 成员）只需在子路由上再挂 <code>children</code> 与一层 <code>Outlet</code>，规则完全一致；层级过深时注意给每一级配置清晰的 <code>id</code>，便于跨层取数。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>嵌套路由价值</td><td>公共外壳由父级渲染一次，子页面只替换 <code>Outlet</code> 区域</td></tr>
+      <tr><td>配置方式</td><td>route 对象的 <code>children</code> 数组定义子级，父布局组件放插槽</td></tr>
+      <tr><td>索引路由</td><td><code>index: true</code> 且不写 <code>path</code>，兜底父路径精确匹配场景</td></tr>
+      <tr><td>相对路径</td><td>子级路径省略前导斜杠；<code>Link</code> 与 <code>navigate</code> 默认相对路由层级</td></tr>
+      <tr><td>共享数据</td><td>父 loader 配 id 后用 <code>useRouteLoaderData</code> 读取；本地状态走 <code>Outlet context</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>配置一组 <code>/dashboard</code> 嵌套路由：父布局含侧边菜单与 <code>Outlet</code>，索引路由渲染「概览」卡片，子路由 <code>team</code>、<code>projects</code> 分别渲染对应页面；在菜单中用 <code>NavLink</code> 实现当前项绿色高亮。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为 <code>/dashboard</code> 父级添加 <code>id: 'dash-root'</code> 与 loader（请求 <code>/api/me</code> 返回用户信息），在两个子页面中用 <code>useRouteLoaderData</code> 读取并展示用户名；再把侧边栏折叠状态通过 <code>Outlet context</code> 下发到子页面按钮。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>设计三级嵌套结构 <code>/org/:orgId/teams/:teamId/members</code>，写出完整路由表与三层布局组件；说明每层 <code>Outlet</code> 的职责，并用 <code>navigate('..')</code> 在成员详情操作完成后返回到团队列表，标注每一跳对应的相对层级。</div>
+  <p class="note">参考答案见附录 C。下一章：动态路由与参数——用 <code>:id</code> 路径段与查询参数把列表页接到详情页。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="029_第29章_ReactRouter基础createBrowserRouter.html">← 第 29 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="031_第31章_动态路由与参数.html">第 31 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 30 章 嵌套路由与 Outlet</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

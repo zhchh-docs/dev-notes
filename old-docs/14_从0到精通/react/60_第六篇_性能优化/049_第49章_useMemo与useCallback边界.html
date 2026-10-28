@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 49 章 useMemo/useCallback 边界｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第六篇 性能优化</p>
+    <h1>第 49 章 useMemo/useCallback 边界</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 49 章 / 共 64 章 · 预计 50 分钟 · 值与函数的缓存边界</span>
+    </div>
+    <p class="hero-desc">useMemo 缓存计算值，useCallback 缓存函数引用，两者等价但语义不同。本章给出两个 Hook 的适用与不适用场景、依赖数组的比较规则、常见包裹反模式，并介绍 React Compiler 自动记忆化的演进方向，帮你在边界清晰时再动手加缓存。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="048_第48章_memo什么时候包.html">第 48 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="050_第50章_列表虚拟化react-window.html">第 50 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">49.1 两个 Hook 各自缓存什么</a></li>
+    <li><a href="#sec3">49.2 useMemo 什么时候用</a></li>
+    <li><a href="#sec4">49.3 useMemo 什么时候不用</a></li>
+    <li><a href="#sec5">49.4 useCallback 什么时候用</a></li>
+    <li><a href="#sec6">49.5 依赖数组与缓存失效规则</a></li>
+    <li><a href="#sec7">49.6 React Compiler 方向与常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>分清 <code>useMemo</code> 缓存<strong>计算值</strong>、<code>useCallback</code> 缓存<strong>函数引用</strong>，以及二者的等价关系；</li>
+    <li>掌握两个 Hook 的适用场景：昂贵计算、props 引用稳定、作为其他 Hook 的依赖；</li>
+    <li>识别"为了用而用"的无意义包裹，理解记忆化是性能手段而非语义保证；</li>
+    <li>掌握依赖数组的比较规则（<code>Object.is</code>）与缓存失效时机；</li>
+    <li>知道 React Compiler 自动记忆化的方向，理解当前阶段仍需手写判断边界。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">49.1</span> 两个 Hook 各自缓存什么</h2>
+  <p><code>useMemo</code> 接收一个计算函数与依赖数组：依赖不变时，返回上一次缓存的计算结果；依赖变化时重新计算并缓存。<code>useCallback</code> 接收一个函数与依赖数组：依赖不变时，返回上一次缓存的函数引用；依赖变化时返回新函数。</p>
+  <pre class="code" data-lang="jsx"><code>import { useMemo, useCallback } from 'react';
+
+// useMemo：缓存"值"
+const sortedList = useMemo(
+  () =&gt; users.filter(u =&gt; u.active).sort((a, b) =&gt; b.score - a.score),
+  [users]
+);
+
+// useCallback：缓存"函数引用"
+const handleSelect = useCallback((id) =&gt; {
+  setSelectedId(id);
+}, []);</code></pre>
+  <p>二者在底层是等价的：<code>useCallback(fn, deps)</code> 等价于 <code>useMemo(() =&gt; fn, deps)</code>——useMemo 缓存一个返回函数的值，效果就是缓存函数引用。区别只在语义命名：需要稳定函数引用时用 useCallback，读起来更清楚。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>对照项</th><th>useMemo</th><th>useCallback</th></tr></thead>
+    <tbody>
+      <tr><td>缓存对象</td><td>计算结果（值、对象、数组）</td><td>函数定义（引用）</td></tr>
+      <tr><td>返回内容</td><td>计算函数的返回值</td><td>传入的函数本身</td></tr>
+      <tr><td>典型用途</td><td>昂贵派生计算、稳定对象/数组引用</td><td>稳定回调引用，传给 memo 子组件或其他 Hook 依赖</td></tr>
+      <tr><td>等价写法</td><td>—</td><td><code>useMemo(() =&gt; fn, deps)</code></td></tr>
+      <tr><td>不要用于</td><td>简单字符串拼接、普通条件判断</td><td>只在组件内部调用、不向下传递的事件函数</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="useMemo 与 useCallback 等价关系">
+      <rect x="70" y="60" width="260" height="120" rx="12" fill="#f0f5e6" stroke="#3d7a4f" stroke-width="1.5"/>
+      <text x="200" y="92" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="600">useMemo(() =&gt; compute(), deps)</text>
+      <text x="200" y="124" text-anchor="middle" font-size="12" fill="#4f6348">依赖不变 → 返回缓存的值</text>
+      <text x="200" y="150" text-anchor="middle" font-size="12" fill="#4f6348">依赖变化 → 重新计算并缓存</text>
+      <rect x="470" y="60" width="260" height="120" rx="12" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="600" y="92" text-anchor="middle" font-size="14" fill="#1f2e1f" font-weight="600">useCallback(fn, deps)</text>
+      <text x="600" y="124" text-anchor="middle" font-size="12" fill="#4f6348">依赖不变 → 返回缓存的函数引用</text>
+      <text x="600" y="150" text-anchor="middle" font-size="12" fill="#4f6348">依赖变化 → 返回新函数引用</text>
+      <line x1="330" y1="120" x2="466" y2="120" stroke="#7a8a70" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#m49a)"/>
+      <text x="398" y="108" text-anchor="middle" font-size="11.5" fill="#7a8a70">等价于</text>
+      <text x="400" y="220" text-anchor="middle" font-size="12" fill="#7a8a70">两者都是"依赖不变就复用上一次结果"，区别只在缓存的是值还是函数</text>
+      <defs><marker id="m49a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#7a8a70"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 49-1 useMemo 与 useCallback 的等价关系</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">49.2</span> useMemo 什么时候用</h2>
+  <p>官方建议：当计算本身昂贵，且依赖没有变化时，缓存结果才有意义。具体到 React 组件里，值得用 useMemo 的场景有三类：</p>
+  <h4>① 昂贵的派生计算</h4>
+  <pre class="code" data-lang="jsx"><code>const reportRows = useMemo(() =&gt; {
+  // 数据量大时：筛选、分组、排序、聚合都在这一轮完成
+  return records
+    .filter((r) =&gt; r.dept === dept)
+    .sort((a, b) =&gt; b.amount - a.amount)
+    .map((r) =&gt; ({ ...r, total: r.qty * r.price }));
+}, [records, dept]);</code></pre>
+  <h4>② 给 memo 子组件传稳定的对象 / 数组引用</h4>
+  <pre class="code" data-lang="jsx"><code>const chartConfig = useMemo(() =&gt; ({
+  theme: 'forest',
+  series: seriesData,
+  legend: { show: true },
+}), [seriesData]);
+
+// ChartPanel 已用 memo 包裹；配置对象引用稳定，屏障才能生效
+return &lt;ChartPanel config={chartConfig} /&gt;;</code></pre>
+  <h4>③ 作为其他 Hook 的依赖，避免下游反复执行</h4>
+  <pre class="code" data-lang="jsx"><code>const queryKey = useMemo(() =&gt; ['orders', dept, status], [dept, status]);
+
+useEffect(() =&gt; {
+  // queryKey 引用稳定，effect 不会因数组字面量每次新建而反复触发
+  fetchOrders(queryKey);
+}, [queryKey]);</code></pre>
+  <div class="key-sentence">判断标准：<strong>这个值的计算贵不贵？它的引用稳不稳定，会不会影响下游 memo 或 Hook 依赖？</strong>两个问题有一个成立，才考虑 useMemo。</div>
+  <div class="pit-sentence">不要用 useMemo 缓存一个每次都需要全新对象的派生结果：如果下游只读取内容、不比较引用，缓存旧对象反而会在依赖遗漏时返回过期数据。派生逻辑应当始终基于当前依赖重新计算。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">49.3</span> useMemo 什么时候不用</h2>
+  <p>与值得用的场景相对，以下写法包裹 useMemo 属于负优化：</p>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>不值得用的场景</th><th>原因</th></tr></thead>
+    <tbody>
+      <tr><td>简单计算：字符串拼接、数值加减、条件表达式</td><td>计算成本低于缓存判断与依赖比较成本，直接算即可</td></tr>
+      <tr><td>值只在当前组件内部使用，不传给子组件</td><td>没有引用稳定性需求，缓存只是多一层状态追踪</td></tr>
+      <tr><td>对象/数组字面量没有被下游按引用比较</td><td>下游每次都重新读取内容，引用新旧无所谓</td></tr>
+      <tr><td>依赖本身频繁变化</td><td>缓存每次都失效，useMemo 退化为普通计算，还多一层开销</td></tr>
+      <tr><td>为了"规范"默认给所有派生值套上</td><td>依赖数组写错的风险、阅读成本都大于收益</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// ✗ 无意义：拼接成本极低，且没有下游引用稳定性需求
+const fullName = useMemo(() =&gt; `${first} ${last}`, [first, last]);
+
+// ✓ 直接派生
+const fullName = `${first} ${last}`;</code></pre>
+  <div class="pit-sentence">不要把 useMemo 当成"保证引用永远不变"的语义机制。React 可以在未来版本中丢弃缓存；官方口径是：useMemo 只是性能优化，不应依赖它做精确相等判断。需要稳定值时，优先把常量提到组件外部。</div>
+  <div class="warn-box"><span class="tag-pit">反模式提醒</span>组件里出现大量 <code>useMemo(() =&gt; ({...}), [])</code> 时，先问自己：这些对象是不是本来就该是模块级常量？静态配置提到组件外，比记忆化更干净。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">49.4</span> useCallback 什么时候用</h2>
+  <p>useCallback 的价值只体现在"函数引用需要稳定"的下游。典型场景：</p>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>场景</th><th>为什么需要稳定引用</th></tr></thead>
+    <tbody>
+      <tr><td>传给 memo 包裹的子组件作为事件回调</td><td>引用每次新建会导致 memo 浅比较失败，子组件照常重渲染（第 48 章）</td></tr>
+      <tr><td>作为其他 Hook 的依赖数组项</td><td>引用变化会带动下游 effect / memo 反复执行</td></tr>
+      <tr><td>传给需要订阅外部系统的 effect（事件监听、定时器）</td><td>回调引用稳定，effect 才不会反复解绑重绑</td></tr>
+      <tr><td>库 API 内部按引用缓存或去重</td><td>外部实现要求引用稳定时配合使用</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>import { memo, useCallback } from 'react';
+
+const Toolbar = memo(function Toolbar({ onRefresh }) {
+  return &lt;button onClick={onRefresh}&gt;刷新&lt;/button&gt;;
+});
+
+function Dashboard() {
+  const [version, setVersion] = useState(0);
+
+  // 依赖为空：setState 的 setter 引用稳定，回调跨渲染保持同一引用
+  const handleRefresh = useCallback(() =&gt; {
+    setVersion((v) =&gt; v + 1);
+  }, []);
+
+  return &lt;Toolbar onRefresh={handleRefresh} /&gt;;
+}</code></pre>
+  <p>反过来，事件处理函数只在当前组件 JSX 里直接 <code>onClick={handleClick}</code> 使用、不向下传递时，<strong>不需要</strong> useCallback：当前组件每次都会渲染，函数新建与否不影响任何下游比较。</p>
+  <div class="lead">useCallback 的决策顺序：先看函数有没有传给 memo 子组件、有没有进别的 Hook 依赖、有没有被订阅系统持有。三者都不沾边，就不要包。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">49.5</span> 依赖数组与缓存失效规则</h2>
+  <p>两个 Hook 的依赖比较规则与 <code>useEffect</code> 一致：逐个用 <code>Object.is</code> 比较新旧依赖，全部相等才复用上一次缓存；任何一项不等就重新计算 / 重建函数。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>依赖类型</th><th>比较规则与注意点</th></tr></thead>
+    <tbody>
+      <tr><td>原始值（number/string/boolean/null/undefined）</td><td>按值比较；值相等即命中缓存</td></tr>
+      <tr><td>对象 / 数组 / 函数</td><td>按引用比较；父组件每次新建字面量都会导致缓存失效</td></tr>
+      <tr><td>state 与 props</td><td>正常写入依赖；setState 的 setter 引用稳定，不需要写</td></tr>
+      <tr><td>组件外部常量</td><td>不需要写进依赖；模块级常量引用恒定</td></tr>
+      <tr><td>缺失依赖</td><td>会读到旧闭包值；交给 eslint-plugin-react-hooks 的 exhaustive-deps 规则检查</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// 依赖 users：users 引用不变 → 复用上一次排序结果
+// users 引用变化（新数组、新对象）→ 重新排序并缓存
+const sorted = useMemo(
+  () =&gt; [...users].sort((a, b) =&gt; b.score - a.score),
+  [users]
+);
+
+// 依赖 query：query 变了才重建回调；否则保持旧引用
+const fetchList = useCallback(async () =&gt; {
+  const res = await fetch(`/api/list?q=${query}`);
+  return res.json();
+}, [query]);</code></pre>
+  <div class="key-sentence">记忆化失效不是错误，而是规则：<strong>依赖变了就必须重新计算</strong>。真正要排查的是"依赖引用为什么每次都变"——回到第 48.5 节的 props 不稳定清单处理。</div>
+  <div class="warn-box"><span class="tag-pit">闭包旧值</span>回调或计算函数内部读取了某个外部值却没写进依赖，缓存会一直返回旧闭包结果。这类问题与 useEffect 的陈旧闭包同源：把函数内引用到的响应式值全部补进依赖，再交给 lint 规则复核。</div>
+  <div class="note"><strong>与 Vue 的对照</strong>：Vue 的 <code>computed</code> 自动追踪响应式依赖、无需手写依赖数组；React 的 <code>useMemo</code> 需要显式声明依赖，二者目标相同（缓存派生值），机制不同。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">49.6</span> React Compiler 方向与常见坑清单</h2>
+  <p>随着 React 工具链发展，<strong>React Compiler</strong> 可以在编译阶段自动分析组件并完成记忆化，在许多场景下开发者不再需要手写 <code>memo/useMemo/useCallback</code>。这是官方推荐的演进方向；本书当前阶段仍要求掌握手写边界，因为存量项目与线上版本普遍需要手动判断。遇到新项目评估编译器时，以官方发布状态与文档为准，不在本章展开配置细节。</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>常见坑</th><th>排查与正确写法</th></tr></thead>
+    <tbody>
+      <tr><td>useMemo 包了简单计算，依赖一长串</td><td>删掉包裹，直接派生；把依赖维护成本留给真正昂贵的计算</td></tr>
+      <tr><td>useCallback 包了只在内部使用的函数</td><td>移除包裹；只有向下传递或进入下游依赖时才需要</td></tr>
+      <tr><td>依赖里放了每次新建的对象</td><td>上游用 useMemo 稳定对象，或只提取原始字段作为依赖</td></tr>
+      <tr><td>依赖数组漏写变量，读到旧值</td><td>开启 exhaustive-deps，按提示补全；不要用 eslint-disable 压掉</td></tr>
+      <tr><td>把缓存结果用于精确相等判断</td><td>改用模块级常量或 ref；不要假设 useMemo 引用恒定不变</td></tr>
+      <tr><td>嵌套使用多层 useMemo 才让引用稳定</td><td>考虑状态分层：把派生逻辑移到数据层，减少组件内依赖网络</td></tr>
+    </tbody>
+  </table>
+  <div class="lead">本章收口：useMemo 管值、useCallback 管函数，边界由"下游是否需要引用稳定 / 计算是否昂贵"决定；依赖规则与 effect 完全一致，性能收益要回到第 47 章的 Profiler 上复测确认。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>分工</td><td>useMemo 缓存计算值，useCallback 缓存函数引用，二者等价</td></tr>
+      <tr><td>useMemo 适用</td><td>昂贵派生、稳定对象引用、作为下游 Hook 依赖</td></tr>
+      <tr><td>useCallback 适用</td><td>传给 memo 子组件、进入其他 Hook 依赖、被订阅系统持有</td></tr>
+      <tr><td>不适用</td><td>简单计算、仅内部使用、依赖频繁变化、静态配置应提到组件外</td></tr>
+      <tr><td>依赖规则</td><td>Object.is 逐键比较，依赖变则缓存失效，缺失依赖交 lint 检查</td></tr>
+      <tr><td>性质</td><td>性能优化而非语义保证；React Compiler 是后续自动记忆化方向</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>判断以下两段代码是否应该使用对应 Hook，并说明理由：① 计算 <code>const total = price * count</code>；② 一个 <code>handleSubmit</code> 回调传给了 <code>memo</code> 包裹的 <code>&lt;FormPanel onSubmit={handleSubmit} /&gt;</code>。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>修复下面代码的引用不稳定问题：父组件每次渲染都新建 <code>filters</code> 对象并传给 memo 子组件 <code>&lt;DataTable filters={filters} onSort={onSort} /&gt;</code>，导致子组件照常重渲染。写出 useMemo 与 useCallback 的正确写法并标注依赖数组。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>解释 <code>useCallback(fn, deps)</code> 与 <code>useMemo(() =&gt; fn, deps)</code> 为什么等价；再说明为什么"用 useMemo 缓存一个只在组件内部使用的普通对象"通常不该做，并举出至少两个下游会受引用稳定性影响的位置。</div>
+  <p class="note">参考答案见附录 C。下一章：长列表虚拟化 react-window——只渲染可视区，DOM 数量不再随数据规模增长。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="048_第48章_memo什么时候包.html">← 第 48 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="050_第50章_列表虚拟化react-window.html">第 50 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 49 章 useMemo/useCallback 边界</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

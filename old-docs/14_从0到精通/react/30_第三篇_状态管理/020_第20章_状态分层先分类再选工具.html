@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 20 章 状态分层：先分类再选工具｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第三篇 状态管理</p>
+    <h1>第 20 章 状态分层：先分类再选工具</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 20 章 / 共 64 章 · 预计 50 分钟 · 先分类再选工具，拒绝信仰选型</span>
+    </div>
+    <p class="hero-desc">React 里所谓「状态管理」，第一步从来不是挑库，而是给状态分层：它来自后端吗？被多少组件需要？要进 URL 吗？本章把状态拆成本地、共享、服务端、表单、URL、派生六层，给出一张可执行的工具地图与选型决策树，并指出实战中两类最常见的误配。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../20_第二篇_Hooks核心/019_第19章_严格模式与双重调用.html">第 19 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="021_第21章_Context的正确粒度.html">第 21 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">20.1 状态的六种出身</a></li>
+    <li><a href="#sec3">20.2 状态分层模型</a></li>
+    <li><a href="#sec4">20.3 各层对应的工具地图</a></li>
+    <li><a href="#sec5">20.4 两种典型误配</a></li>
+    <li><a href="#sec6">20.5 选型决策流程</a></li>
+    <li><a href="#sec7">20.6 跨框架与后端经验类比</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>把界面上的状态按<strong>归属层</strong>分成六类，做到先分类、再谈选型；</li>
+    <li>说清本地状态、跨组件共享状态、服务端状态、表单状态、路由 / URL 状态、派生状态各自的边界；</li>
+    <li>掌握「这份状态该放哪一层」的判断流程，避免过度全局化与过度 prop 钻取；</li>
+    <li>在脑中建立一张工具地图，对应后续 Zustand、Redux Toolkit、RTK Query、TanStack Query 各章；</li>
+    <li>能把《Vue 从 0 到精通》里 Pinia 的经验、《Java 从 0 到精通》里单例 Bean 的经验映射到 React 状态分层上。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">20.1</span> 状态的六种出身</h2>
+  <div class="lead">选型错误的根源往往不是工具不会用，而是动手前没有先问一句：<strong>这份状态属于谁？</strong> 是组件自己的、跨组件共享的、后端来的，还是地址栏里的？归属不同，工具完全不同。</div>
+  <p>一个 React 应用里看似都叫 <code>state</code>，其实来源、生命周期、更新频率、归属范围完全不同。下表把它们分成六类，后续每一章都对应其中一层。</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:34%"><col style="width:22%"><col style="width:26%"></colgroup>
+    <thead><tr><th>类别</th><th>典型例子</th><th>归属范围</th><th>生命周期</th></tr></thead>
+    <tbody>
+      <tr><td>本地组件状态</td><td>输入框聚焦态、弹窗开关、当前展开的 Tab、暂存的草稿</td><td>单个组件（或组件与其直接子级）</td><td>随组件卸载消失</td></tr>
+      <tr><td>跨组件共享状态</td><td>登录用户、主题色、侧边栏折叠、购物车数量、全局语言</td><td>整棵子树或全局</td><td>跨路由、跨组件长期存在</td></tr>
+      <tr><td>服务端状态</td><td>商品列表、用户资料、订单详情、搜索结果</td><td>后端数据源</td><td>受缓存、过期与刷新策略管理</td></tr>
+      <tr><td>表单状态</td><td>字段值、校验错误、是否脏数据、提交中标记</td><td>表单组件内部</td><td>提交成功后清空或归档</td></tr>
+      <tr><td>路由 / URL 状态</td><td>当前路径、查询参数、选中的筛选条件、分页页码</td><td>浏览器地址栏</td><td>随 URL 变化，可刷新可分享</td></tr>
+      <tr><td>派生状态</td><td>总价、过滤后的列表、格式化后的时间</td><td>计算时存在</td><td>不需要单独存储</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">派生状态根本不该进入 <code>state</code>：它由其他状态计算得出，存储一份等于维护两份真相，必然产生不同步。</div>
+  <div class="pit-sentence">常见惯性做法是先把数据存进 state、再用 effect 同步到另一份显示值；读到「先存后算」的代码时，优先问一句：这个值能不能直接由已有状态算出来？</div>
+  <pre class="code" data-lang="jsx"><code>// ✗ 多余：把派生值再存进 state，等于让 effect 去同步另一份数据
+const [total, setTotal] = useState(0);
+useEffect(() =&gt; setTotal(price * count), [price, count]);
+
+// ✓ 渲染期间直接计算，零额外状态
+const total = price * count;</code></pre>
+  <p>这与第 10 章「你不需要 Effect」的结论一脉相承：只要一个值能由已有的 props 或 state 算出来，就不要新建 state，也不要用 effect 去同步它。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">20.2</span> 状态分层模型</h2>
+  <p>把六类状态投影到一张分层图上：自下而上依次是服务端状态层、全局共享层、组件本地层，而 URL 状态横跨整棵应用；派生状态不落地，只在渲染时计算。越靠近底层的状态越「权威」，越靠近组件层的状态越「临时」。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 330" role="img" aria-label="状态分层模型示意图">
+      <rect x="70" y="20" width="660" height="58" rx="10" fill="#f0f5e6" stroke="#3d7a4f" stroke-width="1.5"/>
+      <text x="400" y="44" text-anchor="middle" font-size="15" fill="#1f2e1f" font-weight="700">URL / 路由状态层</text>
+      <text x="400" y="66" text-anchor="middle" font-size="12" fill="#4f6348">useSearchParams · useParams · 筛选条件 · 页码（刷新后仍在）</text>
+      <rect x="70" y="100" width="660" height="58" rx="10" fill="#d8e8c8" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="400" y="124" text-anchor="middle" font-size="15" fill="#1f2e1f" font-weight="700">组件本地状态层</text>
+      <text x="400" y="146" text-anchor="middle" font-size="12" fill="#2d6a3f">useState · useReducer · 弹窗 / 焦点 / Tab / 草稿（卸载即消失）</text>
+      <rect x="70" y="180" width="660" height="58" rx="10" fill="#c2d8ae" stroke="#2d6a3f" stroke-width="1.5"/>
+      <text x="400" y="204" text-anchor="middle" font-size="15" fill="#1f2e1f" font-weight="700">跨组件共享状态层</text>
+      <text x="400" y="226" text-anchor="middle" font-size="12" fill="#1f2e1f">Context · Zustand · Redux Toolkit（用户 / 主题 / 购物车）</text>
+      <rect x="70" y="260" width="660" height="58" rx="10" fill="#8fb87e" stroke="#1f2e1f" stroke-width="1.5"/>
+      <text x="400" y="284" text-anchor="middle" font-size="15" fill="#ffffff" font-weight="700">服务端状态层</text>
+      <text x="400" y="306" text-anchor="middle" font-size="12" fill="#f0f5e6">TanStack Query · RTK Query（缓存 / 去重 / 失效 / 乐观更新）</text>
+      <line x1="750" y1="49" x2="750" y2="289" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="762" y="170" font-size="11" fill="#7a8a70" transform="rotate(90 762 170)">权威程度由下而上递减</text>
+    </svg>
+    <p class="diagram-caption">图 20-1 React 应用状态分层：服务端状态为权威来源，本地状态最临时，URL 状态独立成层</p>
+  </div>
+  <div class="key-sentence">分层原则：<strong>能放低层就不放高层，状态尽量靠近使用它的组件</strong>。上提一层就要承担一层的订阅、重渲染与测试成本。</div>
+  <p>为什么要强调「靠近使用方」？因为状态每上提一层，受影响的组件范围、重渲染概率、调试难度都随之上升。一个只被弹窗内部使用的开关，放进全局 store 后，所有订阅者都要为它的一次开关付出订阅成本。</p>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">20.3</span> 各层对应的工具地图</h2>
+  <p>下表是本篇后续章节的路线图：每一层先列出首选工具，再列出备选，最后注明这一层<strong>不该</strong>用什么。选型时先定位层，再在层内比工具。</p>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:27%"><col style="width:27%"><col style="width:28%"></colgroup>
+    <thead><tr><th>状态层</th><th>首选工具</th><th>备选工具</th><th>不该用什么</th></tr></thead>
+    <tbody>
+      <tr><td>组件本地状态</td><td><code>useState</code> / <code>useReducer</code></td><td>自定义 Hook 封装一组相关状态</td><td>全局 store；用 <code>useRef</code> 存需要触发渲染的值</td></tr>
+      <tr><td>跨组件共享状态</td><td>低频小数据：Context；高频 / 结构化：Zustand；大型团队工程化：Redux Toolkit</td><td>Context + 拆分 Provider 配合 <code>memo</code></td><td>把服务端列表塞进 Context；一个大 Provider 包全树</td></tr>
+      <tr><td>服务端状态</td><td>TanStack Query（第 25–27 章）</td><td>RTK Query（第 24 章，Redux 技术栈内）</td><td><code>useState</code> + <code>useEffect</code> 手写缓存与失效</td></tr>
+      <tr><td>表单状态</td><td>react-hook-form（第 35 章）</td><td>受控组件 + <code>useState</code>（简单表单）</td><td>把每个字段挂进全局 store</td></tr>
+      <tr><td>URL 状态</td><td><code>useSearchParams</code> / <code>useParams</code>（第 29–31 章）</td><td>历史 API 手写同步</td><td>用全局 store 再镜像一份筛选条件</td></tr>
+    </tbody>
+  </table>
+  <p>各工具安装命令如下，本篇后续章节会逐一展开它们的 API 与心智模型。</p>
+  <pre class="code" data-lang="bash"><code># 共享状态：Zustand（轻量，第 22 章）
+npm install zustand
+
+# 共享状态：Redux Toolkit（官方工程化方案，第 23 章）
+npm install @reduxjs/toolkit react-redux
+
+# 服务端状态：TanStack Query v5（第 25 章起）
+npm install @tanstack/react-query</code></pre>
+  <div class="note">版本口径：本章涉及 Zustand v5、Redux Toolkit 2.x、TanStack Query v5；具体 API 签名以对应章节与官方文档为准，本篇不使用已废弃的旧参数。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">20.4</span> 两种典型误配</h2>
+  <p>实战中 80% 的状态混乱都来自两个方向：要么把本地状态全局化，要么把全局状态本地化（prop 钻取）。它们方向相反，症状相似：代码能跑，但越写越慢、越测越重。</p>
+  <h3>20.4.1 误配一：把本地状态全局化</h3>
+  <div class="pit-sentence">一个只被单个组件使用的开关、草稿、选中项，被放进全局 store 或 Context，理由是「以后别的组件可能要用」。这是典型的<strong>提前抽象</strong>。</div>
+  <pre class="code" data-lang="jsx"><code>// ✗ 弹窗开关放进全局 store，只为这一个组件服务
+import { create } from 'zustand';
+
+const useUiStore = create((set) =&gt; ({
+  panelOpen: false,
+  togglePanel: () =&gt; set((s) =&gt; ({ panelOpen: !s.panelOpen })),
+}));
+
+function HelpPanel() {
+  const { panelOpen, togglePanel } = useUiStore();
+  // …
+}
+
+// ✓ 留在组件内部，卸载即清空，订阅者只有自己
+function HelpPanel() {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const togglePanel = () =&gt; setPanelOpen((v) =&gt; !v);
+  // …
+}</code></pre>
+  <h3>20.4.2 误配二：把共享状态本地化（prop 钻取）</h3>
+  <div class="warn-box">当 props 穿过三层以上组件、中间组件根本不关心这个值时，说明状态被压在了错误的层。继续往下传会让每一层都多出无关签名，修改时一路连锁改动。</div>
+  <pre class="code" data-lang="jsx"><code>// ✗ user 一路钻取：Layout、MenuBar 只是透传，并不使用
+function App() {
+  const user = useUser();
+  return &lt;Layout user={user} /&gt;;
+}
+
+function Layout({ user }) {
+  return &lt;MenuBar user={user} /&gt;;
+}
+
+function MenuBar({ user }) {
+  return &lt;Avatar user={user} /&gt;;
+}
+
+// ✓ 上提到共享层（Context / Zustand / Redux），Avatar 直接读取
+function Avatar() {
+  const user = useCurrentUser();
+  // …
+}</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:30%"><col style="width:36%"></colgroup>
+    <thead><tr><th>症状</th><th>诊断</th><th>处理方向</th></tr></thead>
+    <tbody>
+      <tr><td>全局 store 里某个 state 只有一个组件读写</td><td>本地状态被全局化</td><td>退回 <code>useState</code>，等真有第二个使用方再上提</td></tr>
+      <tr><td>props 钻取超过 3 层、中间组件不关心</td><td>共享状态被本地化</td><td>上提到 Context / Zustand / Redux Toolkit（第 21–23 章）</td></tr>
+      <tr><td>列表数据在组件卸载后丢失、切回页面重复请求</td><td>服务端状态被当成本地状态</td><td>交给查询库管理缓存（第 25 章）</td></tr>
+      <tr><td>刷新页面后主题、登录态丢失</td><td>共享状态缺少持久化</td><td>store 内同步 <code>localStorage</code>，或由后端会话提供</td></tr>
+      <tr><td>返回上一页，表单草稿还在旧组件里残留</td><td>本地状态生命周期边界不清</td><td>用 <code>key</code> 重置，或明确归到表单状态层</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">20.5</span> 选型决策流程</h2>
+  <div class="lead">每新增一份状态，按顺序回答四个问题：来自后端吗？被多个不相邻组件需要吗？需要出现在 URL 里吗？剩下的就是本地状态。问题顺序不可颠倒——先问来源，再问范围，最后问位置。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 300" role="img" aria-label="状态选型决策流程图">
+      <rect x="320" y="18" width="160" height="40" rx="8" fill="#2d6a3f"/>
+      <text x="400" y="43" text-anchor="middle" font-size="13" fill="#ffffff" font-weight="700">新增一份状态</text>
+      <rect x="280" y="92" width="240" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="120" text-anchor="middle" font-size="12.5" fill="#1f2e1f">① 数据来自后端 API 吗？</text>
+      <line x1="400" y1="58" x2="400" y2="92" stroke="#7a8a70" stroke-width="1.3"/>
+      <rect x="560" y="92" width="200" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="660" y="112" text-anchor="middle" font-size="12" fill="#1f2e1f">是 → TanStack Query</text>
+      <text x="660" y="130" text-anchor="middle" font-size="11" fill="#4f6348">或 RTK Query（第 24–27 章）</text>
+      <line x1="520" y1="115" x2="558" y2="115" stroke="#7a8a70" stroke-width="1.3"/>
+      <rect x="280" y="170" width="240" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="198" text-anchor="middle" font-size="12.5" fill="#1f2e1f">② 被多个不相邻组件需要吗？</text>
+      <line x1="400" y1="138" x2="400" y2="170" stroke="#7a8a70" stroke-width="1.3"/>
+      <rect x="560" y="170" width="200" height="46" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="660" y="190" text-anchor="middle" font-size="12" fill="#1f2e1f">是 → Context / Zustand</text>
+      <text x="660" y="208" text-anchor="middle" font-size="11" fill="#4f6348">大型团队可选 Redux Toolkit</text>
+      <line x1="520" y1="193" x2="558" y2="193" stroke="#7a8a70" stroke-width="1.3"/>
+      <rect x="120" y="246" width="240" height="46" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="240" y="274" text-anchor="middle" font-size="12.5" fill="#1f2e1f">③ 需要进 URL 可分享 / 可刷新吗？</text>
+      <line x1="400" y1="216" x2="400" y2="246" stroke="#7a8a70" stroke-width="1.3"/>
+      <line x1="240" y1="246" x2="240" y2="222" stroke="#7a8a70" stroke-width="1.3" stroke-dasharray="4 3"/>
+      <rect x="440" y="246" width="240" height="46" rx="8" fill="#eef3e8" stroke="#047857"/>
+      <text x="560" y="274" text-anchor="middle" font-size="12.5" fill="#047857">④ 都不是 → useState / useReducer</text>
+    </svg>
+    <p class="diagram-caption">图 20-2 状态选型决策树：先判来源（后端），再判范围（共享），最后判位置（URL / 本地）</p>
+  </div>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>决策问题</th><th>是 → 状态去向</th><th>否 → 下一步</th></tr></thead>
+    <tbody>
+      <tr><td>这份数据来自后端 API 吗？</td><td>服务端状态层：查询库管理缓存与刷新</td><td>继续问问题 ②</td></tr>
+      <tr><td>被树中多个不相邻组件需要吗？</td><td>共享状态层：Context / Zustand / RTK</td><td>继续问问题 ③</td></tr>
+      <tr><td>需要出现在地址栏、可分享可刷新吗？</td><td>URL 状态层：<code>useSearchParams</code></td><td>继续问问题 ④</td></tr>
+      <tr><td>以上都不符合</td><td>本地状态层：<code>useState</code> / <code>useReducer</code></td><td>结束判断</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="js"><code>// 决策流程的代码化表达（用于评审时快速对表，不是运行时函数）
+function chooseLayer(state) {
+  if (state.comesFromServer) return 'TanStack Query / RTK Query';
+  if (state.isSharedAcrossTrees) return 'Context / Zustand / Redux Toolkit';
+  if (state.mustBeInUrl) return 'useSearchParams';
+  return 'useState / useReducer';
+}</code></pre>
+  <div class="warn-box">不要为「以后别的组件可能要用」提前把状态上提：抽象以真实需求为准。今天只被弹窗使用的开关，明天真被复用了再上提，成本只是移动几行代码；提前全局化的代价是当下就承担订阅与重渲染成本。</div>
+  <div class="key-sentence">先分类，再选工具；<strong>工具是分层的结果，而不是信仰</strong>。没有任何一个全局状态库值得为本地状态服务。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">20.6</span> 跨框架与后端经验类比</h2>
+  <p>从前端转全栈的读者大多熟悉 Vue 与 Java 后端概念，下表把相似心智一一对应，帮助你把已有经验迁移过来；但 React 生态更强调「状态归属分层」，概念映射不等于实现照搬。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>概念</th><th>React 体系</th><th>Vue 体系（Pinia）</th><th>Java 后端类比</th></tr></thead>
+    <tbody>
+      <tr><td>全局状态容器</td><td>Zustand store / Redux store</td><td>Pinia store</td><td>ApplicationContext 中的单例 Bean</td></tr>
+      <tr><td>读取状态</td><td><code>useStore(selector)</code> / <code>useSelector</code></td><td><code>storeToRefs</code></td><td>按类型注入 Bean</td></tr>
+      <tr><td>更新状态</td><td><code>setState</code> / <code>dispatch</code> + reducer</td><td>action 方法</td><td>调用服务层 setter 方法</td></tr>
+      <tr><td>服务端数据</td><td>TanStack Query / RTK Query</td><td>TanStack Query（Vue Query）</td><td>后端本身即数据源，无前端缓存概念</td></tr>
+      <tr><td>派生值</td><td>渲染时计算 / <code>useMemo</code></td><td><code>computed</code></td><td>DTO 的 getter 计算属性</td></tr>
+    </tbody>
+  </table>
+  <div class="note">注意差异：Java 单例 Bean 直接保存可变对象，而 React 状态必须遵守不可变更新（第 44 章展开）；Pinia 允许在 action 内直接修改 state，Zustand 与 Redux 都要求返回新对象或借助 Immer，不可想当然地类比写法。</div>
+  <p>本篇后续章节按「共享状态（第 21–23 章）→ 服务端状态（第 24–27 章）→ 状态可测试性（第 28 章）」的顺序展开，与图 20-1 的分层一一对应。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>六种出身</td><td>本地 / 共享 / 服务端 / 表单 / URL / 派生，归属不同工具不同</td></tr>
+      <tr><td>分层原则</td><td>状态尽量靠近使用方，能不上提就不上提</td></tr>
+      <tr><td>派生不入库</td><td>能算出来的值不要存成 state，不要用 effect 同步</td></tr>
+      <tr><td>两类误配</td><td>本地状态全局化、共享状态 prop 钻取，都要往正确层归位</td></tr>
+      <tr><td>决策顺序</td><td>先判后端来源，再判共享范围，再判 URL 位置，最后落本地</td></tr>
+      <tr><td>工具地图</td><td>本地 useState；共享 Context / Zustand / RTK；服务端查询库；URL 路由参数</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为下列状态各选一层并说明理由：① 侧边栏折叠开关；② 订单列表；③ 表格当前页码与关键字；④ 表单校验错误；⑤ 购物车条目数量；⑥ 由单价、数量计算的总价。要求写出六行对照表。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>阅读这段 prop 钻取代码：<code>App</code> 把 <code>theme</code> 依次传给 <code>Header</code>、<code>Nav</code>、<code>Logo</code>，前两层不使用该值。判断它属于哪一类误配，改写为共享状态层方案，并说明上提后哪些组件可以不再接收 <code>theme</code> props。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>为「主题色 + 界面语言 + 当前登录用户 + 商品列表 + 购物车条目 + 侧边栏折叠 + 列表筛选与页码」这组需求画出状态分层图（可仿照图 20-1 的四层结构），为每项指定工具，并回答：主题与语言是否需要持久化到 <code>localStorage</code>？筛选条件为什么应放进 URL 而不是全局 store？</div>
+  <p class="note">参考答案见附录 C。下一章：Context 的正确粒度——什么时候用、拆多细、为什么大 Provider 会拖慢整棵树。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="../20_第二篇_Hooks核心/019_第19章_严格模式与双重调用.html">← 第 19 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="021_第21章_Context的正确粒度.html">第 21 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 20 章 状态分层：先分类再选工具</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

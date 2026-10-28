@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 43 章 key 与节点复用｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第五篇 渲染原理</p>
+    <h1>第 43 章 key 与节点复用</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 43 章 / 共 64 章 · 预计 50 分钟 · 身份决定复用</span>
+    </div>
+    <p class="hero-desc">第 6 章已经教过列表要写 key；本章从协调阶段解释原理：key 是同层节点的身份标识，React 靠它把旧 Fiber 与新元素配对。本章重点讲清没有 key 时按位置配对会发生什么、用 index 当 key 在插入、删除、排序时为什么错位，以及选 key 的正确规则与常见误解。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="042_第42章_协调Reconcile与提交.html">第 42 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="044_第44章_不可变更新为什么必须.html">第 44 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">43.1 回顾：列表渲染中 key 的位置</a></li>
+    <li><a href="#sec3">43.2 没有 key 时：按位置配对</a></li>
+    <li><a href="#sec4">43.3 key 的作用：身份标识与配对</a></li>
+    <li><a href="#sec5">43.4 index 作 key 的三类反例</a></li>
+    <li><a href="#sec6">43.5 节点复用时 DOM 与 state 的归属</a></li>
+    <li><a href="#sec7">43.6 选 key 的规则与常见误解</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>从协调阶段理解 key 的本质：<strong>同层节点之间的身份标识</strong>，用于配对旧 Fiber 与新元素；</li>
+    <li>说清没有 key 时 React 按位置顺序配对的规则及其后果；</li>
+    <li>能用"身份跟随节点"解释插入、删除、移动时 DOM 与组件 state 的归属；</li>
+    <li>指出 index 作 key 在<strong>头部插入、删除中间项、排序过滤</strong>三类场景下的错位表现；</li>
+    <li>掌握选 key 的正确规则，澄清"全局唯一""随机值最安全"等常见误解。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">43.1</span> 回顾：列表渲染中 key 的位置</h2>
+  <p>第 6 章已经给出列表渲染的基本写法：<code>map</code> 出一组子节点，每个子节点带上 <code>key</code>。本章不再重复语法，而是回答第 6 章留下的原理问题：协调阶段到达一组同级子节点时，React 凭什么知道"新列表里的这一项对应旧列表里的哪一项"。</p>
+  <pre class="code" data-lang="jsx"><code>// 基础正例：使用数据自带的稳定 id 作为 key
+function TodoList({ todos }) {
+  return (
+    &lt;ul&gt;
+      {todos.map((todo) =&gt; (
+        &lt;TodoItem key={todo.id} todo={todo} /&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <p class="note">本节代码是第 6 章写法的复习；43.4 节起进入原理与反例分析。如果还没建立"列表必须写 key"的习惯，建议先回看第 6 章。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">43.2</span> 没有 key 时：按位置配对</h2>
+  <div class="lead">同一父节点下的一组子节点，如果元素类型相同且都没有 key，React 就按<strong>位置顺序</strong>把旧树第 1 个配新树第 1 个、旧树第 2 个配新树第 2 个……配对成功就复用 DOM 与组件 state，只更新 props。位置一变，配对关系就跟着错位。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 270" role="img" aria-label="位置配对与 key 配对对照">
+      <text x="200" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">无 key：按位置配对</text>
+      <text x="600" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#2d6a3f">有稳定 key：按身份配对</text>
+      <rect x="70" y="50" width="120" height="32" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="130" y="71" text-anchor="middle" font-size="11.5" fill="#b45309">旧：A（第 1 位）</text>
+      <rect x="70" y="96" width="120" height="32" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="130" y="117" text-anchor="middle" font-size="11.5" fill="#b45309">旧：B（第 2 位）</text>
+      <rect x="70" y="142" width="120" height="32" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="130" y="163" text-anchor="middle" font-size="11.5" fill="#b45309">旧：C（第 3 位）</text>
+      <rect x="230" y="50" width="120" height="32" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="290" y="71" text-anchor="middle" font-size="11.5" fill="#b91c1c">新：B'（第 1 位）</text>
+      <rect x="230" y="96" width="120" height="32" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="290" y="117" text-anchor="middle" font-size="11.5" fill="#b91c1c">新：C'（第 2 位）</text>
+      <rect x="230" y="142" width="120" height="32" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="290" y="163" text-anchor="middle" font-size="11.5" fill="#b91c1c">新：A'（第 3 位）</text>
+      <line x1="190" y1="66" x2="228" y2="66" stroke="#b91c1c" stroke-width="1.2"/>
+      <line x1="190" y1="112" x2="228" y2="112" stroke="#b91c1c" stroke-width="1.2"/>
+      <line x1="190" y1="158" x2="228" y2="158" stroke="#b91c1c" stroke-width="1.2"/>
+      <text x="230" y="200" text-anchor="middle" font-size="11" fill="#b91c1c">位置错配：A 的 DOM/state 被 B' 占用</text>
+      <rect x="470" y="50" width="120" height="32" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="530" y="71" text-anchor="middle" font-size="11.5" fill="#1f2e1f">旧：key=a 节点</text>
+      <rect x="470" y="96" width="120" height="32" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="530" y="117" text-anchor="middle" font-size="11.5" fill="#1f2e1f">旧：key=b 节点</text>
+      <rect x="470" y="142" width="120" height="32" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="530" y="163" text-anchor="middle" font-size="11.5" fill="#1f2e1f">旧：key=c 节点</text>
+      <rect x="630" y="50" width="120" height="32" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="690" y="71" text-anchor="middle" font-size="11.5" fill="#1f2e1f">新：key=b 复用</text>
+      <rect x="630" y="96" width="120" height="32" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="690" y="117" text-anchor="middle" font-size="11.5" fill="#1f2e1f">新：key=c 复用</text>
+      <rect x="630" y="142" width="120" height="32" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="690" y="163" text-anchor="middle" font-size="11.5" fill="#1f2e1f">新：key=a 复用</text>
+      <line x1="590" y1="66" x2="628" y2="112" stroke="#3d7a4f" stroke-width="1.2"/>
+      <line x1="590" y1="112" x2="628" y2="66" stroke="#3d7a4f" stroke-width="1.2"/>
+      <line x1="590" y1="158" x2="628" y2="158" stroke="#3d7a4f" stroke-width="1.2"/>
+      <text x="630" y="200" text-anchor="middle" font-size="11" fill="#2d6a3f">身份匹配：节点跟随自己的 key 移动</text>
+    </svg>
+    <p class="diagram-caption">图 43-1 无 key 按位置硬配；有稳定 key 按身份配对，顺序变化不造成错位</p>
+  </div>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>对照项</th><th>无 key / 位置配对</th><th>有稳定 key / 身份配对</th></tr></thead>
+    <tbody>
+      <tr><td>配对依据</td><td>新旧列表的位置下标</td><td>同级范围内相同的 key 值</td></tr>
+      <tr><td>顺序变化时</td><td>旧节点被错误配给新内容，state 与输入状态错位</td><td>节点按身份找到彼此，移动位置而不销毁重建</td></tr>
+      <tr><td>DOM 操作量</td><td>位置错位时大量节点被迫更新甚至重建</td><td>只处理真正新增、删除的节点</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">43.3</span> key 的作用：身份标识与配对</h2>
+  <p>带上 key 之后，协调阶段在同级范围内建立"旧节点 key → 旧 Fiber"的映射，再用新元素的 key 去查：查到了就复用对应 Fiber，把新 props 传进去；查不到就新建；旧映射里没被匹配到的节点标记为删除。</p>
+  <pre class="code" data-lang="js"><code>// 概念化：同级子节点按 key 配对（教学示意，非源码）
+function reconcileChildren(oldChildren, newChildren) {
+  const oldMap = new Map(oldChildren.map((c) =&gt; [c.key, c]));
+  const result = newChildren.map((next) =&gt; {
+    const old = oldMap.get(next.key);
+    if (old) {
+      oldMap.delete(next.key);
+      return reuseFiber(old, next);   // 身份匹配：复用 DOM 与 state
+    }
+    return createFiber(next);         // 新身份：新建节点
+  });
+  // oldMap 中剩余的旧节点：标记删除
+  oldMap.forEach((old) =&gt; markDeleted(old));
+  return result;
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">不要跨层比对</span>key 的映射表只在同一父节点的子节点之间建立；把两个不同父节点下的节点配上同一个 key 是没有意义的，协调阶段根本不会跨父节点查找，这与第 38 章"同层比较"的假设一致。</div>
+  <div class="key-sentence">key 只在<strong>同一父节点的子节点之间</strong>作为身份标识；跨层级、跨两个列表不需要互相唯一。它的职责是"让 React 认人"，不是"给全局对象编号"。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">43.4</span> index 作 key 的三类反例</h2>
+  <p>把 <code>map</code> 的下标 <code>index</code> 直接当 key，等于让"位置"充当身份。列表只做尾部追加、内容顺序永远不变时碰巧不出问题；一旦发生头部插入、删除中间项、排序过滤，位置与身份脱节，错位就出现了。</p>
+  <h4>反例一：头部插入新项</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ index 作 key：新项插到头部，旧项全部后移一位
+function NewsList({ items, onAdd }) {
+  return (
+    &lt;div&gt;
+      &lt;button onClick={onAdd}&gt;在头部插入一条&lt;/button&gt;
+      {items.map((item, index) =&gt; (
+        &lt;NewsRow key={index} title={item.title} /&gt;
+      ))}
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <p>插入后，旧第 1 项配到第 2 位、旧第 2 项配到第 3 位……每个 <code>NewsRow</code> 内部若持有展开状态、输入内容等 state，都会被"挪"到错误的标题上。</p>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span>新手常以为"key 只是为了让 React 少做几次 DOM 操作"。性能收益只是副产品：真正的后果是<strong>state、输入内容、展开状态等 Fiber 私有数据被配错到相邻项上</strong>，表现为界面与数据"看起来串了"，这类 bug 往往难以从页面现象直接定位。</div>
+  <h4>反例二：删除中间项</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ 删除中间项后，后面的节点全部前移，state 跟着错位
+function EditableList({ items, onRemove }) {
+  return (
+    &lt;ul&gt;
+      {items.map((item, index) =&gt; (
+        &lt;li key={index}&gt;
+          &lt;EditableRow initial={item.note} /&gt;
+          &lt;button onClick={() =&gt; onRemove(item.id)}&gt;删除&lt;/button&gt;
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="删除中间项后 index 错位">
+      <text x="400" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">删除中间项（B）后：index 前移，旧 state 错配到新内容</text>
+      <rect x="80" y="56" width="150" height="34" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="155" y="78" text-anchor="middle" font-size="11.5" fill="#1f2e1f">index 0 · A · state=a</text>
+      <rect x="80" y="106" width="150" height="34" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="155" y="128" text-anchor="middle" font-size="11.5" fill="#b45309">index 1 · B · state=b（删除）</text>
+      <rect x="80" y="156" width="150" height="34" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="155" y="178" text-anchor="middle" font-size="11.5" fill="#1f2e1f">index 2 · C · state=c</text>
+      <line x1="250" y1="123" x2="350" y2="123" stroke="#7a8a70" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="300" y="115" text-anchor="middle" font-size="11" fill="#7a8a70">删除 B</text>
+      <rect x="420" y="56" width="150" height="34" rx="6" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="495" y="78" text-anchor="middle" font-size="11.5" fill="#1f2e1f">index 0 · A · state=a ✓</text>
+      <rect x="420" y="106" width="150" height="34" rx="6" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="495" y="128" text-anchor="middle" font-size="11.5" fill="#b91c1c">index 1 · C · 误用 state=b ✗</text>
+      <rect x="640" y="106" width="130" height="34" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="705" y="128" text-anchor="middle" font-size="11.5" fill="#1f2e1f">正确：state=c</text>
+      <text x="400" y="222" text-anchor="middle" font-size="12" fill="#4f6348">有稳定 id 时：C 节点整体保留自己的 state，B 节点被单独删除，不存在错位。</text>
+    </svg>
+    <p class="diagram-caption">图 43-2 删除中间项后 index 前移，组件内部状态错配到相邻项</p>
+  </div>
+  <h4>反例三：排序、过滤后顺序变化</h4>
+  <pre class="code" data-lang="jsx"><code>// ✗ 按价格排序后顺序变化，index 身份全部失效
+function ProductList({ products, sortKey }) {
+  const sorted = [...products].sort((a, b) =&gt; a[sortKey] - b[sortKey]);
+  return (
+    &lt;ul&gt;
+      {sorted.map((p, index) =&gt; (
+        &lt;ProductCard key={index} product={p} /&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>场景</th><th>index 作 key 的表现</th><th>稳定 id 作 key 的表现</th></tr></thead>
+    <tbody>
+      <tr><td>尾部追加</td><td>位置不变，通常不出问题（但仍不推荐）</td><td>只新建新节点，其余复用</td></tr>
+      <tr><td>头部插入</td><td>旧节点整体后移，state / 输入内容错位</td><td>新节点插入，旧节点身份不变</td></tr>
+      <tr><td>删除中间项</td><td>后续节点前移，内部状态错配到相邻项</td><td>仅删除目标节点，其余 state 跟随身份保留</td></tr>
+      <tr><td>排序 / 过滤</td><td>位置关系全变，大量节点被错误更新甚至重建</td><td>节点按身份移动位置，DOM 与 state 跟随节点</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">43.5</span> 节点复用时 DOM 与 state 的归属</h2>
+  <p>配对成功后，复用的是同一个 Fiber 节点，也就是<strong>同一个 DOM 节点与同一个组件实例</strong>：组件内部的 <code>useState</code>、<code>useRef</code>、展开状态、输入框内容都挂在这个 Fiber 上，跟着身份走，而不是跟着屏幕位置走。配对失败才会销毁旧节点、新建节点，旧 state 随之消失。</p>
+  <div class="lead">判断"组件状态会不会重置"，只要看<strong>身份是否匹配</strong>：key 相同、类型相同 → 复用同一 Fiber，state 保留；key 或类型变化 → 旧 Fiber 销毁、新 Fiber 挂载，state 重新初始化。屏幕上的位置变化本身不会导致 state 丢失。</div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>操作</th><th>DOM 节点</th><th>组件内部 state</th></tr></thead>
+    <tbody>
+      <tr><td>身份匹配、仅 props 更新</td><td>复用同一 DOM，更新变化的属性与文本</td><td>保留，不重置</td></tr>
+      <tr><td>节点移动位置（排序）</td><td>同一 DOM 被移动到新位置</td><td>保留，不重置</td></tr>
+      <tr><td>身份不匹配（key 变 / 类型变）</td><td>旧 DOM 销毁，新建 DOM</td><td>旧 state 全部丢弃，组件重新挂载</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span>想"换一批全新的组件状态"时，正确做法是给组件换一个新的稳定 key（如 <code>&lt;Panel key={userId} /&gt;</code>），让 React 判定身份变化并重建；这与第 10 章"用 key 重置子组件状态"的建议是同一条原理。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">43.6</span> 选 key 的规则与常见误解</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>规则 / 误解</th><th>正确做法</th><th>错误理解</th></tr></thead>
+    <tbody>
+      <tr><td>来源</td><td>数据自带的稳定唯一标识：数据库 id、唯一编码、业务编号</td><td>用数组下标、用随机数、用时间戳当 key</td></tr>
+      <tr><td>唯一性范围</td><td>只要求在同级兄弟节点之间唯一</td><td>误以为要在整棵树、整个应用全局唯一</td></tr>
+      <tr><td>稳定性</td><td>同一条数据在多次渲染间 key 保持不变</td><td>每次渲染生成新随机值，等于强制全部重建</td></tr>
+      <tr><td>类型</td><td>字符串或数字均可，保持一致即可</td><td>混用对象、函数等非基本类型作为 key</td></tr>
+      <tr><td>无稳定 id 时</td><td>为数据生成一次持久化的 id（如新增时分配），而不是用 index 顶替</td><td>把"暂时没有 id"当成可以长期使用 index 的理由</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">选 key 的全部要求可以压缩成一句话：<strong>用同一条数据在多次渲染间稳定不变、同级内唯一的标识</strong>；index、随机数、时间戳都不满足"稳定"这一条。</div>
+  <pre class="code" data-lang="jsx"><code>// 无后端 id 的本地列表：新增时一次性生成稳定 id，之后不再变化
+function useLocalTodos() {
+  const [todos, setTodos] = useState(() =&gt; [
+    { id: crypto.randomUUID(), text: '初始事项' },
+  ]);
+
+  function addTodo(text) {
+    setTodos((prev) =&gt; [
+      { id: crypto.randomUUID(), text },   // id 在创建时确定，之后稳定
+      ...prev,
+    ]);
+  }
+
+  return { todos, addTodo };
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">边界提醒</span>key 不参与组件 props 传递：组件内部读不到 <code>props.key</code>。需要把标识传给组件时，另传一个普通属性（如 <code>id={todo.id}</code>）。</div>
+  <p class="note">本章讲的是协调阶段的配对规则；组件 props 不变时 React 如何跳过整棵子树（<code>memo</code>），属于第六篇性能优化主题，见第 48 章。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>key 本质</td><td>同级子节点的身份标识，用于配对旧 Fiber 与新元素</td></tr>
+      <tr><td>无 key 规则</td><td>按位置顺序配对，顺序一变就错位</td></tr>
+      <tr><td>配对结果</td><td>匹配则复用 DOM 与 state，不匹配则销毁重建</td></tr>
+      <tr><td>index 风险</td><td>头部插入、删除中间项、排序过滤时位置与身份脱节，造成 state 错位</td></tr>
+      <tr><td>归属规则</td><td>DOM 与 state 跟随身份（Fiber），不跟随屏幕位置</td></tr>
+      <tr><td>选 key 规则</td><td>用稳定唯一 id，仅同级唯一；不用 index、随机值、对象；key 不进 props</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>列出选 key 的三条正确来源与三条错误来源；再说明 key 的唯一性要求限定在什么范围内。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>一个待办列表中每行是一个带本地输入框（内部 <code>useState</code>）的 <code>TodoRow</code>，当前用 <code>index</code> 作 key。描述"删除第二项"后，第三行输入框里的文字会出现在哪里、为什么；写出改用稳定 <code>todo.id</code> 的 <code>map</code> 代码。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>排序场景下对比两种 key 的 DOM 操作量：稳定 id 与 index。结合 42.3 节的 <code>Placement</code>、<code>Update</code>、<code>Deletion</code> 标记，说明排序时稳定 id 方案主要产生哪类标记，index 方案又会产生哪类标记、为什么成本更高。</div>
+  <p class="note">参考答案见附录 C。下一章：不可变更新——为什么改状态必须生成新对象，而不能原地修改。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="042_第42章_协调Reconcile与提交.html">← 第 42 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="044_第44章_不可变更新为什么必须.html">第 44 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 43 章 key 与节点复用</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 24 章 RTK Query 概念与取舍｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第三篇 状态管理</p>
+    <h1>第 24 章 RTK Query 概念与取舍</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 24 章 / 共 64 章 · 预计 50 分钟 · Redux 生态内的服务端状态层</span>
+    </div>
+    <p class="hero-desc">RTK Query 是 RTK 内置的服务端状态方案：createApi 声明 query 与 mutation endpoints，自动生成 hooks，标签体系驱动缓存失效。本章先回顾手写请求的缺陷，再讲清 api 切片集成、标签粒度与缓存生命周期概览，并与 TanStack Query 给出明确取舍口径。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="023_第23章_ReduxToolkit全解.html">第 23 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="025_第25章_服务端状态TanStackQuery.html">第 25 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">24.1 服务端状态与手写请求的缺陷</a></li>
+    <li><a href="#sec3">24.2 RTK Query 的定位与集成方式</a></li>
+    <li><a href="#sec4">24.3 createApi：endpoints、query 与 mutation</a></li>
+    <li><a href="#sec5">24.4 缓存标签体系</a></li>
+    <li><a href="#sec6">24.5 缓存生命周期与刷新配置概览</a></li>
+    <li><a href="#sec7">24.6 取舍：RTK Query 还是 TanStack Query</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>回顾服务端状态与客户端状态的分层边界，认清手写 <code>useEffect</code> + <code>useState</code> 管理请求的缺陷；</li>
+    <li>理解 RTK Query 在 Redux Toolkit 生态中的定位：服务端状态层，与 RTK store 一体集成；</li>
+    <li>掌握 <code>createApi</code> 的核心结构：<code>baseQuery</code>、<code>endpoints</code>、<code>query</code>、<code>mutation</code> 与自动生成的 hooks；</li>
+    <li>理解缓存标签体系 <code>tagTypes</code> / <code>providesTags</code> / <code>invalidatesTags</code> 的失效规则；</li>
+    <li>能在 RTK Query 与 TanStack Query 之间按技术栈现状做出取舍。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">24.1</span> 服务端状态与手写请求的缺陷</h2>
+  <div class="lead">第 20 章把服务端状态单独分了一层：它的权威来源是后端，前端需要缓存、去重、失效、刷新与错误重试。手写 <code>useEffect</code> + <code>useState</code> 只能拿到「发请求、存结果」的最小闭环，工程能力全部要自己补。</div>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>能力</th><th>手写 useEffect + useState</th><th>查询库（RTK Query / TanStack Query）</th></tr></thead>
+    <tbody>
+      <tr><td>多组件同参数请求去重</td><td>各自发请求，无法共享缓存</td><td>按 queryKey / endpoint 自动去重共享</td></tr>
+      <tr><td>组件卸载后过期响应处理</td><td>需手写 ignore 标记与竞态防护</td><td>框架内置竞态丢弃</td></tr>
+      <tr><td>缓存复用与过期判断</td><td>刷新即丢失，无 stale / gc 概念</td><td>内置 staleTime、keepUnusedDataFor 生命周期</td></tr>
+      <tr><td>变更后刷新相关列表</td><td>手动重新调用查询函数，易漏改</td><td>标签 / 失效键自动触发重取</td></tr>
+      <tr><td>重试、轮询、窗口聚焦刷新</td><td>逐处手写逻辑</td><td>配置项声明式开启</td></tr>
+      <tr><td>加载 / 错误 / 成功三态</td><td>每个组件维护三个布尔值</td><td>hook 返回标准化状态字段</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">第 10 章用 <code>useEffect</code> 处理请求是为了理解同步心智；生产项目里，列表、详情、表单提交等服务端交互应交给查询库，不要把缓存逻辑重复写进每个组件。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">24.2</span> RTK Query 的定位与集成方式</h2>
+  <p>RTK Query 是 Redux Toolkit 官方内置的服务端状态方案，随 <code>@reduxjs/toolkit</code> 一起发布，不需要单独安装。它在 RTK store 内部维护一个 <code>api</code> 切片：请求缓存、标签、变更结果都存进 Redux 状态树，组件通过自动生成的 hooks 读取。</p>
+  <div class="key-sentence">适用前提：项目已经使用 Redux Toolkit 管理客户端共享状态。此时引入 RTK Query 可以让客户端状态与服务端状态共享同一个 store、同一套 DevTools；项目若没有 Redux 基础，单独为查询能力引入 RTK Query 并不划算。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 270" role="img" aria-label="RTK Query 在应用架构中的位置">
+      <rect x="250" y="18" width="300" height="56" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="42" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">React 组件层</text>
+      <text x="400" y="62" text-anchor="middle" font-size="11" fill="#4f6348">useGetPostsQuery · useAddPostMutation</text>
+      <rect x="120" y="118" width="280" height="86" rx="10" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="260" y="144" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="700">RTK store</text>
+      <text x="260" y="168" text-anchor="middle" font-size="11" fill="#2d6a3f">api 切片：缓存 · 标签 · 请求状态</text>
+      <text x="260" y="190" text-anchor="middle" font-size="11" fill="#2d6a3f">业务切片：用户 · 主题 · 购物车</text>
+      <rect x="470" y="118" width="210" height="86" rx="10" fill="#eef3e8" stroke="#047857"/>
+      <text x="575" y="148" text-anchor="middle" font-size="13" fill="#047857" font-weight="700">后端 API</text>
+      <text x="575" y="172" text-anchor="middle" font-size="11" fill="#4f6348">fetchBaseQuery 发起</text>
+      <text x="575" y="192" text-anchor="middle" font-size="11" fill="#4f6348">GET / POST / PUT / DELETE</text>
+      <line x1="330" y1="74" x2="280" y2="116" stroke="#3d7a4f" stroke-width="1.4"/>
+      <line x1="470" y1="74" x2="540" y2="116" stroke="#3d7a4f" stroke-width="1.4"/>
+      <line x1="400" y1="161" x2="468" y2="161" stroke="#7a8a70" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="434" y="152" text-anchor="middle" font-size="11" fill="#4f6348">请求 / 响应</text>
+      <text x="400" y="240" text-anchor="middle" font-size="12" fill="#4f6348">服务端状态集中在 api 切片；客户端业务状态在独立业务切片，两者互不污染</text>
+    </svg>
+    <p class="diagram-caption">图 24-1 RTK Query 作为 RTK store 内的 api 切片，组件经自动 hooks 访问后端数据</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">24.3</span> createApi：endpoints、query 与 mutation</h2>
+  <div class="lead">createApi 是 RTK Query 的契约中心：一次调用声明后端基地址、标签枚举与全部 endpoints；query 管读、mutation 管写，hook 由框架按命名规则自动生成，不需要手写请求样板。</div>
+  <p><code>createApi</code> 定义后端接口契约：<code>baseQuery</code> 指定基础请求器与基地址，<code>endpoints</code> 用 <code>builder.query</code> 声明读操作、用 <code>builder.mutation</code> 声明写操作。定义完成后，RTK Query 按命名规则自动生成对应的 React hooks。</p>
+  <pre class="code" data-lang="jsx"><code>// app/apiSlice.js
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+export const apiSlice = createApi({
+  reducerPath: 'api',
+  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  tagTypes: ['Post'],
+  endpoints: (builder) =&gt; ({
+    // 读：获取文章列表
+    getPosts: builder.query({
+      query: () =&gt; '/posts',
+      providesTags: ['Post'],
+    }),
+    // 读：获取单篇文章
+    getPost: builder.query({
+      query: (id) =&gt; `/posts/${id}`,
+      providesTags: (result, error, id) =&gt; [{ type: 'Post', id }],
+    }),
+    // 写：新增文章
+    addPost: builder.mutation({
+      query: (body) =&gt; ({ url: '/posts', method: 'POST', body }),
+      invalidatesTags: ['Post'],
+    }),
+  }),
+});
+
+// 自动生成 hooks：useGetPostsQuery / useGetPostQuery / useAddPostMutation
+export const { useGetPostsQuery, useGetPostQuery, useAddPostMutation } = apiSlice;</code></pre>
+  <p>把 api 切片注册进 store：reducer 挂载到 <code>apiSlice.reducerPath</code>，中间件追加 <code>apiSlice.middleware</code>，负责缓存生命周期、去重与标签失效。</p>
+  <pre class="code" data-lang="js"><code>// app/store.js
+import { configureStore } from '@reduxjs/toolkit';
+import { apiSlice } from './apiSlice';
+
+export const store = configureStore({
+  reducer: {
+    [apiSlice.reducerPath]: apiSlice.reducer,
+  },
+  middleware: (getDefaultMiddleware) =&gt;
+    getDefaultMiddleware().concat(apiSlice.middleware),
+});</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>概念</th><th>query（读）</th><th>mutation（写）</th></tr></thead>
+    <tbody>
+      <tr><td>语义</td><td>获取服务端数据，结果进入缓存</td><td>创建 / 更新 / 删除服务端资源</td></tr>
+      <tr><td>hook 形态</td><td><code>useGetPostsQuery()</code>，挂载即自动请求</td><td><code>useAddPostMutation()</code> 返回 <code>[触发函数, 状态]</code></td></tr>
+      <tr><td>返回值</td><td><code>data</code>、<code>isLoading</code>、<code>isFetching</code>、<code>error</code>、<code>refetch</code></td><td><code>触发函数</code>、<code>isLoading</code>、<code>error</code>、<code>reset</code></td></tr>
+      <tr><td>标签角色</td><td><code>providesTags</code>：声明本缓存属于哪些标签</td><td><code>invalidatesTags</code>：声明完成后使哪些缓存失效</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>import { useGetPostsQuery, useAddPostMutation } from './app/apiSlice';
+
+function PostList() {
+  const { data: posts, isLoading, error } = useGetPostsQuery();
+  const [addPost, { isLoading: isAdding }] = useAddPostMutation();
+
+  if (isLoading) return &lt;p&gt;加载中…&lt;/p&gt;;
+  if (error) return &lt;p&gt;加载失败，请稍后重试&lt;/p&gt;;
+
+  return (
+    &lt;div&gt;
+      &lt;button disabled={isAdding} onClick={() =&gt; addPost({ title: '新文章' })}&gt;
+        新增文章
+      &lt;/button&gt;
+      &lt;ul&gt;
+        {posts.map((post) =&gt; (
+          &lt;li key={post.id}&gt;{post.title}&lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">24.4</span> 缓存标签体系</h2>
+  <p>标签（tags）是 RTK Query 组织缓存失效的方式：先在 <code>tagTypes</code> 声明可用标签名，query 用 <code>providesTags</code> 把缓存挂上标签，mutation 用 <code>invalidatesTags</code> 在成功后让对应标签的缓存过期，相关组件下一次挂载或重新订阅时自动重取。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>配置项</th><th>规则与用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>tagTypes</code></td><td>在 <code>createApi</code> 顶层声明标签枚举，如 <code>['Post', 'User']</code>，后续 endpoints 只能引用已声明的标签</td></tr>
+      <tr><td><code>providesTags</code>（query）</td><td>把当前缓存归入标签；支持 <code>{ type: 'Post', id }</code> 形式的带实体标签，实现单条记录级失效</td></tr>
+      <tr><td><code>invalidatesTags</code>（mutation）</td><td>变更成功后使对应标签缓存过期；标签全量失效或按 id 精准失效均可</td></tr>
+      <tr><td>失效结果</td><td>被失效缓存在下次挂载 / 窗口聚焦等时机重取；当前已挂载组件可配置自动刷新</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="js"><code>endpoints: (builder) =&gt; ({
+  getPost: builder.query({
+    query: (id) =&gt; `/posts/${id}`,
+    // 带 id 的实体标签：只失效这一篇，不影响其他详情缓存
+    providesTags: (result, error, id) =&gt; [{ type: 'Post', id }],
+  }),
+  updatePost: builder.mutation({
+    query: ({ id, body }) =&gt; ({
+      url: `/posts/${id}`,
+      method: 'PUT',
+      body,
+    }),
+    // 精准失效该 id，同时让列表标签 Post 过期
+    invalidatesTags: (result, error, { id }) =&gt; [
+      { type: 'Post', id },
+      'Post',
+    ],
+  }),
+})</code></pre>
+  <div class="pit-sentence">标签粒度要与业务一致：新增文章只需要让「文章列表」标签失效；编辑单篇文章应精准失效对应 id，避免整类缓存全部重取造成多余请求。第 26 章会把这套思路与 TanStack Query 的失效键体系对照讲解。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">24.5</span> 缓存生命周期与刷新配置概览</h2>
+  <p>RTK Query 为每个 query 缓存维护生命周期参数；本章先建立概念，具体时间阈值与策略选择在第 26 章统一展开。</p>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:68%"></colgroup>
+    <thead><tr><th>配置项</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><code>keepUnusedDataFor</code></td><td>缓存脱离所有订阅后保留的时长（秒），到期从 store 移除</td></tr>
+      <tr><td><code>refetchOnMountOrArgChange</code></td><td>组件重新挂载或参数变化时是否重新请求；可设为 <code>true</code> 或秒数阈值</td></tr>
+      <tr><td><code>refetchOnFocus</code> / <code>refetchOnReconnect</code></td><td>窗口重新聚焦、网络恢复时是否自动重取（需配置监听）</td></tr>
+      <tr><td><code>pollingInterval</code></td><td>轮询间隔（毫秒），适合实时性要求高的看板类页面</td></tr>
+    </tbody>
+  </table>
+  <div class="note">上述参数在 endpoint 级别或 <code>createApi</code> 全局级别配置；默认值与 TanStack Query 的 <code>staleTime</code>、<code>gcTime</code> 概念对应，第 25、26 章会给出并列对照表。</div>
+  <div class="warn-box">缓存参数不要在每个 endpoint 上复制粘贴：全局默认值集中在 <code>createApi</code> 配置，单个 endpoint 只覆盖特殊项；否则后续调整阈值要逐处修改，容易遗漏。</div>
+  <p>参数覆盖顺序与其他查询库一致：全局默认低于 endpoint 默认，endpoint 默认低于单查询配置；排查「为什么没按预期刷新」时，按这一顺序核对当前生效值，先确认是哪一层配置在起作用。</p>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">24.6</span> 取舍：RTK Query 还是 TanStack Query</h2>
+  <p>两者解决同一类问题（服务端状态缓存、去重、失效、三态），生态归属不同：RTK Query 长在 Redux 技术栈内，TanStack Query 框架无关、React 侧为 <code>@tanstack/react-query</code>（第 25 章）。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>维度</th><th>RTK Query</th><th>TanStack Query v5</th></tr></thead>
+    <tbody>
+      <tr><td>技术栈前提</td><td>项目已使用 Redux Toolkit</td><td>无状态管理库依赖，可单独接入</td></tr>
+      <tr><td>状态存放位置</td><td>RTK store 的 api 切片，可在 DevTools 时间旅行</td><td>独立 QueryCache，不进入 Redux 状态树</td></tr>
+      <tr><td>接口定义方式</td><td><code>createApi</code> 集中声明 endpoints 与标签</td><td>每个 hook 内 <code>queryKey</code> + <code>queryFn</code>，就近定义</td></tr>
+      <tr><td>失效机制</td><td>标签体系（tagTypes / provides / invalidates）</td><td>查询键前缀匹配 <code>invalidateQueries</code>（第 26 章）</td></tr>
+      <tr><td>异步变更体验</td><td>mutation hook 直接返回触发函数与状态</td><td>mutation 配套乐观更新与回滚 API 更完整（第 27 章）</td></tr>
+      <tr><td>生态与社区</td><td>Redux 官方体系，与 thunk / slice 协同紧密</td><td>独立团队维护，Vue / Svelte 等框架均有对应版本</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">决策口径：<strong>已经是 RTK 项目 → RTK Query 保持技术栈统一；使用 Zustand、Context 或没有全局状态库 → 直接选 TanStack Query</strong>。不要在同一项目里并行两套查询库。</div>
+  <div class="pit-sentence">不要因为「以后可能换技术栈」就同时引入两套查询库：缓存、失效与三态状态会在两套体系间重复维护，排错时还要先判断问题属于哪一套；选型一旦确定，全项目统一。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>服务端状态</td><td>权威来源在后端，前端需要缓存、去重、失效、重试与三态管理</td></tr>
+      <tr><td>RTK Query 定位</td><td>RTK 生态内的 api 切片，与业务切片同存一个 store</td></tr>
+      <tr><td>createApi 结构</td><td>baseQuery + endpoints，query 读、mutation 写，自动生成 hooks</td></tr>
+      <tr><td>标签体系</td><td>tagTypes 声明、providesTags 挂标签、invalidatesTags 触发失效</td></tr>
+      <tr><td>生命周期</td><td>keepUnusedDataFor、挂载重取、聚焦 / 重连刷新、轮询等参数</td></tr>
+      <tr><td>取舍口径</td><td>RTK 项目选 RTK Query；其他技术栈选 TanStack Query，不并行两套</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>用 <code>createApi</code> 定义用户接口：<code>getUsers</code>（GET <code>/users</code>）与 <code>addUser</code>（POST <code>/users</code>），声明标签 <code>User</code>，列表提供 <code>providesTags</code>，新增提供 <code>invalidatesTags</code>；写出 store 注册 api 切片与中间件的代码。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在习题 A 的基础上增加 <code>getUser(id)</code> 与 <code>updateUser(id, body)</code>：单条详情使用带 id 的实体标签，更新时精准失效该 id 并让列表标签 <code>User</code> 过期；写出 endpoints 片段，并说明这样写相比全量失效 <code>User</code> 减少了哪些请求。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>你接手一个使用 Zustand 管理购物车、团队规模 6 人的电商前端，技术评审在「引入 RTK Query」与「接入 TanStack Query」之间争论。结合第 22 章 Zustand 与本章对照表，给出书面选型建议：两套方案各自的接入成本、与现有状态层的关系、失效机制如何对接购物车与商品列表，并说明为什么不建议并行使用。</div>
+  <p class="note">参考答案见附录 C。下一章：服务端状态 TanStack Query v5——QueryClient、useQuery、useMutation 与标准状态字段。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom" aria-label="文档导航">
+  <a class="doc-nav-btn" href="023_第23章_ReduxToolkit全解.html">← 第 23 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="025_第25章_服务端状态TanStackQuery.html">第 25 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 24 章 RTK Query 概念与取舍</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

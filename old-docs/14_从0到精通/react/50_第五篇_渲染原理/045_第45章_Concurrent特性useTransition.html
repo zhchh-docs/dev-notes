@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 45 章 Concurrent 特性：useTransition｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第五篇 渲染原理</p>
+    <h1>第 45 章 Concurrent 特性：useTransition</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 45 章 / 共 64 章 · 预计 50 分钟 · 非紧急更新可被打断</span>
+    </div>
+    <p class="hero-desc">Fiber 与调度给"可中断渲染"打好了底层基础，useTransition 是开发者日常使用这套能力的主要 API：把一次状态更新声明为过渡更新，允许它被紧急交互打断，同时保留旧界面直到新内容准备好。本章讲清 API 签名、包裹边界、行为表现，并与 useDeferredValue 对照。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="044_第44章_不可变更新为什么必须.html">第 44 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="046_第46章_Suspense机制初探.html">第 46 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">45.1 Concurrent：可中断渲染的产品化</a></li>
+    <li><a href="#sec3">45.2 紧急更新与非紧急更新</a></li>
+    <li><a href="#sec4">45.3 useTransition：isPending 与 startTransition</a></li>
+    <li><a href="#sec5">45.4 startTransition 能包裹什么、不能包裹什么</a></li>
+    <li><a href="#sec6">45.5 行为表现：旧界面保留与过渡指示</a></li>
+    <li><a href="#sec7">45.6 useDeferredValue 对照与常见坑</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 Concurrent 特性建立在 Fiber 可中断渲染与优先级调度之上，React 18 起由 <code>createRoot</code> 启用；</li>
+    <li>区分<strong>紧急更新</strong>（输入、点击）与<strong>过渡更新</strong>（长列表过滤、视图切换）；</li>
+    <li>掌握 <code>useTransition</code> 返回的 <code>isPending</code> 与 <code>startTransition</code> 的签名与用法；</li>
+    <li>明确 <code>startTransition</code> 包裹的边界：只包裹状态更新，不包裹事件本身、不同步读取结果；</li>
+    <li>对照 <code>useDeferredValue</code> 的适用场景，避开常见误用。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">45.1</span> Concurrent：可中断渲染的产品化</h2>
+  <div class="lead">前几章的底层结构——Fiber 链表（第 39 章）、调度与优先级（第 40 章）——让 React 有能力把渲染拆开、暂停、恢复。<strong>Concurrent 特性</strong>就是在这层能力之上提供给开发者的一组机制：让部分更新可以延后渲染、被紧急任务打断，而界面始终保持可响应。</div>
+  <p>需要澄清一点：React 18 及之后，通过 <code>createRoot</code> 创建的应用默认具备并发渲染能力，不再存在一个需要单独打开的"并发模式开关"；开发者通过 <code>useTransition</code>、<code>useDeferredValue</code>、<code>Suspense</code> 等 API 主动使用这套能力。本章聚焦 <code>useTransition</code>。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="紧急与过渡任务时间线">
+      <text x="400" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">普通事件中的两次更新：紧急立即渲染，过渡可被打断</text>
+      <rect x="40" y="56" width="150" height="38" rx="6" fill="#2d6a3f"/>
+      <text x="115" y="80" text-anchor="middle" font-size="12" fill="#fff">紧急：输入框值更新</text>
+      <rect x="220" y="56" width="170" height="38" rx="6" fill="#fef3c7" stroke="#d97706"/>
+      <text x="305" y="80" text-anchor="middle" font-size="12" fill="#b45309">过渡：长列表过滤（排队）</text>
+      <rect x="430" y="56" width="150" height="38" rx="6" fill="#2d6a3f"/>
+      <text x="505" y="80" text-anchor="middle" font-size="12" fill="#fff">新输入紧急插入</text>
+      <rect x="620" y="56" width="150" height="38" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="695" y="80" text-anchor="middle" font-size="11.5" fill="#b45309">旧过渡草稿丢弃重来</text>
+      <line x1="190" y1="75" x2="218" y2="75" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="390" y1="75" x2="428" y2="75" stroke="#7a8a70" stroke-width="1.2"/>
+      <line x1="580" y1="75" x2="618" y2="75" stroke="#7a8a70" stroke-width="1.2"/>
+      <rect x="40" y="130" width="720" height="84" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="58" y="158" font-size="12" fill="#1f2e1f">用户持续输入期间：每一次输入都是紧急更新，先把受控值渲染到屏幕；</text>
+      <text x="58" y="184" font-size="12" fill="#2d6a3f">对应的过滤计算属于过渡更新，排到后台时间片推进；新输入到达时旧过渡草稿被丢弃重来。</text>
+      <text x="58" y="208" font-size="12" fill="#7a8a70">界面始终保留上一版完整结果，不会出现半截新列表。</text>
+    </svg>
+    <p class="diagram-caption">图 45-1 紧急更新优先响应，过渡更新排队推进并可被打断丢弃</p>
+  </div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">45.2</span> 紧急更新与非紧急更新</h2>
+  <p>把第 40 章的优先级分层落到业务代码上，就是下面两类典型场景：</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>对照项</th><th>紧急更新（同步档位）</th><th>过渡更新（Transition 档位）</th></tr></thead>
+    <tbody>
+      <tr><td>典型场景</td><td>受控输入框、按钮点击、开关切换、滚动位置</td><td>搜索过滤、大列表重排、选项切换后渲染详情区、视图切换</td></tr>
+      <tr><td>渲染时机</td><td>事件回调结束后立即协调提交</td><td>排入过渡队列，空闲时间片推进，可被紧急更新打断</td></tr>
+      <tr><td>旧界面</td><td>新状态就绪后直接替换</td><td>旧界面保留到新内容准备好，期间用 <code>isPending</code> 提示</td></tr>
+      <tr><td>触发方式</td><td>普通 <code>setState</code> 调用</td><td>用 <code>startTransition</code> 包裹的 <code>setState</code></td></tr>
+      <tr><td>可中断性</td><td>渲染与提交连贯完成，不被其他更新插队打断</td><td>render 阶段可中断、草稿可丢弃重做</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">判断标准：<strong>用户正在直接操作的控件状态必须紧急；由控件值派生、计算量大的结果可以过渡。</strong>输入框的值是紧急的，过滤后的商品列表是过渡的。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">45.3</span> useTransition：isPending 与 startTransition</h2>
+  <p><code>useTransition</code> 从 <code>react</code> 导入，调用后返回一个二元组：</p>
+  <pre class="code" data-lang="jsx"><code>import { useTransition } from 'react';
+
+function SearchPanel() {
+  const [keyword, setKeyword] = useState('');
+  const [results, setResults] = useState(ALL_ITEMS);
+  const [isPending, startTransition] = useTransition();
+
+  function handleChange(e) {
+    // 紧急：输入框立刻反映按键内容
+    setKeyword(e.target.value);
+
+    // 过渡：过滤大列表归入低一档队列
+    startTransition(() =&gt; {
+      setResults(filterHeavyList(e.target.value));
+    });
+  }
+
+  return (
+    &lt;div&gt;
+      &lt;input value={keyword} onChange={handleChange} /&gt;
+      {isPending &amp;&amp; &lt;span className="hint"&gt;筛选中…&lt;/span&gt;}
+      &lt;ul&gt;
+        {results.map((item) =&gt; (
+          &lt;li key={item.id}&gt;{item.title}&lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+    <thead><tr><th>返回项</th><th>含义与行为</th></tr></thead>
+    <tbody>
+      <tr><td><code>isPending</code></td><td>布尔值：当前是否有进行中的过渡更新。过渡被调度期间为 <code>true</code>，渲染完成后变为 <code>false</code>，可用于展示加载指示、禁用按钮等</td></tr>
+      <tr><td><code>startTransition</code></td><td>函数：接收一个回调，回调内调用的 <code>setState</code> 被归入过渡档位；回调内可以依次调用多个状态更新</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><code>useTransition</code> 与组件级状态绑定：它报告的是当前组件发起的过渡是否在进行中。需要在事件回调、定时器等非组件位置发起过渡时，也可以使用从 <code>react</code> 导入的 <code>startTransition</code>（全局版本），只是没有对应的 <code>isPending</code>。</div>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span><code>isPending</code> 只反映过渡更新是否在进行中，<strong>不代表网络请求状态</strong>：接口返回、图片加载等等待由 Suspense 与各自加载状态管理（第 46 章）。不要用 <code>isPending</code> 充当请求 loading 指示。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">45.4</span> startTransition 能包裹什么、不能包裹什么</h2>
+  <div class="lead"><code>startTransition</code> 的定位是"声明一批状态更新属于过渡"，而不是"把任意异步工作塞进后台"。包裹边界决定了 API 的语义是否成立。</div>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>事项</th><th>允许</th><th>不允许 / 不应当</th></tr></thead>
+    <tbody>
+      <tr><td>包裹内容</td><td>一个或多个 <code>setState</code> 状态更新</td><td>包裹事件处理函数本身、路由跳转回调之外的业务流程</td></tr>
+      <tr><td>读取新状态</td><td>过渡完成后由新一轮渲染自然读到新值</td><td>在 <code>startTransition</code> 回调内同步读取刚更新的 state 并据此判断分支</td></tr>
+      <tr><td>外部副作用</td><td>状态更新完成后的副作用仍交给 <code>useEffect</code></td><td>把网络请求、订阅、直接 DOM 操作写进过渡回调当作"后台任务"</td></tr>
+      <tr><td>受控值</td><td>非过渡的 <code>setKeyword</code> 保持紧急</td><td>把输入框自身的受控值更新包进 transition</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// ✗ 反例：在过渡回调里同步读取新状态（状态尚未提交，读到的是旧快照）
+function BadExample() {
+  const [tab, setTab] = useState('home');
+  const [isPending, startTransition] = useTransition();
+
+  function switchTab(next) {
+    startTransition(() =&gt; {
+      setTab(next);
+      if (tab === 'me') {            // tab 仍是本次渲染的旧值，判断不可靠
+        recordMeVisit();
+      }
+    });
+  }
+  return null;
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>// ✓ 正确：过渡只负责更新状态；需要在状态变化后做的事放进 useEffect
+function GoodExample() {
+  const [tab, setTab] = useState('home');
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() =&gt; {
+    if (tab === 'me') recordMeVisit();
+  }, [tab]);
+
+  function switchTab(next) {
+    startTransition(() =&gt; setTab(next));
+  }
+
+  return (
+    &lt;button disabled={isPending} onClick={() =&gt; switchTab('me')}&gt;
+      进入个人页
+    &lt;/button&gt;
+  );
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">边界提醒</span><code>startTransition</code> 回调内的多个 <code>setState</code> 同属一轮过渡调度；不要把需要立即反映到界面的更新（如开关切换、弹窗显隐）也包进去，否则交互会因为等待过渡调度而出现可感知延迟。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">45.5</span> 行为表现：旧界面保留与过渡指示</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="过渡期间旧界面保留">
+      <text x="400" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#1f2e1f">过渡进行中：旧结果继续展示，isPending 提示；新结果就绪后一次性替换</text>
+      <rect x="50" y="60" width="200" height="120" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="150" y="86" text-anchor="middle" font-size="12" fill="#1f2e1f">当前展示：旧列表结果</text>
+      <text x="150" y="116" text-anchor="middle" font-size="11" fill="#4f6348">界面保持可滚动、可点击</text>
+      <text x="150" y="146" text-anchor="middle" font-size="11" fill="#b45309">isPending = true，显示"筛选中"</text>
+      <rect x="300" y="60" width="200" height="120" rx="8" fill="#fefce8" stroke="#d97706"/>
+      <text x="400" y="86" text-anchor="middle" font-size="12" fill="#b45309">后台草稿：新过滤结果</text>
+      <text x="400" y="116" text-anchor="middle" font-size="11" fill="#4f6348">可被新输入打断丢弃</text>
+      <text x="400" y="146" text-anchor="middle" font-size="11" fill="#4f6348">完成后才进入 commit 阶段</text>
+      <rect x="550" y="60" width="200" height="120" rx="8" fill="#d8e8c8" stroke="#3d7a4f"/>
+      <text x="650" y="86" text-anchor="middle" font-size="12" fill="#1f2e1f">提交后：新列表结果</text>
+      <text x="650" y="116" text-anchor="middle" font-size="11" fill="#4f6348">isPending = false</text>
+      <text x="650" y="146" text-anchor="middle" font-size="11" fill="#3d7a4f">旧界面一次性替换为新界面</text>
+      <line x1="250" y1="120" x2="298" y2="120" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <line x1="500" y1="120" x2="548" y2="120" stroke="#7a8a70" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="400" y="218" text-anchor="middle" font-size="12" fill="#4f6348">与"加载新内容前显示空白 / 转圈覆盖"不同：旧内容始终可见，只在新结果就绪后切换。</text>
+    </svg>
+    <p class="diagram-caption">图 45-2 过渡期间保留旧界面，新结果就绪后提交替换</p>
+  </div>
+  <div class="pit-sentence"><span class="tag-pit">易错点</span><code>startTransition</code> 不会让过滤本身变快。它只是让这次长渲染排在紧急任务之后、可被打断；如果列表巨大、组件计算昂贵，仍然需要配合第六篇的 <code>memo</code>、<code>useMemo</code>、列表虚拟化等手段压缩渲染成本。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">45.6</span> useDeferredValue 对照与常见坑</h2>
+  <p>React 还提供 <code>useDeferredValue</code>：接收一个值，返回它的"延迟版本"；当上游值频繁变化时，延迟版本会落后一步慢慢追赶，适合"没有机会发起状态更新"的场景，例如接收 props 值、第三方组件内部状态需要延后使用。</p>
+  <pre class="code" data-lang="jsx"><code>import { useDeferredValue } from 'react';
+
+function FilterPanel({ keyword }) {
+  // 传入的 keyword 是外部状态；deferredKeyword 是它的延迟副本
+  const deferredKeyword = useDeferredValue(keyword);
+  // 用延迟值计算大列表，受控输入仍由外部紧急更新驱动
+  const results = filterHeavyList(deferredKeyword);
+
+  return (
+    &lt;ul&gt;
+      {results.map((item) =&gt; &lt;li key={item.id}&gt;{item.title}&lt;/li&gt;)}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>对照项</th><th>useTransition</th><th>useDeferredValue</th></tr></thead>
+    <tbody>
+      <tr><td>控制粒度</td><td>主动包裹指定的一批状态更新</td><td>对某个传入值生成延迟副本，组件内部决定用它计算什么</td></tr>
+      <tr><td>进行中状态</td><td>提供 <code>isPending</code> 可显示指示</td><td>不提供进行中标记；新旧值比较可自行判断是否落后</td></tr>
+      <tr><td>典型场景</td><td>事件回调里区分紧急输入与派生结果</td><td>值来自 props 或外部状态，组件无法改写发起方式</td></tr>
+      <tr><td>打断行为</td><td>新更新到达时旧过渡草稿可被丢弃重来</td><td>延迟值按调度节奏追赶最新值</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">两者选择依据一句话：<strong>能控制状态发起方式就用 <code>useTransition</code>；只能被动接收外部值就用 <code>useDeferredValue</code></strong>。它们解决的都是"长计算不阻塞紧急交互"，只是控制入口不同。</div>
+  <div class="warn-box"><span class="tag-pit">常见坑</span>其一，把受控输入值本身放进 transition，导致打字延迟；其二，用 <code>useDeferredValue</code> 包裹一个普通 state 再手动回写，语义冗余且容易产生循环；其三，在过渡回调里发起异步请求并期待它"被调度器管理"——请求时序仍由业务代码控制。</div>
+  <p class="note">本章与第 46 章 Suspense 同属 Concurrent 体验体系：Transition 处理"状态更新可延后"，Suspense 处理"等待资源期间显示 fallback"，两者可以组合使用。</p>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>Concurrent 基础</td><td>建立在 Fiber 可中断渲染与优先级调度之上，React 18 起由 createRoot 默认启用</td></tr>
+      <tr><td>两类更新</td><td>输入、点击为紧急；过滤、重排、视图切换为过渡</td></tr>
+      <tr><td>useTransition</td><td>返回 isPending 与 startTransition；startTransition 内的更新归入过渡档位</td></tr>
+      <tr><td>包裹边界</td><td>只包裹状态更新；不同步读新值；外部副作用交给 useEffect；受控值保持紧急</td></tr>
+      <tr><td>行为表现</td><td>过渡期间保留旧界面，isPending 提示，新结果就绪后一次性提交替换</td></tr>
+      <tr><td>useDeferredValue</td><td>对传入值生成延迟副本，适合无法发起状态更新的组件内部场景</td></tr>
+      <tr><td>边界提醒</td><td>过渡不降低计算成本，大列表仍需组件级优化配合</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>在一个搜索组件里，受控输入框的值与过滤后的长商品列表分别应该属于哪一档更新？写出 <code>useTransition</code> 的解构形式与 <code>isPending</code> 的用途，并给出事件回调中"先紧急更新输入值、再过渡更新列表"的代码骨架。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>下面写法有两处问题，指出并改正：<code>const [isPending, startTransition] = useTransition(); function onChange(e) { startTransition(() =&gt; { setKeyword(e.target.value); setList(filter(e.target.value)); }); }</code> 再说明为什么输入值不能归入过渡档位。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>对比 <code>useTransition</code> 与 <code>useDeferredValue</code>：给定场景"父组件传入 <code>keyword</code>，当前组件根据它渲染一个大结果列表，且希望输入保持跟手、列表更新延后"，分别用两种 API 各写一版实现思路，说明哪一种更合适、为什么；再指出 <code>isPending</code> 在该场景下能提供什么、不能提供什么。</div>
+  <p class="note">参考答案见附录 C。下一章：Suspense 机制初探——组件等待资源期间，由就近边界展示 fallback。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="044_第44章_不可变更新为什么必须.html">← 第 44 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="046_第46章_Suspense机制初探.html">第 46 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 45 章 Concurrent 特性：useTransition</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

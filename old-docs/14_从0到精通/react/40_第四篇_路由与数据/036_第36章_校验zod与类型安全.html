@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 36 章 校验：zod 与类型安全｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第四篇 路由与数据</p>
+    <h1>第 36 章 校验：zod 与类型安全</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 36 章 / 共 64 章 · 预计 45 分钟 · 单一数据源的运行时校验</span>
+    </div>
+    <p class="hero-desc">TypeScript 类型只在编译期存在，运行时拿到的表单值仍是不可信的输入。本章用 zod 把「类型、规则、错误信息」收敛为一份 schema，通过 z.infer 反推 TS 类型，用 zodResolver 接入 react-hook-form，并把同一 schema 复用到服务端边界校验。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="035_第35章_表单react-hook-form.html">第 35 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="037_第37章_错误边界与降级UI.html">第 37 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">36.1 手写校验的问题</a></li>
+    <li><a href="#sec3">36.2 zod schema 基础</a></li>
+    <li><a href="#sec4">36.3 联合、数组与跨字段校验</a></li>
+    <li><a href="#sec5">36.4 z.infer 类型推导与 zodResolver 接入</a></li>
+    <li><a href="#sec6">36.5 parse / safeParse 与服务端边界</a></li>
+    <li><a href="#sec7">36.6 常见坑清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 TypeScript 类型在编译期被擦除，<strong>运行时输入必须独立校验</strong>；</li>
+    <li>能用 zod 编写对象、字符串、数字、枚举、数组、可选字段等基础 schema；</li>
+    <li>会用 <code>refine</code> 与 <code>superRefine</code> 实现单字段与跨字段自定义校验；</li>
+    <li>掌握 <code>z.infer</code> 从 schema 反推类型，并用 <code>zodResolver</code> 接入 react-hook-form；</li>
+    <li>区分 <code>parse</code> 与 <code>safeParse</code> 的错误处理方式，理解前后端复用同一份 schema 的价值。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">36.1</span> 手写校验的问题</h2>
+  <p>没有 schema 工具时，类型定义、校验规则、错误提示分散在三个地方：先写一份 TypeScript <code>interface</code>，再在提交回调里手写 <code>if</code> 判断，错误文案散落各处。规则一改，三处同步；接口返回结构变化时，类型与真实数据经常脱节。</p>
+  <pre class="code" data-lang="ts"><code>// 类型定义
+interface ProfileInput {
+  name: string
+  email: string
+  age: number
+}
+
+// 校验规则散落在提交回调中
+function validate(data: ProfileInput) {
+  if (!data.name || data.name.length &lt; 2) return '姓名至少 2 个字符'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return '邮箱格式不正确'
+  if (!Number.isInteger(data.age) || data.age &lt; 18) return '年龄必须是 18 岁以上整数'
+  return null
+}</code></pre>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+    <thead><tr><th>问题</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>规则与类型两份真相</td><td><code>interface</code> 描述结构，<code>if</code> 描述规则，修改时容易漏改其中一处</td></tr>
+      <tr><td>运行时无类型保护</td><td>编译期类型在打包后被擦除，接口返回的字符串数字、缺失字段不会被 TS 拦截</td></tr>
+      <tr><td>错误信息重复</td><td>每个表单重复书写正则、长度判断与提示文案，风格不统一</td></tr>
+      <tr><td>跨层复用困难</td><td>浏览器一套规则，服务端接口再写一套，前后端口径可能不一致</td></tr>
+      <tr><td>嵌套结构校验繁琐</td><td>对象嵌套、数组元素、联合类型需要逐层手写判断，错误路径难以定位</td></tr>
+    </tbody>
+  </table>
+  <div class="lead">zod 的思路是<strong>声明一份 schema：运行时校验由 schema 执行，TypeScript 类型由 schema 反推</strong>。schema 成为唯一数据源——这与 Java 后端 Bean Validation（<code>@NotBlank</code>、<code>@Email</code> 标注在字段上）同属「规则附着于结构」的思路，区别是 zod 在前端运行时同样生效。</div>
+  <div class="key-sentence">TypeScript 类型在打包后被擦除，<strong>编译期类型不能替代运行时校验</strong>：接口返回、URL 参数、本地存储、表单输入都是不可信外部数据，进入应用结构之前必须由 schema 独立校验。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">36.2</span> zod schema 基础</h2>
+  <p>先安装 zod 与 react-hook-form 的 zod 解析器：</p>
+  <pre class="code" data-lang="bash"><code>npm install zod @hookform/resolvers</code></pre>
+  <p>从 <code>zod</code> 导入 <code>z</code>，用 <code>z.object</code> 描述表单结构，字段上链式挂载规则与错误信息：</p>
+  <pre class="code" data-lang="ts"><code>import { z } from 'zod'
+
+const profileSchema = z.object({
+  name: z
+    .string({ required_error: '姓名必填' })
+    .min(2, '姓名至少 2 个字符')
+    .max(20, '姓名最多 20 个字符'),
+  email: z
+    .string({ required_error: '邮箱必填' })
+    .email('邮箱格式不正确'),
+  age: z.coerce
+    .number({ required_error: '年龄必填' })
+    .int('年龄必须是整数')
+    .min(18, '必须年满 18 岁'),
+  role: z.enum(['admin', 'editor', 'viewer'], {
+    required_error: '请选择角色',
+  }),
+  subscribe: z.boolean().optional(),
+  tags: z.array(z.string()).default([]),
+})</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>zod 写法</th><th>对应 TypeScript 类型</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>z.string()</code></td><td><code>string</code></td><td>字符串，可接 <code>min / max / email / url / regex</code> 等规则</td></tr>
+      <tr><td><code>z.number()</code> / <code>z.coerce.number()</code></td><td><code>number</code></td><td>数值；<code>coerce</code> 先把输入转为数字再校验，适合表单字符串输入</td></tr>
+      <tr><td><code>z.enum(['a', 'b'])</code></td><td><code>'a' | 'b'</code></td><td>字面量联合，取值限定在枚举内</td></tr>
+      <tr><td><code>z.boolean().optional()</code></td><td><code>boolean | undefined</code></td><td>可选布尔值；<code>z.optional(...)</code> 等价包裹</td></tr>
+      <tr><td><code>z.array(z.string())</code></td><td><code>string[]</code></td><td>数组，元素类型由内部 schema 决定</td></tr>
+      <tr><td><code>z.object({ ... })</code></td><td>对象字面量类型</td><td>嵌套对象可继续 <code>z.object</code> 内嵌</td></tr>
+      <tr><td><code>z.string().default('匿名')</code></td><td><code>string</code>（缺省值自动填充）</td><td>输入为 <code>undefined</code> 时写入默认值</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><code>z.coerce.number()</code> 与 <code>z.number()</code> 的区别：前者先做类型转换再校验，表单数字输入框拿到的是字符串，使用 <code>coerce</code> 可避免「'25' 不是数字」一类误报。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">36.3</span> 联合、数组与跨字段校验</h2>
+  <p>基础规则覆盖单字段；字段之间的约束（两次密码一致、金额区间、至少勾选一项）需要 <code>refine</code> 与 <code>superRefine</code>。联合类型用 <code>z.union</code> 或 <code>z.discriminatedUnion</code> 描述「结构取决于某个字段」的场景。</p>
+  <pre class="code" data-lang="ts"><code>import { z } from 'zod'
+
+const passwordSchema = z
+  .object({
+    password: z.string().min(8, '密码至少 8 位'),
+    confirm: z.string().min(1, '请再次输入密码'),
+  })
+  .refine((data) =&gt; data.password === data.confirm, {
+    message: '两次密码不一致',
+    path: ['confirm'],   // 错误挂到 confirm 字段上展示
+  })
+
+const contactSchema = z.union([
+  z.object({ type: z.literal('email'), email: z.string().email() }),
+  z.object({ type: z.literal('phone'), phone: z.string().regex(/^1\d{10}$/) }),
+])
+
+const interestsSchema = z
+  .array(z.string())
+  .min(1, '至少选择一项兴趣')
+  .max(5, '最多选择 5 项')</code></pre>
+  <ul>
+    <li><code>.refine(fn, { message, path })</code>：同步自定义判断，返回布尔值，可指定错误归属字段，适合单字段附加规则与两字段一致性检查；</li>
+    <li><code>.superRefine((val, ctx) =&gt; ...)</code>：通过 <code>ctx.addIssue</code> 追加多条错误，路径可自由指定，适合一个校验点产生多条错误、复杂嵌套规则的场景；</li>
+    <li><code>z.union([...])</code>：按顺序尝试各分支，全部失败才报错，用于结构不确定的联合输入；</li>
+    <li><code>z.discriminatedUnion('type', [...])</code>：按判别字段直接定位分支，错误信息更清晰，用于表单选项决定后续字段结构的场景；</li>
+    <li><code>.transform(fn)</code>：校验通过后转换输出值，用于去空格、拼接全名、单位换算等归一化处理。</li>
+  </ul>
+  <div class="pit-sentence">跨字段 <code>refine</code> 挂在对象 schema 上，<code>path</code> 指向需要展示错误的字段；若把一致性校验写进 <code>password</code> 字段内部，就无法读取 <code>confirm</code> 的值，这是新手最常见的放错位置问题。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">36.4</span> z.infer 类型推导与 zodResolver 接入</h2>
+  <p>用 <code>z.infer&lt;typeof schema&gt;</code> 从 schema 反推 TypeScript 类型，表单 <code>useForm</code> 泛型直接使用这份推导类型；<code>zodResolver(schema)</code> 作为 <code>resolver</code> 传入，react-hook-form 提交时自动执行 schema 校验，错误信息映射到 <code>formState.errors</code>。</p>
+  <pre class="code" data-lang="tsx"><code>import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const profileSchema = z.object({
+  name: z.string().min(2, '姓名至少 2 个字符'),
+  email: z.string().email('邮箱格式不正确'),
+  age: z.coerce.number().int().min(18, '必须年满 18 岁'),
+})
+
+// 从 schema 反推类型：不再手写 interface
+type ProfileInput = z.infer&lt;typeof profileSchema&gt;
+
+export default function ProfileForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm&lt;ProfileInput&gt;({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: '', email: '', age: 18 },
+  })
+
+  function onValid(data: ProfileInput) {
+    // data 类型即 ProfileInput，已通过 zod 校验
+    api.save(data)
+  }
+
+  return (
+    &lt;form onSubmit={handleSubmit(onValid)}&gt;
+      &lt;input {...register('name')} placeholder="姓名" /&gt;
+      {errors.name &amp;&amp; &lt;p className="field-error"&gt;{errors.name.message}&lt;/p&gt;}
+
+      &lt;input {...register('email')} placeholder="邮箱" /&gt;
+      {errors.email &amp;&amp; &lt;p className="field-error"&gt;{errors.email.message}&lt;/p&gt;}
+
+      &lt;input type="number" {...register('age')} /&gt;
+      {errors.age &amp;&amp; &lt;p className="field-error"&gt;{errors.age.message}&lt;/p&gt;}
+
+      &lt;button type="submit"&gt;保存&lt;/button&gt;
+    &lt;/form&gt;
+  )
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>维度</th><th>手写 interface + 内置规则</th><th>schema + z.infer</th></tr></thead>
+    <tbody>
+      <tr><td>类型来源</td><td>独立手写 <code>interface</code></td><td><code>z.infer</code> 从 schema 反推，结构与规则同源</td></tr>
+      <tr><td>规则修改</td><td>改类型、改校验、改提示三处同步</td><td>只改 schema，类型自动跟随</td></tr>
+      <tr><td>错误展示</td><td>组件内判断并拼接文案</td><td>resolver 自动映射到 <code>errors.field.message</code></td></tr>
+      <tr><td>编辑器提示</td><td>字段名靠人工记忆</td><td>推导类型驱动 <code>register('field')</code> 的补全与检查</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 270" role="img" aria-label="zod schema 类型闭环">
+      <rect x="310" y="24" width="180" height="52" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="400" y="48" text-anchor="middle" font-size="13" fill="#1f2e1f">zod schema（唯一数据源）</text>
+      <text x="400" y="66" text-anchor="middle" font-size="11" fill="#4f6348">规则 · 错误信息 · 结构</text>
+      <line x1="350" y1="78" x2="200" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="450" y1="78" x2="600" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <line x1="400" y1="78" x2="400" y2="126" stroke="#4f8a63" stroke-width="1.6"/>
+      <rect x="80" y="130" width="220" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="190" y="154" text-anchor="middle" font-size="12" fill="#1f2e1f">z.infer 反推 TS 类型</text>
+      <text x="190" y="174" text-anchor="middle" font-size="11" fill="#4f6348">编译期补全与类型检查</text>
+      <rect x="290" y="130" width="220" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="400" y="154" text-anchor="middle" font-size="12" fill="#1f2e1f">zodResolver 表单校验</text>
+      <text x="400" y="174" text-anchor="middle" font-size="11" fill="#4f6348">浏览器提交前拦截错误</text>
+      <rect x="500" y="130" width="220" height="56" rx="8" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="610" y="154" text-anchor="middle" font-size="12" fill="#1f2e1f">safeParse 边界复核</text>
+      <text x="610" y="174" text-anchor="middle" font-size="11" fill="#4f6348">接口响应 / 服务端请求体</text>
+      <rect x="80" y="216" width="640" height="36" rx="8" fill="#fbfdff" stroke="#4f8a63"/>
+      <text x="96" y="239" font-size="12" fill="#2d6a3f">同一份 schema 同时驱动编译期类型、浏览器校验与服务端复核；规则只改一处，三条链路自动跟随。</text>
+    </svg>
+    <p class="diagram-caption">图 36-1 schema 单一数据源闭环：类型推导、表单校验与边界复核共用同一份规则定义</p>
+  </div>
+  <div class="key-sentence">类型与规则同源后，<strong>改 schema 即同时改类型、校验规则与错误文案</strong>；<code>z.infer</code> 推导的类型还会反向约束 <code>register('字段名')</code>，字段名拼错在编译期就能被发现。</div>
+  <div class="warn-box"><code>resolver</code> 只执行同步校验；验证码、用户名是否占用等需要网络往返的异步规则，应放在 action / loader 或提交回调中调用接口后回传错误，不要期待 zod resolver 内自行发请求。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">36.5</span> parse / safeParse 与服务端边界</h2>
+  <p>schema 不仅服务于表单。接口响应、URL 参数、本地存储读取等「外部输入」进入应用前，都应过一遍 schema。两种执行方式对应两种错误处理策略：<code>parse</code> 失败直接抛 <code>ZodError</code>，<code>safeParse</code> 返回结构化结果供分支处理。</p>
+  <pre class="code" data-lang="ts"><code>import { z } from 'zod'
+
+const userSchema = z.object({ id: z.string(), name: z.string() })
+
+// 方式一：parse，失败抛出 ZodError，配合 try/catch 使用
+function loadUser(raw: unknown) {
+  try {
+    return userSchema.parse(raw)
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      console.warn('数据结构不合法', err.issues[0]?.message)
+    }
+    return null
+  }
+}
+
+// 方式二：safeParse，不抛异常，按 success 分支处理
+async function fetchUser() {
+  const res = await fetch('/api/me')
+  const raw = await res.json()
+  const result = userSchema.safeParse(raw)
+  if (!result.success) {
+    // result.error.issues 包含每条错误的 path 与 message
+    console.warn(result.error.issues)
+    return null
+  }
+  return result.data
+}</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>方式</th><th>返回 / 行为</th><th>适用</th></tr></thead>
+    <tbody>
+      <tr><td><code>schema.parse(data)</code></td><td>成功返回类型化数据；失败抛出 <code>ZodError</code></td><td>确信输入应合法、失败即异常流程的代码路径</td></tr>
+      <tr><td><code>schema.safeParse(data)</code></td><td>返回 <code>{ success: true, data }</code> 或 <code>{ success: false, error }</code></td><td>需要展示错误、分支兜底、不希望异常打断流程的场景</td></tr>
+      <tr><td><code>error.issues</code></td><td>错误数组，含 <code>path</code>、<code>message</code>、<code>code</code></td><td>定位出错字段、聚合提示、上报日志</td></tr>
+    </tbody>
+  </table>
+  <div class="lead">选择标准看错误是否属于异常流程：<strong>确信输入应合法、失败即中断的代码路径用 <code>parse</code> 配合 <code>try/catch</code>；需要展示错误、分支兜底、不希望异常打断流程的场景用 <code>safeParse</code>。</strong>表单 resolver 内部走的是结构化错误分支，不向外抛异常。</div>
+  <div class="note">前后端复用：TypeScript 工程可把 schema 抽到共享模块，浏览器用它做表单校验，服务端接口入口用 <code>safeParse</code> 复核请求体；即便前后端不共仓，字段规则也应在文档层面对齐。服务端校验始终不可省略，前端校验只改善体验（呼应第 32 章守卫边界）。</div>
+  <div class="pit-sentence"><code>safeParse</code> 失败时 <code>result.data</code> 不存在，不要先读 <code>result.data</code> 再判 <code>success</code>；分支顺序必须是先 <code>if (!result.success)</code> 处理错误，再在成功分支内使用 <code>result.data</code>，否则类型收窄失败且运行时可能读到 <code>undefined</code>。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">36.6</span> 常见坑清单</h2>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>现象</th><th>原因</th><th>解法</th></tr></thead>
+    <tbody>
+      <tr><td>类型被推成 <code>any</code> 或 <code>unknown</code></td><td>schema 标注缺失、混用 <code>z.any()</code>，或 <code>z.infer</code> 引用顺序错误</td><td>逐字段使用具体类型；避免 <code>z.any()</code>，未知结构用 <code>z.unknown()</code> 再细化</td></tr>
+      <tr><td>错误只显示通用英文提示</td><td>规则未传中文 <code>message</code>，或 required 场景漏配 <code>required_error</code></td><td>每个规则补充错误信息；必填字段配置 <code>required_error</code></td></tr>
+      <tr><td>异步规则在 resolver 中不生效</td><td>zod 规则同步执行，resolver 内无法等待网络请求</td><td>用户名占用、验证码等异步校验放接口提交后回传错误</td></tr>
+      <tr><td>嵌套字段错误路径错乱</td><td><code>refine</code> 的 <code>path</code> 指错层级，嵌套对象错误未逐层声明</td><td>按 <code>['parent', 'child']</code> 路径指定；嵌套结构用子级 <code>z.object</code> 分开校验</td></tr>
+      <tr><td>数字字段被存成字符串</td><td>使用 <code>z.number()</code> 直接校验表单字符串输入</td><td>表单数字字段用 <code>z.coerce.number()</code>，或在 <code>transform</code> 中转换</td></tr>
+      <tr><td>schema 版本与 resolver 版本不匹配报错</td><td>zod 与 <code>@hookform/resolvers</code> 大版本组合不在兼容范围</td><td>按 resolver 文档对齐 zod 版本，升级时二者一起更新</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box">不要把 zod schema 当成数据转换器代替组件层归一化：<code>transform</code> 只在校验通过后改写输出，若输入非法，原始值不会被转换后再校验；需要先转换再校验的字段，使用 <code>z.coerce</code> 或显式在 schema 外层处理。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>运行时校验必要性</td><td>TS 类型编译期擦除，外部输入必须由 schema 独立校验</td></tr>
+      <tr><td>schema 基础</td><td><code>z.object</code> + 链式规则描述结构、类型与错误信息</td></tr>
+      <tr><td>跨字段规则</td><td><code>refine</code> 处理一致性检查，<code>superRefine</code> 支持多条错误与自由路径</td></tr>
+      <tr><td>表单接入</td><td><code>z.infer</code> 反推类型，<code>zodResolver</code> 接入 <code>useForm</code></td></tr>
+      <tr><td>边界校验</td><td><code>parse</code> 抛异常，<code>safeParse</code> 结构化返回；服务端必须复核</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>为登录表单编写 zod schema：用户名 3–20 位、邮箱格式正确、密码至少 8 位；用 <code>z.infer</code> 推导出类型，通过 <code>zodResolver</code> 接入 react-hook-form，错误信息展示在对应输入框下方。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>在注册表单中加入「确认密码」跨字段一致性校验，错误挂到确认密码字段；再为兴趣选择数组增加「至少一项、最多五项」规则；说明 <code>refine</code> 与 <code>superRefine</code> 在本场景分别能怎么用。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>把登录表单的 schema 抽取为共享模块；在前端 action / 提交回调之外，用 <code>safeParse</code> 校验 <code>/api/me</code> 的响应结构，结构不符时回退空态并记录错误 <code>issues</code>；列出这份 schema 还能复用到哪些输入边界（URL 参数、本地存储、表格导入文件）。</div>
+  <p class="note">参考答案见附录 C。下一章：错误边界与降级 UI——让组件崩溃时整站不至于白屏，并把错误归属到对应路由层级。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="035_第35章_表单react-hook-form.html">← 第 35 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="037_第37章_错误边界与降级UI.html">第 37 章 →</a>
+</nav>
+<footer>从 0 到精通 · 《React 从 0 到精通》 · 第 36 章 校验：zod 与类型安全</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

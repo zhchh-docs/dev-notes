@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 54 章 长列表与动画性能｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第六篇 性能优化</p>
+    <h1>第 54 章 长列表与动画性能</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 54 章 / 共 64 章 · 预计 50 分钟 · 主线程、合成层与高频事件限流</span>
+    </div>
+    <p class="hero-desc">页面卡顿要回到浏览器渲染管线找原因。本章讲清 JS、样式、布局、绘制、合成各阶段成本，掌握 content-visibility 等长列表补充手段，把动画限制在 transform/opacity 合成层，用好 requestAnimationFrame 的帧级时机，以及防抖、节流在输入、滚动、缩放场景的选择规则。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="053_第53章_hydration与流式渲染.html">第 53 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="055_第55章_实战慢页面优化全记录.html">第 55 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">54.1 浏览器渲染管线</a></li>
+    <li><a href="#sec3">54.2 长列表补充：content-visibility 与布局包含</a></li>
+    <li><a href="#sec4">54.3 动画性能：只动合成层属性</a></li>
+    <li><a href="#sec5">54.4 requestAnimationFrame：帧级时机</a></li>
+    <li><a href="#sec6">54.5 防抖与节流：输入、滚动、缩放场景</a></li>
+    <li><a href="#sec7">54.6 排查工具与卡顿清单</a></li>
+    <li><a href="#sec8">本章小结</a></li>
+    <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解浏览器渲染管线：JS、样式计算、布局、绘制、合成各阶段由什么触发；</li>
+    <li>掌握长列表在虚拟化之外的补充手段：<code>content-visibility</code>、布局包含、稳定 key；</li>
+    <li>分清哪些 CSS 属性只触发合成、哪些触发布局与绘制，避免动画引起重排；</li>
+    <li>掌握 <code>requestAnimationFrame</code> 的执行时机与"读—写交替"规则；</li>
+    <li>能在输入、滚动、缩放场景正确选择防抖与节流，并用 Performance 面板定位卡顿。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">54.1</span> 浏览器渲染管线</h2>
+  <p>理解动画与列表卡顿，先要知道浏览器一帧画面是怎么产出的。一次更新通常经过五个阶段：JavaScript 执行 → 样式计算 → 布局 → 绘制 → 合成。改不同的属性，触发的后续阶段不同，成本差别很大。</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 180" role="img" aria-label="浏览器渲染管线">
+      <rect x="30" y="60" width="120" height="52" rx="10" fill="#2d6a3f"/>
+      <text x="90" y="82" text-anchor="middle" font-size="12.5" fill="#fff" font-weight="600">JavaScript</text>
+      <text x="90" y="100" text-anchor="middle" font-size="10.5" fill="#d8e8c8">事件/动画回调执行</text>
+      <rect x="190" y="60" width="120" height="52" rx="10" fill="#3d7a4f"/>
+      <text x="250" y="82" text-anchor="middle" font-size="12.5" fill="#fff" font-weight="600">样式计算</text>
+      <text x="250" y="100" text-anchor="middle" font-size="10.5" fill="#d8e8c8">匹配 CSS 规则</text>
+      <rect x="350" y="60" width="120" height="52" rx="10" fill="#4f8a63"/>
+      <text x="410" y="82" text-anchor="middle" font-size="12.5" fill="#fff" font-weight="600">布局 Layout</text>
+      <text x="410" y="100" text-anchor="middle" font-size="10.5" fill="#d8e8c8">计算几何位置尺寸</text>
+      <rect x="510" y="60" width="120" height="52" rx="10" fill="#7aa889"/>
+      <text x="570" y="82" text-anchor="middle" font-size="12.5" fill="#fff" font-weight="600">绘制 Paint</text>
+      <text x="570" y="100" text-anchor="middle" font-size="10.5" fill="#f0f5e6">填充像素细节</text>
+      <rect x="670" y="60" width="110" height="52" rx="10" fill="#9cbfaa"/>
+      <text x="725" y="82" text-anchor="middle" font-size="12.5" fill="#1f2e1f" font-weight="600">合成</text>
+      <text x="725" y="100" text-anchor="middle" font-size="10.5" fill="#1f2e1f">图层拼到屏幕</text>
+      <line x1="150" y1="86" x2="186" y2="86" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#m54a)"/>
+      <line x1="310" y1="86" x2="346" y2="86" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#m54a)"/>
+      <line x1="470" y1="86" x2="506" y2="86" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#m54a)"/>
+      <line x1="630" y1="86" x2="666" y2="86" stroke="#7a8a70" stroke-width="1.6" marker-end="url(#m54a)"/>
+      <text x="400" y="150" text-anchor="middle" font-size="12" fill="#4f6348">触发布局最贵（回流）；只触发合成最便宜；动画应尽量把更新限制在最后两阶段</text>
+      <defs><marker id="m54a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#7a8a70"/></marker></defs>
+    </svg>
+    <p class="diagram-caption">图 54-1 浏览器渲染管线与各阶段成本关系</p>
+  </div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>阶段</th><th>做什么</th><th>成本提示</th></tr></thead>
+    <tbody>
+      <tr><td>JavaScript</td><td>执行事件回调、动画更新、数据处理</td><td>主线程长任务会挤占整帧时间，动画自然掉帧</td></tr>
+      <tr><td>样式计算</td><td>把 CSS 规则应用到元素，计算最终样式</td><td>选择器复杂、节点量大时成本上升</td></tr>
+      <tr><td>布局 Layout</td><td>计算元素位置、尺寸与文档流关系</td><td>成本最高；一个元素位置变化可能引起整页回流</td></tr>
+      <tr><td>绘制 Paint</td><td>把背景、边框、阴影、文字等画到图层上</td><td>大面积重绘在低端机上明显</td></tr>
+      <tr><td>合成 Composite</td><td>把多个图层按顺序拼成屏幕画面</td><td>可由 GPU 完成，不影响主线程布局</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">优化主线程的两个方向：<strong>减少 JavaScript 长任务</strong>（拆分、延迟、记忆化），<strong>减少动画触发的布局与绘制</strong>（见 54.3）。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">54.2</span> 长列表补充：content-visibility 与布局包含</h2>
+  <p>第 50 章的虚拟化是用 JS 控制节点挂载；在不引入虚拟化库的场景下，CSS 也能帮浏览器跳过视口外内容的渲染工作。<code>content-visibility: auto</code> 让浏览器跳过屏幕外元素的布局与绘制，进入视口附近再渲染；配合 <code>contain-intrinsic-size</code> 给出占位尺寸，避免滚动条跳动。</p>
+  <pre class="code" data-lang="css"><code>.card-item {
+  /* 视口外跳过布局与绘制，进入视口再渲染 */
+  content-visibility: auto;
+  /* 占位高度，避免滚动条高度突变 */
+  contain-intrinsic-size: auto 96px;
+}
+
+/* 布局包含：声明该元素内部布局不影响外部，边界明确 */
+.masonry-panel {
+  contain: layout paint;
+}</code></pre>
+  <ul>
+    <li><strong>content-visibility: auto</strong>：跳过视口外节点的布局与绘制成本，必须配合占位尺寸，浏览器支持程度以目标环境为准；</li>
+    <li><strong>contain: layout paint</strong>：隔离元素内部布局，避免内部变化影响外部回流；边界声明要符合实际，不要把需要溢出显示的内容裁掉；</li>
+    <li><strong>稳定 key</strong>：复用现有 DOM 节点，减少节点创建与销毁；key 用业务唯一 id，不要用数组下标（第 43 章）；</li>
+    <li><strong>分页 / 无限滚动</strong>：单屏 DOM 数量始终可控，配合服务端切片，适合数据天然可分页的场景（第 50 章）；</li>
+    <li><strong>避免每帧读写布局属性</strong>：防止反复触发回流（布局抖动），规则见 54.4 的读—写交替说明。</li>
+  </ul>
+  <div class="pit-sentence">CSS 跳过渲染不等于不下载数据：<code>content-visibility</code> 只影响渲染层成本，列表数据量过大时仍需虚拟化或分页控制 DOM 规模；两者互补，不能互相替代。</div>
+  <div class="warn-box"><span class="tag-pit">占位尺寸要真实</span><code>contain-intrinsic-size</code> 给的估算高度与真实行高相差过大时，滚动条长度会在节点进入视口后跳动；行高规则明确时，先在 CSS 里写准占位值，动态行高再交给虚拟化库处理。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">54.3</span> 动画性能：只动合成层属性</h2>
+  <p>动画每一帧都在更新样式。如果更新的属性触发布局，浏览器就要在每帧重算位置尺寸；触发绘制则要重画像素；只有 <code>transform</code> 与 <code>opacity</code> 可以只走合成阶段，由 GPU 处理，主线程负担最小。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>属性类别</th><th>代表属性</th><th>动画建议</th></tr></thead>
+    <tbody>
+      <tr><td>触发布局（最贵）</td><td><code>top</code>、<code>left</code>、<code>width</code>、<code>height</code>、<code>margin</code>、<code>padding</code></td><td>不要在高频动画里更新；改用 transform 位移、scale 缩放</td></tr>
+      <tr><td>触发绘制</td><td><code>background</code>、<code>color</code>、<code>box-shadow</code>、边框宽度</td><td>低频切换可以；持续动画中尽量避免</td></tr>
+      <tr><td>只触发合成</td><td><code>transform</code>、<code>opacity</code></td><td>位移、缩放、淡入淡出优先使用，动画最流畅</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="css"><code>/* ✗ 每帧改 left，触发布局回流 */
+.slide-x-bad { transition: left 0.3s ease; }
+.slide-x-bad:hover { left: 200px; }
+
+/* ✓ 改 transform，只走合成层 */
+.slide-x-good { transition: transform 0.3s ease; }
+.slide-x-good:hover { transform: translateX(200px); }
+
+/* 淡化效果同样走合成层 */
+.fade-good { transition: opacity 0.3s ease; }
+.fade-good:hover { opacity: 0.6; }</code></pre>
+  <div class="warn-box"><span class="tag-pit">will-change 要克制</span><code>will-change</code> 可以提前提示浏览器创建图层，但每个合成层都占用显存；大量元素同时声明会让内存与图层管理成本上升。只给确有动画的元素短期使用，动画结束后移除声明。</div>
+  <div class="lead">实践准则：位移用 <code>translateX/translateY</code>，缩放用 <code>scale</code>，显隐用 <code>opacity</code>；需要位置变化的元素先脱离文档流（<code>position: absolute</code> 或 <code>fixed</code>），避免影响相邻元素布局。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">54.4</span> requestAnimationFrame：帧级时机</h2>
+  <p>JS 驱动的动画（拖拽、进度条、数字滚动）应把更新提交给 <code>requestAnimationFrame</code>（简称 rAF）：浏览器在下次重绘前执行回调，回调节奏与屏幕刷新对齐，不会在一帧内重复更新，也不会在后台标签页空跑。</p>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>对照项</th><th>requestAnimationFrame</th><th>setTimeout / setInterval</th></tr></thead>
+    <tbody>
+      <tr><td>执行时机</td><td>下次重绘前执行，与刷新节奏对齐</td><td>定时器到期即执行，可能落在帧之间造成跳帧</td></tr>
+      <tr><td>后台标签页</td><td>自动暂停，不占用资源</td><td>继续按间隔触发，容易堆积回调</td></tr>
+      <tr><td>适用场景</td><td>逐帧动画、拖拽跟随、滚动联动</td><td>定时轮询、秒表等非画面同步场景</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="js"><code>function animateProgress(el, target) {
+  let start = null;
+
+  function step(timestamp) {
+    if (start === null) start = timestamp;
+    const progress = Math.min((timestamp - start) / 800, 1);
+    // 只更新合成层属性，不触发布局
+    el.style.transform = `scaleX(${progress})`;
+    if (progress &lt; 1) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  requestAnimationFrame(step);
+}</code></pre>
+  <p>同一帧内反复"读布局属性 → 写样式 → 再读再写"会造成<strong>布局抖动（layout thrashing）</strong>：每次写入都强制浏览器提前重新计算布局。正确做法是先批量读完需要的布局值，再统一批量写入样式。</p>
+  <pre class="code" data-lang="js"><code>// ✗ 读-写-读-写交替：每行写入都触发一次强制回流
+rows.forEach((row) =&gt; {
+  const h = row.offsetHeight;
+  row.style.height = h + 8 + 'px';
+});
+
+// ✓ 先读完所有高度，再统一写入
+const heights = rows.map((row) =&gt; row.offsetHeight);
+rows.forEach((row, i) =&gt; {
+  row.style.height = heights[i] + 8 + 'px';
+});</code></pre>
+  <div class="key-sentence">rAF 规则：<strong>回调里只提交下一帧要做的更新；布局属性集中读、样式变化集中写；动画属性优先 transform/opacity。</strong></div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">54.5</span> 防抖与节流：输入、滚动、缩放场景</h2>
+  <p>输入框搜索、窗口 resize、页面滚动这类事件触发频率极高，回调里若做请求、计算或布局操作，主线程会被反复占用。防抖与节流是两类限流手段，目标相同、节奏不同。</p>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+    <thead><tr><th>对照项</th><th>防抖 debounce</th><th>节流 throttle</th></tr></thead>
+    <tbody>
+      <tr><td>触发规则</td><td>事件停止触发后等待 N 毫秒才执行一次</td><td>每 N 毫秒最多执行一次，期间触发被合并</td></tr>
+      <tr><td>适用场景</td><td>搜索建议、输入校验、窗口停止缩放后计算布局</td><td>滚动位置上报、拖拽跟随、连续刷新进度</td></tr>
+      <tr><td>体感差异</td><td>停止操作后才有结果，避免中途频繁请求</td><td>过程中持续有反馈，不希望完全静默</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="js"><code>// 防抖：延迟期内再次触发就重置计时
+function debounce(fn, delay) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() =&gt; fn.apply(this, args), delay);
+  };
+}
+
+const onSearch = debounce((keyword) =&gt; {
+  fetchSuggestions(keyword);
+}, 300);
+
+input.addEventListener('input', (e) =&gt; onSearch(e.target.value));</code></pre>
+  <pre class="code" data-lang="js"><code>// 节流：固定间隔内最多执行一次
+function throttle(fn, interval) {
+  let last = 0;
+  return function (...args) {
+    const now = Date.now();
+    if (now - last &gt;= interval) {
+      last = now;
+      fn.apply(this, args);
+    }
+  };
+}
+
+const onScroll = throttle(() =&gt; {
+  reportScrollPosition(window.scrollY);
+}, 200);
+
+// passive: true 表示不调用 preventDefault，滚动监听不阻塞主线程
+window.addEventListener('scroll', onScroll, { passive: true });</code></pre>
+  <div class="pit-sentence">滚动与触摸监听加上 <code>{ passive: true }</code>：浏览器知道回调不会阻止默认滚动行为，可以提前优化滚动响应；需要 <code>preventDefault</code> 的场景不要加 passive。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">54.6</span> 排查工具与卡顿清单</h2>
+  <p>定位卡顿用 Chrome DevTools 的 Performance 面板录制一次慢操作：观察主线程任务条是否出现超过 50ms 的长任务、火焰图中紫色（布局）与绿色（绘制）是否占比异常、帧率是否跌破 60fps。对照下面清单逐项排除：</p>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>卡顿现象</th><th>排查方向</th></tr></thead>
+    <tbody>
+      <tr><td>动画一卡一卡</td><td>检查是否改了 top/left/width 等布局属性；换成 transform/opacity；确认主线程是否有长任务挤占</td></tr>
+      <tr><td>滚动时页面掉帧</td><td>滚动回调是否未节流；是否在回调里读写布局属性；监听是否缺少 passive</td></tr>
+      <tr><td>长列表滚动白屏或卡顿</td><td>DOM 数量是否失控（第 50 章虚拟化）；是否启用 content-visibility；key 是否稳定</td></tr>
+      <tr><td>输入框响应迟钝</td><td>搜索请求是否未防抖；每次输入是否触发整树重渲染（第 48、49 章）</td></tr>
+      <tr><td>切换标签页后动画堆积</td><td>是否用 setInterval 驱动动画；改用 rAF 并在卸载时取消</td></tr>
+      <tr><td>大面积阴影/渐变闪烁</td><td>绘制成本过高；简化阴影范围、减少重绘区域</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>工具边界</strong>：React 组件层重复渲染用第 47 章 Profiler；浏览器主线程与布局绘制用 Performance 面板；两者结论互相印证，不要只看其中一个面板就下结论。</div>
+  <div class="lead">本章收口：长列表控制 DOM 规模与渲染成本，动画控制在合成层，高频事件用防抖节流限流；所有手段都要在 Performance 面板上看到帧时间改善才算完成。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>渲染管线</td><td>JS → 样式 → 布局 → 绘制 → 合成；布局最贵，合成最便宜</td></tr>
+      <tr><td>长列表补充</td><td>content-visibility 跳过视口外渲染，contain 隔离布局，key 稳定复用节点</td></tr>
+      <tr><td>动画属性</td><td>位移缩放用 transform，显隐用 opacity；避免高频改布局属性；will-change 克制</td></tr>
+      <tr><td>rAF</td><td>与刷新节奏对齐，后台暂停；先批量读布局、再批量写样式，避免布局抖动</td></tr>
+      <tr><td>防抖节流</td><td>防抖停手后执行一次（搜索），节流固定间隔执行一次（滚动上报）</td></tr>
+      <tr><td>排查</td><td>Performance 面板看长任务、布局绘制占比与帧率，与 Profiler 结论互证</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>把一段使用 <code>left</code> 做横向位移的 CSS 动画改写为 <code>transform: translateX</code>，说明为什么后者不触发布局；再列出另外两个属于"只触发合成"的属性类别中的代表属性。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>为搜索输入框实现 300ms 防抖的建议请求；再为窗口滚动实现 200ms 节流的位置上报，滚动监听加上 <code>passive: true</code>；分别说明两个场景为什么选择防抖而不是节流。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>实现一个 rAF 驱动的进度条动画：800ms 内从 0 到 100%，只更新 <code>transform: scaleX</code>；要求组件卸载时取消未完成的动画帧。再回答：如果在 rAF 回调里先读 <code>offsetHeight</code> 再写 <code>style.height</code> 循环处理多行，会产生什么问题，正确写法是什么？</div>
+  <p class="note">参考答案见附录 C。下一章：实战复盘——把 Profiler、memo、useMemo、虚拟化、代码分割、动画限流组合到一个慢页面上，走完度量到复测的完整流程。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="053_第53章_hydration与流式渲染.html">← 第 53 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="055_第55章_实战慢页面优化全记录.html">第 55 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 54 章 长列表与动画性能</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

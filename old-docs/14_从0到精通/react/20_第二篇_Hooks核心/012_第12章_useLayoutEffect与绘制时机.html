@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 12 章 useLayoutEffect 与绘制时机｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第二篇 Hooks 核心</p>
+    <h1>第 12 章 useLayoutEffect 与绘制时机</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 12 章 / 共 64 章 · 预计 45 分钟 · 绘制前的最后一个同步窗口</span>
+    </div>
+    <p class="hero-desc">useEffect 在浏览器绘制之后才异步执行，绝大多数场景这正是我们想要的；但当你需要「测量刚更新的 DOM、再在绘制前把位置/尺寸修正到位」时，就需要 useLayoutEffect。本章把组件提交的完整时序讲透，说清两个 Hook 的分工、典型场景、性能边界，以及容易混淆的 useInsertionEffect。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="011_第11章_依赖数组与cleanup三时机.html">第 11 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="013_第13章_useRefDOM引用与可变值.html">第 13 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+  <li><a href="#sec1">本章目标</a></li>
+  <li><a href="#sec2">12.1 组件提交的四个阶段：绘制到底发生在哪</a></li>
+  <li><a href="#sec3">12.2 useLayoutEffect：绘制之前同步执行</a></li>
+  <li><a href="#sec4">12.3 典型场景：测量后立刻调整 DOM</a></li>
+  <li><a href="#sec5">12.4 三个同类 Hook 对照：useEffect / useLayoutEffect / useInsertionEffect</a></li>
+  <li><a href="#sec6">12.5 什么时候不该用：性能边界与 SSR 注意事项</a></li>
+  <li><a href="#sec7">12.6 排查清单与本章呼应</a></li>
+  <li><a href="#sec8">本章小结</a></li>
+  <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>说清组件从「函数执行」到「像素上屏」之间的<strong>完整时序</strong>，明确浏览器绘制发生在哪一步；</li>
+    <li>掌握 <code>useLayoutEffect</code> 的签名、执行时机与依赖规则，能与 <code>useEffect</code> 准确区分；</li>
+    <li>识别三类必须在绘制前同步完成的场景：<strong>测量布局、修正位置、恢复滚动位置</strong>；</li>
+    <li>知道 <code>useInsertionEffect</code> 的定位（库作者注入样式），业务代码不滥用；</li>
+    <li>理解 <code>useLayoutEffect</code> 阻塞绘制的代价，能判断何时该退回 <code>useEffect</code>。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">12.1</span> 组件提交的四个阶段：绘制到底发生在哪</h2>
+  <p>第 10 章我们建立了「effect 是提交之后的同步器」这一心智。要理解 <code>useLayoutEffect</code>，必须把「提交」再拆细：React 把组件函数执行完、生成新的 JSX 树之后，还要经过<strong>协调（reconcile）</strong>与<strong>提交（commit）</strong>两个内部阶段，最后才轮到浏览器把像素画到屏幕上。</p>
+  <div class="lead">浏览器绘制（paint）是一个独立的、异步的渲染步骤：React 更新完 DOM 节点并不等于用户已经看到；浏览器会把一帧内的 DOM 变更收集起来，在绘制阶段统一排版、合成、上屏。</div>
+  <p>把整条链路画出来，两个 Hook 的位置差异一目了然：</p>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="组件提交时序图">
+      <rect x="20" y="34" width="138" height="40" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="89" y="52" text-anchor="middle" font-size="11.5" fill="#1f2e1f">① 渲染</text>
+      <text x="89" y="67" text-anchor="middle" font-size="10.5" fill="#4f6348">执行组件函数</text>
+      <rect x="176" y="34" width="138" height="40" rx="6" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="245" y="52" text-anchor="middle" font-size="11.5" fill="#1f2e1f">② 提交</text>
+      <text x="245" y="67" text-anchor="middle" font-size="10.5" fill="#4f6348">React 更新真实 DOM</text>
+      <rect x="332" y="34" width="150" height="40" rx="6" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="407" y="52" text-anchor="middle" font-size="11.5" fill="#1f2e1f">③ useLayoutEffect</text>
+      <text x="407" y="67" text-anchor="middle" font-size="10.5" fill="#2d6a3f">同步执行，阻塞绘制</text>
+      <rect x="498" y="34" width="138" height="40" rx="6" fill="#fefce8" stroke="#d97706"/>
+      <text x="567" y="52" text-anchor="middle" font-size="11.5" fill="#1f2e1f">④ 浏览器绘制</text>
+      <text x="567" y="67" text-anchor="middle" font-size="10.5" fill="#b45309">排版合成，像素上屏</text>
+      <rect x="654" y="34" width="126" height="40" rx="6" fill="#eef3e8" stroke="#047857"/>
+      <text x="717" y="52" text-anchor="middle" font-size="11.5" fill="#1f2e1f">⑤ useEffect</text>
+      <text x="717" y="67" text-anchor="middle" font-size="10.5" fill="#047857">异步，绘制之后</text>
+      <line x1="158" y1="54" x2="174" y2="54" stroke="#7a8a70" stroke-width="1.4"/>
+      <line x1="314" y1="54" x2="330" y2="54" stroke="#7a8a70" stroke-width="1.4"/>
+      <line x1="482" y1="54" x2="496" y2="54" stroke="#7a8a70" stroke-width="1.4"/>
+      <line x1="636" y1="54" x2="652" y2="54" stroke="#7a8a70" stroke-width="1.4" stroke-dasharray="4 3"/>
+      <rect x="20" y="110" width="760" height="110" rx="8" fill="#fff" stroke="#d8e2cc"/>
+      <text x="36" y="136" font-size="12" fill="#1f2e1f">关键区别：</text>
+      <text x="36" y="160" font-size="12" fill="#2d6a3f">③ useLayoutEffect 在 ④ 之前跑完：期间读取到的是刚提交的新 DOM，期间对 DOM 的修改会被合并进本次绘制，用户看不到中间态。</text>
+      <text x="36" y="184" font-size="12" fill="#2d6a3f">⑤ useEffect 在 ④ 之后才跑：此时用户已经看到了一帧；若在这里测量并改位置，就会出现「先画错、再纠正」的闪烁。</text>
+      <text x="36" y="208" font-size="12" fill="#4f6348">依赖数组、cleanup 规则与第 11 章完全一致；区别只在于「什么时候跑」。</text>
+    </svg>
+    <p class="diagram-caption">图 12-1 组件提交时序：useLayoutEffect 卡在浏览器绘制之前，useEffect 在绘制之后异步执行</p>
+  </div>
+  <p>可以类比 Java 里的同步代码块与异步回调：<code>useLayoutEffect</code> 是主线程上同步排队执行的代码，<code>useEffect</code> 是提交到任务队列里稍后再跑的回调。这个时序差异，决定了两者的用途边界。</p>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">12.2</span> useLayoutEffect：绘制之前同步执行</h2>
+  <p><code>useLayoutEffect</code> 的签名与 <code>useEffect</code> 逐参数相同：回调函数 + 可选依赖数组，回调返回 cleanup 函数。唯一区别是<strong>调度时机</strong>。</p>
+  <pre class="code" data-lang="jsx"><code>import { useLayoutEffect, useRef, useState } from 'react';
+
+function Panel({ open }) {
+  const bodyRef = useRef(null);
+
+  useLayoutEffect(() =&gt; {
+    // 此刻：DOM 已更新，浏览器尚未绘制
+    const el = bodyRef.current;
+    if (el) console.log('布局测量', el.scrollHeight);
+  }, [open]);
+
+  return (
+    &lt;div className="panel"&gt;
+      &lt;div ref={bodyRef} className="panel-body"&gt;内容&lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:38%"><col style="width:38%"></colgroup>
+    <thead><tr><th>对比项</th><th>useEffect</th><th>useLayoutEffect</th></tr></thead>
+    <tbody>
+      <tr><td>执行时机</td><td>浏览器绘制之后，异步调度</td><td>DOM 更新之后、浏览器绘制之前，同步执行</td></tr>
+      <tr><td>是否阻塞绘制</td><td>不阻塞</td><td>阻塞：回调没跑完，浏览器这一帧就不上屏</td></tr>
+      <tr><td>读取到的 DOM</td><td>刚提交的新 DOM（与绘制前一致）</td><td>刚提交的新 DOM</td></tr>
+      <tr><td>期间修改 DOM 的可见性</td><td>用户已看到旧一帧，修改会造成第二帧闪烁</td><td>修改与本次提交合并，用户看不到中间态</td></tr>
+      <tr><td>依赖 / cleanup 规则</td><td>与第 11 章一致</td><td>完全一致：依赖变化前先跑 cleanup，卸载时跑 cleanup</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">选型只看一个问题：<strong>这个回调会不会读取布局信息（尺寸、位置、滚动位置）并据此修改 DOM？</strong> 会，就用 <code>useLayoutEffect</code>；不会，一律用 <code>useEffect</code>。</div>
+  <div class="warn-box"><span class="tag-pit">注意</span><code>useLayoutEffect</code> 里再次调用 <code>setState</code>，React 会<strong>同步重渲染一次</strong>，然后才允许浏览器绘制。如果在这里做了昂贵测量或多次状态更新，阻塞会被放大；后面 12.5 节专门讨论边界。</div>
+  <div class="pit-sentence">不要把 <code>useLayoutEffect</code> 当成「更可靠的 useEffect」：它的定位是绘制前的同步窗口，普通副作用放在这里只会平白延长每一帧的绘制时间。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">12.3</span> 典型场景：测量后立刻调整 DOM</h2>
+  <div class="lead">凡是「测量刚提交的 DOM 布局 → 据此修改样式或位置」的需求，都属于 <code>useLayoutEffect</code> 的专属场景；事件触发后的命令式操作（如点击按钮聚焦输入框）无需进入布局副作用，普通 <code>useEffect</code> 即可。</div>
+  <h4>场景一：展开/收起时测量内容高度，再设定过渡高度</h4>
+  <p>手风琴、折叠面板动画要求先知道内容自然高度，才能从旧高度过渡到新高度。这个测量与赋值必须发生在绘制之前，否则会先出现一帧「高度为 0 的空白」或「旧高度的错位」。</p>
+  <pre class="code" data-lang="jsx"><code>function Collapsible({ open, children }) {
+  const bodyRef = useRef(null);
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() =&gt; {
+    const el = bodyRef.current;
+    if (!el) return;
+    setHeight(open ? el.scrollHeight : 0);
+  }, [open]);
+
+  return (
+    &lt;div className="collapsible" style={{ height, overflow: 'hidden' }}&gt;
+      &lt;div ref={bodyRef}&gt;{children}&lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+  <h4>场景二：悬浮提示 / 弹窗根据锚点定位</h4>
+  <pre class="code" data-lang="jsx"><code>function Tooltip({ anchorRef, text }) {
+  const tipRef = useRef(null);
+
+  useLayoutEffect(() =&gt; {
+    const anchor = anchorRef.current;
+    const tip = tipRef.current;
+    if (!anchor || !tip) return;
+    const rect = anchor.getBoundingClientRect();
+    tip.style.top = rect.bottom + window.scrollY + 8 + 'px';
+    tip.style.left = rect.left + window.scrollX + 'px';
+  });
+
+  return &lt;div ref={tipRef} className="tooltip"&gt;{text}&lt;/div&gt;;
+}</code></pre>
+  <h4>场景三：滚动位置恢复（路由切换返回列表时还原滚动条）</h4>
+  <pre class="code" data-lang="jsx"><code>function ScrollRestorer({ savedY }) {
+  useLayoutEffect(() =&gt; {
+    window.scrollTo(0, savedY);   // 绘制前归位，用户看不到先滚到底部再弹回的过程
+  }, [savedY]);
+  return null;
+}</code></pre>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:30%"><col style="width:36%"></colgroup>
+    <thead><tr><th>场景</th><th>该用哪个 Hook</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>读取元素尺寸后设置动画高度</td><td>useLayoutEffect</td><td>测量结果必须赶在绘制前落到样式上</td></tr>
+      <tr><td>弹窗/气泡跟随锚点定位</td><td>useLayoutEffect</td><td>避免气泡先落在初始坐标再瞬移</td></tr>
+      <tr><td>页面返回时恢复滚动位置</td><td>useLayoutEffect</td><td>避免一帧内出现错误滚动位置</td></tr>
+      <tr><td>建立 WebSocket 连接、订阅事件</td><td>useEffect</td><td>不依赖布局结果，无需阻塞绘制</td></tr>
+      <tr><td>发起数据请求、上报埋点</td><td>useEffect</td><td>与布局无关，异步执行即可</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>关联章节</strong>：定位时频繁读取 <code>getBoundingClientRect()</code> 会触发强制同步布局，第 54 章「长列表与动画性能」会专门讲避免布局抖动（layout thrashing）的写法。</div>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">12.4</span> 三个同类 Hook 对照：useEffect / useLayoutEffect / useInsertionEffect</h2>
+  <p>React 还提供了 <code>useInsertionEffect</code>，它排在「提交 DOM 之后、useLayoutEffect 之前」，定位非常狭窄：<strong>供 CSS-in-JS 库作者向 <code>&lt;head&gt;</code> 注入样式</strong>。业务组件不需要使用它。</p>
+  <pre class="code" data-lang="jsx"><code>// 库作者视角的示意：组件库在布局测量之前把样式注入文档
+useInsertionEffect(() =&gt; {
+  const tag = document.createElement('style');
+  tag.textContent = cssText;
+  document.head.appendChild(tag);
+  return () =&gt; tag.remove();
+}, [cssText]);</code></pre>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>对比项</th><th>useEffect</th><th>useLayoutEffect</th><th>useInsertionEffect</th></tr></thead>
+    <tbody>
+      <tr><td>执行阶段</td><td>绘制之后</td><td>提交后、绘制前（同步）</td><td>提交后、布局 effect 之前</td></tr>
+      <tr><td>能否访问 ref / DOM</td><td>能</td><td>能</td><td>能，但不推荐在里面操作 DOM 布局</td></tr>
+      <tr><td>典型用途</td><td>订阅、请求、定时器、外部系统同步</td><td>测量与位置修正、滚动恢复</td><td>CSS-in-JS 注入样式（库作者）</td></tr>
+      <tr><td>业务代码是否常用</td><td>最常用</td><td>少数场景使用</td><td>几乎不用</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">不要因为「时序更早」就把所有副作用搬进 <code>useLayoutEffect</code>。<strong>更早不等于更好</strong>：每一次同步执行都在延长这一帧的绘制时间，普通副作用延迟到绘制后执行反而是性能最优解。</div>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">12.5</span> 什么时候不该用：性能边界与 SSR 注意事项</h2>
+  <h4>性能边界：同步阻塞会被用户直接感知为卡顿</h4>
+  <p><code>useLayoutEffect</code> 回调里每一句同步代码都挡在浏览器绘制前面。回调中出现网络请求、大循环、反复读写样式，就会让这一帧超过 16ms，用户感受到明显掉帧。</p>
+  <pre class="code" data-lang="jsx"><code>// ✗ 错误：在布局副作用里发请求、做重计算
+useLayoutEffect(() =&gt; {
+  fetch('/api/heavy').then(r =&gt; r.json()).then(setData);
+  reportAnalytics();
+}, []);
+
+// ✓ 正确：与布局无关的动作放回 useEffect
+useEffect(() =&gt; {
+  fetch('/api/heavy').then(r =&gt; r.json()).then(setData);
+  reportAnalytics();
+}, []);</code></pre>
+  <h4>SSR 注意事项</h4>
+  <p>服务端渲染阶段不存在浏览器、不存在布局，<code>useLayoutEffect</code> 在服务端执行会触发 React 的警告：「useLayoutEffect does nothing on the server」。库作者常用 <code>useIsomorphicLayoutEffect</code> 这类封装在 SSR 环境退化为 <code>useEffect</code>；业务组件则应尽量避免在首屏 SSR 的关键路径上依赖布局测量。</p>
+  <table>
+    <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+    <thead><tr><th>写法</th><th>问题</th><th>修正</th></tr></thead>
+    <tbody>
+      <tr><td>所有 effect 都改成 useLayoutEffect</td><td>不必要地阻塞每一帧绘制</td><td>默认 useEffect，仅测量/定位场景升级</td></tr>
+      <tr><td>布局 effect 里调用 setState 触发二次渲染</td><td>同步重渲染叠加测量耗时，帧率压力倍增</td><td>合并测量结果；必须二次渲染时确认其必要性</td></tr>
+      <tr><td>SSR 首屏直接 useLayoutEffect 测量</td><td>服务端报警告， hydration 时行为不一致</td><td>测量逻辑放到客户端挂载后的 effect，或用 isomorphic 封装</td></tr>
+      <tr><td>回调内反复读 scrollHeight 再写 style</td><td>触发强制同步布局（回流），动画卡顿</td><td>先批量读完再批量写，详见第 54 章</td></tr>
+    </tbody>
+  </table>
+  <div class="warn-box"><span class="tag-pit">常见疑问</span>「既然 useLayoutEffect 更早，为什么官方文档说绝大多数代码不该用它？」——因为 React 推荐组件函数保持纯净，<strong>真正需要直接操作 DOM 布局的组件本来就不多</strong>；能用状态与声明式样式解决的，就不要退到命令式测量。</div>
+  <div class="key-sentence">默认 <code>useEffect</code>；当且仅当你观察到「绘制后再修正导致的闪烁」，才把这一个副作用升级为 <code>useLayoutEffect</code>。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">12.6</span> 排查清单与本章呼应</h2>
+  <ol>
+    <li><strong>界面先闪一下再到位</strong>（弹窗瞬移、高度跳变、滚动条回弹）→ 检查该副作用是否用了 <code>useEffect</code>，测量/定位类应换成 <code>useLayoutEffect</code>；</li>
+    <li><strong>切换面板后这一帧明显变慢</strong> → 看 <code>useLayoutEffect</code> 内是否混入了请求、重计算或多次 <code>setState</code>；</li>
+    <li><strong>SSR 控制台报 layoutEffect 警告</strong> → 把测量逻辑移出服务端关键路径，或使用 isomorphic 封装；</li>
+    <li><strong>依赖数组漏写导致定位读不到最新锚点</strong> → 规则与第 11 章相同：用到的响应式值全部进依赖，交给 <code>exhaustive-deps</code> 校验；</li>
+    <li>需要持有 DOM 节点引用时，本章所有示例都依赖下一章的 <code>useRef</code>——第 13 章把 ref 的两种身份讲透。</li>
+  </ol>
+  <div class="note"><strong>小结口诀</strong>：不碰布局用 effect，测量定位用 layout；阻塞绘制要警惕，样式注入找 insertion。</div>
+</section>
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>提交时序</td><td>渲染 → 提交 DOM → useLayoutEffect 同步 → 浏览器绘制 → useEffect 异步</td></tr>
+      <tr><td>分工原则</td><td>不读 DOM、不依赖布局结果的副作用用 useEffect；要在绘制前测量并修正用 useLayoutEffect</td></tr>
+      <tr><td>典型场景</td><td>tooltip/弹窗定位、展开收起高度、滚动位置恢复、元素高亮滚动到可视区</td></tr>
+      <tr><td>useInsertionEffect</td><td>只用于库作者注入样式，业务代码几乎用不到</td></tr>
+      <tr><td>性能边界</td><td>useLayoutEffect 阻塞绘制，滥用会造成可见卡顿；SSR 下它会报警告</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>把下列事件按 React 18 的真实顺序排列，并说明谁阻塞浏览器绘制：组件函数执行、DOM 变更、浏览器绘制、useEffect 回调、useLayoutEffect 回调。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>写一个 <code>&lt;StickyNote /&gt;</code> 组件：弹窗内容渲染后，根据锚点元素的 <code>getBoundingClientRect()</code> 计算弹窗坐标，要求用户在绘制完成前看不到「弹窗先出现在左上角、再跳到正确位置」的闪烁。说明你选了哪个 Hook、为什么。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>排查这段代码的闪烁问题：列表筛选后，新列表总是先按旧高度撑开再收缩，伴随一次明显跳动。画出涉及的提交时序，给出修复方案，并讨论如果列表项高度由图片异步加载决定，方案需要如何调整。</div>
+  <p class="note">参考答案见附录 C。下一章：useRef：DOM 引用与跨渲染保存的可变值。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="011_第11章_依赖数组与cleanup三时机.html">← 第 11 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="013_第13章_useRefDOM引用与可变值.html">第 13 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 12 章 useLayoutEffect 与绘制时机</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

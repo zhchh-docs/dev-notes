@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 55 章 实战：慢页面优化全记录｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第六篇 性能优化</p>
+    <h1>第 55 章 实战：慢页面优化全记录</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 55 章 / 共 64 章 · 预计 55 分钟 · 度量到复测的完整优化闭环</span>
+    </div>
+    <p class="hero-desc">本章用一个后台订单页把第六篇手段串成完整流程：先用 Profiler 与 Performance 定位整树重渲染、DOM 规模失控、派生计算重复、首包臃肿四类问题，再依次用状态下沉与 memo、虚拟化、useMemo/useCallback、代码分割与防抖节流处理，最后复测对比并沉淀出可复用的排查纪律。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="054_第54章_长列表与动画性能.html">第 54 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="../70_第七篇_生态与实战/056_第56章_组件库AntDesign体系.html">第 56 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+    <li><a href="#sec1">本章目标</a></li>
+    <li><a href="#sec2">55.1 案例背景：一个慢在哪的订单页</a></li>
+    <li><a href="#sec3">55.2 度量定位：Profiler 与 Performance 双面板</a></li>
+    <li><a href="#sec4">55.3 问题一：状态下沉与 memo 屏障</a></li>
+    <li><a href="#sec5">55.4 问题二：列表虚拟化接入</a></li>
+    <li><a href="#sec6">55.5 问题三：派生计算记忆化与引用稳定</a></li>
+    <li><a href="#sec7">55.6 问题四：代码分割与高频事件限流</a></li>
+    <li><a href="#sec8">55.7 复测对比与经验总结</a></li>
+    <li><a href="#sec9">本章小结</a></li>
+    <li><a href="#sec10">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>把第六篇各章手段串成一条完整链路：<strong>度量 → 定位 → 最小改动 → 复测</strong>；</li>
+    <li>经历一个后台订单页从卡顿到流畅的完整排查过程，识别四类典型性能问题；</li>
+    <li>能把状态下沉、memo、useMemo/useCallback、虚拟化、代码分割、防抖节流对应到具体症状；</li>
+    <li>学会用优化前后对比表呈现收益，理解可读性与记忆化成本的权衡；</li>
+    <li>形成可复用的个人排查清单，进入第七篇生态与实战章节前完成本篇闭环。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">55.1</span> 案例背景：一个慢在哪的订单页</h2>
+  <p>案例是一个内部后台的订单列表页：顶部搜索框可按关键词筛选订单，下方是表格化的订单卡片列表，右侧有金额汇总面板，页面内还挂着一个重型图表组件。反馈的问题有三条：</p>
+  <ul>
+    <li>搜索框每输入一个字符，页面明显卡顿、停顿一下才更新；</li>
+    <li>滚动长列表时掉帧，偶发页面无响应；</li>
+    <li>首次打开页面等待较久，才出现可操作界面。</li>
+  </ul>
+  <div class="lead">先声明：本章出现的耗时、条数、体积数字均为<strong>示意口径</strong>，用于讲清排查流程；真实项目必须以第 47 章工具录制到的数据为准，不套用本章数字下结论。</div>
+  <div class="lead">本章写法上刻意还原真实排查顺序：<strong>先列症状，再用工具取证，最后才选择对应章节的手段</strong>；阅读时建议对照第六篇各章标题，把每一类问题映射回原知识点。</div>
+  <p>页面结构（优化前概念模型）：<code>&lt;OrderPage /&gt;</code> 持有搜索关键词与原始订单数据，内部依次渲染 <code>&lt;SearchBar /&gt;</code>、<code>&lt;OrderList /&gt;</code>、<code>&lt;SummaryPanel /&gt;</code> 与 <code>&lt;RevenueChart /&gt;</code>；订单数据约两千条，搜索时在页面内完成筛选、排序与金额聚合。</p>
+  <div class="pit-sentence">排查纪律：不要拿到需求就开始拆组件、加 memo。先按第 47 章流程复现问题、录制数据，再决定每一刀砍在哪里。</div>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">55.2</span> 度量定位：Profiler 与 Performance 双面板</h2>
+  <p>复现动作固定为：输入关键词 → 等待列表更新 → 滚动到列表中段 → 返回顶部。分别用 React Profiler 与 Chrome Performance 面板录制两次：</p>
+  <ol>
+    <li><strong>Profiler 排名图</strong>：输入一次关键词，<code>OrderList</code> 与其内部卡片组件重复渲染次数最高，<code>SummaryPanel</code> 并未使用新关键词却跟着重渲染；</li>
+    <li><strong>Performance 面板</strong>：输入回调期间主线程出现长任务，样式计算与布局占比偏高；滚动期间有周期性任务阻塞帧节奏；</li>
+    <li><strong>包体积报告</strong>：图表库被打进首屏 bundle，与订单列表代码同包下载；</li>
+    <li><strong>规则复核</strong>：搜索回调为内联箭头函数，传给列表组件的配置对象每次新建。</li>
+  </ol>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:26%"><col style="width:26%"><col style="width:26%"></colgroup>
+    <thead><tr><th>问题编号</th><th>定位证据</th><th>归因</th><th>对应手段（章节）</th></tr></thead>
+    <tbody>
+      <tr><td>问题一：整树无辜重渲染</td><td>SummaryPanel 未用新关键词也被带动；Profiler 显示整棵子树重复执行</td><td>搜索 state 放在父组件，父渲染带动全部子组件（第 48 章）</td><td>状态下沉 + memo 包裹展示组件</td></tr>
+      <tr><td>问题二：列表 DOM 规模失控</td><td>两千条记录一次性挂载，布局成本高，滚动掉帧</td><td>全量 map 渲染，无虚拟化（第 50 章）</td><td>react-window 虚拟化列表</td></tr>
+      <tr><td>问题三：派生计算与引用不稳定</td><td>筛选、排序、聚合在每次渲染重复执行；配置对象、回调引用每次新建导致 memo 失效</td><td>缺少 useMemo/useCallback（第 49 章）</td><td>昂贵派生记忆化，引用稳定化</td></tr>
+      <tr><td>问题四：首屏代码与高频事件开销</td><td>图表库进首包；滚动、回调未限流</td><td>未做代码分割（第 51 章）；事件未防抖节流（第 54 章）</td><td>组件级懒加载 + 防抖 + passive 滚动监听</td></tr>
+    </tbody>
+  </table>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="优化前后渲染链路对比">
+      <text x="200" y="28" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="600">优化前：输入一次 → 整树重渲染 + 全量 DOM + 首包臃肿</text>
+      <rect x="40" y="46" width="320" height="34" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="200" y="68" text-anchor="middle" font-size="12" fill="#b91c1c">父组件 state 变化 → SearchBar / List / Summary / Chart 全部重渲染</text>
+      <rect x="40" y="94" width="320" height="30" rx="8" fill="#fee2e2" stroke="#b91c1c"/>
+      <text x="200" y="114" text-anchor="middle" font-size="11.5" fill="#b91c1c">两千条 DOM 节点全部挂载，逐帧布局成本高</text>
+      <rect x="40" y="134" width="320" height="30" rx="8" fill="#fef3c7" stroke="#b45309"/>
+      <text x="200" y="154" text-anchor="middle" font-size="11.5" fill="#b45309">首屏 bundle 包含重型图表库</text>
+      <text x="600" y="28" text-anchor="middle" font-size="13" fill="#1f2e1f" font-weight="600">优化后：状态下沉 + 屏障拦截 + 可视区挂载</text>
+      <rect x="440" y="46" width="320" height="34" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="600" y="68" text-anchor="middle" font-size="12" fill="#047857">关键词 state 留在搜索组件，memo 子树 props 不变即跳过</text>
+      <rect x="440" y="94" width="320" height="30" rx="8" fill="#d1fae5" stroke="#047857"/>
+      <text x="600" y="114" text-anchor="middle" font-size="11.5" fill="#047857">虚拟化只挂载可视区行，DOM 数量稳定</text>
+      <rect x="440" y="134" width="320" height="30" rx="8" fill="#d8e8c8" stroke="#2d6a3f"/>
+      <text x="600" y="154" text-anchor="middle" font-size="11.5" fill="#2d6a3f">图表组件按需懒加载，派生计算结果记忆化</text>
+      <text x="400" y="216" text-anchor="middle" font-size="12" fill="#4f6348">每一步改动都对应一个已录制的瓶颈，不靠猜测叠加手段</text>
+    </svg>
+    <p class="diagram-caption">图 55-1 优化前后渲染链路对比（示意）</p>
+  </div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">55.3</span> 问题一：状态下沉与 memo 屏障</h2>
+  <p>优化前，关键词 state 位于 <code>OrderPage</code>：输入触发父组件渲染，<code>OrderList</code>、<code>SummaryPanel</code>、<code>RevenueChart</code> 默认跟着执行，即使它们并不读取关键词。优化思路是：<strong>把只跟搜索框相关的 state 下沉到搜索组件，让父组件无需每次输入都重渲染；需要随筛选结果变化的部分，再通过 props 显式传递。</strong></p>
+  <pre class="code" data-lang="jsx"><code>// 优化前：父组件持有 keyword，输入带动整棵子树
+export default function OrderPage() {
+  const [keyword, setKeyword] = useState('');
+
+  return (
+    &lt;main&gt;
+      &lt;SearchBar keyword={keyword} onChange={setKeyword} /&gt;
+      &lt;OrderList orders={orders} keyword={keyword} /&gt;
+      &lt;SummaryPanel orders={orders} /&gt;
+      &lt;RevenueChart orders={orders} /&gt;
+    &lt;/main&gt;
+  );
+}</code></pre>
+  <pre class="code" data-lang="jsx"><code>// 优化后：关键词由 OrderList 内部管理，SummaryPanel 不再被输入带动
+const SummaryPanel = memo(function SummaryPanel({ orders }) {
+  return &lt;aside&gt;合计金额：{orders.reduce(sum, 0)}&lt;/aside&gt;;
+});
+
+export default function OrderPage({ orders }) {
+  return (
+    &lt;main&gt;
+      &lt;OrderList orders={orders} /&gt;
+      &lt;SummaryPanel orders={orders} /&gt;
+      &lt;RevenueChart orders={orders} /&gt;
+    &lt;/main&gt;
+  );
+}</code></pre>
+  <div class="key-sentence">状态下沉的判断标准：<strong>哪些组件真正需要这个 state，就把 state 放到它们最近的公共父组件；不需要的组件不进入 state 变化的传播路径。</strong>这比给所有子组件套 memo 更根本。</div>
+  <p>展示型卡片组件随后包上 <code>memo</code>，配合 55.5 的引用稳定手段，让 props 未变的行组件跳过渲染。</p>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">55.4</span> 问题二：列表虚拟化接入</h2>
+  <p>两千条订单的 DOM 规模是滚动掉帧的主因。按第 50 章方案，把全量 <code>map</code> 替换为 <code>FixedSizeList</code>，行高固定，订单数据通过 <code>itemData</code> 传入；筛选结果变化时 <code>itemCount</code> 自然跟随。</p>
+  <pre class="code" data-lang="jsx"><code>import { FixedSizeList } from 'react-window';
+import { memo } from 'react';
+
+const OrderRow = memo(function OrderRow({ index, style, data }) {
+  const order = data[index];
+  return (
+    &lt;div style={style} className="order-row"&gt;
+      &lt;span&gt;{order.id}&lt;/span&gt;
+      &lt;span&gt;{order.customer}&lt;/span&gt;
+      &lt;span&gt;{order.amount}&lt;/span&gt;
+    &lt;/div&gt;
+  );
+});
+
+function OrderList({ orders }) {
+  return (
+    &lt;FixedSizeList
+      height={520}
+      width="100%"
+      itemCount={orders.length}
+      itemSize={56}
+      itemData={orders}
+    &gt;
+      {OrderRow}
+    &lt;/FixedSizeList&gt;
+  );
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">接入检查</span>接入虚拟化后复核三条铁律（第 50 章）：行根节点透传 <code>style</code>、key 使用订单业务 id、若后续支持展开行高改为 <code>VariableSizeList</code> 并在高度变化后调用 <code>resetAfterIndex</code>。</div>
+  <p>列表外层容器补充 <code>content-visibility</code> 与布局包含，为页面内其他非可视区域减少渲染压力：</p>
+  <pre class="code" data-lang="css"><code>.order-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+}
+
+.summary-panel {
+  contain: layout paint;
+}</code></pre>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">55.5</span> 问题三：派生计算记忆化与引用稳定</h2>
+  <p>筛选、排序、金额聚合原本在每次渲染时重新执行；配合 memo 子组件时，内联配置对象与内联回调又让浅比较始终不相等。按第 49 章边界处理：昂贵派生用 <code>useMemo</code>，传给 memo 子组件的回调用 <code>useCallback</code>。</p>
+  <pre class="code" data-lang="jsx"><code>import { useMemo, useCallback } from 'react';
+
+function OrderList({ orders, keyword }) {
+  // 昂贵派生：筛选 + 排序 + 聚合只在依赖变化时重算
+  const visibleOrders = useMemo(
+    () =&gt; orders
+      .filter((o) =&gt; o.customer.includes(keyword))
+      .sort((a, b) =&gt; b.amount - a.amount),
+    [orders, keyword]
+  );
+
+  const summary = useMemo(
+    () =&gt; visibleOrders.reduce((sum, o) =&gt; sum + o.amount, 0),
+    [visibleOrders]
+  );
+
+  // 回调引用稳定，配合 memo 行组件的浅比较
+  const handleToggle = useCallback((id) =&gt; {
+    setExpandedIds((prev) =&gt; {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  return (
+    &lt;OrderRowList
+      orders={visibleOrders}
+      summary={summary}
+      onToggle={handleToggle}
+    /&gt;
+  );
+}</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup>
+    <thead><tr><th>记忆化判断</th><th>本案例取值</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>筛选排序结果</td><td>useMemo</td><td>遍历两千条记录，计算成本可观，下游列表直接使用</td></tr>
+      <tr><td>聚合金额</td><td>useMemo</td><td>依赖 visibleOrders，避免每次渲染重复 reduce</td></tr>
+      <tr><td>行展开回调</td><td>useCallback</td><td>传给 memo 行组件，引用稳定才能跳过重渲染</td></tr>
+      <tr><td>普通样式常量</td><td>提到组件外</td><td>静态配置不需要 useMemo，避免依赖数组噪音</td></tr>
+    </tbody>
+  </table>
+  <div class="pit-sentence">复盘时对照第 49.3 节：不要为简单拼接、仅内部使用的值套 useMemo；本案例记忆化的对象都满足"计算昂贵"或"下游引用敏感"两条之一，其余派生保持直接计算。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">55.6</span> 问题四：代码分割与高频事件限流</h2>
+  <p>重型图表组件与订单列表同包，首屏必须下载完整图表库。按第 51 章做组件级懒加载，列表先出主体，图表在需要时再下载；搜索输入加防抖，滚动监听使用 <code>passive: true</code>。</p>
+  <pre class="code" data-lang="jsx"><code>import { lazy, Suspense, useEffect, useState } from 'react';
+
+const RevenueChart = lazy(() =&gt; import('./RevenueChart'));
+
+export default function OrderPage({ orders }) {
+  const [keyword, setKeyword] = useState('');
+  const debouncedKeyword = useDebounced(keyword, 300);
+
+  return (
+    &lt;main&gt;
+      &lt;SearchBar value={keyword} onChange={setKeyword} /&gt;
+      &lt;OrderList orders={orders} keyword={debouncedKeyword} /&gt;
+      &lt;Suspense fallback={&lt;div className="chart-loading"&gt;图表加载中…&lt;/div&gt;}&gt;
+        &lt;RevenueChart orders={orders} /&gt;
+      &lt;/Suspense&gt;
+    &lt;/main&gt;
+  );
+}</code></pre>
+  <pre class="code" data-lang="js"><code>// 防抖 Hook 概念实现：300ms 内连续输入只取最后一次值
+function useDebounced(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() =&gt; {
+    const timer = setTimeout(() =&gt; setDebounced(value), delay);
+    return () =&gt; clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+// 滚动上报：节流 + passive，不阻塞滚动主线程
+window.addEventListener('scroll', throttle(reportScroll, 200), { passive: true });</code></pre>
+  <div class="note"><strong>衔接说明</strong>：防抖与节流实现、rAF 动画规则见第 54 章；代码分割与错误边界配合见第 51 章，图表加载失败时应由错误边界给出重试入口。</div>
+</section>
+
+<section id="sec8" class="card">
+  <h2><span class="num">55.7</span> 复测对比与经验总结</h2>
+  <p>全部改动完成后，用同一套复现动作重新录制，对比基线与优化后的指标。下表数字为<strong>示意</strong>，仅用于说明记录格式，不代表真实项目基准：</p>
+  <table>
+    <colgroup><col style="width:28%"><col style="width:24%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <thead><tr><th>指标（示意）</th><th>优化前基线</th><th>优化后复测</th><th>对应改动</th></tr></thead>
+    <tbody>
+      <tr><td>输入一次关键词的提交耗时</td><td>较高（整树重渲染）</td><td>明显下降</td><td>状态下沉 + memo 屏障</td></tr>
+      <tr><td>同时挂载的列表 DOM 节点</td><td>约两千个</td><td>稳定在可视区数量级</td><td>虚拟化 + content-visibility</td></tr>
+      <tr><td>筛选排序重复执行次数</td><td>每次渲染重复</td><td>依赖变化才重算</td><td>useMemo 记忆化</td></tr>
+      <tr><td>首屏 bundle 体积</td><td>含重型图表库</td><td>图表 chunk 独立按需下载</td><td>组件级懒加载</td></tr>
+      <tr><td>滚动帧节奏</td><td>周期性掉帧</td><td>主线程任务被限流</td><td>节流 + passive + 布局隔离</td></tr>
+    </tbody>
+  </table>
+  <p>复盘沉淀出的经验清单：</p>
+  <ol>
+    <li><strong>度量先行</strong>：没有 Profiler 排名图与 Performance 长任务证据，不动手改组件结构；</li>
+    <li><strong>最小改动</strong>：先状态下沉，再 memo，再记忆化；顺序反了会留下大量无效包裹；</li>
+    <li><strong>复测收尾</strong>：每改一类问题都回到同一复现动作录制，指标不改善就回退方案；</li>
+    <li><strong>权衡可读性</strong>：记忆化代码增加依赖追踪成本，收益不明显的包裹在复盘时主动删除；</li>
+    <li><strong>分层归因</strong>：组件层重渲染看 Profiler，主线程与布局看 Performance，首屏体积看包报告，互不替代。</li>
+  </ol>
+  <div class="key-sentence">本篇主线收束：<strong>Profiler 找问题，memo/useMemo/useCallback 控重复渲染，虚拟化控 DOM 规模，代码分割控首屏体积，动画与事件限流控主线程——它们分别解决不同层的问题，组合使用才形成完整优化闭环。</strong></div>
+  <div class="warn-box"><span class="tag-pit">最后提醒</span>性能优化没有终点：新功能接入后重新度量，基线指标随用户规模与数据量变化需要持续观察；不要把一次性优化当成永久结论。</div>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>排查顺序</td><td>复现动作固定 → Profiler 与 Performance 录制 → 归因到问题清单 → 最小改动 → 复测</td></tr>
+      <tr><td>整树重渲染</td><td>state 下沉到最近公共父组件，展示组件包 memo 拦截 props 未变的渲染</td></tr>
+      <tr><td>长列表</td><td>虚拟化只挂可视区，配合 content-visibility 与稳定 key</td></tr>
+      <tr><td>计算与引用</td><td>昂贵派生 useMemo，下游敏感回调 useCallback，简单派生不包裹</td></tr>
+      <tr><td>首屏与事件</td><td>重型组件懒加载，搜索防抖、滚动节流与 passive 监听</td></tr>
+      <tr><td>复盘纪律</td><td>指标前后对比记录，收益不明显的记忆化主动回退，分层归因不混用工具</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec10" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>给定一个"父组件持有 tab 状态，切换时全部卡片重渲染"的页面，写出状态下沉的具体方案：哪些组件需要该 state、应下沉到哪一层、哪些展示组件适合包 memo。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>案例中的 <code>visibleOrders</code> 筛选排序与 <code>summary</code> 聚合需要记忆化：写出 useMemo 依赖数组；再说明 <code>handleToggle</code> 为什么需要 useCallback，若漏写会导致什么现象。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>假设复测发现虚拟化接入后滚动仍偶发白屏、且展开行高度变化后位置错位。写出排查步骤：检查哪些规则、缺什么配置、分别对应 react-window 的哪些 API；再给出"图表懒加载 chunk 加载失败"时应补充的错误边界结构。</div>
+  <p class="note">参考答案见附录 C。下一章：组件库 Ant Design 体系——进入第七篇生态与实战，学习主流组件库的选型、主题定制与典型页面搭建。</p>
+</section>
+
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="054_第54章_长列表与动画性能.html">← 第 54 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="../70_第七篇_生态与实战/056_第56章_组件库AntDesign体系.html">第 56 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 55 章 实战：慢页面优化全记录</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>

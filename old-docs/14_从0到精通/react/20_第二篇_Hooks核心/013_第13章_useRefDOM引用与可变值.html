@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 13 章 useRef：DOM 引用与可变值｜React 从 0 到精通</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232d6a3f'/%3E%3Crect x='3' y='4' width='10' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='7' width='7' height='2' rx='1' fill='%23fff'/%3E%3Crect x='3' y='10' width='9' height='2' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --line:#d8e2cc; --line-2:#c2cfb4;
+  --ink:#1f2e1f; --ink-2:#4f6348; --ink-3:#7a8a70;
+  --accent:#2d6a3f; --accent-2:#4f8a63; --accent-soft:#d8e8c8;
+  --warn:#b45309; --warn-soft:#fef3c7;
+  --danger:#b91c1c; --danger-soft:#fee2e2;
+  --ok:#047857; --ok-soft:#d1fae5;
+  --code-bg:#152010; --code-ink:#d8e2cc;
+  --radius:12px; --shadow:0 1px 3px rgba(15,23,42,.08);
+  --font:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;max-width:100%}
+html{scroll-behavior:smooth}
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 var(--font);-webkit-font-smoothing:antialiased}
+.container{max-width:980px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(180deg,#22331f 0%,#152010 100%);color:#f8faf0;padding:44px 0 36px}
+.hero .breadcrumb{font-size:13px;color:#9cae90;letter-spacing:.04em;margin:0 0 12px}
+.hero h1{margin:0 0 10px;font-size:30px;line-height:1.3;font-weight:700}
+.hero .meta-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.badge{display:inline-block;padding:2px 12px;border-radius:999px;font-size:13px;font-weight:600;line-height:1.6}
+.badge.std{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.hero .meta{font-size:14px;color:#c2cfb4}
+.hero-desc{max-width:860px;margin:0;font-size:15.5px;color:#c2cfb4}
+.doc-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:10px 20px}
+.doc-nav.top{position:sticky;top:0;z-index:70;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+.doc-nav.bottom{border-top:1px solid var(--line);padding-top:16px;padding-bottom:16px;margin-top:8px}
+.doc-nav-btn{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;transition:border-color .15s,background .15s}
+a.doc-nav-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.doc-nav-btn.home{color:var(--ink-2)}
+.doc-nav-btn.home:hover{color:var(--accent)}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:24px 0}
+.toc h2{margin:0 0 12px;font-size:16px;color:var(--ink)}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:toc}
+.toc li{counter-increment:toc;font-size:14px;margin:6px 0}
+.toc li::before{content:counter(toc);display:inline-block;min-width:22px;height:22px;line-height:22px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;margin-right:8px}
+.toc a{color:var(--accent);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(min-width:1024px){
+  nav.toc{position:fixed;left:20px;top:80px;width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:60}
+  nav.toc h2{font-size:14px;color:#22331f;border-bottom:1px solid var(--line);padding-bottom:8px}
+  nav.toc ol li a{display:block;padding:6px 10px;color:#7a8a70;font-size:13px;border-radius:6px;transition:all .15s}
+  nav.toc ol li a:hover{background:#f0f5e6;color:#2d6a3f;text-decoration:none}
+  .container{margin-left:280px;max-width:calc(100% - 300px)}
+}
+@media(max-width:1023px){nav.toc{position:static;width:auto}}
+main{display:block;padding-bottom:40px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:34px 40px;margin:26px 0}
+section.card h2{font-size:24px;margin:0 0 22px;padding-left:14px;border-left:4px solid var(--accent);line-height:1.4}
+section.card h2 .num{display:inline-block;min-width:32px;height:32px;line-height:32px;text-align:center;background:var(--accent);color:#fff;border-radius:8px;font-size:15px;font-weight:700;margin-right:10px;vertical-align:2px}
+section.card h3{font-size:19px;margin:36px 0 12px;padding-left:10px;border-left:3px solid var(--accent-2);color:var(--accent-2);line-height:1.45}
+section.card h4{font-size:16.5px;margin:24px 0 10px;padding-left:8px;border-left:3px solid var(--line-2);color:#354835;font-weight:600;line-height:1.45}
+section.card p{margin:12px 0}
+section.card ul,section.card ol{margin:12px 0;padding-left:26px}
+section.card li{margin:8px 0;line-height:1.8}
+section.card ul ul,section.card ol ol,section.card ul ol,section.card ol ul{margin:6px 0;padding-left:22px;border-left:2px solid var(--line);margin-left:6px}
+section.card ul>li::marker{color:var(--accent);font-size:1.05em}
+section.card ol>li::marker{color:var(--accent);font-weight:700}
+strong{color:var(--ink)}
+code{font-family:var(--mono);font-size:.92em;background:#eef3e8;color:#0f4c81;padding:1px 6px;border-radius:5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;line-height:1.65;font-size:13.5px;font-family:var(--mono);max-width:100%}
+pre.code::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font-size:11.5px;color:#7a8a70;letter-spacing:.06em}
+pre.code code{background:transparent;color:inherit;padding:0;font-size:inherit;word-break:normal;overflow-wrap:normal;white-space:pre;display:block}
+.code-copy{position:absolute;top:6px;right:64px;font-size:12px;color:#c2cfb4;background:#22331f;border:1px solid #354835;border-radius:6px;padding:2px 8px;cursor:pointer}
+.code-copy:hover{color:#fff;border-color:#4f6348}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;overflow-wrap:break-word}
+th{background:#eef3e5;font-weight:600}
+tbody tr:nth-child(even){background:#f8faf0}
+.diagram{margin:20px 0}
+.diagram svg{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fbfdff}
+.diagram-caption{margin:8px 0 0;text-align:center;font-size:13px;color:var(--ink-3)}
+.note{border-left:4px solid var(--accent);background:#f0f6ff;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.warn-box{border-left:4px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.danger-box{border-left:4px solid var(--danger);background:var(--danger-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+.key-sentence{border-left:4px solid var(--accent);background:#f0f6ff;padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.pit-sentence{border-left:4px solid var(--warn);background:var(--warn-soft);padding:9px 14px;margin:14px 0;border-radius:0 8px 8px 0;font-weight:600;line-height:1.8}
+.lead{font-size:15.5px;color:var(--ink-2);margin:0 0 14px;padding:10px 14px;background:#f8faf0;border:1px solid var(--line);border-radius:8px;line-height:1.8}
+.lead b,.lead strong{color:var(--ink)}
+.tag-key,.tag-point,.tag-pit{display:inline-block;font-size:12px;font-weight:700;line-height:1;padding:3px 8px;border-radius:5px;margin-right:6px;vertical-align:2px;white-space:nowrap}
+.tag-key{background:var(--accent-soft);color:var(--accent);border:1px solid #a9c8a2}
+.tag-point{background:var(--ok-soft);color:var(--ok);border:1px solid #6ee7b7}
+.tag-pit{background:var(--warn-soft);color:var(--warn);border:1px solid #fcd34d}
+.ex-box{border-left:4px solid var(--ok);background:var(--ok-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px;line-height:1.8}
+.ex-box .ex-tag{font-weight:700;color:var(--ok);margin-right:8px;white-space:nowrap}
+footer{background:#22331f;color:#9cae90;text-align:center;font-size:13px;padding:22px 0;margin-top:8px}
+#backTop{position:fixed;right:24px;bottom:32px;width:44px;height:44px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,63,.35);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:99}
+#backTop.show{opacity:1;visibility:visible}
+@media(max-width:760px){
+  body{line-height:1.75;font-size:15px}
+  .container{padding:0 14px;margin:0;max-width:100%}
+  .hero{padding:24px 0 20px}
+  .hero h1{font-size:22px}
+  section.card{padding:20px 16px;margin:16px 0}
+  section.card h2{font-size:19px;margin-bottom:16px}
+  section.card h3{font-size:16px;margin:22px 0 10px}
+  section.card h4{font-size:15px;margin:18px 0 8px}
+  pre.code{font-size:12px;padding:12px}
+  code{font-size:13px}
+  .doc-nav-btn{font-size:12px;padding:6px 10px}
+  .doc-nav.bottom{flex-wrap:wrap}
+  #backTop{right:16px;bottom:20px}
+}
+</style>
+<link rel="stylesheet" href="../../../glossary/glossary.css">
+<link rel="stylesheet" href="../../../assets/app.css">
+</head>
+<body>
+<header class="hero">
+  <div class="container">
+    <p class="breadcrumb">从 0 到精通 · 《React 从 0 到精通》 · 第二篇 Hooks 核心</p>
+    <h1>第 13 章 useRef：DOM 引用与可变值</h1>
+    <div class="meta-row">
+      <span class="badge std">教科书</span>
+      <span class="meta">第 13 章 / 共 64 章 · 预计 45 分钟 · 渲染周期里的「私人备忘录」</span>
+    </div>
+    <p class="hero-desc">useRef 常被当成「只能拿 DOM 节点」的小工具，其实它有两副面孔：一是对 DOM 节点或组件实例的引用，二是跨渲染周期保持不变的可变容器。本章讲清 ref 对象的结构、它与 state 的本质差异、四类标准用法，以及渲染期间读写 ref 这一高频陷阱。</p>
+  </div>
+</header>
+<nav class="doc-nav top" aria-label="文档导航">
+  <a class="doc-nav-btn" href="012_第12章_useLayoutEffect与绘制时机.html">第 12 章</a>
+  <a class="doc-nav-btn home" href="../../../index.html">⌂ 返回首页</a>
+  <a class="doc-nav-btn" href="014_第14章_useContext与Provider.html">第 14 章</a>
+</nav>
+<div class="container">
+<nav class="toc" aria-label="本章目录">
+  <h2>本章地图</h2>
+  <ol>
+  <li><a href="#sec1">本章目标</a></li>
+  <li><a href="#sec2">13.1 useRef 的两种身份</a></li>
+  <li><a href="#sec3">13.2 ref 与 state：本质区别对照表</a></li>
+  <li><a href="#sec4">13.3 四类标准用法</a></li>
+  <li><a href="#sec5">13.4 ref 对象结构与回调 ref</a></li>
+  <li><a href="#sec6">13.5 常见坑与反模式</a></li>
+  <li><a href="#sec7">13.6 与 Vue 模板 ref 对照及排查清单</a></li>
+  <li><a href="#sec8">本章小结</a></li>
+  <li><a href="#sec9">本章习题</a></li>
+  </ol>
+</nav>
+<main>
+<section id="sec1" class="card">
+  <h2><span class="num">◆</span>本章目标</h2>
+  <ul>
+    <li>理解 <code>useRef(initial)</code> 返回的是一个<strong>带 <code>.current</code> 属性的普通对象</strong>，且该对象在组件整个生命周期内保持同一个引用；</li>
+    <li>能把 <code>useRef</code> 与 <code>useState</code> 的差异讲清楚：<strong>是否触发渲染、是否参与渲染输出、是否进入依赖数组</strong>；</li>
+    <li>掌握四类标准用法：DOM 引用、保存上一次值、保存定时器/订阅句柄、保存给旧闭包读取的最新值；</li>
+    <li>会使用<strong>回调 ref</strong> 处理挂载、卸载与动态节点场景；</li>
+    <li>避开渲染期间读写 ref、条件渲染后 <code>current</code> 为 null、把 ref 当状态显示等高频陷阱。</li>
+  </ul>
+</section>
+
+<section id="sec2" class="card">
+  <h2><span class="num">13.1</span> useRef 的两种身份</h2>
+  <p>提到 ref，新手首先想到「把 <code>ref</code> 属性挂到 DOM 标签上，然后通过 <code>ref.current</code> 拿到这个节点」。这只是它的第一副面孔。第二副面孔来自官方文档对 <code>useRef</code> 的定义：它返回一个<strong>可变容器</strong>，其 <code>.current</code> 属性在组件重新渲染之间保持不变。</p>
+  <div class="lead">可以把 ref 想象成组件在 React 渲染周期之外的一块私人备忘录：渲染一次次跑，备忘录本体始终是同一个；里面记什么、什么时候记，React 不会因此重新渲染，也不会盯着它做变更检测。</div>
+  <div class="diagram">
+    <svg viewBox="0 0 800 250" role="img" aria-label="useRef 两种身份示意图">
+      <rect x="30" y="30" width="340" height="180" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="200" y="58" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">身份一：DOM / 组件实例引用</text>
+      <rect x="70" y="84" width="260" height="40" rx="6" fill="#fff" stroke="#4f8a63"/>
+      <text x="200" y="109" text-anchor="middle" font-size="12" fill="#1f2e1f">&lt;input ref={inputRef} /&gt;</text>
+      <text x="200" y="152" text-anchor="middle" font-size="12" fill="#4f6348">挂载后：inputRef.current 指向真实 DOM</text>
+      <text x="200" y="178" text-anchor="middle" font-size="12" fill="#4f6348">用于 focus()、scrollIntoView()、测量尺寸</text>
+      <rect x="430" y="30" width="340" height="180" rx="10" fill="#f0f5e6" stroke="#3d7a4f"/>
+      <text x="600" y="58" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2e1f">身份二：跨渲染的可变容器</text>
+      <rect x="470" y="84" width="260" height="40" rx="6" fill="#fff" stroke="#4f8a63"/>
+      <text x="600" y="109" text-anchor="middle" font-size="12" fill="#1f2e1f">const idRef = useRef(null)</text>
+      <text x="600" y="152" text-anchor="middle" font-size="12" fill="#4f6348">保存上一次值、定时器 ID、订阅对象</text>
+      <text x="600" y="178" text-anchor="middle" font-size="12" fill="#4f6348">修改 .current 不触发任何渲染</text>
+    </svg>
+    <p class="diagram-caption">图 13-1 useRef 的两种身份：节点引用与可变容器共用同一个 <code>.current</code> 机制</p>
+  </div>
+  <pre class="code" data-lang="jsx"><code>import { useRef } from 'react';
+
+function Demo() {
+  // 身份一：初始值为 null，等待 ref 属性挂上真实节点
+  const inputRef = useRef(null);
+
+  // 身份二：容器本体不变，里面可以存任意值
+  const clickCountRef = useRef(0);
+
+  function handleClick() {
+    clickCountRef.current += 1;          // 修改备忘录，不触发渲染
+    inputRef.current &amp;&amp; inputRef.current.focus();
+  }
+
+  return &lt;input ref={inputRef} /&gt;;
+}</code></pre>
+</section>
+
+<section id="sec3" class="card">
+  <h2><span class="num">13.2</span> ref 与 state：本质区别对照表</h2>
+  <p>新手最容易把「要记住的值」一律写成 <code>useState</code>，结果界面为了一个不需要显示的计数反复重渲染。理解下面这张表，就能在两者之间做正确选择。</p>
+  <table>
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <thead><tr><th>对比项</th><th>useState</th><th>useRef</th></tr></thead>
+    <tbody>
+      <tr><td>修改后是否触发渲染</td><td>是：调用 setter 安排一次重渲染</td><td>否：直接改 <code>.current</code>，React 无感</td></tr>
+      <tr><td>值是否参与渲染输出</td><td>是：显示值必须来自 state/props/派生计算</td><td>否：渲染期间读取 <code>.current</code> 不保证最新</td></tr>
+      <tr><td>是否进入 effect 依赖数组</td><td>是：变化的值需要重新同步时写入依赖</td><td>否：React 不追踪 <code>.current</code>，写进依赖没有意义</td></tr>
+      <tr><td>初始值计算</td><td>惰性初始化函数参数可避免每次渲染重算</td><td>每次渲染都会读取传入的初始参数，但只有首次生效</td></tr>
+      <tr><td>适合保存什么</td><td>驱动界面更新的显示数据</td><td>DOM 节点、定时器 ID、订阅句柄、给旧闭包读的最新值</td></tr>
+    </tbody>
+  </table>
+  <div class="key-sentence">判断口诀：<strong>这个值变了，界面要不要跟着变？</strong> 要，用 state；不要，用 ref。</div>
+  <pre class="code" data-lang="jsx"><code>// ✗ 不需要显示的计数也用 state：组件每次点击都重渲染
+const [count, setCount] = useState(0);
+function onClick() { setCount(c =&gt; c + 1); }
+
+// ✓ 只在事件处理里读取、不显示 → ref
+const countRef = useRef(0);
+function onClick() { countRef.current += 1; }</code></pre>
+  <div class="warn-box"><span class="tag-pit">红线</span>渲染输出（JSX）里直接读取 <code>ref.current</code> 是反模式：ref 的更新不会触发渲染，你看到的永远是上一次渲染读到的值。显示数据必须走 state。</div>
+</section>
+
+<section id="sec4" class="card">
+  <h2><span class="num">13.3</span> 四类标准用法</h2>
+  <div class="lead">ref 的两类身份遵守同一条底层规则：组件实例持有同一个 ref 对象，它的生命周期与组件绑定；组件卸载时，ref 中保存的节点引用与句柄一并失效。</div>
+  <h4>用法一：DOM 节点引用，触发聚焦 / 滚动 / 测量</h4>
+  <pre class="code" data-lang="jsx"><code>function SearchForm() {
+  const boxRef = useRef(null);
+
+  useEffect(() =&gt; {
+    boxRef.current &amp;&amp; boxRef.current.focus();
+  }, []);
+
+  function jumpToTop() {
+    boxRef.current &amp;&amp; boxRef.current.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  return (
+    &lt;&gt;
+      &lt;button onClick={jumpToTop}&gt;回到搜索框&lt;/button&gt;
+      &lt;input ref={boxRef} placeholder="搜索" /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+  <h4>用法二：保存上一次渲染的值（previous 值）</h4>
+  <pre class="code" data-lang="jsx"><code>function usePrevious(value) {
+  const prevRef = useRef(undefined);
+  useEffect(() =&gt; {
+    prevRef.current = value;      // 渲染提交后记录当前值，下一轮再读就是上一次
+  }, [value]);
+  return prevRef.current;
+}
+
+function Profile({ userId }) {
+  const prevUserId = usePrevious(userId);
+  // 可以据此判断「用户是否切换了档案」并执行过渡逻辑
+}</code></pre>
+  <h4>用法三：保存定时器 / 订阅 / 第三方实例句柄</h4>
+  <pre class="code" data-lang="jsx"><code>function Chat({ roomId }) {
+  const socketRef = useRef(null);
+
+  useEffect(() =&gt; {
+    const socket = io(`/room/${roomId}`);
+    socketRef.current = socket;
+    socket.on('message', appendMessage);
+    return () =&gt; {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [roomId]);
+}</code></pre>
+  <h4>用法四：把最新值交给旧闭包读取（latest ref 模式）</h4>
+  <p>第 11 章 11.3 提到过这一模式：某个副作用只想读最新值、又不希望该值进入依赖导致反复重建。用 ref 作为「最新值信箱」即可。</p>
+  <pre class="code" data-lang="jsx"><code>function Notice({ theme, text }) {
+  const themeRef = useRef(theme);
+  useEffect(() =&gt; { themeRef.current = theme; }, [theme]);
+
+  useEffect(() =&gt; {
+    const timer = setInterval(() =&gt; {
+      toast(themeRef.current, text);   // 读到最新主题，定时器不随 theme 重建
+    }, 5000);
+    return () =&gt; clearInterval(timer);
+  }, [text]);
+}</code></pre>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:34%"><col style="width:36%"></colgroup>
+    <thead><tr><th>场景</th><th>选择</th><th>原因</th></tr></thead>
+    <tbody>
+      <tr><td>按钮点击后输入框聚焦</td><td>DOM 引用 ref</td><td>命令式调用原生方法，无需界面状态</td></tr>
+      <tr><td>记录用户点过多少次但不展示</td><td>可变容器 ref</td><td>不触发渲染，避免无谓重绘</td></tr>
+      <tr><td>下拉选项决定界面文案与配色</td><td>useState</td><td>变化必须反映到输出</td></tr>
+      <tr><td>effect 内需要读取最新回调但不重建订阅</td><td>latest ref</td><td>信箱模式绕过闭包陈旧问题</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec5" class="card">
+  <h2><span class="num">13.4</span> ref 对象结构与回调 ref</h2>
+  <p><code>useRef(initialValue)</code> 返回的对象结构极其简单：</p>
+  <pre class="code" data-lang="js"><code>{ current: initialValue }   // 整个组件生命周期内都是同一个对象引用</code></pre>
+  <p>当这个 ref 被挂到 DOM 标签上，React 在节点挂载后把真实 DOM 赋给 <code>current</code>，卸载时再把 <code>current</code> 置回 null。</p>
+  <h4>回调 ref：传入函数而不是对象</h4>
+  <p>除了传 ref 对象，<code>ref</code> 属性还可以接收一个函数：节点挂载时 React 调用它并传入节点，卸载时再次调用并传入 null。需要感知「挂载/卸载时刻」或动态创建节点时，回调 ref 更顺手。</p>
+  <pre class="code" data-lang="jsx"><code>function List({ items }) {
+  return (
+    &lt;ul&gt;
+      {items.map((item) =&gt; (
+        &lt;li
+          key={item.id}
+          ref={(node) =&gt; {
+            if (node) { /* 挂载：node 是 li 元素 */ }
+            else { /* 卸载：node 为 null，做清理 */ }
+          }}
+        &gt;
+          {item.title}
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}</code></pre>
+  <div class="warn-box"><span class="tag-pit">注意</span>回调 ref 在组件每次渲染时可能被先调用 null 再调用节点（内联函数形式），不要在回调里写昂贵逻辑；需要稳定引用时，把回调 <code>useCallback</code> 包起来，或直接使用 ref 对象。</div>
+  <div class="key-sentence">ref 对象本身引用恒定，React 不会追踪 <code>.current</code> 的变化；需要「值变化触发界面更新」的场景，一律回到 <code>useState</code>，不要在 ref 与 state 之间摇摆。</div>
+  <p>与类组件时代的 <code>createRef()</code> 相比，函数组件里始终使用 <code>useRef</code>：<code>createRef</code> 每次渲染都生成新对象，没有跨渲染保持身份这一特性。子组件要把内部 DOM 暴露给父组件，需要 <code>forwardRef</code> 与 ref 转发机制，第 56 章组件库实战会结合 Ant Design 的 ref 用法展开。</p>
+</section>
+
+<section id="sec6" class="card">
+  <h2><span class="num">13.5</span> 常见坑与反模式</h2>
+  <table>
+    <colgroup><col style="width:32%"><col style="width:34%"><col style="width:34%"></colgroup>
+    <thead><tr><th>反模式</th><th>后果</th><th>正确做法</th></tr></thead>
+    <tbody>
+      <tr><td>渲染期间写 <code>ref.current = value</code></td><td>双调用并发渲染时行为不可预测，违反渲染纯净性</td><td>写在事件处理、effect 或 latest ref 的同步 effect 中</td></tr>
+      <tr><td>条件渲染分支内的 ref 直接读取</td><td><code>current</code> 为 null，调用 <code>.focus()</code> 抛错</td><td>读取前判空：<code>ref.current &amp;&amp; ref.current.focus()</code></td></tr>
+      <tr><td>把 <code>ref.current</code> 写进 JSX 显示</td><td>ref 更新不触发渲染，显示与真实值脱节</td><td>显示数据改用 state，ref 仅用于命令式操作与备忘录</td></tr>
+      <tr><td>把 ref 对象放进 effect 依赖数组</td><td>对象引用恒定，依赖永远不触发，lint 也不会报错提醒你</td><td>依赖里只写响应式值；ref 本身不进依赖</td></tr>
+      <tr><td>用 ref 存 props 并在渲染中比较新旧 props</td><td>渲染期间读写 ref，StrictMode 双渲染下结果混乱</td><td>用 <code>usePrevious</code> 模式把赋值放到 effect 里</td></tr>
+    </tbody>
+  </table>
+  <pre class="code" data-lang="jsx"><code>// ✗ 渲染期间写 ref：并发渲染与 StrictMode 下会出问题
+function Counter({ step }) {
+  const prevStep = useRef(step);
+  prevStep.current = step;          // 渲染期写入，禁止
+  return &lt;div&gt;{step}&lt;/div&gt;;
+}
+
+// ✓ 放到 effect 里，提交后再记录
+function Counter({ step }) {
+  const prevStep = useRef(step);
+  useEffect(() =&gt; { prevStep.current = step; }, [step]);
+  return &lt;div&gt;{step}&lt;/div&gt;;
+}</code></pre>
+  <div class="pit-sentence">记住 React 的渲染必须是<strong>纯函数</strong>：同样的 props 与 state 跑出同样的 JSX，不产生外部可观察的写入。ref 是外部备忘录，渲染期间只允许读、不允许写。</div>
+</section>
+
+<section id="sec7" class="card">
+  <h2><span class="num">13.6</span> 与 Vue 模板 ref 对照及排查清单</h2>
+  <p>Vue 3 中 <code>ref()</code> 是响应式状态容器，模板里自动解包，修改即触发视图更新；React 的 <code>useRef</code> 定位更接近 Vue 的 <code>shallowRef</code> 配合「不参与响应式追踪」的场景，而 DOM 引用对应 Vue 模板里的 <code>ref="inputRef"</code>。跨框架迁移时最容易混淆的就是这一点：<strong>React 的 ref 不是响应式状态</strong>。</p>
+  <div class="pit-sentence">从 Vue 迁移过来最常见的错误：把需要显示的计数器、开关状态存进 <code>useRef</code>，然后困惑界面为什么不更新——React 不会监听 <code>.current</code>，这是两套响应式模型的根本差异。</div>
+  <ol>
+    <li><strong>调用 <code>ref.current.focus()</code> 报 null</strong> → 节点在条件分支中尚未挂载；先判空，或在 effect 里等待挂载完成；</li>
+    <li><strong>改了 ref 界面没反应</strong> → 该值其实需要显示，改用 <code>useState</code>；</li>
+    <li><strong>effect 里读到旧值</strong> → 用 latest ref 信箱模式，或按第 11 章规则补齐依赖；</li>
+    <li><strong>定时器/订阅在组件卸载后仍触发</strong> → 句柄存在 ref 中，cleanup 里释放并置 null；</li>
+    <li>跨层级共享主题、用户信息等数据时，ref 无能为力——下一章 <code>useContext</code> 解决的正是「数据穿过组件树向下传」的问题。</li>
+  </ol>
+  <div class="note"><strong>小结口诀</strong>：DOM 节点挂 ref，不显示的备忘录也挂 ref；要显示、要重渲染，一律回到 state。</div>
+</section>
+<section id="sec8" class="card">
+  <h2><span class="num">✓</span> 本章小结</h2>
+  <table>
+    <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+    <thead><tr><th>要点</th><th>一句话</th></tr></thead>
+    <tbody>
+      <tr><td>两种身份</td><td>DOM/组件实例引用 + 跨渲染保存的可变容器</td></tr>
+      <tr><td>与 state 区别</td><td>改 ref.current 不触发渲染、不参与渲染输出、不进依赖数组</td></tr>
+      <tr><td>标准用法</td><td>聚焦输入框、保存上一次值、保存定时器/订阅句柄、保存最新值给旧闭包</td></tr>
+      <tr><td>回调 ref</td><td>需要拿到挂载/卸载时机或动态创建节点时使用函数形式的 ref</td></tr>
+      <tr><td>红线</td><td>不要在渲染期间读写 ref.current；不要把 ref.current 当作显示数据</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="sec9" class="card">
+  <h2><span class="num">✎</span> 本章习题</h2>
+  <div class="ex-box"><span class="ex-tag">A 基础</span>写出 <code>useRef(0)</code> 返回对象的结构；说明为什么修改 <code>ref.current</code> 后界面不会重新渲染。</div>
+  <div class="ex-box"><span class="ex-tag">B 进阶</span>实现 <code>&lt;SearchBox /&gt;</code>：点击「聚焦」按钮让输入框获得焦点；组件挂载时自动聚焦；输入框卸载时在控制台打印一次节点被移除的信息（提示：回调 ref）。</div>
+  <div class="ex-box"><span class="ex-tag">C 挑战</span>修复这个「永远显示上一次关键词」的钩子：<code>useEffect(() =&gt; { const id = setInterval(() =&gt; report(keyword), 1000); return () =&gt; clearInterval(id); }, []);</code> 要求定时器保持单一实例、不把 keyword 放进依赖，且卸载时正确清理。说明你使用的是 ref 的哪种身份。</div>
+  <p class="note">参考答案见附录 C。下一章：useContext 与 Provider：把数据穿过组件层级向下共享。</p>
+</section>
+</main>
+</div>
+<nav class="doc-nav bottom">
+  <a class="doc-nav-btn" href="012_第12章_useLayoutEffect与绘制时机.html">← 第 12 章</a>
+  <a class="doc-nav-btn" href="../00_目录.html">📖 全书目录</a>
+  <a class="doc-nav-btn" href="014_第14章_useContext与Provider.html">第 14 章 →</a>
+</nav>
+<footer>从 0 到 精通 · 《React 从 0 到精通》 · 第 13 章 useRef：DOM 引用与可变值</footer>
+<button id="backTop" type="button" aria-label="回到顶部">↑</button>
+<script>
+(function () {
+  'use strict';
+  try {
+    var btn = document.getElementById('backTop');
+    if (btn) {
+      var toggle = function () { btn.classList.toggle('show', window.scrollY > 480); };
+      window.addEventListener('scroll', toggle, { passive: true });
+      toggle();
+      btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    }
+  } catch (e) {}
+  try {
+    var pres = document.querySelectorAll('pre.code');
+    for (var i = 0; i < pres.length; i++) {
+      (function (pre) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'code-copy'; b.textContent = '复制';
+        b.setAttribute('aria-label', '复制代码');
+        pre.appendChild(b);
+        b.addEventListener('click', function () {
+          var codeEl = pre.querySelector('code');
+          var text = codeEl ? codeEl.innerText : pre.innerText;
+          var done = function () { b.textContent = '已复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); };
+          function fb(t, ok) {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy'); document.body.removeChild(ta); ok();
+            } catch (e2) {}
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () { fb(text, done); });
+          } else { fb(text, done); }
+        });
+      })(pres[i]);
+    }
+  } catch (e) {}
+})();
+</script>
+<script src="../../../glossary/glossary-data.js"></script>
+<script src="../../../glossary/glossary.js"></script>
+<script src="../../../assets/app.js"></script>
+</body>
+</html>
